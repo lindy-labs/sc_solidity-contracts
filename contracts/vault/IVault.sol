@@ -31,7 +31,8 @@ interface IVault {
         address indexed depositor,
         address indexed claimer,
         uint256 claimerId,
-        uint256 lockedUntil
+        uint256 lockedUntil,
+        bytes data
     );
 
     event DepositBurned(uint256 indexed id, uint256 shares, address indexed to);

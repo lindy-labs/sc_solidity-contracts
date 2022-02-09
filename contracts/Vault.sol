@@ -479,7 +479,8 @@ contract Vault is
             _msgSender(),
             _claim.beneficiary,
             claimerId,
-            _lockedUntil
+            _lockedUntil,
+            _claim.data
         );
     }
 

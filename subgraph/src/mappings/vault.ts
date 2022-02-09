@@ -1,4 +1,4 @@
-import { BigDecimal, BigInt, log } from "@graphprotocol/graph-ts";
+import { BigDecimal, BigInt, ByteArray, log } from "@graphprotocol/graph-ts";
 import {
   DepositBurned,
   DepositMinted,
@@ -8,7 +8,14 @@ import {
   Sponsored,
   Unsponsored
 } from "../types/templates/Vault/IVaultSponsoring";
-import { Sponsor, Claimer, Deposit, Foundation, Vault } from "../types/schema";
+import {
+  Sponsor,
+  Claimer,
+  Deposit,
+  Foundation,
+  Vault,
+  Donation
+} from "../types/schema";
 
 export function handleYieldClaimed(event: YieldClaimed): void {
   const claimerId = event.params.claimerId.toHexString();
@@ -25,7 +32,7 @@ export function handleYieldClaimed(event: YieldClaimed): void {
   for (let i = 0; i < claimer.depositsIds.length; i++) {
     const deposit = Deposit.load(claimer.depositsIds[i]);
 
-    if (!deposit) return;
+    if (!deposit) continue;
 
     const claimedShares = deposit.shares
       .times(event.params.amount)
@@ -37,6 +44,25 @@ export function handleYieldClaimed(event: YieldClaimed): void {
     totalClaimedShares = totalClaimedShares.plus(claimedShares);
     deposit.shares = deposit.shares.minus(claimedShares);
     deposit.save();
+
+    if (
+      event.params.to.equals(
+        ByteArray.fromHexString("0x4940c6e628da11ac0bdcf7f82be8579b4696fa33")
+      )
+    ) {
+      const id =
+        event.transaction.hash.toHex() + "-" + event.logIndex.toString();
+
+      const donation = new Donation(id);
+      donation.txHash = event.transaction.hash;
+      donation.amount = claimedShares
+        .times(event.params.amount)
+        .div(event.params.burnedShares);
+      donation.owner = deposit.depositor;
+      donation.destination = deposit.data;
+
+      donation.save();
+    }
   }
 
   if (!event.params.burnedShares.equals(totalClaimedShares)) {
@@ -83,6 +109,7 @@ export function handleDepositMinted(event: DepositMinted): void {
   deposit.lockedUntil = event.params.lockedUntil;
   deposit.shares = event.params.shares;
   deposit.burned = false;
+  deposit.data = event.params.data;
 
   foundation.save();
   claimer.save();

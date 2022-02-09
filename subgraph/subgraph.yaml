@@ -47,7 +47,7 @@ templates:
         - name: IVaultSponsoring
           file: ../artifacts/contracts/vault/IVaultSponsoring.sol/IVaultSponsoring.json
       eventHandlers:
-        - event: DepositMinted(indexed uint256,uint256,uint256,uint256,indexed address,indexed address,uint256,uint256)
+        - event: DepositMinted(indexed uint256,uint256,uint256,uint256,indexed address,indexed address,uint256,uint256,bytes)
           handler: handleDepositMinted
         - event: DepositBurned(indexed uint256,uint256,indexed address)
           handler: handleDepositBurned

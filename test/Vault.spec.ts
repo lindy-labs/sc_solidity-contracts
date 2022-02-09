@@ -341,7 +341,11 @@ describe("Vault", () => {
         amount: parseUnits("100"),
         claims: [
           claimParams.percent(50).to(carol.address).build(),
-          claimParams.percent(50).to(bob.address).build(),
+          claimParams
+            .percent(50)
+            .data(ethers.utils.hexlify(123))
+            .to(bob.address)
+            .build(),
         ],
       });
 
@@ -357,7 +361,8 @@ describe("Vault", () => {
           alice.address,
           carol.address,
           1,
-          lockedUntil
+          lockedUntil,
+          "0x00"
         );
 
       await expect(tx)
@@ -370,7 +375,8 @@ describe("Vault", () => {
           alice.address,
           bob.address,
           2,
-          lockedUntil
+          lockedUntil,
+          ethers.utils.hexlify(123)
         );
     });
 

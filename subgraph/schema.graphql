@@ -29,6 +29,7 @@ type Deposit @entity {
   lockedUntil: BigInt!
   shares: BigInt!
   burned: Boolean!
+  data: Bytes!
 }
 
 type Claimer @entity {
@@ -46,7 +47,7 @@ type Donation @entity {
   id: ID!
   txHash: Bytes!
   amount: BigInt!
-  depositor: Bytes!
+  owner: Bytes!
   destination: Bytes!
 }
 
