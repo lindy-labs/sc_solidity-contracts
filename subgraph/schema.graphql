@@ -1,0 +1,50 @@
+type Vault @entity {
+  id: ID!
+  underlying: Bytes!
+  totalShares: BigInt!
+  dcas: [DCA!]! @derivedFrom(field: "vault")
+  foundations: [Foundation!]! @derivedFrom(field: "vault")
+  claimers: [Claimer!]! @derivedFrom(field: "vault")
+}
+
+type DCA @entity {
+  id: ID!
+  vault: Vault!
+  input: Bytes!
+  output: Bytes!
+}
+
+type Foundation @entity {
+  id: ID!
+  vault: Vault!
+  deposits: [Deposit!]! @derivedFrom(field: "foundation")
+}
+
+type Deposit @entity {
+  id: ID!
+  amount: BigInt!
+  claimer: Claimer!
+  depositor: Bytes!
+  foundation: Foundation!
+  lockedUntil: BigInt!
+  shares: BigInt!
+  burned: Boolean!
+}
+
+type Claimer @entity {
+  id: ID!
+  owner: Bytes!
+  vault: Vault!
+  deposits: [Deposit!]! @derivedFrom(field: "claimer")
+  principal: BigInt!
+  shares: BigInt!
+  claimed: BigInt!
+}
+
+type Sponsor @entity {
+  id: ID!
+  depositor: Bytes!
+  amount: BigInt!
+  lockedUntil: BigInt!
+  burned: Boolean!
+}

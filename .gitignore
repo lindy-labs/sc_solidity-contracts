@@ -1,0 +1,14 @@
+node_modules
+
+#Hardhat files
+cache
+artifacts
+.openzeppelin
+coverage
+coverage.json
+.env
+typechain
+docs/
+deployments/localhost
+deployments/hardhat
+deployments/docker

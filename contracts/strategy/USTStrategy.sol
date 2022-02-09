@@ -1,0 +1,77 @@
+// SPDX-License-Identifier: UNLICENSED
+pragma solidity =0.8.10;
+
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "./BaseStrategy.sol";
+import "../lib/PercentMath.sol";
+
+/**
+ * A strategy that uses UST as the underlying currency
+ *
+ * @notice The base implementation for EthAnchorUSTBaseStrategy already handles
+ * everything, since in this case _underlying and _ustToken are the same token
+ */
+contract USTStrategy is BaseStrategy {
+    using SafeERC20 for IERC20;
+    using PercentMath for uint256;
+
+    constructor(
+        address _vault,
+        address _treasury,
+        address _ethAnchorRouter,
+        address _exchangeRateFeeder,
+        IERC20 _ustToken,
+        IERC20 _aUstToken,
+        uint16 _perfFeePct,
+        address _owner
+    )
+        BaseStrategy(
+            _vault,
+            _treasury,
+            _ethAnchorRouter,
+            _exchangeRateFeeder,
+            _ustToken,
+            _aUstToken,
+            _perfFeePct,
+            _owner
+        )
+    {
+        require(underlying == _ustToken, "invalid underlying");
+    }
+
+    /**
+     * Initiates a deposit of all the currently held UST into EthAnchor
+     *
+     * @notice since EthAnchor uses an asynchronous model, this function
+     * only starts the deposit process, but does not finish it.
+     */
+    function doHardWork() external override restricted {
+        _initDepositStable();
+    }
+
+    /**
+     * Calls EthAnchor with a pending redeem ID, and attempts to finish it.
+     *
+     * @notice Must be called some time after `initRedeemStable()`. Will only work if
+     * the EthAnchor bridge has finished processing the deposit.
+     *
+     * @param idx Id of the pending redeem operation
+     */
+    function finishRedeemStable(uint256 idx) external restricted {
+        uint256 amount = _finishRedeemStable(idx);
+        ustToken.safeTransfer(vault, amount);
+    }
+
+    /**
+     * Amount, expressed in the underlying currency, currently in the strategy
+     *
+     * @notice both held and invested amounts are included here, using the
+     * latest known exchange rates to the underlying currency
+     *
+     * @return The total amount of underlying
+     */
+    function investedAssets() external view override returns (uint256) {
+        return pendingDeposits + _estimateAUstBalanceInUstMinusFee();
+    }
+}

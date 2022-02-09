@@ -1,0 +1,11 @@
+#!/bin/bash -ue
+
+docker-compose kill || true
+docker-compose build > /dev/null
+docker-compose rm --force postgres
+docker-compose up --detach
+
+hardhat deploy --network docker --reset
+hardhat run scripts/fixtures.ts --network docker
+
+cd subgraph && yarn all-local

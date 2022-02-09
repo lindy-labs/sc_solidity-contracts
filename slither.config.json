@@ -1,0 +1,3 @@
+{
+  "detectors_to_exclude": "similar-names,naming-convention,solc-version,timestamp,reentrancy-events,reentrancy-benign,reentrancy-no-eth"
+}
