@@ -36,9 +36,18 @@ type Claimer @entity {
   owner: Bytes!
   vault: Vault!
   deposits: [Deposit!]! @derivedFrom(field: "claimer")
+  depositsIds: [String!]!
   principal: BigInt!
   shares: BigInt!
   claimed: BigInt!
+}
+
+type Donation @entity {
+  id: ID!
+  txHash: Bytes!
+  amount: BigInt!
+  depositor: Bytes!
+  destination: Bytes!
 }
 
 type Sponsor @entity {

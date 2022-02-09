@@ -55,6 +55,8 @@ templates:
           handler: handleSponsored
         - event: Unsponsored(indexed uint256)
           handler: handleUnsponsored
+        - event: YieldClaimed(uint256,indexed address,uint256,uint256)
+          handler: handleYieldClaimed
 
   - name: Claimers
     kind: ethereum/contract
@@ -74,7 +76,5 @@ templates:
         - name: IERC721
           file: ../artifacts/@openzeppelin/contracts/token/ERC721/IERC721.sol/IERC721.json
       eventHandlers:
-        - event: YieldClaimed(uint256,indexed address,uint256,uint256)
-          handler: handleYieldClaimed
         - event: Transfer(indexed address,indexed address,indexed uint256)
           handler: handleClaimerTransfer

@@ -11,7 +11,7 @@ async function main() {
   );
   const vault = await ethers.getContractAt(
     "Vault",
-    "0xAb8Ea4F82d918c26788A05a87871b7b17DeD3F16"
+    "0x4Cb8EedB8FE80660F638d0d9881329C834cb94F8"
   );
 
   await underlying.mint(alice.address, parseUnits("5000", 6));
@@ -24,14 +24,14 @@ async function main() {
     )
   );
 
-  console.log("Carol sponsors 1000");
-  const lastTimestamp = (
-    await ethers.provider.getBlock(await ethers.provider.getBlockNumber())
-  ).timestamp;
-  const lockUntil = (await vault.MIN_SPONSOR_LOCK_DURATION())
-    .add(lastTimestamp)
-    .add(60);
-  await vault.connect(carol).sponsor(parseUnits("1000", 6), lockUntil);
+  // console.log("Carol sponsors 1000");
+  // const lastTimestamp = (
+  //   await ethers.provider.getBlock(await ethers.provider.getBlockNumber())
+  // ).timestamp;
+  // const lockUntil = (await vault.MIN_SPONSOR_LOCK_DURATION())
+  //   .add(lastTimestamp)
+  //   .add(60);
+  // await vault.connect(carol).sponsor(parseUnits("1000", 6), lockUntil);
 
   console.log("Alice deposits 1000 with 100% to Alice");
   await vault.connect(alice).deposit({
