@@ -96,13 +96,11 @@ describe("Weights", () => {
     const amount = 100;
 
     it("withdraws the principal of a deposit", async () => {
-      await weights.deposit(amount, owner.address);
+      await weights.deposit(100, owner.address);
 
-      const before = await weights.balance();
       await weights.withdraw(0);
-      const after = await weights.balance();
 
-      expect(after).to.equal(before.sub(amount));
+      expect(await weights.balance()).to.equal(0);
     });
 
     it("removes the shares from the claimers", async () => {

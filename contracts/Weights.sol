@@ -5,6 +5,8 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 
+import "hardhat/console.sol";
+
 /// #invariant {:msg "Shares don't add up"}
 ///   unchecked_sum(claimShares) + unchecked_sum(claimedShares) == unchecked_sum(depositShares);
 contract Weights {
@@ -23,6 +25,10 @@ contract Weights {
     mapping(address => uint256) public claimPrincipals;
     mapping(address => uint256) public claimShares;
     mapping(address => uint256) public claimedShares;
+
+    // sponsors
+    mapping(address => uint256) public sponsor;
+    mapping(uint256 => uint256) public sponsorPrincipal;
 
     uint256 totalDeposits;
     mapping(address => uint256) public _balances;
@@ -71,7 +77,7 @@ contract Weights {
         uint256 newShares = _computeShares(_amount, totalShares, balance);
 
         // create deposit
-        _createDeposit(totalDeposits, _claimer, _amount, newShares);
+        _createDeposit(_claimer, _amount, newShares);
 
         // update claim
         claimPrincipals[_claimer] += _amount;
@@ -121,19 +127,35 @@ contract Weights {
         claimShares[claimer] -= sharesToBurn;
         claimPrincipals[claimer] -= depositPrincipals[_id];
 
-        // burn deposit
-        active[_id] = false;
-        // depositShares[_id] -= sharesToBurn;
-
         // deduct amount from vault
         uint256 amount = _computeAmount(
             depositShares[_id],
             totalShares,
             balance
         );
+
+        // update totals
         balance -= amount;
         totalShares -= depositShares[_id];
         totalPrincipal -= depositPrincipals[_id];
+
+        // burn deposit
+        active[_id] = false;
+        depositShares[_id] -= sharesToBurn;
+    }
+
+    function sponsor(uint256 _amount) external {
+        sponsorPrincipal[msg.sender] += _amount;
+
+        balance += _amount;
+        totalPrincipal += amount;
+    }
+
+    function unsponsor(uint256 _amount) external {
+        sponsorPrincipal[msg.sender] -= _amount;
+
+        balance -= amount;
+        totalPrincipal -= amount;
     }
 
     function _computeShares(
@@ -165,11 +187,12 @@ contract Weights {
     }
 
     function _createDeposit(
-        uint256 id,
         address _claimer,
         uint256 _amount,
         uint256 _shares
     ) internal {
+        uint256 id = totalDeposits;
+
         active[id] = true;
         claimers[id] = _claimer;
         depositPrincipals[id] = _amount;
