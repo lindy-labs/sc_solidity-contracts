@@ -1,0 +1,5 @@
+coverage: true
+stopOnFail: true
+sender: ["0x0", "0x1", "0x2", "0x3"]
+testLimit: 5000
+shrinkLimit: 5000

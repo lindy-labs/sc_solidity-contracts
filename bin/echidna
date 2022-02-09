@@ -1,0 +1,6 @@
+#!/bin/sh -ue
+
+sudo rm -rf crytic-export
+hardhat compile
+# docker run -it -v `pwd`:/src echidna echidna-test . --contract Echidna_Weights --config contracts/echidna/Echidna_Weights.yaml
+docker run -it -v `pwd`:/src echidna echidna-test . --contract Weights

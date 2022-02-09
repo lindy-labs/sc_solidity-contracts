@@ -1,0 +1,7 @@
+#!/bin/bash -ue
+
+scribble contracts/Weights.sol --output-mode files --arm
+
+hardhat test
+
+scribble contracts/Weights.sol --disarm

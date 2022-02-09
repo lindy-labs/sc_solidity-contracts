@@ -12,3 +12,4 @@ docs/
 deployments/localhost
 deployments/hardhat
 deployments/docker
+crytic-export
