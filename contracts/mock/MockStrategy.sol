@@ -3,6 +3,7 @@ pragma solidity =0.8.10;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import {IStrategy} from "../strategy/IStrategy.sol";
 import {BaseStrategy} from "../strategy/BaseStrategy.sol";
 
@@ -11,7 +12,7 @@ contract MockStrategy is BaseStrategy {
         address _vault,
         address _treasury,
         address _ethAnchorRouter,
-        address _exchangeRateFeeder,
+        AggregatorV3Interface _aUstFeed,
         IERC20 _ustToken,
         IERC20 _aUstToken,
         uint16 _perfFeePct
@@ -20,7 +21,7 @@ contract MockStrategy is BaseStrategy {
             _vault,
             _treasury,
             _ethAnchorRouter,
-            _exchangeRateFeeder,
+            _aUstFeed,
             _ustToken,
             _aUstToken,
             _perfFeePct,
@@ -28,7 +29,7 @@ contract MockStrategy is BaseStrategy {
         )
     {}
 
-    function doHardWork() external override(BaseStrategy) restricted {}
+    function doHardWork() external override(BaseStrategy) onlyManager {}
 
     function finishRedeemStable(uint256 idx) external {
         _finishRedeemStable(idx);
@@ -38,9 +39,6 @@ contract MockStrategy is BaseStrategy {
         uint256 underlyingBalance = _getUnderlyingBalance() + pendingDeposits;
         uint256 aUstBalance = _getAUstBalance() + pendingRedeems;
 
-        return
-            underlyingBalance +
-            ((exchangeRateFeeder.exchangeRateOf(address(ustToken), true) *
-                aUstBalance) / 1e18);
+        return underlyingBalance + _estimateAUstBalanceInUstMinusFee();
     }
 }

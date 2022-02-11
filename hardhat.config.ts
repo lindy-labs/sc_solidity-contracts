@@ -5,6 +5,7 @@ import "@nomiclabs/hardhat-waffle";
 import "@nomiclabs/hardhat-web3";
 import "@primitivefi/hardhat-dodoc";
 import "@typechain/hardhat";
+import "solidity-coverage";
 import "hardhat-deploy";
 import "hardhat-gas-reporter";
 
