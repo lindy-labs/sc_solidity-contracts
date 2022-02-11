@@ -1,3 +1,4 @@
 {
-  "detectors_to_exclude": "similar-names,naming-convention,solc-version,timestamp,reentrancy-events,reentrancy-benign,reentrancy-no-eth"
+  "detectors_to_exclude": "similar-names,naming-convention,solc-version,timestamp,reentrancy-events,reentrancy-benign,reentrancy-no-eth,too-many-digits,pragma",
+  "filter_paths": "node_modules"
 }
