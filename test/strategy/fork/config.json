@@ -2,7 +2,7 @@
   "ust": "0xa47c8bf37f92abed4a126bda807a7b7498661acd",
   "aUst": "0xa8De3e3c934e2A1BB08B010104CcaBBD4D6293ab",
   "ethAnchorRouter": "0xcEF9E167d3f8806771e9bac1d4a0d568c39a9388",
-  "exchangeRateFeeder": "0xB12B8247bD1749CC271c55Bb93f6BD2B485C94A7",
+  "aUstUstFeed": "0x73bB8A4220E5C7Db3E73e4Fcb8d7DCf2efe04805",
   "usdt": "0xdac17f958d2ee523a2206206994597c13d831ec7",
   "usdc": "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48",
   "dai": "0x6b175474e89094c44da98b954eedeac495271d0f",

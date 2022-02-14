@@ -20,7 +20,7 @@ describe("NonUSTStrategy", () => {
   let vault: Vault;
   let strategy: NonUSTStrategy;
   let mockEthAnchorRouter: MockEthAnchorRouter;
-  let mockAUstFeed: MockChainlinkPriceFeed;
+  let mockAUstUstFeed: MockChainlinkPriceFeed;
   let mockCurvePool: MockCurvePool;
   let ustToken: MockERC20;
   let aUstToken: MockERC20;
@@ -64,7 +64,7 @@ describe("NonUSTStrategy", () => {
     underlyingFeed = (await MockChainlinkPriceFeedFactory.deploy(
       8
     )) as MockChainlinkPriceFeed;
-    mockAUstFeed = (await MockChainlinkPriceFeedFactory.deploy(
+    mockAUstUstFeed = (await MockChainlinkPriceFeedFactory.deploy(
       18
     )) as MockChainlinkPriceFeed;
 
@@ -115,7 +115,7 @@ describe("NonUSTStrategy", () => {
       vault.address,
       TREASURY,
       mockEthAnchorRouter.address,
-      mockAUstFeed.address,
+      mockAUstUstFeed.address,
       ustToken.address,
       aUstToken.address,
       PERFORMANCE_FEE_PCT,
@@ -152,7 +152,7 @@ describe("NonUSTStrategy", () => {
           vault.address,
           TREASURY,
           mockEthAnchorRouter.address,
-          mockAUstFeed.address,
+          mockAUstUstFeed.address,
           ustToken.address,
           aUstToken.address,
           PERFORMANCE_FEE_PCT,
@@ -178,7 +178,7 @@ describe("NonUSTStrategy", () => {
           vault.address,
           TREASURY,
           mockEthAnchorRouter.address,
-          mockAUstFeed.address,
+          mockAUstUstFeed.address,
           ustToken.address,
           aUstToken.address,
           PERFORMANCE_FEE_PCT,
@@ -197,7 +197,9 @@ describe("NonUSTStrategy", () => {
       expect(await strategy.ethAnchorRouter()).to.be.equal(
         mockEthAnchorRouter.address
       );
-      expect(await strategy.aUstToUstFeed()).to.be.equal(mockAUstFeed.address);
+      expect(await strategy.aUstToUstFeed()).to.be.equal(
+        mockAUstUstFeed.address
+      );
       expect(await strategy.ustToken()).to.be.equal(ustToken.address);
       expect(await strategy.aUstToken()).to.be.equal(aUstToken.address);
       expect(await strategy.perfFeePct()).to.be.equal(PERFORMANCE_FEE_PCT);
@@ -590,6 +592,6 @@ describe("NonUSTStrategy", () => {
   };
 
   const setAUstRate = async (rate: BigNumber) => {
-    await mockAUstFeed.setLatestRoundData(1, rate, 1000, 1000, 1);
+    await mockAUstUstFeed.setLatestRoundData(1, rate, 1000, 1000, 1);
   };
 });

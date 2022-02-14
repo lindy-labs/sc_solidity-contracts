@@ -18,7 +18,7 @@ describe("USTStrategy", () => {
   let vault: Vault;
   let strategy: USTStrategy;
   let mockEthAnchorRouter: MockEthAnchorRouter;
-  let mockAUstFeed: MockChainlinkPriceFeed;
+  let mockAUstUstFeed: MockChainlinkPriceFeed;
   let ustToken: MockERC20;
   let aUstToken: MockERC20;
   let underlying: MockERC20;
@@ -54,7 +54,7 @@ describe("USTStrategy", () => {
     const MockChainlinkPriceFeedFactory = await ethers.getContractFactory(
       "MockChainlinkPriceFeed"
     );
-    mockAUstFeed = (await MockChainlinkPriceFeedFactory.deploy(
+    mockAUstUstFeed = (await MockChainlinkPriceFeedFactory.deploy(
       18
     )) as MockChainlinkPriceFeed;
 
@@ -72,7 +72,7 @@ describe("USTStrategy", () => {
       vault.address,
       TREASURY,
       mockEthAnchorRouter.address,
-      mockAUstFeed.address,
+      mockAUstUstFeed.address,
       ustToken.address,
       aUstToken.address,
       PERFORMANCE_FEE_PCT,
@@ -106,7 +106,7 @@ describe("USTStrategy", () => {
           vault.address,
           TREASURY,
           mockEthAnchorRouter.address,
-          mockAUstFeed.address,
+          mockAUstUstFeed.address,
           ustToken.address,
           aUstToken.address,
           PERFORMANCE_FEE_PCT,
@@ -121,7 +121,7 @@ describe("USTStrategy", () => {
           vault.address,
           TREASURY,
           constants.AddressZero,
-          mockAUstFeed.address,
+          mockAUstUstFeed.address,
           ustToken.address,
           aUstToken.address,
           PERFORMANCE_FEE_PCT,
@@ -136,7 +136,7 @@ describe("USTStrategy", () => {
           vault.address,
           constants.AddressZero,
           mockEthAnchorRouter.address,
-          mockAUstFeed.address,
+          mockAUstUstFeed.address,
           ustToken.address,
           aUstToken.address,
           PERFORMANCE_FEE_PCT,
@@ -151,7 +151,7 @@ describe("USTStrategy", () => {
           vault.address,
           TREASURY,
           mockEthAnchorRouter.address,
-          mockAUstFeed.address,
+          mockAUstUstFeed.address,
           ustToken.address,
           aUstToken.address,
           "10001",
@@ -174,7 +174,7 @@ describe("USTStrategy", () => {
           vault.address,
           TREASURY,
           mockEthAnchorRouter.address,
-          mockAUstFeed.address,
+          mockAUstUstFeed.address,
           ustToken.address,
           aUstToken.address,
           PERFORMANCE_FEE_PCT,
@@ -196,7 +196,9 @@ describe("USTStrategy", () => {
       expect(await strategy.ethAnchorRouter()).to.be.equal(
         mockEthAnchorRouter.address
       );
-      expect(await strategy.aUstToUstFeed()).to.be.equal(mockAUstFeed.address);
+      expect(await strategy.aUstToUstFeed()).to.be.equal(
+        mockAUstUstFeed.address
+      );
       expect(await strategy.ustToken()).to.be.equal(ustToken.address);
       expect(await strategy.aUstToken()).to.be.equal(aUstToken.address);
       expect(await strategy.perfFeePct()).to.be.equal(PERFORMANCE_FEE_PCT);
@@ -851,7 +853,7 @@ describe("USTStrategy", () => {
   };
 
   const setAUstRate = async (rate: BigNumber) => {
-    await mockAUstFeed.setLatestRoundData(1, rate, 1000, 1000, 1);
+    await mockAUstUstFeed.setLatestRoundData(1, rate, 1000, 1000, 1);
   };
 
   const depositAndInvest = async (
