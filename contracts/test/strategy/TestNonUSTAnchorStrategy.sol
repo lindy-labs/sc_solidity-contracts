@@ -7,12 +7,12 @@ import "../../strategy/anchor/IExchangeRateFeeder.sol";
 import "./IUniswapV2Router01.sol";
 
 /**
- * NonUSTEthAnchorStrategy for testnet.
+ * NonUSTAnchorStrategy for testnet.
  * Since aUST/UST chainlink does not exist on testnet, we use EthAnchorExchangeRateFeeder
  * to get aUST/UST exchange rate.
  * And we use uniswap V2 to swap underlying to UST and vice versa.
  */
-abstract contract TestNonUSTEthAnchorStrategy is NonUSTStrategy {
+abstract contract TestNonUSTAnchorStrategy is NonUSTStrategy {
     using SafeERC20 for IERC20;
 
     IExchangeRateFeeder public exchangeRateFeeder;
