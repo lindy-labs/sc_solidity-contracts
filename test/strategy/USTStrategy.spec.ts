@@ -242,7 +242,7 @@ describe("USTStrategy", () => {
 
       await expect(tx)
         .to.emit(strategy, "InitDepositStable")
-        .withArgs(operator, investAmount);
+        .withArgs(operator, 0, investAmount, investAmount);
     });
 
     it("Should be able to init deposit several times", async () => {
@@ -558,7 +558,12 @@ describe("USTStrategy", () => {
 
       await expect(tx)
         .to.emit(strategy, "FinishRedeemStable")
-        .withArgs(operator0, redeemAmount0, redeemedUSTAmount0);
+        .withArgs(
+          operator0,
+          redeemAmount0,
+          redeemedUSTAmount0,
+          redeemedUSTAmount0
+        );
     });
 
     it("Should pop finished operation", async () => {

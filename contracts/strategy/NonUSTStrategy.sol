@@ -18,13 +18,13 @@ contract NonUSTStrategy is BaseStrategy {
     event Initialized();
 
     // UST / USDC / USDT / DAI curve pool address
-    ICurve public immutable curvePool;
+    ICurve public curvePool;
 
     // index of the underlying token in the curve pool
-    int128 public immutable underlyingI;
+    int128 public underlyingI;
 
     // index of the UST token in the curve pool
-    int128 public immutable ustI;
+    int128 public ustI;
 
     // flag to indicate initialization status
     bool public initialized;
@@ -128,24 +128,38 @@ contract NonUSTStrategy is BaseStrategy {
      */
     function doHardWork() external override(BaseStrategy) onlyManager {
         require(initialized, "NonUSTStrategy: not initialized");
-        _swapUnderlyingToUst();
-        _initDepositStable();
+        uint256 underlyingAmount = _swapUnderlyingToUst();
+
+        (address operator, uint256 ustAmount) = _initDepositStable();
+
+        emit InitDepositStable(
+            operator,
+            depositOperations.length - 1,
+            underlyingAmount,
+            ustAmount
+        );
     }
 
     /**
      * Calls Curve to convert the existing underlying balance into UST
+     *
+     * @return swapped underlying amount
      */
-    function _swapUnderlyingToUst() internal {
+    function _swapUnderlyingToUst() internal virtual returns (uint256) {
         uint256 underlyingBalance = _getUnderlyingBalance();
         require(underlyingBalance > 0, "NonUSTStrategy: no underlying exist");
         // slither-disable-next-line unused-return
         curvePool.exchange_underlying(underlyingI, ustI, underlyingBalance, 0);
+
+        return underlyingBalance;
     }
 
     /**
      * Calls Curve to convert the existing UST back into the underlying token
+     *
+     * @return swapped underlying amount
      */
-    function _swapUstToUnderlying() internal returns (uint256) {
+    function _swapUstToUnderlying() internal virtual returns (uint256) {
         uint256 ustBalance = _getUstBalance();
         if (ustBalance > 0) {
             // slither-disable-next-line unused-return
@@ -167,9 +181,22 @@ contract NonUSTStrategy is BaseStrategy {
      * @param idx Id of the pending redeem operation
      */
     function finishRedeemStable(uint256 idx) public onlyManager {
-        _finishRedeemStable(idx);
+        (
+            address operator,
+            uint256 aUstAmount,
+            uint256 ustAmount
+        ) = _finishRedeemStable(idx);
+
         _swapUstToUnderlying();
-        underlying.safeTransfer(vault, _getUnderlyingBalance());
+        uint256 underlyingAmount = _getUnderlyingBalance();
+        underlying.safeTransfer(vault, underlyingAmount);
+
+        emit FinishRedeemStable(
+            operator,
+            aUstAmount,
+            ustAmount,
+            underlyingAmount
+        );
     }
 
     /**

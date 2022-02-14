@@ -20,17 +20,23 @@ abstract contract BaseStrategy is IStrategy, AccessControl {
 
     event PerfFeeClaimed(uint256 amount);
     event PerfFeePctUpdated(uint256 pct);
-    event InitDepositStable(address indexed operator, uint256 amount);
+    event InitDepositStable(
+        address indexed operator,
+        uint256 indexed idx,
+        uint256 underlyingAmount,
+        uint256 ustAmount
+    );
     event FinishDepositStable(
         address indexed operator,
         uint256 ustAmount,
         uint256 aUstAmount
     );
-    event InitRedeemStable(address indexed operator, uint256 amount);
+    event InitRedeemStable(address indexed operator, uint256 aUstAmount);
     event FinishRedeemStable(
         address indexed operator,
         uint256 aUstAmount,
-        uint256 ustAmount
+        uint256 ustAmount,
+        uint256 underlyingAmount
     );
 
     struct Operation {
@@ -51,10 +57,10 @@ abstract contract BaseStrategy is IStrategy, AccessControl {
     address public treasury;
 
     // UST token address
-    IERC20 public immutable ustToken;
+    IERC20 public ustToken;
 
     // aUST token address (wrapped Anchor UST, received to accrue interest for an Anchor deposit)
-    IERC20 public immutable aUstToken;
+    IERC20 public aUstToken;
 
     // performance fee taken by the treasury on profits
     uint16 public perfFeePct;
@@ -160,7 +166,7 @@ abstract contract BaseStrategy is IStrategy, AccessControl {
      * operator address to finish later.
      * We need to increase pendingDeposits to track correct underlying assets.
      */
-    function _initDepositStable() internal {
+    function _initDepositStable() internal returns (address, uint256) {
         uint256 ustBalance = _getUstBalance();
         require(ustBalance > 0, "BaseStrategy: no ust exist");
         pendingDeposits += ustBalance;
@@ -171,7 +177,7 @@ abstract contract BaseStrategy is IStrategy, AccessControl {
             Operation({operator: operator, amount: ustBalance})
         );
 
-        emit InitDepositStable(operator, ustBalance);
+        return (operator, ustBalance);
     }
 
     /**
@@ -309,7 +315,14 @@ abstract contract BaseStrategy is IStrategy, AccessControl {
      *
      * @return Redeemed UST amount without performance fee.
      */
-    function _finishRedeemStable(uint256 idx) internal returns (uint256) {
+    function _finishRedeemStable(uint256 idx)
+        internal
+        returns (
+            address,
+            uint256,
+            uint256
+        )
+    {
         require(redeemOperations.length > idx, "BaseStrategy: not running");
         Operation storage operation = redeemOperations[idx];
         uint256 aUstBalance = _getAUstBalance() + pendingRedeems;
@@ -322,8 +335,6 @@ abstract contract BaseStrategy is IStrategy, AccessControl {
 
         uint256 redeemedAmount = _getUstBalance();
         require(redeemedAmount > 0, "BaseStrategy: nothing redeemed");
-
-        emit FinishRedeemStable(operator, operationAmount, redeemedAmount);
 
         uint256 perfFee = redeemedAmount > originalUst
             ? (redeemedAmount - originalUst).percOf(perfFeePct)
@@ -344,7 +355,7 @@ abstract contract BaseStrategy is IStrategy, AccessControl {
         }
         redeemOperations.pop();
 
-        return redeemedAmount - perfFee;
+        return (operator, operationAmount, redeemedAmount - perfFee);
     }
 
     /**
@@ -442,7 +453,7 @@ abstract contract BaseStrategy is IStrategy, AccessControl {
     /**
      * @return aUST / UST exchange rate from chainlink
      */
-    function _aUstExchangeRate() internal view returns (uint256) {
+    function _aUstExchangeRate() internal view virtual returns (uint256) {
         (
             uint80 roundID,
             int256 price,

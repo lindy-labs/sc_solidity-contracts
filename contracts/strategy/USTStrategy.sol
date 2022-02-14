@@ -50,7 +50,14 @@ contract USTStrategy is BaseStrategy {
      * only starts the deposit process, but does not finish it.
      */
     function doHardWork() external override onlyManager {
-        _initDepositStable();
+        (address operator, uint256 ustAmount) = _initDepositStable();
+
+        emit InitDepositStable(
+            operator,
+            depositOperations.length - 1,
+            ustAmount,
+            ustAmount
+        );
     }
 
     /**
@@ -62,7 +69,13 @@ contract USTStrategy is BaseStrategy {
      * @param idx Id of the pending redeem operation
      */
     function finishRedeemStable(uint256 idx) external onlyManager {
-        _finishRedeemStable(idx);
+        (
+            address operator,
+            uint256 aUstAmount,
+            uint256 ustAmount
+        ) = _finishRedeemStable(idx);
+        emit FinishRedeemStable(operator, aUstAmount, ustAmount, ustAmount);
+
         underlying.safeTransfer(vault, _getUnderlyingBalance());
     }
 

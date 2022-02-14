@@ -280,7 +280,7 @@ describe("NonUSTStrategy", () => {
         .mul(CURVE_DECIMALS)
         .div(UNDERLYING_TO_UST_RATE);
 
-      await vault.updateInvested();
+      const tx = await vault.updateInvested();
 
       expect(await underlying.balanceOf(strategy.address)).equal(0);
       expect(await strategy.convertedUst()).equal(0);
@@ -297,6 +297,10 @@ describe("NonUSTStrategy", () => {
       expect(operation.operator).equal(operator);
       expect(operation.amount).equal(ustAmount);
       expect(await strategy.depositOperationLength()).equal(1);
+
+      await expect(tx)
+        .to.emit(strategy, "InitDepositStable")
+        .withArgs(operator, 0, investAmount, ustAmount);
     });
   });
 
@@ -353,6 +357,9 @@ describe("NonUSTStrategy", () => {
 
       let redeemedUSTAmount0 = utils.parseUnits("55", 18);
       await notifyRedeemReturnAmount(operator0, redeemedUSTAmount0);
+      let redeemedUnderlyingAmount = redeemedUSTAmount0
+        .mul(CURVE_DECIMALS)
+        .div(UST_TO_UNDERLYING_RATE);
 
       const tx = await strategy.connect(manager).finishRedeemStable(0);
 
@@ -371,17 +378,11 @@ describe("NonUSTStrategy", () => {
         currentStrategyInvestedInUnderlying
       );
       expect(await underlying.balanceOf(vault.address)).equal(
-        redeemedUSTAmount0
-          .mul(CURVE_DECIMALS)
-          .div(UST_TO_UNDERLYING_RATE)
-          .add(underlyingAmount0)
-          .sub(investAmount0)
+        redeemedUnderlyingAmount.add(underlyingAmount0).sub(investAmount0)
       );
       expect(await vault.totalUnderlying()).equal(
         currentStrategyInvestedInUnderlying
-          .add(
-            redeemedUSTAmount0.mul(CURVE_DECIMALS).div(UST_TO_UNDERLYING_RATE)
-          )
+          .add(redeemedUnderlyingAmount)
           .add(underlyingAmount0)
           .sub(investAmount0)
       );
@@ -390,7 +391,12 @@ describe("NonUSTStrategy", () => {
 
       await expect(tx)
         .to.emit(strategy, "FinishRedeemStable")
-        .withArgs(operator0, redeemAmount0, redeemedUSTAmount0);
+        .withArgs(
+          operator0,
+          redeemAmount0,
+          redeemedUSTAmount0,
+          redeemedUnderlyingAmount
+        );
     });
   });
 
