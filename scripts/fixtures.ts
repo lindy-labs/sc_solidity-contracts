@@ -33,15 +33,22 @@ async function main() {
   //   .add(60);
   // await vault.connect(treasury).sponsor(parseUnits("1000", 6), lockUntil);
 
-  console.log("Alice deposits 1000 with 100% yield to Alice");
+  console.log(
+    "Alice deposits 1000 with 90% yield to Alice and 10% yield for donations"
+  );
   await vault.connect(alice).deposit({
     amount: parseUnits("1000", 6),
     lockedUntil: 0,
     claims: [
       {
         beneficiary: alice.address,
-        pct: 10000,
+        pct: 9000,
         data: "0x",
+      },
+      {
+        beneficiary: treasury.address,
+        pct: 1000,
+        data: ethers.utils.hexlify(123124),
       },
     ],
   });

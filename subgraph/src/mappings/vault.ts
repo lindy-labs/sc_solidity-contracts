@@ -51,7 +51,11 @@ export function handleYieldClaimed(event: YieldClaimed): void {
       )
     ) {
       const id =
-        event.transaction.hash.toHex() + "-" + event.logIndex.toString();
+        event.transaction.hash.toHex() +
+        "-" +
+        event.logIndex.toString() +
+        "-" +
+        i.toString();
 
       const donation = new Donation(id);
       donation.txHash = event.transaction.hash;
@@ -62,6 +66,16 @@ export function handleYieldClaimed(event: YieldClaimed): void {
       donation.destination = deposit.data;
 
       donation.save();
+
+      log.debug("I {} {} {} {}", [
+        id,
+        i.toString(),
+        claimedShares
+          .times(event.params.amount)
+          .div(event.params.burnedShares)
+          .toString(),
+        deposit.depositor.toHex()
+      ]);
     }
   }
 
