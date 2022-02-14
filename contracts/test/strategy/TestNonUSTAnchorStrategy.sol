@@ -12,7 +12,7 @@ import "./IUniswapV2Router01.sol";
  * to get aUST/UST exchange rate.
  * And we use uniswap V2 to swap underlying to UST and vice versa.
  */
-abstract contract TestNonUSTAnchorStrategy is NonUSTStrategy {
+contract TestNonUSTAnchorStrategy is NonUSTStrategy {
     using SafeERC20 for IERC20;
 
     IExchangeRateFeeder public exchangeRateFeeder;
@@ -22,37 +22,32 @@ abstract contract TestNonUSTAnchorStrategy is NonUSTStrategy {
         address _vault,
         address _treasury,
         address _ethAnchorRouter,
+        AggregatorV3Interface _aUstToUstFeed,
         IExchangeRateFeeder _exchangeRateFeeder,
         IERC20 _ustToken,
         IERC20 _aUstToken,
         uint16 _perfFeePct,
         address _owner,
         address _uniV2Router
-    ) {
-        require(_owner != address(0), "BaseStrategy: owner is 0x");
-        require(_ethAnchorRouter != address(0), "BaseStrategy: router is 0x");
-        require(_treasury != address(0), "BaseStrategy: treasury is 0x");
-        require(
-            PercentMath.validPerc(_perfFeePct),
-            "BaseStrategy: invalid performance fee"
-        );
-        require(underlying == _ustToken, "USTStrategy: invalid underlying");
-
-        _setupRole(DEFAULT_ADMIN_ROLE, _owner);
-        _setupRole(MANAGER_ROLE, _vault);
-
-        treasury = _treasury;
-        vault = _vault;
-        underlying = IVault(_vault).underlying();
-        ethAnchorRouter = IEthAnchorRouter(_ethAnchorRouter);
+    )
+        NonUSTStrategy(
+            _vault,
+            _treasury,
+            _ethAnchorRouter,
+            _aUstToUstFeed,
+            _ustToken,
+            _aUstToken,
+            _perfFeePct,
+            _owner,
+            address(0x1),
+            0,
+            1
+        )
+    {
         exchangeRateFeeder = _exchangeRateFeeder;
-        ustToken = _ustToken;
-        aUstToken = _aUstToken;
-        perfFeePct = _perfFeePct;
 
         _aUstToUstFeedDecimals = 1e18;
 
-        require(underlying != _ustToken, "NonUSTStrategy: invalid underlying");
         uniV2Router = IUniswapV2Router01(_uniV2Router);
 
         ustToken.safeIncreaseAllowance(_uniV2Router, type(uint256).max);
@@ -112,5 +107,28 @@ abstract contract TestNonUSTAnchorStrategy is NonUSTStrategy {
     // get aUST/UST exchange rate from eth anchor ExchangeRateFeeder contract
     function _aUstExchangeRate() internal view override returns (uint256) {
         return exchangeRateFeeder.exchangeRateOf(address(ustToken), true);
+    }
+
+    /**
+     * @return Underlying value of UST amount
+     *
+     * @notice This uses spot price on Uniswap V2, and this could lead an attack,
+     * however, since this is for testnet version, it is fine.
+     */
+    function _estimateUstAmountInUnderlying(uint256 ustAmount)
+        internal
+        view
+        override
+        returns (uint256)
+    {
+        address[] memory path = new address[](2);
+        path[0] = address(ustToken);
+        path[1] = address(underlying);
+
+        uint256[] memory amountsOut = uniV2Router.getAmountsOut(
+            ustAmount,
+            path
+        );
+        return amountsOut[1];
     }
 }

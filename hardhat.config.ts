@@ -98,6 +98,22 @@ const config: HardhatUserConfig = {
       1: "",
       3: "0x006479f75d6622ae6a21be17c7f555b94c672342",
     },
+    daiToken: {
+      1: "",
+      3: "0x6Bb59E3F447222b3fcF2847111700723153F625a",
+    },
+    usdtToken: {
+      1: "",
+      3: "0x6AF27a81cEb61073CCCA401Ca6b43064F369dc02",
+    },
+    usdcToken: {
+      1: "",
+      3: "0xE015FD30cCe08Bc10344D934bdb2292B1eC4BBBD",
+    },
+    uniV2Router: {
+      1: "",
+      3: "0x7a250d5630b4cf539739df2c5dacb4c659f2488d",
+    },
   },
   mocha: {
     timeout: 2000000,

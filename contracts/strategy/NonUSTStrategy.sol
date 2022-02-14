@@ -50,7 +50,7 @@ contract NonUSTStrategy is BaseStrategy {
         address _vault,
         address _treasury,
         address _ethAnchorRouter,
-        AggregatorV3Interface _aUstFeed,
+        AggregatorV3Interface _aUstToUstFeed,
         IERC20 _ustToken,
         IERC20 _aUstToken,
         uint16 _perfFeePct,
@@ -63,7 +63,7 @@ contract NonUSTStrategy is BaseStrategy {
             _vault,
             _treasury,
             _ethAnchorRouter,
-            _aUstFeed,
+            _aUstToUstFeed,
             _ustToken,
             _aUstToken,
             _perfFeePct,
@@ -226,6 +226,7 @@ contract NonUSTStrategy is BaseStrategy {
     function _estimateUstAmountInUnderlying(uint256 ustAmount)
         internal
         view
+        virtual
         returns (uint256)
     {
         (
