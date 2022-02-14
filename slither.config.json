@@ -1,4 +1,4 @@
 {
-  "detectors_to_exclude": "similar-names,naming-convention,solc-version,reentrancy-events,timestamp,too-many-digits,pragma",
+  "detectors_to_exclude": "similar-names,naming-convention,solc-version,timestamp,too-many-digits,pragma",
   "filter_paths": "node_modules|contracts/test|contracts/mock|contracts/integrations"
 }
