@@ -63,7 +63,9 @@ const config: HardhatUserConfig = {
         process.env.INFURA_KEY || "missing-key"
       }`,
       chainId: 3,
-      accounts: [process.env.TESTNET_PRIVATEKEY],
+      accounts: {
+        mnemonic: process.env.TESTNET_MNEMONIC || "TODO",
+      },
     },
   },
   namedAccounts: {
