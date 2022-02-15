@@ -125,26 +125,16 @@ test("handleDepositMinted creates a deposit", () => {
     "amount",
     ethereum.Value.fromI32(1000)
   );
-  const shares = new ethereum.EventParam(
-    "shares",
-    ethereum.Value.fromI32(1000)
-  );
-  const depositor = new ethereum.EventParam(
+  const shares = newI32("shares", 1000);
+  const depositor = newAddress(
     "depositor",
-    ethereum.Value.fromAddress(
-      Address.fromString("0xC80B3caAd6d2DE80Ac76a41d5F0072E36D2519Cd")
-    )
+    "0xC80B3caAd6d2DE80Ac76a41d5F0072E36D2519Cd"
   );
-  const claimer = new ethereum.EventParam(
+  const claimer = newAddress(
     "claimer",
-    ethereum.Value.fromAddress(
-      Address.fromString("0xC80B3caAd6d2DE80Ac76a41d5F0072E36D2519Cd")
-    )
+    "0xC80B3caAd6d2DE80Ac76a41d5F0072E36D2519Cd"
   );
-  const claimerId = new ethereum.EventParam(
-    "claimerId",
-    ethereum.Value.fromI32(1000)
-  );
+  const claimerId = newI32("claimerId", 1000);
   const lockedUntil = new ethereum.EventParam(
     "lockedUntil",
     ethereum.Value.fromI32(1000)
@@ -178,3 +168,14 @@ test("handleDepositMinted creates a deposit", () => {
   assert.fieldEquals("Claimer", "1000", "principal", "1000");
   assert.fieldEquals("Claimer", "1000", "depositsIds", "[1000]");
 });
+
+function newI32(name: string, value: i32): ethereum.EventParam {
+  return new ethereum.EventParam(name, ethereum.Value.fromI32(value));
+}
+
+function newAddress(name: string, value: string): ethereum.EventParam {
+  return new ethereum.EventParam(
+    name,
+    ethereum.Value.fromAddress(Address.fromString(value))
+  );
+}
