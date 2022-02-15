@@ -153,7 +153,7 @@ contract NonUSTStrategy is BaseStrategy {
      *
      * @param idx Id of the pending redeem operation
      */
-    function finishRedeemStable(uint256 idx) public restricted {
+    function finishRedeemStable(uint256 idx) external restricted {
         _finishRedeemStable(idx);
         _swapUstToUnderlying();
         underlying.safeTransfer(vault, _getUnderlyingBalance());

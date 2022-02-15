@@ -144,7 +144,7 @@ contract Vault is
 
     /// See {IVault}
     function yieldFor(address _to)
-        public
+        external
         view
         override(IVault)
         returns (uint256)
@@ -549,7 +549,7 @@ contract Vault is
         );
     }
 
-    function _blockTimestamp() public view returns (uint64) {
+    function _blockTimestamp() external view returns (uint64) {
         return uint64(block.timestamp);
     }
 

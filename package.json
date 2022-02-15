@@ -7,7 +7,7 @@
     "coverage": "hardhat coverage",
     "test": "hardhat test",
     "compile": "hardhat compile",
-    "test:slither": "slither . --filter-paths 'node_modules'"
+    "test:slither": "slither ."
   },
   "devDependencies": {
     "@chainlink/contracts": "^0.3.1",
