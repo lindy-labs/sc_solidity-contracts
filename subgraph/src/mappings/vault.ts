@@ -88,10 +88,10 @@ export function handleYieldClaimed(event: YieldClaimed): void {
 }
 
 export function handleDepositMinted(event: DepositMinted): void {
-  const foundationId = event.params.groupId.toHexString();
-  const depositId = event.params.id.toHexString();
-  const claimerId = event.params.claimerId.toHexString();
-  const vaultId = event.address.toHexString();
+  const foundationId = event.params.groupId.toString();
+  const depositId = event.params.id.toString();
+  const claimerId = event.params.claimerId.toString();
+  const vaultId = event.address.toString();
 
   const vault = Vault.load(vaultId)!;
   let claimer = Claimer.load(claimerId);
@@ -156,7 +156,7 @@ export function handleDepositBurned(event: DepositBurned): void {
 }
 
 export function handleSponsored(event: Sponsored): void {
-  const sponsor = new Sponsor(event.params.id.toHexString());
+  const sponsor = new Sponsor(event.params.id.toString());
 
   sponsor.depositor = event.params.depositor;
   sponsor.amount = event.params.amount;
@@ -166,7 +166,7 @@ export function handleSponsored(event: Sponsored): void {
 }
 
 export function handleUnsponsored(event: Unsponsored): void {
-  const sponsorId = event.params.id.toHexString();
+  const sponsorId = event.params.id.toString();
   const sponsor = Sponsor.load(sponsorId)!;
 
   sponsor.burned = true;
