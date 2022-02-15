@@ -72,12 +72,6 @@ abstract contract BaseStrategy is IStrategy, Trust {
         _;
     }
 
-    modifier onlyVault() {
-        require(msg.sender == vault, "only vault");
-
-        _;
-    }
-
     constructor(
         address _vault,
         address _treasury,
