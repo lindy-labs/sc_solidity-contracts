@@ -586,7 +586,7 @@ contract Vault is
 
         require(
             deposits[_tokenId].claimerId != 0,
-            "Vault: token id is not a withdraw"
+            "Vault: token id is not a deposit"
         );
 
         uint256 claimerId = deposits[_tokenId].claimerId;
