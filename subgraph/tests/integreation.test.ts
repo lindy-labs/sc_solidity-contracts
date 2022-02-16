@@ -5,7 +5,8 @@ import {
   handleDepositMinted,
   handleSponsored,
   handleUnsponsored,
-  handleDepositBurned
+  handleDepositBurned,
+  handleYieldClaimed
 } from "../src/mappings/vault";
 import {
   Sponsored,
@@ -13,7 +14,8 @@ import {
 } from "../src/types/templates/Vault/IVaultSponsoring";
 import {
   DepositBurned,
-  DepositMinted
+  DepositMinted,
+  YieldClaimed
 } from "../src/types/templates/Vault/IVault";
 import {
   Vault,
@@ -24,6 +26,7 @@ import {
 } from "../generated/schema";
 
 const MOCK_ADDRESS_1 = "0xC80B3caAd6d2DE80Ac76a41d5F0072E36D2519Cd".toLowerCase();
+const TREASURY_ADDRESS = "0x4940c6e628da11ac0bdcf7f82be8579b4696fa33";
 
 test("handleSponsored creates a Sponsor", () => {
   let mockEvent = newMockEvent();
@@ -164,6 +167,61 @@ test("handleDepositBurned removes a Deposit by marking as burned", () => {
   handleDepositBurned(event);
 
   assert.fieldEquals("Deposit", "1", "burned", "true");
+});
+
+test("handleYieldClaimed creates Donations", () => {
+  let mockEvent = newMockEvent();
+
+  const deposit = new Deposit("1");
+  deposit.burned = false;
+  deposit.amount = BigInt.fromI32(50);
+  deposit.lockedUntil = BigInt.fromI32(1);
+  deposit.shares = BigInt.fromI32(50);
+  deposit.claimer = "1";
+  deposit.foundation = "1";
+  deposit.save();
+
+  const deposit2 = new Deposit("2");
+  deposit2.burned = false;
+  deposit2.amount = BigInt.fromI32(100);
+  deposit2.lockedUntil = BigInt.fromI32(1);
+  deposit2.shares = BigInt.fromI32(100);
+  deposit2.claimer = "1";
+  deposit2.foundation = "1";
+  deposit2.save();
+
+  const vault = new Vault(mockEvent.address.toString());
+  vault.save();
+
+  const claimer = new Claimer("1");
+  claimer.vault = mockEvent.address.toString();
+  claimer.depositsIds = ["1", "2"];
+  claimer.save();
+
+  const foundation = new Foundation("1");
+  foundation.vault = mockEvent.address.toString();
+  foundation.save();
+
+  const event = new YieldClaimed(
+    mockEvent.address,
+    mockEvent.logIndex,
+    mockEvent.transactionLogIndex,
+    mockEvent.logType,
+    mockEvent.block,
+    mockEvent.transaction,
+    mockEvent.parameters
+  );
+  event.parameters = new Array();
+
+  event.parameters.push(newI32("claimerId", 1));
+  event.parameters.push(newAddress("to", TREASURY_ADDRESS));
+  event.parameters.push(newI32("amount", 150));
+  event.parameters.push(newI32("burnedShares", 75));
+
+  handleYieldClaimed(event);
+
+  assert.fieldEquals("Deposit", "1", "shares", "25");
+  assert.fieldEquals("Deposit", "2", "shares", "50");
 });
 
 function newBytes(name: string, value: Bytes): ethereum.EventParam {

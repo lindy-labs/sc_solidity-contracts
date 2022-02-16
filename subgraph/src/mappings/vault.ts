@@ -18,7 +18,7 @@ import {
 } from "../types/schema";
 
 export function handleYieldClaimed(event: YieldClaimed): void {
-  const claimerId = event.params.claimerId.toHexString();
+  const claimerId = event.params.claimerId.toString();
   const claimer = Claimer.load(claimerId)!;
   const vault = Vault.load(claimer.vault)!;
 
@@ -66,16 +66,6 @@ export function handleYieldClaimed(event: YieldClaimed): void {
       donation.destination = deposit.data;
 
       donation.save();
-
-      log.debug("I {} {} {} {}", [
-        id,
-        i.toString(),
-        claimedShares
-          .times(event.params.amount)
-          .div(event.params.burnedShares)
-          .toString(),
-        deposit.depositor.toHex()
-      ]);
     }
   }
 
