@@ -169,7 +169,7 @@ contract Vault is
 
     /// See {IVault}
     function yieldFor(address _to)
-        external
+        public
         view
         override(IVault)
         returns (uint256)
@@ -478,26 +478,34 @@ contract Vault is
         uint256 localTotalUnderlying = totalUnderlyingMinusSponsored();
         uint256 groupId = _depositGroupIds.current();
         uint256 pct;
+        uint256 accumulatedAmount;
         uint256 claimsLen = claims.length;
 
         _depositGroupIds.increment();
 
-        for (uint256 i; i < claims.length; ++i) {
+        for (uint256 i; i < claimsLen; ++i) {
             ClaimParams memory data = claims[i];
             require(data.pct != 0, "Vault: claim percentage cannot be 0");
+            // if it's the last claim, just grab all remaining amount, instead
+            // of relying on percentrages
+            uint256 localAmount = i == claimsLen - 1
+                ? _amount - accumulatedAmount
+                : _amount.percOf(data.pct);
 
             _createClaim(
                 groupId,
-                _amount,
+                localAmount,
                 _lockedUntil,
                 data,
                 localTotalShares,
                 localTotalUnderlying
             );
             pct += data.pct;
+            accumulatedAmount += localAmount;
         }
 
         require(pct.is100Perc(), "Vault: claims don't add up to 100%");
+        require(accumulatedAmount == _amount, "Vault: amount doesn't add up");
     }
 
     function _createClaim(
@@ -508,10 +516,8 @@ contract Vault is
         uint256 _localTotalShares,
         uint256 _localTotalPrincipal
     ) internal {
-        uint256 amount = _amount.percOf(_claim.pct);
-
         uint256 newShares = _computeShares(
-            amount,
+            _amount,
             _localTotalShares,
             _localTotalPrincipal
         );
@@ -519,19 +525,24 @@ contract Vault is
         uint256 claimerId = claimers.mint(_claim.beneficiary);
 
         claimer[claimerId].totalShares += newShares;
-        claimer[claimerId].totalPrincipal += amount;
+        claimer[claimerId].totalPrincipal += _amount;
 
         totalShares += newShares;
-        totalPrincipal += amount;
+        totalPrincipal += _amount;
 
         uint256 tokenId = depositors.mint(_msgSender());
 
-        deposits[tokenId] = Deposit(amount, claimerId, _lockedUntil, newShares);
+        deposits[tokenId] = Deposit(
+            _amount,
+            claimerId,
+            _lockedUntil,
+            newShares
+        );
 
         emit DepositMinted(
             tokenId,
             _depositGroupId,
-            amount,
+            _amount,
             newShares,
             _msgSender(),
             _claim.beneficiary,
