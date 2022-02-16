@@ -5,11 +5,12 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Trust} from "@rari-capital/solmate/src/auth/Trust.sol";
 
-import "../lib/PercentMath.sol";
-import "../vault/IVault.sol";
-import "./IStrategy.sol";
-import "./anchor/IEthAnchorRouter.sol";
-import "./anchor/IExchangeRateFeeder.sol";
+import {PercentMath} from "../lib/PercentMath.sol";
+import {ERC165Query} from "../lib/ERC165Query.sol";
+import {IVault} from "../vault/IVault.sol";
+import {IStrategy} from "./IStrategy.sol";
+import {IEthAnchorRouter} from "./anchor/IEthAnchorRouter.sol";
+import {IExchangeRateFeeder} from "./anchor/IExchangeRateFeeder.sol";
 
 /**
  * Base strategy that handles UST tokens and invests them via the EthAnchor
@@ -18,6 +19,7 @@ import "./anchor/IExchangeRateFeeder.sol";
 abstract contract BaseStrategy is IStrategy, Trust {
     using SafeERC20 for IERC20;
     using PercentMath for uint256;
+    using ERC165Query for address;
 
     event PerfFeeClaimed(uint256 amount);
     event PerfFeePctUpdated(uint256 pct);
@@ -82,11 +84,19 @@ abstract contract BaseStrategy is IStrategy, Trust {
         uint16 _perfFeePct,
         address _owner
     ) Trust(_owner) {
-        require(_ethAnchorRouter != address(0), "0x addr");
-        require(_exchangeRateFeeder != address(0), "0x addr");
-        require(address(_ustToken) != address(0), "0x addr");
-        require(address(_aUstToken) != address(0), "0x addr");
+        require(_ethAnchorRouter != address(0), "0x addr: _ethAnchorRouter");
+        require(
+            _exchangeRateFeeder != address(0),
+            "0 addr: _exchangeRateFeeder"
+        );
+        require(address(_ustToken) != address(0), "0 addr: _usdToken");
+        require(address(_aUstToken) != address(0), "0x addr: _aUstToken");
         require(PercentMath.validPerc(_perfFeePct), "invalid pct");
+        require(_treasury != address(0), "0 addr: _treasury");
+        require(
+            _vault.doesContractImplementInterface(type(IVault).interfaceId),
+            "_vault: not an IVault"
+        );
 
         treasury = _treasury;
         vault = _vault;

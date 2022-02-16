@@ -18,8 +18,6 @@ import {Claimers} from "./vault/Claimers.sol";
 import {IStrategy} from "./strategy/IStrategy.sol";
 import {ERC165Query} from "./lib/ERC165Query.sol";
 
-import "hardhat/console.sol";
-
 /**
  * A vault where other accounts can deposit an underlying token
  * currency and set distribution params for their principal and yield
@@ -586,7 +584,7 @@ contract Vault is
 
         require(
             deposits[_tokenId].claimerId != 0,
-            "Vault: token id is not a withdraw"
+            "Vault: token id is not a deposit"
         );
 
         uint256 claimerId = deposits[_tokenId].claimerId;
@@ -626,8 +624,6 @@ contract Vault is
         totalPrincipal -= depositAmount;
 
         depositors.burn(_tokenId);
-
-        address claimer = claimers.ownerOf(claimerId);
 
         emit DepositBurned(_tokenId, depositShares, _to);
 

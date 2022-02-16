@@ -3,7 +3,6 @@ pragma solidity =0.8.10;
 
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {Counters} from "@openzeppelin/contracts/utils/Counters.sol";
-import "hardhat/console.sol";
 
 import {IClaimers} from "./IClaimers.sol";
 
