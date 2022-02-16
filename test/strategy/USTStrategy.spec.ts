@@ -61,6 +61,42 @@ describe("USTStrategy", () => {
     await vault.setStrategy(strategy.address);
   });
 
+  describe("codearena issues", () => {
+    it("issue #61 - no zero-address check on _treasury", async () => {
+      const USTStrategyFactory = await ethers.getContractFactory("USTStrategy");
+
+      const tx = USTStrategyFactory.deploy(
+        vault.address,
+        ethers.constants.AddressZero,
+        mockEthAnchorRouter.address,
+        mockExchangeRateFeeder.address,
+        ustToken.address,
+        aUstToken.address,
+        perfFeePct,
+        owner.address
+      );
+
+      await expect(tx).to.be.revertedWith("0 addr: _treasury");
+    });
+
+    it("issue #61 - no ERC165-check for _vault", async () => {
+      const USTStrategyFactory = await ethers.getContractFactory("USTStrategy");
+
+      const tx = USTStrategyFactory.deploy(
+        treasury,
+        treasury,
+        mockEthAnchorRouter.address,
+        mockExchangeRateFeeder.address,
+        ustToken.address,
+        aUstToken.address,
+        perfFeePct,
+        owner.address
+      );
+
+      await expect(tx).to.be.revertedWith("_vault: not an IVault");
+    });
+  });
+
   describe("#doHardWork function", () => {
     it("Revert if msg.sender is not owner or vault", async () => {
       await expect(strategy.connect(alice).doHardWork()).to.be.revertedWith(
