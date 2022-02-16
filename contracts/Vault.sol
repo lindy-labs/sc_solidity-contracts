@@ -17,7 +17,6 @@ import {Depositors} from "./vault/Depositors.sol";
 import {Claimers} from "./vault/Claimers.sol";
 import {IStrategy} from "./strategy/IStrategy.sol";
 import {ERC165Query} from "./lib/ERC165Query.sol";
-import {BaseVault} from "./BaseVault.sol";
 
 import "hardhat/console.sol";
 
@@ -34,8 +33,7 @@ contract Vault is
     Context,
     ERC165,
     Trust,
-    ReentrancyGuard,
-    BaseVault
+    ReentrancyGuard
 {
     using Counters for Counters.Counter;
     using SafeERC20 for IERC20;
@@ -48,6 +46,7 @@ contract Vault is
     //
 
     uint256 public constant MIN_SPONSOR_LOCK_DURATION = 1209600; // 2 weeks in seconds
+    uint256 public constant SHARES_MULTIPLIER = 10**18;
 
     //
     // State
@@ -74,6 +73,37 @@ contract Vault is
 
     /// Yield allocation
     Claimers public claimers;
+
+    /// Unique IDs to correlate donations that belong to the same foundation
+    Counters.Counter private _depositGroupIds;
+
+    struct Deposit {
+        /// amount of the deposit
+        uint256 amount;
+        /// wallet of the claimer
+        uint256 claimerId;
+        /// when can the deposit be withdrawn
+        uint256 lockedUntil;
+        /// the number of shares issued for this deposit
+        uint256 shares;
+    }
+
+    mapping(uint256 => Deposit) public deposits;
+    Counters.Counter private _depositIds;
+
+    struct Claimer {
+        uint256 totalPrincipal;
+        uint256 totalShares;
+    }
+
+    mapping(uint256 => Claimer) public claimer;
+    Counters.Counter private _claimerIds;
+
+    // The total of shares
+    uint256 public totalShares;
+
+    // The total of principal deposited
+    uint256 public totalPrincipal;
 
     /**
      * @param _underlying Underlying ERC20 token to use.
@@ -126,12 +156,7 @@ contract Vault is
     }
 
     /// See {IVault}
-    function totalUnderlyingWithSponsor()
-        public
-        view
-        override(IVault)
-        returns (uint256)
-    {
+    function totalUnderlying() public view override(IVault) returns (uint256) {
         if (address(strategy) != address(0)) {
             return
                 underlying.balanceOf(address(this)) + strategy.investedAssets();
@@ -150,7 +175,20 @@ contract Vault is
         returns (uint256)
     {
         uint256 tokenId = claimers.tokenOf(_to);
-        return _yieldFor(tokenId);
+        uint256 claimerPrincipal = claimer[tokenId].totalPrincipal;
+        uint256 claimerShares = claimer[tokenId].totalShares;
+
+        uint256 currentClaimerPrincipal = _computeAmount(
+            claimerShares,
+            totalShares,
+            totalUnderlyingMinusSponsored()
+        );
+
+        if (currentClaimerPrincipal <= claimerPrincipal) {
+            return 0;
+        }
+
+        return currentClaimerPrincipal - claimerPrincipal;
     }
 
     /// See {IVault}
@@ -159,7 +197,7 @@ contract Vault is
 
         require(_params.amount != 0, "Vault: cannot deposit 0");
         require(
-            principalMinusStrategyFee <= totalUnderlying(),
+            principalMinusStrategyFee <= totalUnderlyingMinusSponsored(),
             "Vault: cannot deposit when yield is negative"
         );
 
@@ -171,13 +209,27 @@ contract Vault is
     function claimYield(address _to) external override(IVault) nonReentrant {
         require(_to != address(0), "Vault: destination address is 0x");
 
+        uint256 yield = yieldFor(_msgSender());
+
+        if (yield == 0) return;
+
+        uint256 shares = _computeShares(
+            yield,
+            totalShares,
+            totalUnderlyingMinusSponsored()
+        );
+        uint256 sharesAmount = _computeAmount(
+            shares,
+            totalShares,
+            totalUnderlyingMinusSponsored()
+        );
+
         uint256 claimerId = claimers.tokenOf(_msgSender());
 
-        (uint256 shares, uint256 sharesAmount) = _claimYield(claimerId);
-
-        if (sharesAmount == 0) return;
-
         underlying.safeTransfer(_to, sharesAmount);
+
+        claimer[claimerId].totalShares -= shares;
+        totalShares -= shares;
 
         emit YieldClaimed(claimerId, _to, sharesAmount, shares);
     }
@@ -217,9 +269,7 @@ contract Vault is
 
     /// See {IVault}
     function investableAmount() public view returns (uint256) {
-        uint256 maxInvestableAssets = totalUnderlyingWithSponsor().percOf(
-            investPerc
-        );
+        uint256 maxInvestableAssets = totalUnderlying().percOf(investPerc);
 
         uint256 alreadyInvested = strategy.investedAssets();
 
@@ -295,8 +345,8 @@ contract Vault is
      *
      * @return Total amount of principal and yield help by the vault (not including sponsored amount).
      */
-    function totalUnderlying() public view virtual override returns (uint256) {
-        return totalUnderlyingWithSponsor() - totalSponsored;
+    function totalUnderlyingMinusSponsored() public view returns (uint256) {
+        return totalUnderlying() - totalSponsored;
     }
 
     //
@@ -335,7 +385,7 @@ contract Vault is
         bool _force
     ) internal {
         uint256 localTotalShares = totalShares;
-        uint256 localTotalPrincipal = totalUnderlying();
+        uint256 localTotalPrincipal = totalUnderlyingMinusSponsored();
         uint256 amount;
         uint256 idsLen = _ids.length;
 
@@ -387,7 +437,7 @@ contract Vault is
         uint256 sponsorToTransfer = sponsorAmount;
 
         require(
-            sponsorToTransfer <= totalUnderlyingWithSponsor(),
+            sponsorToTransfer <= totalUnderlying(),
             "Vault: not enough funds"
         );
 
@@ -425,26 +475,26 @@ contract Vault is
             );
 
         uint256 localTotalShares = totalShares;
-        uint256 localTotalUnderlying = totalUnderlying();
-        uint256 groupId = depositGroupIds.current();
+        uint256 localTotalUnderlying = totalUnderlyingMinusSponsored();
+        uint256 groupId = _depositGroupIds.current();
         uint256 pct;
         uint256 claimsLen = claims.length;
 
-        depositGroupIds.increment();
+        _depositGroupIds.increment();
 
-        for (uint256 i; i < claimsLen; ++i) {
-            ClaimParams memory claim = claims[i];
-            require(claim.pct != 0, "Vault: claim percentage cannot be 0");
+        for (uint256 i; i < claims.length; ++i) {
+            ClaimParams memory data = claims[i];
+            require(data.pct != 0, "Vault: claim percentage cannot be 0");
 
             _createClaim(
                 groupId,
                 _amount,
                 _lockedUntil,
-                claim,
+                data,
                 localTotalShares,
                 localTotalUnderlying
             );
-            pct += claim.pct;
+            pct += data.pct;
         }
 
         require(pct.is100Perc(), "Vault: claims don't add up to 100%");
@@ -459,20 +509,27 @@ contract Vault is
         uint256 _localTotalPrincipal
     ) internal {
         uint256 amount = _amount.percOf(_claim.pct);
-        uint256 claimerId = claimers.mint(_claim.beneficiary);
-        uint256 depositId = depositors.mint(_msgSender());
 
-        uint256 newShares = _deposit(
-            claimerId,
-            depositId,
+        uint256 newShares = _computeShares(
             amount,
-            _lockedUntil,
             _localTotalShares,
             _localTotalPrincipal
         );
 
+        uint256 claimerId = claimers.mint(_claim.beneficiary);
+
+        claimer[claimerId].totalShares += newShares;
+        claimer[claimerId].totalPrincipal += amount;
+
+        totalShares += newShares;
+        totalPrincipal += amount;
+
+        uint256 tokenId = depositors.mint(_msgSender());
+
+        deposits[tokenId] = Deposit(amount, claimerId, _lockedUntil, newShares);
+
         emit DepositMinted(
-            depositId,
+            tokenId,
             _depositGroupId,
             amount,
             newShares,
@@ -485,63 +542,98 @@ contract Vault is
 
     /**
      * Burns a deposit NFT and reduces the principal and shares of the claimer.
-     * If there is any yield to be claimed, it will stay with the claimer.
+     * If there were any yield to be claimed, the claimer will also keep shares to withdraw later on.
      *
      * @notice This function doesn't transfer any funds, it only updates the state.
      *
      * @notice Only the owner of the deposit may call this function.
      *
-     * @param _depositId The deposit ID to withdraw from.
+     * @param _tokenId The deposit ID to withdraw from.
      * @param _totalShares The total shares to consider for the withdraw.
-     * @param _totalUnderlying The total underlying to consider for the withdraw.
+     * @param _totalUnderlyingMinusSponsored The total underlying to consider for the withdraw.
      * @param _to Where the funds will be sent
      * @param _force If the withdraw should still withdraw if there are not enough funds in the vault.
      *
      * @return the amount to withdraw.
      */
     function _withdrawDeposit(
-        uint256 _depositId,
+        uint256 _tokenId,
         uint256 _totalShares,
-        uint256 _totalUnderlying,
+        uint256 _totalUnderlyingMinusSponsored,
         address _to,
         bool _force
     ) internal returns (uint256) {
         require(
-            depositors.ownerOf(_depositId) == _msgSender(),
+            depositors.ownerOf(_tokenId) == _msgSender(),
             "Vault: you are not the owner of a deposit"
         );
 
         require(
-            deposits[_depositId].lockedUntil <= block.timestamp,
+            deposits[_tokenId].lockedUntil <= block.timestamp,
             "Vault: deposit is locked"
         );
 
         require(
-            deposits[_depositId].claimerId != 0,
-            "Vault: deposit id is not a deposit"
+            deposits[_tokenId].claimerId != 0,
+            "Vault: token id is not a withdraw"
         );
 
-        (uint256 shares, uint256 amount) = _withdraw(
-            _depositId,
+        uint256 claimerId = deposits[_tokenId].claimerId;
+        uint256 depositInitialShares = deposits[_tokenId].shares;
+        uint256 depositAmount = deposits[_tokenId].amount;
+
+        uint256 claimerShares = claimer[claimerId].totalShares;
+        uint256 claimerPrincipal = claimer[claimerId].totalPrincipal;
+
+        uint256 depositShares = _computeShares(
+            depositAmount,
             _totalShares,
-            _totalUnderlying,
-            _to,
-            _force
+            _totalUnderlyingMinusSponsored
         );
 
-        depositors.burn(_depositId);
+        bool lostMoney = depositShares > depositInitialShares ||
+            depositShares > claimerShares;
 
-        emit DepositBurned(_depositId, shares, _to);
+        if (_force && lostMoney) {
+            // When there's a loss it means that a deposit is now worth more
+            // shares than before. In that scenario, we cannot allow the
+            // depositor to withdraw all her money. Instead, the depositor gets
+            // a number of shares that are equivalent to the percentage of this
+            // deposit in the total deposits for this claimer.
+            depositShares = (depositAmount * claimerShares) / claimerPrincipal;
+        } else {
+            require(
+                lostMoney == false,
+                "Vault: cannot withdraw more than the available amount"
+            );
+        }
 
-        return amount;
+        claimer[claimerId].totalShares -= depositShares;
+        claimer[claimerId].totalPrincipal -= depositAmount;
+
+        totalShares -= depositShares;
+        totalPrincipal -= depositAmount;
+
+        depositors.burn(_tokenId);
+
+        address claimer = claimers.ownerOf(claimerId);
+
+        emit DepositBurned(_tokenId, depositShares, _to);
+
+        return
+            _computeAmount(
+                depositShares,
+                _totalShares,
+                _totalUnderlyingMinusSponsored
+            );
     }
 
     function _transferAndCheckUnderlying(address _from, uint256 _amount)
         internal
     {
-        uint256 balanceBefore = totalUnderlyingWithSponsor();
+        uint256 balanceBefore = totalUnderlying();
         underlying.safeTransferFrom(_from, address(this), _amount);
-        uint256 balanceAfter = totalUnderlyingWithSponsor();
+        uint256 balanceAfter = totalUnderlying();
 
         require(
             balanceAfter == balanceBefore + _amount,
@@ -551,6 +643,50 @@ contract Vault is
 
     function _blockTimestamp() external view returns (uint64) {
         return uint64(block.timestamp);
+    }
+
+    /**
+     * Computes amount of shares that will be received for a given deposit amount
+     *
+     * @param _amount Amount of deposit to consider.
+     * @param _totalShares Amount of existing shares to consider.
+     * @param _totalUnderlyingMinusSponsored Amounf of existing underlying to consider.
+     * @return Amount of shares the deposit will receive.
+     */
+    function _computeShares(
+        uint256 _amount,
+        uint256 _totalShares,
+        uint256 _totalUnderlyingMinusSponsored
+    ) internal pure returns (uint256) {
+        if (_amount == 0) return 0;
+        if (_totalShares == 0) return _amount * SHARES_MULTIPLIER;
+
+        require(
+            _totalUnderlyingMinusSponsored != 0,
+            "Vault: cannot compute shares when there's no principal"
+        );
+
+        return (_amount * _totalShares) / _totalUnderlyingMinusSponsored;
+    }
+
+    /**
+     * Computes the amount of underlying from a given number of shares
+     *
+     * @param _shares Number of shares.
+     * @param _totalShares Amount of existing shares to consider.
+     * @param _totalUnderlyingMinusSponsored Amounf of existing underlying to consider.
+     * @return Amount that corresponds to the number of shares.
+     */
+    function _computeAmount(
+        uint256 _shares,
+        uint256 _totalShares,
+        uint256 _totalUnderlyingMinusSponsored
+    ) internal pure returns (uint256) {
+        if (_totalShares == 0 || _totalUnderlyingMinusSponsored == 0) {
+            return 0;
+        } else {
+            return ((_totalUnderlyingMinusSponsored * _shares) / _totalShares);
+        }
     }
 
     /**

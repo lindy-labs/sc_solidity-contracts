@@ -677,7 +677,7 @@ describe("Vault", () => {
 
         await expect(
           vault.connect(alice)[vaultAction](alice.address, [0, 1])
-        ).to.be.revertedWith("Vault: deposit id is not a deposit");
+        ).to.be.revertedWith("Vault: token id is not a withdraw");
       });
     });
   });
