@@ -133,7 +133,7 @@ export function handleDepositMinted(event: DepositMinted): void {
 
 var depositId: string;
 export function handleDepositBurned(event: DepositBurned): void {
-  depositId = event.params.id.toHexString();
+  depositId = event.params.id.toString();
 
   const deposit = Deposit.load(depositId)!;
   const claimer = Claimer.load(deposit.claimer)!;
