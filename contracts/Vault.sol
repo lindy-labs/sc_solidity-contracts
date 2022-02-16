@@ -169,7 +169,7 @@ contract Vault is
 
     /// See {IVault}
     function yieldFor(address _to)
-        external
+        public
         view
         override(IVault)
         returns (uint256)
