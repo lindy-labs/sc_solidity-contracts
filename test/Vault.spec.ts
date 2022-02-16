@@ -131,6 +131,25 @@ describe("Vault", () => {
         );
       });
     });
+
+    describe("issue #52", () => {
+      it("works with irregular amounts without losing precision", async () => {
+        await addUnderlyingBalance(alice, "1000");
+
+        await vault.connect(alice).deposit(
+          depositParams.build({
+            amount: 11,
+            claims: [
+              claimParams.percent(50).to(alice.address).build(),
+              claimParams.percent(50).to(bob.address).build(),
+            ],
+          })
+        );
+
+        expect((await vault.deposits(0)).amount).to.equal(5);
+        expect((await vault.deposits(1)).amount).to.equal(6);
+      });
+    });
   });
 
   describe("setInvestPerc", () => {
