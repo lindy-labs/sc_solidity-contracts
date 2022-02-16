@@ -627,8 +627,6 @@ contract Vault is
 
         depositors.burn(_tokenId);
 
-        address claimer = claimers.ownerOf(claimerId);
-
         emit DepositBurned(_tokenId, depositShares, _to);
 
         return
