@@ -351,7 +351,7 @@ contract Vault is
             return 0;
         }
 
-        return _totalunderlying - totalSponsored;
+        return _totalUnderlying - totalSponsored;
     }
 
     //
