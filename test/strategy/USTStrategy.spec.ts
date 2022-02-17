@@ -2,61 +2,83 @@ import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
 import { ethers } from "hardhat";
 import { expect } from "chai";
-import { Contract, BigNumber, utils, constants } from "ethers";
-
+import { BigNumber, utils, constants, ContractFactory } from "ethers";
+import {
+  MockExchangeRateFeeder,
+  Vault,
+  USTStrategy,
+  MockEthAnchorRouter,
+  MockERC20,
+} from "../../typechain";
 import { generateNewAddress } from "../shared/";
 
 describe("USTStrategy", () => {
   let owner: SignerWithAddress;
   let alice: SignerWithAddress;
-
-  let vault: Contract;
-  let strategy: Contract;
-  let mockEthAnchorRouter: Contract;
-  let mockExchangeRateFeeder: Contract;
-  let ustToken: Contract;
-  let aUstToken: Contract;
-  let underlying: Contract;
-  const treasury = generateNewAddress();
-  const perfFeePct = BigNumber.from("200");
+  let manager: SignerWithAddress;
+  let vault: Vault;
+  let strategy: USTStrategy;
+  let mockEthAnchorRouter: MockEthAnchorRouter;
+  let mockExchangeRateFeeder: MockExchangeRateFeeder;
+  let ustToken: MockERC20;
+  let aUstToken: MockERC20;
+  let underlying: MockERC20;
+  const TREASURY = generateNewAddress();
+  const PERFORMANCE_FEE_PCT = BigNumber.from("200");
+  const INVEST_PCT = BigNumber.from("10000");
   const DENOMINATOR = BigNumber.from("10000");
 
+  const DEFAULT_ADMIN_ROLE = constants.HashZero;
+  const MANAGER_ROLE = utils.keccak256(utils.toUtf8Bytes("MANAGER_ROLE"));
+
   beforeEach(async () => {
-    [owner, alice] = await ethers.getSigners();
+    [owner, alice, manager] = await ethers.getSigners();
 
     const MockERC20 = await ethers.getContractFactory("MockERC20");
-    ustToken = await MockERC20.deploy(utils.parseEther("1000000000"));
-    aUstToken = await MockERC20.deploy(utils.parseEther("1000000000"));
+    ustToken = (await MockERC20.deploy(
+      utils.parseEther("1000000000")
+    )) as MockERC20;
+    aUstToken = (await MockERC20.deploy(
+      utils.parseEther("1000000000")
+    )) as MockERC20;
     underlying = ustToken;
 
     const MockEthAnchorRouterFactory = await ethers.getContractFactory(
       "MockEthAnchorRouter"
     );
-    mockEthAnchorRouter = await MockEthAnchorRouterFactory.deploy(
+    mockEthAnchorRouter = (await MockEthAnchorRouterFactory.deploy(
       ustToken.address,
       aUstToken.address
-    );
+    )) as MockEthAnchorRouter;
 
     const MockExchangeRateFeederFactory = await ethers.getContractFactory(
       "MockExchangeRateFeeder"
     );
-    mockExchangeRateFeeder = await MockExchangeRateFeederFactory.deploy();
+    mockExchangeRateFeeder =
+      (await MockExchangeRateFeederFactory.deploy()) as MockExchangeRateFeeder;
 
-    const MockVaultFactory = await ethers.getContractFactory("MockVault");
-    vault = await MockVaultFactory.deploy(underlying.address, 0, "10000");
+    const VaultFactory = await ethers.getContractFactory("Vault");
+    vault = (await VaultFactory.deploy(
+      underlying.address,
+      0,
+      INVEST_PCT,
+      owner.address
+    )) as Vault;
 
     const USTStrategyFactory = await ethers.getContractFactory("USTStrategy");
 
-    strategy = await USTStrategyFactory.deploy(
+    strategy = (await USTStrategyFactory.deploy(
       vault.address,
-      treasury,
+      TREASURY,
       mockEthAnchorRouter.address,
       mockExchangeRateFeeder.address,
       ustToken.address,
       aUstToken.address,
-      perfFeePct,
+      PERFORMANCE_FEE_PCT,
       owner.address
-    );
+    )) as USTStrategy;
+
+    await strategy.connect(owner).grantRole(MANAGER_ROLE, manager.address);
 
     await vault.setStrategy(strategy.address);
   });
@@ -72,7 +94,7 @@ describe("USTStrategy", () => {
         mockExchangeRateFeeder.address,
         ustToken.address,
         aUstToken.address,
-        perfFeePct,
+        PERFORMANCE_FEE_PCT,
         owner.address
       );
 
@@ -83,13 +105,13 @@ describe("USTStrategy", () => {
       const USTStrategyFactory = await ethers.getContractFactory("USTStrategy");
 
       const tx = USTStrategyFactory.deploy(
-        treasury,
-        treasury,
+        TREASURY,
+        TREASURY,
         mockEthAnchorRouter.address,
         mockExchangeRateFeeder.address,
         ustToken.address,
         aUstToken.address,
-        perfFeePct,
+        PERFORMANCE_FEE_PCT,
         owner.address
       );
 
@@ -98,14 +120,14 @@ describe("USTStrategy", () => {
   });
 
   describe("#doHardWork function", () => {
-    it("Revert if msg.sender is not owner or vault", async () => {
+    it("Revert if msg.sender is not manager", async () => {
       await expect(strategy.connect(alice).doHardWork()).to.be.revertedWith(
-        "restricted"
+        "BaseStrategy: caller is not manager"
       );
     });
 
     it("Revert if underlying balance is zero", async () => {
-      await expect(strategy.connect(owner).doHardWork()).to.be.revertedWith(
+      await expect(strategy.connect(manager).doHardWork()).to.be.revertedWith(
         "balance 0"
       );
     });
@@ -138,7 +160,7 @@ describe("USTStrategy", () => {
       await underlying
         .connect(owner)
         .transfer(strategy.address, underlyingBalance0);
-      await strategy.connect(owner).doHardWork();
+      await strategy.connect(manager).doHardWork();
 
       const operator1 = generateNewAddress();
       await mockEthAnchorRouter.addPendingOperator(operator1);
@@ -146,7 +168,7 @@ describe("USTStrategy", () => {
       await underlying
         .connect(owner)
         .transfer(strategy.address, underlyingBalance1);
-      await strategy.connect(owner).doHardWork();
+      await strategy.connect(manager).doHardWork();
 
       expect(await underlying.balanceOf(strategy.address)).equal(0);
       expect(await strategy.convertedUst()).equal(0);
@@ -182,15 +204,15 @@ describe("USTStrategy", () => {
       await vault.connect(owner).updateInvested();
     });
 
-    it("Revert if msg.sender is not owner or vault", async () => {
+    it("Revert if msg.sender is not manager", async () => {
       await expect(
         strategy.connect(alice).finishDepositStable(0)
-      ).to.be.revertedWith("restricted");
+      ).to.be.revertedWith("BaseStrategy: caller is not manager");
     });
 
     it("Revert if idx is out of array", async () => {
       await expect(
-        strategy.connect(owner).finishDepositStable(1)
+        strategy.connect(manager).finishDepositStable(1)
       ).to.be.revertedWith("not running");
     });
 
@@ -202,7 +224,7 @@ describe("USTStrategy", () => {
         .connect(owner)
         .approve(mockEthAnchorRouter.address, aUstAmount0);
       await mockEthAnchorRouter.notifyDepositResult(operator0, aUstAmount0);
-      await strategy.connect(owner).finishDepositStable(0);
+      await strategy.connect(manager).finishDepositStable(0);
 
       expect(await underlying.balanceOf(strategy.address)).equal(0);
       expect(await aUstToken.balanceOf(strategy.address)).equal(aUstAmount0);
@@ -230,7 +252,7 @@ describe("USTStrategy", () => {
         .connect(owner)
         .approve(mockEthAnchorRouter.address, aUstAmount0);
       await mockEthAnchorRouter.notifyDepositResult(operator0, aUstAmount0);
-      await strategy.connect(owner).finishDepositStable(0);
+      await strategy.connect(manager).finishDepositStable(0);
 
       expect(await underlying.balanceOf(strategy.address)).equal(0);
       expect(await aUstToken.balanceOf(strategy.address)).equal(aUstAmount0);
@@ -265,24 +287,24 @@ describe("USTStrategy", () => {
         .connect(owner)
         .approve(mockEthAnchorRouter.address, aUstAmount0);
       await mockEthAnchorRouter.notifyDepositResult(operator0, aUstAmount0);
-      await strategy.connect(owner).finishDepositStable(0);
+      await strategy.connect(manager).finishDepositStable(0);
     });
 
-    // it("Revert if msg.sender is not owner or vault", async () => {
-    //   await expect(
-    //     strategy.connect(alice).initRedeemStable(aUstAmount0)
-    //   ).to.be.revertedWith("no permission");
-    // });
+    it("Revert if msg.sender is not manager", async () => {
+      await expect(
+        strategy.connect(alice).initRedeemStable(aUstAmount0)
+      ).to.be.revertedWith("BaseStrategy: caller is not manager");
+    });
 
     it("Revert if amount is 0", async () => {
       await expect(
-        strategy.connect(owner).initRedeemStable(0)
+        strategy.connect(manager).initRedeemStable(0)
       ).to.be.revertedWith("amount 0");
     });
 
     it("Revert if aUst balance is less than amount", async () => {
       await expect(
-        strategy.connect(owner).initRedeemStable(utils.parseUnits("91", 18))
+        strategy.connect(manager).initRedeemStable(utils.parseUnits("91", 18))
       ).to.be.revertedWith("insufficient");
     });
 
@@ -294,7 +316,7 @@ describe("USTStrategy", () => {
       await mockEthAnchorRouter.addPendingOperator(operator);
 
       const redeemAmount = utils.parseUnits("50", 18);
-      await strategy.connect(owner).initRedeemStable(redeemAmount);
+      await strategy.connect(manager).initRedeemStable(redeemAmount);
       expect(await underlying.balanceOf(strategy.address)).equal(0);
       expect(await aUstToken.balanceOf(strategy.address)).equal(
         aUstAmount0.sub(redeemAmount)
@@ -316,12 +338,12 @@ describe("USTStrategy", () => {
       const operator0 = generateNewAddress();
       await mockEthAnchorRouter.addPendingOperator(operator0);
       const redeemAmount0 = utils.parseUnits("50", 18);
-      await strategy.connect(owner).initRedeemStable(redeemAmount0);
+      await strategy.connect(manager).initRedeemStable(redeemAmount0);
 
       const operator1 = generateNewAddress();
       await mockEthAnchorRouter.addPendingOperator(operator1);
       const redeemAmount1 = utils.parseUnits("20", 18);
-      await strategy.connect(owner).initRedeemStable(redeemAmount1);
+      await strategy.connect(manager).initRedeemStable(redeemAmount1);
       expect(await underlying.balanceOf(strategy.address)).equal(0);
       expect(await aUstToken.balanceOf(strategy.address)).equal(
         aUstAmount0.sub(redeemAmount0).sub(redeemAmount1)
@@ -363,24 +385,24 @@ describe("USTStrategy", () => {
         .connect(owner)
         .approve(mockEthAnchorRouter.address, aUstAmount0);
       await mockEthAnchorRouter.notifyDepositResult(operator0, aUstAmount0);
-      await strategy.connect(owner).finishDepositStable(0);
+      await strategy.connect(manager).finishDepositStable(0);
 
       operator0 = generateNewAddress();
       await mockEthAnchorRouter.addPendingOperator(operator0);
 
       redeemAmount0 = utils.parseUnits("50", 18);
-      await strategy.connect(owner).initRedeemStable(redeemAmount0);
+      await strategy.connect(manager).initRedeemStable(redeemAmount0);
     });
 
-    it("Revert if msg.sender is not owner or vault", async () => {
+    it("Revert if msg.sender is not manager", async () => {
       await expect(
         strategy.connect(alice).finishRedeemStable(0)
-      ).to.be.revertedWith("restricted");
+      ).to.be.revertedWith("BaseStrategy: caller is not manager");
     });
 
     it("Revert if idx is out of array", async () => {
       await expect(
-        strategy.connect(owner).finishRedeemStable(1)
+        strategy.connect(manager).finishRedeemStable(1)
       ).to.be.revertedWith("not running");
     });
 
@@ -394,7 +416,7 @@ describe("USTStrategy", () => {
         .approve(mockEthAnchorRouter.address, redeemedAmount0);
       await mockEthAnchorRouter.notifyRedeemResult(operator0, redeemedAmount0);
 
-      await strategy.connect(owner).finishRedeemStable(0);
+      await strategy.connect(manager).finishRedeemStable(0);
 
       expect(await aUstToken.balanceOf(strategy.address)).equal(
         aUstAmount0.sub(redeemAmount0)
@@ -423,9 +445,9 @@ describe("USTStrategy", () => {
       let redeemAmount1 = utils.parseUnits("10", 18);
       const operator1 = generateNewAddress();
       await mockEthAnchorRouter.addPendingOperator(operator1);
-      await strategy.initRedeemStable(redeemAmount1);
+      await strategy.connect(manager).initRedeemStable(redeemAmount1);
 
-      await strategy.connect(owner).finishRedeemStable(0);
+      await strategy.connect(manager).finishRedeemStable(0);
 
       expect(await aUstToken.balanceOf(strategy.address)).equal(
         aUstAmount0.sub(redeemAmount0).sub(redeemAmount1)
@@ -454,14 +476,14 @@ describe("USTStrategy", () => {
         .approve(mockEthAnchorRouter.address, redeemedAmount0);
       await mockEthAnchorRouter.notifyRedeemResult(operator0, redeemedAmount0);
 
-      const tx = await strategy.connect(owner).finishRedeemStable(0);
+      const tx = await strategy.connect(manager).finishRedeemStable(0);
       const yieldAmount = redeemedAmount0.sub(
         amount0.mul(redeemAmount0).div(aUstAmount0)
       );
-      const perfFee = yieldAmount.mul(perfFeePct).div(DENOMINATOR);
+      const perfFee = yieldAmount.mul(PERFORMANCE_FEE_PCT).div(DENOMINATOR);
       expect(tx).to.emit(strategy, "PerfFeeClaimed").withArgs(perfFee);
 
-      expect(await ustToken.balanceOf(treasury)).equal(perfFee);
+      expect(await ustToken.balanceOf(TREASURY)).equal(perfFee);
 
       expect(await aUstToken.balanceOf(strategy.address)).equal(
         aUstAmount0.sub(redeemAmount0)
@@ -488,12 +510,12 @@ describe("USTStrategy", () => {
 
       await mockEthAnchorRouter.notifyRedeemResult(operator0, redeemedAmount);
 
-      await strategy.connect(owner).finishRedeemStable(0);
+      await strategy.connect(manager).finishRedeemStable(0);
 
       const yieldAmount = redeemedAmount.sub(
         amount0.mul(redeemAmount0).div(aUstAmount0)
       );
-      const perfFee = yieldAmount.mul(perfFeePct).div(DENOMINATOR);
+      const perfFee = yieldAmount.mul(PERFORMANCE_FEE_PCT).div(DENOMINATOR);
 
       expect(await ustToken.connect(owner).balanceOf(vault.address)).to.eq(
         redeemedAmount.sub(perfFee)
@@ -501,7 +523,6 @@ describe("USTStrategy", () => {
     });
   });
 
-  // TODO review tests for withdrawAllToVault
   describe("#withdrawAllToVault function", () => {
     const amount0 = utils.parseUnits("100", 18);
     const aUstAmount0 = utils.parseUnits("90", 18);
@@ -518,15 +539,15 @@ describe("USTStrategy", () => {
         .connect(owner)
         .approve(mockEthAnchorRouter.address, aUstAmount0);
       await mockEthAnchorRouter.notifyDepositResult(operator0, aUstAmount0);
-      await strategy.connect(owner).finishDepositStable(0);
+      await strategy.connect(manager).finishDepositStable(0);
 
       await underlying.connect(owner).transfer(vault.address, amount1);
     });
 
-    it("Revert if msg.sender is neither owner, nor vault", async () => {
+    it("Revert if msg.sender is not manager", async () => {
       await expect(
         strategy.connect(alice).withdrawAllToVault()
-      ).to.be.revertedWith("restricted");
+      ).to.be.revertedWith("BaseStrategy: caller is not manager");
     });
 
     it("Should init redeem aUST and withdraw underlying to vault", async () => {
@@ -536,7 +557,7 @@ describe("USTStrategy", () => {
       const operator = generateNewAddress();
       await mockEthAnchorRouter.addPendingOperator(operator);
 
-      await strategy.connect(owner).withdrawAllToVault();
+      await strategy.connect(manager).withdrawAllToVault();
 
       expect(await underlying.balanceOf(strategy.address)).equal(0);
       expect(await underlying.balanceOf(vault.address)).equal(amount1);
@@ -550,7 +571,6 @@ describe("USTStrategy", () => {
     });
   });
 
-  // TODO review again
   describe("#withdrawToVault function", () => {
     const amount0 = utils.parseUnits("100", 18);
     const aUstAmount0 = utils.parseUnits("90", 18);
@@ -568,13 +588,13 @@ describe("USTStrategy", () => {
         .connect(owner)
         .approve(mockEthAnchorRouter.address, aUstAmount0);
       await mockEthAnchorRouter.notifyDepositResult(operator0, aUstAmount0);
-      await strategy.connect(owner).finishDepositStable(0);
+      await strategy.connect(manager).finishDepositStable(0);
     });
 
-    it("Revert if msg.sender is neither owner, nor vault", async () => {
+    it("Revert if msg.sender is not manager", async () => {
       await expect(
         strategy.connect(alice).withdrawToVault(withdrawAmount)
-      ).to.be.revertedWith("restricted");
+      ).to.be.revertedWith("BaseStrategy: caller is not manager");
     });
 
     it("Should withdraw underlying to vault", async () => {
@@ -585,7 +605,7 @@ describe("USTStrategy", () => {
       await mockEthAnchorRouter.addPendingOperator(operator);
 
       await underlying.connect(owner).transfer(strategy.address, amount1);
-      await strategy.connect(owner).withdrawToVault(withdrawAmount);
+      await strategy.connect(manager).withdrawToVault(withdrawAmount);
 
       expect(await underlying.balanceOf(strategy.address)).equal(
         amount1.sub(withdrawAmount)
@@ -595,11 +615,11 @@ describe("USTStrategy", () => {
   });
 
   describe("#setPerfFeePct function", () => {
-    // it("Revert if msg.sender is not owner", async () => {
-    //   await expect(
-    //     strategy.connect(alice).setPerfFeePct("100")
-    //   ).to.be.revertedWith("not owner");
-    // });
+    it("Revert if msg.sender is not admin", async () => {
+      await expect(
+        strategy.connect(alice).setPerfFeePct("100")
+      ).to.be.revertedWith("BaseStrategy: caller is not admin");
+    });
 
     it("Revert if pct is greater than 100%", async () => {
       await expect(
@@ -610,7 +630,7 @@ describe("USTStrategy", () => {
     });
 
     it("Should set invest percentage all by owner", async () => {
-      expect(await strategy.perfFeePct()).equal(perfFeePct);
+      expect(await strategy.perfFeePct()).equal(PERFORMANCE_FEE_PCT);
       let tx = await strategy.connect(owner).setPerfFeePct("100");
       expect(tx).to.emit(strategy, "PerfFeePctUpdated").withArgs("100");
       expect(await strategy.perfFeePct()).equal(100);
@@ -618,10 +638,10 @@ describe("USTStrategy", () => {
   });
 
   describe("#setExchangeRateFeeder function", () => {
-    it("Revert if msg.sender is not owner", async () => {
+    it("Revert if msg.sender is not admin", async () => {
       await expect(
         strategy.connect(alice).setExchangeRateFeeder(generateNewAddress())
-      ).to.be.revertedWith("restricted");
+      ).to.be.revertedWith("BaseStrategy: caller is not admin");
     });
 
     it("Revert if address is zero", async () => {
@@ -650,7 +670,7 @@ describe("USTStrategy", () => {
       await underlying
         .connect(owner)
         .transfer(strategy.address, underlyingBalance0);
-      await strategy.connect(owner).doHardWork();
+      await strategy.connect(manager).doHardWork();
 
       const operator1 = generateNewAddress();
       await mockEthAnchorRouter.addPendingOperator(operator1);
@@ -658,7 +678,7 @@ describe("USTStrategy", () => {
       await underlying
         .connect(owner)
         .transfer(strategy.address, underlyingBalance1);
-      await strategy.connect(owner).doHardWork();
+      await strategy.connect(manager).doHardWork();
 
       expect(await underlying.balanceOf(strategy.address)).equal(0);
       expect(await strategy.convertedUst()).equal(0);
