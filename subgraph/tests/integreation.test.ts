@@ -1,5 +1,10 @@
 import { log, ethereum, Address, Bytes, BigInt } from "@graphprotocol/graph-ts";
-import { test, assert, newMockEvent } from "matchstick-as/assembly/index";
+import {
+  test,
+  assert,
+  newMockEvent,
+  clearStore
+} from "matchstick-as/assembly/index";
 
 import {
   handleDepositMinted,
@@ -58,9 +63,16 @@ test("handleSponsored creates a Sponsor", () => {
   assert.fieldEquals("Sponsor", "1", "amount", "1");
   assert.fieldEquals("Sponsor", "1", "depositor", MOCK_ADDRESS_1);
   assert.fieldEquals("Sponsor", "1", "burned", "false");
+
+  clearStore();
 });
 
 test("handleUnsponsored removes a Sponsor by marking as burned", () => {
+  clearStore();
+
+  const sponsor = new Sponsor("1");
+  sponsor.save();
+
   let mockEvent = newMockEvent();
   const event = new Unsponsored(
     mockEvent.address,
@@ -83,6 +95,8 @@ test("handleUnsponsored removes a Sponsor by marking as burned", () => {
 });
 
 test("handleDepositMinted creates a Deposit", () => {
+  clearStore();
+
   let mockEvent = newMockEvent();
   const event = new DepositMinted(
     mockEvent.address,
@@ -128,6 +142,8 @@ test("handleDepositMinted creates a Deposit", () => {
 });
 
 test("handleDepositBurned removes a Deposit by marking as burned", () => {
+  clearStore();
+
   let mockEvent = newMockEvent();
 
   const claimer = new Claimer("1");
@@ -169,7 +185,9 @@ test("handleDepositBurned removes a Deposit by marking as burned", () => {
   assert.fieldEquals("Deposit", "1", "burned", "true");
 });
 
-test("handleYieldClaimed creates Donations", () => {
+test("handleYieldClaimed creates Donations and reduces shares from Deposits", () => {
+  clearStore();
+
   let mockEvent = newMockEvent();
 
   const deposit = new Deposit("1");
@@ -222,6 +240,130 @@ test("handleYieldClaimed creates Donations", () => {
 
   assert.fieldEquals("Deposit", "1", "shares", "25");
   assert.fieldEquals("Deposit", "2", "shares", "50");
+
+  assert.fieldEquals("Donation", donationId(mockEvent, "0"), "amount", "50");
+  assert.fieldEquals("Donation", donationId(mockEvent, "1"), "amount", "100");
+
+  clearStore();
+});
+
+test("handleYieldClaimed handles scenarios where only one of the deposits generated yield", () => {
+  clearStore();
+
+  let mockEvent = newMockEvent();
+
+  const deposit = new Deposit("1");
+  deposit.burned = false;
+  deposit.amount = BigInt.fromI32(50);
+  deposit.lockedUntil = BigInt.fromI32(1);
+  deposit.shares = BigInt.fromI32(50);
+  deposit.claimer = "1";
+  deposit.foundation = "1";
+  deposit.save();
+
+  const deposit2 = new Deposit("2");
+  deposit2.burned = false;
+  deposit2.amount = BigInt.fromI32(100);
+  deposit2.lockedUntil = BigInt.fromI32(1);
+  deposit2.shares = BigInt.fromI32(50);
+  deposit2.claimer = "1";
+  deposit2.foundation = "1";
+  deposit2.save();
+
+  const vault = new Vault(mockEvent.address.toString());
+  vault.save();
+
+  const claimer = new Claimer("1");
+  claimer.vault = mockEvent.address.toString();
+  claimer.depositsIds = ["1", "2"];
+  claimer.save();
+
+  const foundation = new Foundation("1");
+  foundation.vault = mockEvent.address.toString();
+  foundation.save();
+
+  const event = new YieldClaimed(
+    mockEvent.address,
+    mockEvent.logIndex,
+    mockEvent.transactionLogIndex,
+    mockEvent.logType,
+    mockEvent.block,
+    mockEvent.transaction,
+    mockEvent.parameters
+  );
+  event.parameters = new Array();
+
+  event.parameters.push(newI32("claimerId", 1));
+  event.parameters.push(newAddress("to", TREASURY_ADDRESS));
+  event.parameters.push(newI32("amount", 50));
+  event.parameters.push(newI32("burnedShares", 25));
+
+  handleYieldClaimed(event);
+
+  assert.fieldEquals("Deposit", "1", "shares", "25");
+  assert.fieldEquals("Deposit", "2", "shares", "50");
+
+  assert.fieldEquals("Donation", donationId(mockEvent, "0"), "amount", "50");
+});
+
+test("handleYieldClaimed handles scenarios where the yield is not proportional to the deposit shares", () => {
+  clearStore();
+
+  let mockEvent = newMockEvent();
+
+  const deposit = new Deposit("1");
+  deposit.burned = false;
+  deposit.amount = BigInt.fromI32(50);
+  deposit.lockedUntil = BigInt.fromI32(1);
+  deposit.shares = BigInt.fromI32(50);
+  deposit.claimer = "1";
+  deposit.foundation = "1";
+  deposit.save();
+
+  const deposit2 = new Deposit("2");
+  deposit2.burned = false;
+  deposit2.amount = BigInt.fromI32(100);
+  deposit2.lockedUntil = BigInt.fromI32(1);
+  deposit2.shares = BigInt.fromI32(50);
+  deposit2.claimer = "1";
+  deposit2.foundation = "1";
+  deposit2.save();
+
+  const vault = new Vault(mockEvent.address.toString());
+  vault.save();
+
+  const claimer = new Claimer("1");
+  claimer.vault = mockEvent.address.toString();
+  claimer.depositsIds = ["1", "2"];
+  claimer.save();
+
+  const foundation = new Foundation("1");
+  foundation.vault = mockEvent.address.toString();
+  foundation.save();
+
+  const event = new YieldClaimed(
+    mockEvent.address,
+    mockEvent.logIndex,
+    mockEvent.transactionLogIndex,
+    mockEvent.logType,
+    mockEvent.block,
+    mockEvent.transaction,
+    mockEvent.parameters
+  );
+  event.parameters = new Array();
+
+  event.parameters.push(newI32("claimerId", 1));
+  event.parameters.push(newAddress("to", TREASURY_ADDRESS));
+  event.parameters.push(newI32("amount", 147));
+  event.parameters.push(newI32("burnedShares", 49));
+
+  handleYieldClaimed(event);
+
+  assert.fieldEquals("Deposit", "1", "shares", "17");
+  assert.fieldEquals("Deposit", "2", "shares", "34");
+
+  assert.fieldEquals("Donation", donationId(mockEvent, "0"), "amount", "99");
+  assert.fieldEquals("Donation", donationId(mockEvent, "1"), "amount", "48");
 });
 
 function newBytes(name: string, value: Bytes): ethereum.EventParam {
@@ -240,5 +382,11 @@ function newAddress(name: string, value: string): ethereum.EventParam {
   return new ethereum.EventParam(
     name,
     ethereum.Value.fromAddress(Address.fromString(value))
+  );
+}
+
+function donationId(event: ethereum.Event, id: string): string {
+  return (
+    event.transaction.hash.toHex() + "-" + event.logIndex.toString() + "-" + id
   );
 }

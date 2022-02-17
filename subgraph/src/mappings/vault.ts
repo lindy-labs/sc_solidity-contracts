@@ -48,7 +48,8 @@ export function handleYieldClaimed(event: YieldClaimed): void {
     if (
       event.params.to.equals(
         ByteArray.fromHexString("0x4940c6e628da11ac0bdcf7f82be8579b4696fa33")
-      )
+      ) &&
+      claimedShares.gt(BigInt.fromI32(0))
     ) {
       const id =
         event.transaction.hash.toHex() +
