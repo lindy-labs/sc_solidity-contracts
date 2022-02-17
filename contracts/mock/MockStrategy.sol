@@ -27,7 +27,7 @@ contract MockStrategy is BaseStrategy {
         )
     {}
 
-    function doHardWork() external override(BaseStrategy) restricted {}
+    function doHardWork() external override(BaseStrategy) onlyManager {}
 
     function finishRedeemStable(uint256 idx) external {
         _finishRedeemStable(idx);
