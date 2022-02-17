@@ -1,0 +1,40 @@
+name: Echidna Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+  runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        test:
+          - EchidnaPercentMath
+
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-node@v2
+      with:
+        node-version: '16'
+        cache: 'yarn'
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+
+    - run: yarn install
+    - run: crytic-compile . --compile-force-framework hardhat
+
+    - name: Run Echidna
+      uses: crytic/echidna-action@v1
+      with:
+        solc-version: 0.8.10
+        files: .
+        contract: ${{ matrix.test }}
