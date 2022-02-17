@@ -8,11 +8,7 @@ on:
 
 jobs:
   build:
-  runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      security-events: write
-
+    runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
@@ -30,7 +26,7 @@ jobs:
         python-version: '3.x'
 
     - run: yarn install
-    - run: crytic-compile . --compile-force-framework hardhat
+    - run: yarn run hardhat compile
 
     - name: Run Echidna
       uses: crytic/echidna-action@v1
@@ -38,3 +34,5 @@ jobs:
         solc-version: 0.8.10
         files: .
         contract: ${{ matrix.test }}
+        crytic-args: --hardhat-ignore-compile
+        config: echidna.config.yml
