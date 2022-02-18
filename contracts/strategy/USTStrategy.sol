@@ -3,6 +3,7 @@ pragma solidity =0.8.10;
 
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import "./BaseStrategy.sol";
 import "../lib/PercentMath.sol";
 
@@ -20,7 +21,7 @@ contract USTStrategy is BaseStrategy {
         address _vault,
         address _treasury,
         address _ethAnchorRouter,
-        address _exchangeRateFeeder,
+        AggregatorV3Interface _aUstToUstFeed,
         IERC20 _ustToken,
         IERC20 _aUstToken,
         uint16 _perfFeePct,
@@ -30,7 +31,7 @@ contract USTStrategy is BaseStrategy {
             _vault,
             _treasury,
             _ethAnchorRouter,
-            _exchangeRateFeeder,
+            _aUstToUstFeed,
             _ustToken,
             _aUstToken,
             _perfFeePct,

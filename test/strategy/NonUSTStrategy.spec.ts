@@ -7,7 +7,6 @@ import type {
   Vault,
   NonUSTStrategy,
   MockEthAnchorRouter,
-  MockExchangeRateFeeder,
   MockCurvePool,
   MockERC20,
   MockChainlinkPriceFeed,
@@ -21,7 +20,7 @@ describe("EthAnchorNonUSTStrategy", () => {
   let vault: Vault;
   let strategy: NonUSTStrategy;
   let mockEthAnchorRouter: MockEthAnchorRouter;
-  let mockExchangeRateFeeder: MockExchangeRateFeeder;
+  let mockAUstUstFeed: MockChainlinkPriceFeed;
   let mockCurvePool: MockCurvePool;
   let ustToken: MockERC20;
   let aUstToken: MockERC20;
@@ -67,14 +66,8 @@ describe("EthAnchorNonUSTStrategy", () => {
     await mockCurvePool.updateRate(ustI, underlyingI, ustToUnderlyingRate);
     await mockCurvePool.updateRate(underlyingI, ustI, underlyingToUstRate);
 
-    await ustFeed.setLatestRoundData(1, utils.parseUnits("1", 8), 100, 100, 1);
-    await underlyingFeed.setLatestRoundData(
-      1,
-      utils.parseUnits("1", 8),
-      100,
-      100,
-      1
-    );
+    await ustFeed.setAnswer(utils.parseUnits("1", 8));
+    await underlyingFeed.setAnswer(utils.parseUnits("1", 8));
 
     const MockEthAnchorRouterFactory = await ethers.getContractFactory(
       "MockEthAnchorRouter"
@@ -84,10 +77,7 @@ describe("EthAnchorNonUSTStrategy", () => {
       aUstToken.address
     );
 
-    const MockExchangeRateFeederFactory = await ethers.getContractFactory(
-      "MockExchangeRateFeeder"
-    );
-    mockExchangeRateFeeder = await MockExchangeRateFeederFactory.deploy();
+    mockAUstUstFeed = await MockChainlinkPriceFeedFactory.deploy(18);
 
     const MockVaultFactory = await ethers.getContractFactory("MockVault");
     vault = await MockVaultFactory.deploy(underlying.address, 0, "10000");
@@ -100,7 +90,7 @@ describe("EthAnchorNonUSTStrategy", () => {
       vault.address,
       treasury,
       mockEthAnchorRouter.address,
-      mockExchangeRateFeeder.address,
+      mockAUstUstFeed.address,
       ustToken.address,
       aUstToken.address,
       perfFeePct,
@@ -243,7 +233,7 @@ describe("EthAnchorNonUSTStrategy", () => {
 
     it("Should finish redeem operation and swap UST to underlying", async () => {
       let exchangeRate = amount0.mul(utils.parseEther("1")).div(aUstAmount0);
-      await mockExchangeRateFeeder.setExchangeRate(exchangeRate);
+      await mockAUstUstFeed.setAnswer(exchangeRate);
 
       let redeemedAmount0 = utils.parseUnits("40", 18);
       await ustToken
@@ -274,7 +264,7 @@ describe("EthAnchorNonUSTStrategy", () => {
 
     it("moves the funds to the vault", async () => {
       const exchangeRate = amount0.mul(utils.parseEther("1")).div(aUstAmount0);
-      await mockExchangeRateFeeder.setExchangeRate(exchangeRate);
+      await mockAUstUstFeed.setAnswer(exchangeRate);
 
       const redeemedAmount = utils.parseUnits("40", 18);
       await ustToken

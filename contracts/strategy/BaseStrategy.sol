@@ -4,13 +4,13 @@ pragma solidity =0.8.10;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
 import {PercentMath} from "../lib/PercentMath.sol";
 import {ERC165Query} from "../lib/ERC165Query.sol";
 import {IVault} from "../vault/IVault.sol";
 import {IStrategy} from "./IStrategy.sol";
 import {IEthAnchorRouter} from "./anchor/IEthAnchorRouter.sol";
-import {IExchangeRateFeeder} from "./anchor/IExchangeRateFeeder.sol";
 
 /**
  * Base strategy that handles UST tokens and invests them via the EthAnchor
@@ -52,8 +52,8 @@ abstract contract BaseStrategy is IStrategy, AccessControl {
     // external contract to interact with EthAnchor
     IEthAnchorRouter public ethAnchorRouter;
 
-    // external exchange rate provider
-    IExchangeRateFeeder public exchangeRateFeeder;
+    // Chainlink aUST / UST price feed
+    AggregatorV3Interface public aUstToUstFeed;
 
     // amount currently pending in deposits to EthAnchor
     uint256 public pendingDeposits;
@@ -69,6 +69,9 @@ abstract contract BaseStrategy is IStrategy, AccessControl {
 
     // amount of UST converted (used to calculate yield)
     uint256 public convertedUst;
+
+    // Decimals of aUST / UST feed
+    uint256 internal _aUstToUstFeedDecimals;
 
     modifier onlyManager() {
         require(
@@ -90,21 +93,17 @@ abstract contract BaseStrategy is IStrategy, AccessControl {
         address _vault,
         address _treasury,
         address _ethAnchorRouter,
-        address _exchangeRateFeeder,
+        AggregatorV3Interface _aUstToUstFeed,
         IERC20 _ustToken,
         IERC20 _aUstToken,
         uint16 _perfFeePct,
         address _owner
     ) {
         require(_ethAnchorRouter != address(0), "0x addr: _ethAnchorRouter");
-        require(
-            _exchangeRateFeeder != address(0),
-            "0 addr: _exchangeRateFeeder"
-        );
-        require(address(_ustToken) != address(0), "0 addr: _usdToken");
+        require(address(_ustToken) != address(0), "0x addr: _usdToken");
         require(address(_aUstToken) != address(0), "0x addr: _aUstToken");
         require(PercentMath.validPerc(_perfFeePct), "invalid pct");
-        require(_treasury != address(0), "0 addr: _treasury");
+        require(_treasury != address(0), "0x addr: _treasury");
         require(
             _vault.doesContractImplementInterface(type(IVault).interfaceId),
             "_vault: not an IVault"
@@ -117,24 +116,16 @@ abstract contract BaseStrategy is IStrategy, AccessControl {
         vault = _vault;
         underlying = IVault(_vault).underlying();
         ethAnchorRouter = IEthAnchorRouter(_ethAnchorRouter);
-        exchangeRateFeeder = IExchangeRateFeeder(_exchangeRateFeeder);
+        aUstToUstFeed = _aUstToUstFeed;
         ustToken = _ustToken;
         aUstToken = _aUstToken;
         perfFeePct = _perfFeePct;
 
+        _aUstToUstFeedDecimals = 10**_aUstToUstFeed.decimals();
+
         // pre-approve EthAnchor router to transact all UST and aUST
         ustToken.safeIncreaseAllowance(_ethAnchorRouter, type(uint256).max);
         aUstToken.safeIncreaseAllowance(_ethAnchorRouter, type(uint256).max);
-    }
-
-    function setExchangeRateFeeder(address _exchangeRateFeeder)
-        external
-        onlyAdmin
-    {
-        require(_exchangeRateFeeder != address(0), "0x addr");
-        exchangeRateFeeder = IExchangeRateFeeder(_exchangeRateFeeder);
-
-        emit ExchangeRateFeederUpdated(_exchangeRateFeeder);
     }
 
     /**
@@ -352,11 +343,7 @@ abstract contract BaseStrategy is IStrategy, AccessControl {
 
         uint256 aUstBalance = _getAUstBalance() + pendingRedeems;
 
-        return
-            _performanceUstFeeWithInfo(
-                aUstBalance,
-                exchangeRateFeeder.exchangeRateOf(address(ustToken), true)
-            );
+        return _performanceUstFeeWithInfo(aUstBalance, _aUstExchangeRate());
     }
 
     // Get UST value of current aUST balance
@@ -371,13 +358,30 @@ abstract contract BaseStrategy is IStrategy, AccessControl {
             return 0;
         }
 
-        uint256 exchangeRate = exchangeRateFeeder.exchangeRateOf(
-            address(ustToken),
-            true
-        );
+        uint256 aUstPrice = _aUstExchangeRate();
 
         return
-            ((exchangeRate * aUstBalance) / 1e18) -
-            _performanceUstFeeWithInfo(aUstBalance, exchangeRate);
+            ((aUstPrice * aUstBalance) / _aUstToUstFeedDecimals) -
+            _performanceUstFeeWithInfo(aUstBalance, aUstPrice);
+    }
+
+    /**
+     * @return aUST / UST exchange rate from chainlink
+     */
+    function _aUstExchangeRate() internal view virtual returns (uint256) {
+        (
+            uint80 roundID,
+            int256 price,
+            ,
+            uint256 updateTime,
+            uint80 answeredInRound
+        ) = aUstToUstFeed.latestRoundData();
+
+        require(
+            price > 0 && updateTime != 0 && answeredInRound >= roundID,
+            "invalid price"
+        );
+
+        return uint256(price);
     }
 }

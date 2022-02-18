@@ -6,9 +6,9 @@ import {
   Vault,
   NonUSTStrategy,
   MockERC20,
-  MockExchangeRateFeeder,
+  MockChainlinkPriceFeed,
   MockERC20__factory,
-  MockExchangeRateFeeder__factory,
+  MockChainlinkPriceFeed__factory,
 } from "../../../typechain";
 import { generateNewAddress, ForkHelpers } from "../../shared/";
 import config from "./config.json";
@@ -25,8 +25,8 @@ describe("NonUSTStrategy Mainnet fork", () => {
   let usdtToken: MockERC20;
   let usdcToken: MockERC20;
   let daiToken: MockERC20;
-  // MockExchangeRateFeeder has same interface as Mainnet, so we can use it for test
-  let exchangeRateFeeder: MockExchangeRateFeeder;
+  // MockChainlinkPriceFeed has same interface as Mainnet, so we can use it for test
+  let mockAUstUstFeed: MockChainlinkPriceFeed;
   const MIN_LOCK_PERIOD = 0; // set zero for test
   const INVEST_PCT = 10000; // set 100% for test
   const TREASURY = generateNewAddress();
@@ -57,10 +57,10 @@ describe("NonUSTStrategy Mainnet fork", () => {
     );
   });
 
-  describe("Use Mainnet ExchangeRateFeeder (USDT)", () => {
+  describe("Use Mainnet aUST / UST Chainlink feed (Underlying: USDT)", () => {
     before(async () => {
-      exchangeRateFeeder = new MockExchangeRateFeeder__factory(owner).attach(
-        config.exchangeRateFeeder
+      mockAUstUstFeed = new MockChainlinkPriceFeed__factory(owner).attach(
+        config.aUstUstFeed
       );
 
       const VaultFactory = await ethers.getContractFactory("Vault");
@@ -79,7 +79,7 @@ describe("NonUSTStrategy Mainnet fork", () => {
         vault.address,
         TREASURY,
         config.ethAnchorRouter,
-        exchangeRateFeeder.address,
+        config.aUstUstFeed,
         ustToken.address,
         aUstToken.address,
         FEE_PCT,
@@ -117,10 +117,7 @@ describe("NonUSTStrategy Mainnet fork", () => {
         lockedUntil: 0,
       });
       expect(await usdtToken.balanceOf(vault.address)).to.be.equal(amount);
-      let exchangeRate = await exchangeRateFeeder.exchangeRateOf(
-        ustToken.address,
-        true
-      );
+      let exchangeRate = (await mockAUstUstFeed.latestRoundData()).answer;
       console.log("ExchangeRate: ", utils.formatEther(exchangeRate));
 
       await vault.connect(owner).updateInvested();
@@ -154,10 +151,7 @@ describe("NonUSTStrategy Mainnet fork", () => {
         expectAUstReceive
       );
 
-      exchangeRate = await exchangeRateFeeder.exchangeRateOf(
-        ustToken.address,
-        true
-      );
+      exchangeRate = (await mockAUstUstFeed.latestRoundData()).answer;
       console.log("ExchangeRate: ", utils.formatEther(exchangeRate));
 
       totalUnderlying = await vault.totalUnderlying();
@@ -197,17 +191,11 @@ describe("NonUSTStrategy Mainnet fork", () => {
           6
         )} USDT`
       );
-      exchangeRate = await exchangeRateFeeder.exchangeRateOf(
-        ustToken.address,
-        true
-      );
+      exchangeRate = (await mockAUstUstFeed.latestRoundData()).answer;
       console.log("ExchangeRate: ", utils.formatEther(exchangeRate));
       await vault.updateInvested();
 
-      exchangeRate = await exchangeRateFeeder.exchangeRateOf(
-        ustToken.address,
-        true
-      );
+      exchangeRate = (await mockAUstUstFeed.latestRoundData()).answer;
       console.log("ExchangeRate: ", utils.formatEther(exchangeRate));
 
       depositOperations = await strategy.depositOperations(0);
@@ -243,13 +231,13 @@ describe("NonUSTStrategy Mainnet fork", () => {
     });
   });
 
-  // Use Mock ExchangeRateFeeder for performance fee and redeem
-  describe("Use Mock ExchangeRateFeeder (USDT)", () => {
+  // Use Mock aUST / UST Chainlink Feed to check performance fee and redeem
+  describe("Use Mock aUST / UST Chainlink feed (Underlying: USDT)", () => {
     before(async () => {
-      const MockExchangeRateFeederFactory = await ethers.getContractFactory(
-        "MockExchangeRateFeeder"
+      const MockChainlinkPriceFeedFactory = await ethers.getContractFactory(
+        "MockChainlinkPriceFeed"
       );
-      exchangeRateFeeder = await MockExchangeRateFeederFactory.deploy();
+      mockAUstUstFeed = await MockChainlinkPriceFeedFactory.deploy(18);
 
       const VaultFactory = await ethers.getContractFactory("Vault");
       vault = await VaultFactory.deploy(
@@ -267,7 +255,7 @@ describe("NonUSTStrategy Mainnet fork", () => {
         vault.address,
         TREASURY,
         config.ethAnchorRouter,
-        exchangeRateFeeder.address,
+        mockAUstUstFeed.address,
         ustToken.address,
         aUstToken.address,
         FEE_PCT,
@@ -306,7 +294,7 @@ describe("NonUSTStrategy Mainnet fork", () => {
       });
       expect(await usdtToken.balanceOf(vault.address)).to.be.equal(amount);
       let exchangeRate = utils.parseEther("1.17");
-      await exchangeRateFeeder.setExchangeRate(exchangeRate);
+      await mockAUstUstFeed.setAnswer(exchangeRate);
 
       console.log("ExchangeRate: ", utils.formatEther(exchangeRate));
 
@@ -419,10 +407,10 @@ describe("NonUSTStrategy Mainnet fork", () => {
       );
 
       exchangeRate = utils.parseEther("1.3");
-      await exchangeRateFeeder.setExchangeRate(exchangeRate);
+      await mockAUstUstFeed.setAnswer(exchangeRate);
       console.log(
         `Update exchange rate: ${utils.formatEther(
-          await exchangeRateFeeder.exchangeRateOf(ustToken.address, true)
+          (await mockAUstUstFeed.latestRoundData()).answer
         )}`
       );
 

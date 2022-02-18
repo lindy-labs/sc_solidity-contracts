@@ -1,10 +1,9 @@
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-
 import { ethers } from "hardhat";
 import { expect } from "chai";
 import { BigNumber, utils, constants, ContractFactory } from "ethers";
 import {
-  MockExchangeRateFeeder,
+  MockChainlinkPriceFeed,
   Vault,
   USTStrategy,
   MockEthAnchorRouter,
@@ -19,11 +18,12 @@ describe("USTStrategy", () => {
   let vault: Vault;
   let strategy: USTStrategy;
   let mockEthAnchorRouter: MockEthAnchorRouter;
-  let mockExchangeRateFeeder: MockExchangeRateFeeder;
+  let mockAUstUstFeed: MockChainlinkPriceFeed;
   let ustToken: MockERC20;
   let aUstToken: MockERC20;
   let underlying: MockERC20;
   const TREASURY = generateNewAddress();
+  const AUST_TO_UST_FEED_DECIMALS = utils.parseEther("1");
   const PERFORMANCE_FEE_PCT = BigNumber.from("200");
   const INVEST_PCT = BigNumber.from("10000");
   const DENOMINATOR = BigNumber.from("10000");
@@ -51,11 +51,12 @@ describe("USTStrategy", () => {
       aUstToken.address
     )) as MockEthAnchorRouter;
 
-    const MockExchangeRateFeederFactory = await ethers.getContractFactory(
-      "MockExchangeRateFeeder"
+    const MockChainlinkPriceFeedFactory = await ethers.getContractFactory(
+      "MockChainlinkPriceFeed"
     );
-    mockExchangeRateFeeder =
-      (await MockExchangeRateFeederFactory.deploy()) as MockExchangeRateFeeder;
+    mockAUstUstFeed = (await MockChainlinkPriceFeedFactory.deploy(
+      18
+    )) as MockChainlinkPriceFeed;
 
     const VaultFactory = await ethers.getContractFactory("Vault");
     vault = (await VaultFactory.deploy(
@@ -71,7 +72,7 @@ describe("USTStrategy", () => {
       vault.address,
       TREASURY,
       mockEthAnchorRouter.address,
-      mockExchangeRateFeeder.address,
+      mockAUstUstFeed.address,
       ustToken.address,
       aUstToken.address,
       PERFORMANCE_FEE_PCT,
@@ -81,6 +82,15 @@ describe("USTStrategy", () => {
     await strategy.connect(owner).grantRole(MANAGER_ROLE, manager.address);
 
     await vault.setStrategy(strategy.address);
+    await underlying
+      .connect(owner)
+      .approve(vault.address, constants.MaxUint256);
+    await aUstToken
+      .connect(owner)
+      .approve(mockEthAnchorRouter.address, constants.MaxUint256);
+    await ustToken
+      .connect(owner)
+      .approve(mockEthAnchorRouter.address, constants.MaxUint256);
   });
 
   describe("codearena issues", () => {
@@ -91,14 +101,14 @@ describe("USTStrategy", () => {
         vault.address,
         ethers.constants.AddressZero,
         mockEthAnchorRouter.address,
-        mockExchangeRateFeeder.address,
+        mockAUstUstFeed.address,
         ustToken.address,
         aUstToken.address,
         PERFORMANCE_FEE_PCT,
         owner.address
       );
 
-      await expect(tx).to.be.revertedWith("0 addr: _treasury");
+      await expect(tx).to.be.revertedWith("0x addr: _treasury");
     });
 
     it("issue #61 - no ERC165-check for _vault", async () => {
@@ -108,7 +118,7 @@ describe("USTStrategy", () => {
         TREASURY,
         TREASURY,
         mockEthAnchorRouter.address,
-        mockExchangeRateFeeder.address,
+        mockAUstUstFeed.address,
         ustToken.address,
         aUstToken.address,
         PERFORMANCE_FEE_PCT,
@@ -129,6 +139,55 @@ describe("USTStrategy", () => {
     it("Revert if underlying balance is zero", async () => {
       await expect(strategy.connect(manager).doHardWork()).to.be.revertedWith(
         "balance 0"
+      );
+    });
+
+    it("Revert if aUST/UST exchange rate is invalid", async () => {
+      const operator0 = generateNewAddress();
+      await mockEthAnchorRouter.addPendingOperator(operator0);
+
+      const amount0 = utils.parseUnits("100", 18);
+      const aUstAmount0 = utils.parseUnits("90", 18);
+      await underlying.connect(owner).transfer(vault.address, amount0);
+      await vault.connect(owner).updateInvested();
+
+      let exchangeRate = amount0.mul(utils.parseEther("1")).div(aUstAmount0);
+      await mockAUstUstFeed.setAnswer(exchangeRate);
+
+      await aUstToken
+        .connect(owner)
+        .approve(mockEthAnchorRouter.address, aUstAmount0);
+      await mockEthAnchorRouter.notifyDepositResult(operator0, aUstAmount0);
+      await strategy.connect(manager).finishDepositStable(0);
+
+      // when price is not positive
+      await mockAUstUstFeed.setLatestRoundData(1, 0, 100, 100, 1);
+      await expect(vault.connect(owner).updateInvested()).to.be.revertedWith(
+        "invalid price"
+      );
+
+      // when round id is invalid
+      await mockAUstUstFeed.setLatestRoundData(
+        3,
+        utils.parseEther("1"),
+        100,
+        100,
+        1
+      );
+      await expect(vault.connect(owner).updateInvested()).to.be.revertedWith(
+        "invalid price"
+      );
+
+      // when updated time is zero
+      await mockAUstUstFeed.setLatestRoundData(
+        1,
+        utils.parseEther("1"),
+        100,
+        0,
+        1
+      );
+      await expect(vault.connect(owner).updateInvested()).to.be.revertedWith(
+        "invalid price"
       );
     });
 
@@ -218,7 +277,7 @@ describe("USTStrategy", () => {
 
     it("Should finish deposit", async () => {
       let exchangeRate = amount0.mul(utils.parseEther("1")).div(aUstAmount0);
-      await mockExchangeRateFeeder.setExchangeRate(exchangeRate);
+      await mockAUstUstFeed.setAnswer(exchangeRate);
 
       await aUstToken
         .connect(owner)
@@ -246,7 +305,7 @@ describe("USTStrategy", () => {
       await vault.connect(owner).updateInvested();
 
       let exchangeRate = amount0.mul(utils.parseEther("1")).div(aUstAmount0);
-      await mockExchangeRateFeeder.setExchangeRate(exchangeRate);
+      await mockAUstUstFeed.setAnswer(exchangeRate);
 
       await aUstToken
         .connect(owner)
@@ -310,7 +369,7 @@ describe("USTStrategy", () => {
 
     it("Should init redeem operation", async () => {
       let exchangeRate = amount0.mul(utils.parseEther("1")).div(aUstAmount0);
-      await mockExchangeRateFeeder.setExchangeRate(exchangeRate);
+      await mockAUstUstFeed.setAnswer(exchangeRate);
 
       const operator = generateNewAddress();
       await mockEthAnchorRouter.addPendingOperator(operator);
@@ -333,7 +392,7 @@ describe("USTStrategy", () => {
 
     it("Should be able to init redeem several times", async () => {
       let exchangeRate = amount0.mul(utils.parseEther("1")).div(aUstAmount0);
-      await mockExchangeRateFeeder.setExchangeRate(exchangeRate);
+      await mockAUstUstFeed.setAnswer(exchangeRate);
 
       const operator0 = generateNewAddress();
       await mockEthAnchorRouter.addPendingOperator(operator0);
@@ -408,7 +467,7 @@ describe("USTStrategy", () => {
 
     it("Should finish redeem operation", async () => {
       let exchangeRate = amount0.mul(utils.parseEther("1")).div(aUstAmount0);
-      await mockExchangeRateFeeder.setExchangeRate(exchangeRate);
+      await mockAUstUstFeed.setAnswer(exchangeRate);
 
       let redeemedAmount0 = utils.parseUnits("40", 18);
       await ustToken
@@ -434,7 +493,7 @@ describe("USTStrategy", () => {
 
     it("Should pop finished operation", async () => {
       let exchangeRate = amount0.mul(utils.parseEther("1")).div(aUstAmount0);
-      await mockExchangeRateFeeder.setExchangeRate(exchangeRate);
+      await mockAUstUstFeed.setAnswer(exchangeRate);
 
       let redeemedAmount0 = utils.parseUnits("40", 18);
       await ustToken
@@ -468,7 +527,7 @@ describe("USTStrategy", () => {
 
     it("Should send performace fee if there is yield", async () => {
       let exchangeRate = amount0.mul(utils.parseEther("1")).div(aUstAmount0);
-      await mockExchangeRateFeeder.setExchangeRate(exchangeRate);
+      await mockAUstUstFeed.setAnswer(exchangeRate);
 
       let redeemedAmount0 = utils.parseUnits("60", 18);
       await ustToken
@@ -501,7 +560,7 @@ describe("USTStrategy", () => {
 
     it("moves the funds to the vault", async () => {
       const exchangeRate = amount0.mul(utils.parseEther("1")).div(aUstAmount0);
-      await mockExchangeRateFeeder.setExchangeRate(exchangeRate);
+      await mockAUstUstFeed.setAnswer(exchangeRate);
 
       const redeemedAmount = utils.parseUnits("60", 18);
       await ustToken
@@ -552,7 +611,7 @@ describe("USTStrategy", () => {
 
     it("Should init redeem aUST and withdraw underlying to vault", async () => {
       let exchangeRate = amount0.mul(utils.parseEther("1")).div(aUstAmount0);
-      await mockExchangeRateFeeder.setExchangeRate(exchangeRate);
+      await mockAUstUstFeed.setAnswer(exchangeRate);
 
       const operator = generateNewAddress();
       await mockEthAnchorRouter.addPendingOperator(operator);
@@ -599,7 +658,7 @@ describe("USTStrategy", () => {
 
     it("Should withdraw underlying to vault", async () => {
       let exchangeRate = amount0.mul(utils.parseEther("1")).div(aUstAmount0);
-      await mockExchangeRateFeeder.setExchangeRate(exchangeRate);
+      await mockAUstUstFeed.setAnswer(exchangeRate);
 
       const operator = generateNewAddress();
       await mockEthAnchorRouter.addPendingOperator(operator);
@@ -637,65 +696,191 @@ describe("USTStrategy", () => {
     });
   });
 
-  describe("#setExchangeRateFeeder function", () => {
-    it("Revert if msg.sender is not admin", async () => {
-      await expect(
-        strategy.connect(alice).setExchangeRateFeeder(generateNewAddress())
-      ).to.be.revertedWith("BaseStrategy: caller is not admin");
+  describe("#currentPerformanceFee function", () => {
+    let underlyingAmount = utils.parseEther("100");
+    let aUstAmount = utils.parseEther("80");
+    let convertedUst: BigNumber;
+    let aUstBalance: BigNumber;
+
+    beforeEach(async () => {
+      await vault.connect(owner).setInvestPerc("9000");
     });
 
-    it("Revert if address is zero", async () => {
-      await expect(
-        strategy.connect(owner).setExchangeRateFeeder(constants.AddressZero)
-      ).to.be.revertedWith("0x addr");
+    it("Return 0 if no UST deposited", async () => {
+      expect(await strategy.currentPerformanceFee()).to.be.equal(0);
     });
 
-    it("Should update new exchange rate feeder", async () => {
-      const newExchangeRateFeeder = generateNewAddress();
-      const tx = await strategy
-        .connect(owner)
-        .setExchangeRateFeeder(newExchangeRateFeeder);
-
-      expect(await strategy.exchangeRateFeeder()).equal(newExchangeRateFeeder);
-      await expect(tx)
-        .to.emit(strategy, "ExchangeRateFeederUpdated")
-        .withArgs(newExchangeRateFeeder);
-    });
-
-    it("Should be able to deposit several times", async () => {
-      const operator0 = generateNewAddress();
-      await mockEthAnchorRouter.addPendingOperator(operator0);
-
-      let underlyingBalance0 = utils.parseUnits("100", 18);
-      await underlying
-        .connect(owner)
-        .transfer(strategy.address, underlyingBalance0);
-      await strategy.connect(manager).doHardWork();
-
-      const operator1 = generateNewAddress();
-      await mockEthAnchorRouter.addPendingOperator(operator1);
-      let underlyingBalance1 = utils.parseUnits("50", 18);
-      await underlying
-        .connect(owner)
-        .transfer(strategy.address, underlyingBalance1);
-      await strategy.connect(manager).doHardWork();
-
-      expect(await underlying.balanceOf(strategy.address)).equal(0);
-      expect(await strategy.convertedUst()).equal(0);
-      expect(await strategy.pendingDeposits()).equal(
-        underlyingBalance0.add(underlyingBalance1)
+    it("Return 0 if there is a loss", async () => {
+      [convertedUst, aUstBalance] = await depositAndInvest(
+        underlyingAmount,
+        aUstAmount
       );
-      expect(await strategy.investedAssets()).equal(
-        underlyingBalance0.add(underlyingBalance1)
-      );
-      const operation0 = await strategy.depositOperations(0);
-      expect(operation0.operator).equal(operator0);
-      expect(operation0.amount).equal(underlyingBalance0);
 
-      const operation1 = await strategy.depositOperations(1);
-      expect(operation1.operator).equal(operator1);
-      expect(operation1.amount).equal(underlyingBalance1);
-      expect(await strategy.depositOperationLength()).equal(2);
+      await setAUstRate(utils.parseEther("1.12"));
+
+      expect(await strategy.currentPerformanceFee()).to.be.equal(0);
+    });
+
+    it("Return correct performance fee if there is some yield", async () => {
+      [convertedUst, aUstBalance] = await depositAndInvest(
+        underlyingAmount,
+        aUstAmount
+      );
+
+      const aUstRate = utils.parseEther("1.13");
+      await setAUstRate(aUstRate);
+
+      const ustValue = aUstAmount.mul(aUstRate).div(AUST_TO_UST_FEED_DECIMALS);
+
+      console.log(
+        "Performance fee: ",
+        utils.formatUnits(
+          ustValue.sub(convertedUst).mul(PERFORMANCE_FEE_PCT).div(DENOMINATOR),
+          18
+        )
+      );
+      expect(await strategy.currentPerformanceFee()).to.be.equal(
+        ustValue.sub(convertedUst).mul(PERFORMANCE_FEE_PCT).div(DENOMINATOR)
+      );
+    });
+
+    it("Return correct performance fee when there is pending redeem", async () => {
+      [convertedUst, aUstBalance] = await depositAndInvest(
+        underlyingAmount,
+        aUstAmount
+      );
+
+      await registerNewTestOperator();
+      await strategy.connect(manager).initRedeemStable(utils.parseEther("20"));
+
+      const aUstRate = utils.parseEther("1.13");
+      await setAUstRate(aUstRate);
+
+      const ustValue = aUstAmount.mul(aUstRate).div(AUST_TO_UST_FEED_DECIMALS);
+
+      console.log(
+        "Performance fee: ",
+        utils.formatUnits(
+          ustValue.sub(convertedUst).mul(PERFORMANCE_FEE_PCT).div(DENOMINATOR),
+          18
+        )
+      );
+      expect(await strategy.currentPerformanceFee()).to.be.equal(
+        ustValue.sub(convertedUst).mul(PERFORMANCE_FEE_PCT).div(DENOMINATOR)
+      );
     });
   });
+
+  describe("#investedAssets function", () => {
+    let underlyingAmount = utils.parseEther("100");
+    let aUstAmount = utils.parseEther("80");
+    let convertedUst: BigNumber;
+    let aUstBalance: BigNumber;
+
+    it("Return 0 if no UST deposited", async () => {
+      expect(await strategy.investedAssets()).to.be.equal(0);
+    });
+
+    it("Include pending deposits", async () => {
+      await depositVault(underlyingAmount);
+      await registerNewTestOperator();
+      await vault.updateInvested();
+
+      expect(await strategy.investedAssets()).to.be.equal(
+        underlyingAmount.mul(INVEST_PCT).div(DENOMINATOR)
+      );
+    });
+
+    it("Subtract performance fee from invested assets", async () => {
+      [convertedUst, aUstBalance] = await depositAndInvest(
+        underlyingAmount,
+        aUstAmount
+      );
+
+      const aUstRate = utils.parseEther("1.13");
+      await setAUstRate(aUstRate);
+
+      expect(await strategy.investedAssets()).to.be.equal(
+        aUstBalance
+          .mul(aUstRate)
+          .div(AUST_TO_UST_FEED_DECIMALS)
+          .sub(await strategy.currentPerformanceFee())
+      );
+    });
+
+    it("Return correct investAssets when there is pending redeem", async () => {
+      [convertedUst, aUstBalance] = await depositAndInvest(
+        underlyingAmount,
+        aUstAmount
+      );
+
+      await registerNewTestOperator();
+      await strategy.connect(manager).initRedeemStable(utils.parseEther("20"));
+
+      const aUstRate = utils.parseEther("1.13");
+      await setAUstRate(aUstRate);
+
+      expect(await strategy.investedAssets()).to.be.equal(
+        aUstBalance
+          .mul(aUstRate)
+          .div(AUST_TO_UST_FEED_DECIMALS)
+          .sub(await strategy.currentPerformanceFee())
+      );
+    });
+  });
+
+  // Test helpers
+  const registerNewTestOperator = async (): Promise<string> => {
+    const operator = generateNewAddress();
+    await mockEthAnchorRouter.addPendingOperator(operator);
+    return operator;
+  };
+
+  const depositVault = async (amount: BigNumber) => {
+    await vault.connect(owner).deposit({
+      amount,
+      claims: [
+        {
+          pct: DENOMINATOR,
+          beneficiary: owner.address,
+          data: "0x",
+        },
+      ],
+      lockedUntil: 7777777777,
+    });
+  };
+
+  const notifyDepositReturnAmount = async (
+    operator: string,
+    amount: BigNumber
+  ) => {
+    await mockEthAnchorRouter.notifyDepositResult(operator, amount);
+  };
+
+  const notifyRedeemReturnAmount = async (
+    operator: string,
+    amount: BigNumber
+  ) => {
+    await mockEthAnchorRouter.notifyRedeemResult(operator, amount);
+  };
+
+  const setAUstRate = async (rate: BigNumber) => {
+    await mockAUstUstFeed.setAnswer(rate);
+  };
+
+  const depositAndInvest = async (
+    underlyingAmount: BigNumber,
+    aUstAmount: BigNumber
+  ): Promise<BigNumber[]> => {
+    const operator = await registerNewTestOperator();
+    await depositVault(underlyingAmount);
+    await vault.updateInvested();
+
+    await notifyDepositReturnAmount(operator, aUstAmount);
+    await strategy.connect(manager).finishDepositStable(0);
+
+    const aUSTBalance = await aUstToken.balanceOf(strategy.address);
+    const convertedUst = await strategy.convertedUst();
+    return [convertedUst, aUSTBalance];
+  };
 });
