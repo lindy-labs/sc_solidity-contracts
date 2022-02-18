@@ -6,17 +6,17 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
-import {PercentMath} from "../lib/PercentMath.sol";
-import {ERC165Query} from "../lib/ERC165Query.sol";
-import {IVault} from "../vault/IVault.sol";
-import {IStrategy} from "./IStrategy.sol";
-import {IEthAnchorRouter} from "./anchor/IEthAnchorRouter.sol";
+import {PercentMath} from "../../lib/PercentMath.sol";
+import {ERC165Query} from "../../lib/ERC165Query.sol";
+import {IVault} from "../../vault/IVault.sol";
+import {IStrategy} from "../IStrategy.sol";
+import {IEthAnchorRouter} from "./IEthAnchorRouter.sol";
 
 /**
  * Base eth anchor strategy that handles UST tokens and invests them via the EthAnchor
  * protocol (https://docs.anchorprotocol.com/ethanchor/ethanchor)
  */
-abstract contract BaseStrategy is IStrategy, AccessControl {
+abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
     using SafeERC20 for IERC20;
     using PercentMath for uint256;
     using ERC165Query for address;
@@ -95,7 +95,7 @@ abstract contract BaseStrategy is IStrategy, AccessControl {
     modifier onlyManager() {
         require(
             hasRole(MANAGER_ROLE, msg.sender),
-            "BaseStrategy: caller is not manager"
+            "AnchorBaseStrategy: caller is not manager"
         );
         _;
     }
@@ -103,7 +103,7 @@ abstract contract BaseStrategy is IStrategy, AccessControl {
     modifier onlyAdmin() {
         require(
             hasRole(DEFAULT_ADMIN_ROLE, msg.sender),
-            "BaseStrategy: caller is not admin"
+            "AnchorBaseStrategy: caller is not admin"
         );
         _;
     }
@@ -132,18 +132,27 @@ abstract contract BaseStrategy is IStrategy, AccessControl {
         uint16 _perfFeePct,
         address _owner
     ) {
-        require(_owner != address(0), "BaseStrategy: owner is 0x");
-        require(_ethAnchorRouter != address(0), "BaseStrategy: router is 0x");
-        require(address(_ustToken) != address(0), "BaseStrategy: ust is 0x");
-        require(address(_aUstToken) != address(0), "BaseStrategy: aUST is 0x");
-        require(_treasury != address(0), "BaseStrategy: treasury is 0x");
+        require(_owner != address(0), "AnchorBaseStrategy: owner is 0x");
+        require(
+            _ethAnchorRouter != address(0),
+            "AnchorBaseStrategy: router is 0x"
+        );
+        require(
+            address(_ustToken) != address(0),
+            "AnchorBaseStrategy: ust is 0x"
+        );
+        require(
+            address(_aUstToken) != address(0),
+            "AnchorBaseStrategy: aUST is 0x"
+        );
+        require(_treasury != address(0), "AnchorBaseStrategy: treasury is 0x");
         require(
             PercentMath.validPerc(_perfFeePct),
-            "BaseStrategy: invalid performance fee"
+            "AnchorBaseStrategy: invalid performance fee"
         );
         require(
             _vault.doesContractImplementInterface(type(IVault).interfaceId),
-            "BaseStrategy: not an IVault"
+            "AnchorBaseStrategy: not an IVault"
         );
 
         _setupRole(DEFAULT_ADMIN_ROLE, _owner);
@@ -180,7 +189,7 @@ abstract contract BaseStrategy is IStrategy, AccessControl {
      */
     function _initDepositStable() internal returns (address, uint256) {
         uint256 ustBalance = _getUstBalance();
-        require(ustBalance != 0, "BaseStrategy: no ust exist");
+        require(ustBalance != 0, "AnchorBaseStrategy: no ust exist");
         pendingDeposits += ustBalance;
 
         ustToken.safeIncreaseAllowance(address(ethAnchorRouter), ustBalance);
@@ -201,14 +210,17 @@ abstract contract BaseStrategy is IStrategy, AccessControl {
      * @param idx Id of the pending deposit operation
      */
     function finishDepositStable(uint256 idx) external onlyManager {
-        require(depositOperations.length > idx, "BaseStrategy: not running");
+        require(
+            depositOperations.length > idx,
+            "AnchorBaseStrategy: not running"
+        );
         Operation storage operation = depositOperations[idx];
         address operator = operation.operator;
         uint256 aUstBalanceBefore = _getAUstBalance();
 
         ethAnchorRouter.finishDepositStable(operator);
         uint256 newAUst = _getAUstBalance() - aUstBalanceBefore;
-        require(newAUst > 0, "BaseStrategy: no aUST returned");
+        require(newAUst > 0, "AnchorBaseStrategy: no aUST returned");
 
         uint256 ustAmount = operation.amount;
         pendingDeposits -= ustAmount;
@@ -236,7 +248,7 @@ abstract contract BaseStrategy is IStrategy, AccessControl {
      * @param amount Amount of aUST to redeem
      */
     function initRedeemStable(uint256 amount) public onlyManager {
-        require(amount != 0, "BaseStrategy: amount 0");
+        require(amount != 0, "AnchorBaseStrategy: amount 0");
         pendingRedeems += amount;
 
         aUstToken.safeIncreaseAllowance(address(ethAnchorRouter), amount);
@@ -281,7 +293,7 @@ abstract contract BaseStrategy is IStrategy, AccessControl {
     function setPerfFeePct(uint16 _perfFeePct) external onlyAdmin {
         require(
             PercentMath.validPerc(_perfFeePct),
-            "BaseStrategy: invalid performance fee"
+            "AnchorBaseStrategy: invalid performance fee"
         );
         perfFeePct = _perfFeePct;
         emit PerfFeePctUpdated(_perfFeePct);
@@ -333,7 +345,10 @@ abstract contract BaseStrategy is IStrategy, AccessControl {
             uint256
         )
     {
-        require(redeemOperations.length > idx, "BaseStrategy: not running");
+        require(
+            redeemOperations.length > idx,
+            "AnchorBaseStrategy: not running"
+        );
         Operation storage operation = redeemOperations[idx];
         uint256 aUstBalance = _getAUstBalance() + pendingRedeems;
 
@@ -344,7 +359,7 @@ abstract contract BaseStrategy is IStrategy, AccessControl {
         ethAnchorRouter.finishRedeemStable(operator);
 
         uint256 redeemedAmount = _getUstBalance();
-        require(redeemedAmount > 0, "BaseStrategy: nothing redeemed");
+        require(redeemedAmount > 0, "AnchorBaseStrategy: nothing redeemed");
 
         uint256 perfFee = redeemedAmount > originalUst
             ? (redeemedAmount - originalUst).percOf(perfFeePct)
@@ -474,7 +489,7 @@ abstract contract BaseStrategy is IStrategy, AccessControl {
 
         require(
             price > 0 && updateTime != 0 && answeredInRound >= roundID,
-            "BaseStrategy: invalid aUST rate"
+            "AnchorBaseStrategy: invalid aUST rate"
         );
 
         return uint256(price);

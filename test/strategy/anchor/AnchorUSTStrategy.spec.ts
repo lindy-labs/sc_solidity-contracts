@@ -5,18 +5,18 @@ import { BigNumber, utils, constants, ContractFactory } from "ethers";
 import {
   MockChainlinkPriceFeed,
   Vault,
-  USTStrategy,
+  AnchorUSTStrategy,
   MockEthAnchorRouter,
   MockERC20,
-} from "../../typechain";
-import { generateNewAddress } from "../shared/";
+} from "../../../typechain";
+import { generateNewAddress } from "../../shared/";
 
-describe("USTStrategy", () => {
+describe("AnchorUSTStrategy", () => {
   let owner: SignerWithAddress;
   let alice: SignerWithAddress;
   let manager: SignerWithAddress;
   let vault: Vault;
-  let strategy: USTStrategy;
+  let strategy: AnchorUSTStrategy;
   let mockEthAnchorRouter: MockEthAnchorRouter;
   let mockAUstUstFeed: MockChainlinkPriceFeed;
   let ustToken: MockERC20;
@@ -60,9 +60,11 @@ describe("USTStrategy", () => {
       owner.address
     );
 
-    const USTStrategyFactory = await ethers.getContractFactory("USTStrategy");
+    const AnchorUSTStrategyFactory = await ethers.getContractFactory(
+      "AnchorUSTStrategy"
+    );
 
-    strategy = await USTStrategyFactory.deploy(
+    strategy = await AnchorUSTStrategyFactory.deploy(
       vault.address,
       TREASURY,
       mockEthAnchorRouter.address,
@@ -88,15 +90,17 @@ describe("USTStrategy", () => {
   });
 
   describe("constructor", () => {
-    let USTStrategyFactory: ContractFactory;
+    let AnchorUSTStrategyFactory: ContractFactory;
 
     beforeEach(async () => {
-      USTStrategyFactory = await ethers.getContractFactory("USTStrategy");
+      AnchorUSTStrategyFactory = await ethers.getContractFactory(
+        "AnchorUSTStrategy"
+      );
     });
 
     it("Revert if owner is address(0)", async () => {
       await expect(
-        USTStrategyFactory.deploy(
+        AnchorUSTStrategyFactory.deploy(
           vault.address,
           TREASURY,
           mockEthAnchorRouter.address,
@@ -111,7 +115,7 @@ describe("USTStrategy", () => {
 
     it("Revert if ethAnchorRouter is address(0)", async () => {
       await expect(
-        USTStrategyFactory.deploy(
+        AnchorUSTStrategyFactory.deploy(
           vault.address,
           TREASURY,
           constants.AddressZero,
@@ -126,7 +130,7 @@ describe("USTStrategy", () => {
 
     it("Revert if treasury is address(0)", async () => {
       await expect(
-        USTStrategyFactory.deploy(
+        AnchorUSTStrategyFactory.deploy(
           vault.address,
           constants.AddressZero,
           mockEthAnchorRouter.address,
@@ -141,7 +145,7 @@ describe("USTStrategy", () => {
 
     it("Revert if performance fee is greater than 100%", async () => {
       await expect(
-        USTStrategyFactory.deploy(
+        AnchorUSTStrategyFactory.deploy(
           vault.address,
           TREASURY,
           mockEthAnchorRouter.address,
@@ -156,7 +160,7 @@ describe("USTStrategy", () => {
 
     it("Revert if vault does not have interface", async () => {
       await expect(
-        USTStrategyFactory.deploy(
+        AnchorUSTStrategyFactory.deploy(
           TREASURY,
           TREASURY,
           mockEthAnchorRouter.address,
@@ -179,7 +183,7 @@ describe("USTStrategy", () => {
       );
 
       await expect(
-        USTStrategyFactory.deploy(
+        AnchorUSTStrategyFactory.deploy(
           vault.address,
           TREASURY,
           mockEthAnchorRouter.address,
@@ -189,7 +193,7 @@ describe("USTStrategy", () => {
           PERFORMANCE_FEE_PCT,
           owner.address
         )
-      ).to.be.revertedWith("USTStrategy: invalid underlying");
+      ).to.be.revertedWith("AnchorUSTStrategy: invalid underlying");
     });
 
     it("Check initial values", async () => {

@@ -5,20 +5,20 @@ import { expect } from "chai";
 import { BigNumber, utils, constants, ContractFactory } from "ethers";
 import type {
   Vault,
-  NonUSTStrategy,
+  AnchorNonUSTStrategy,
   MockEthAnchorRouter,
   MockCurvePool,
   MockERC20,
   MockChainlinkPriceFeed,
-} from "../../typechain";
-import { generateNewAddress } from "../shared/";
+} from "../../../typechain";
+import { generateNewAddress } from "../../shared/";
 
-describe("NonUSTStrategy", () => {
+describe("AnchorNonUSTStrategy", () => {
   let owner: SignerWithAddress;
   let alice: SignerWithAddress;
   let manager: SignerWithAddress;
   let vault: Vault;
-  let strategy: NonUSTStrategy;
+  let strategy: AnchorNonUSTStrategy;
   let mockEthAnchorRouter: MockEthAnchorRouter;
   let mockAUstUstFeed: MockChainlinkPriceFeed;
   let mockCurvePool: MockCurvePool;
@@ -89,11 +89,11 @@ describe("NonUSTStrategy", () => {
       owner.address
     );
 
-    const NonUSTStrategyFactory = await ethers.getContractFactory(
-      "NonUSTStrategy"
+    const AnchorNonUSTStrategyFactory = await ethers.getContractFactory(
+      "AnchorNonUSTStrategy"
     );
 
-    strategy = await NonUSTStrategyFactory.deploy(
+    strategy = await AnchorNonUSTStrategyFactory.deploy(
       vault.address,
       TREASURY,
       mockEthAnchorRouter.address,
@@ -122,15 +122,17 @@ describe("NonUSTStrategy", () => {
   });
 
   describe("constructor", () => {
-    let NonUSTStrategyFactory: ContractFactory;
+    let AnchorNonUSTStrategyFactory: ContractFactory;
 
     beforeEach(async () => {
-      NonUSTStrategyFactory = await ethers.getContractFactory("NonUSTStrategy");
+      AnchorNonUSTStrategyFactory = await ethers.getContractFactory(
+        "AnchorNonUSTStrategy"
+      );
     });
 
     it("Revert if curve pool is address(0)", async () => {
       await expect(
-        NonUSTStrategyFactory.deploy(
+        AnchorNonUSTStrategyFactory.deploy(
           vault.address,
           TREASURY,
           mockEthAnchorRouter.address,
@@ -143,7 +145,7 @@ describe("NonUSTStrategy", () => {
           underlyingI,
           ustI
         )
-      ).to.be.revertedWith("NonUSTStrategy: curve pool is 0x");
+      ).to.be.revertedWith("AnchorNonUSTStrategy: curve pool is 0x");
     });
 
     it("Revert if underlying is ustToken", async () => {
@@ -156,7 +158,7 @@ describe("NonUSTStrategy", () => {
       );
 
       await expect(
-        NonUSTStrategyFactory.deploy(
+        AnchorNonUSTStrategyFactory.deploy(
           vault.address,
           TREASURY,
           mockEthAnchorRouter.address,
@@ -169,7 +171,7 @@ describe("NonUSTStrategy", () => {
           underlyingI,
           ustI
         )
-      ).to.be.revertedWith("NonUSTStrategy: invalid underlying");
+      ).to.be.revertedWith("AnchorNonUSTStrategy: invalid underlying");
     });
 
     it("Check initial values", async () => {
@@ -221,14 +223,14 @@ describe("NonUSTStrategy", () => {
         strategy
           .connect(owner)
           .initializeStrategy(ustFeed.address, underlyingFeed.address)
-      ).to.be.revertedWith("NonUSTStrategy: already initialized");
+      ).to.be.revertedWith("AnchorNonUSTStrategy: already initialized");
     });
   });
 
   describe("#doHardWork function", () => {
     it("Revert if not initialized", async () => {
       await expect(strategy.connect(manager).doHardWork()).to.be.revertedWith(
-        "NonUSTStrategy: not initialized"
+        "AnchorNonUSTStrategy: not initialized"
       );
     });
 
@@ -244,7 +246,7 @@ describe("NonUSTStrategy", () => {
       await initializeStrategy();
 
       await expect(strategy.connect(manager).doHardWork()).to.be.revertedWith(
-        "NonUSTStrategy: no underlying exist"
+        "AnchorNonUSTStrategy: no underlying exist"
       );
     });
 
@@ -405,7 +407,7 @@ describe("NonUSTStrategy", () => {
           ],
           lockedUntil: 0,
         })
-      ).to.be.revertedWith("NonUSTStrategy: invalid price");
+      ).to.be.revertedWith("AnchorNonUSTStrategy: invalid price");
     });
 
     it("Revert if underlying price is not positive", async () => {
@@ -426,7 +428,7 @@ describe("NonUSTStrategy", () => {
           ],
           lockedUntil: 0,
         })
-      ).to.be.revertedWith("NonUSTStrategy: invalid price");
+      ).to.be.revertedWith("AnchorNonUSTStrategy: invalid price");
     });
 
     it("Revert if UST feed round id is invalid", async () => {
@@ -447,7 +449,7 @@ describe("NonUSTStrategy", () => {
           ],
           lockedUntil: 0,
         })
-      ).to.be.revertedWith("NonUSTStrategy: invalid price");
+      ).to.be.revertedWith("AnchorNonUSTStrategy: invalid price");
     });
 
     it("Revert if underlying feed round id is invalid", async () => {
@@ -468,7 +470,7 @@ describe("NonUSTStrategy", () => {
           ],
           lockedUntil: 0,
         })
-      ).to.be.revertedWith("NonUSTStrategy: invalid price");
+      ).to.be.revertedWith("AnchorNonUSTStrategy: invalid price");
     });
 
     it("Revert if UST feed updated time is zero", async () => {
@@ -489,7 +491,7 @@ describe("NonUSTStrategy", () => {
           ],
           lockedUntil: 0,
         })
-      ).to.be.revertedWith("NonUSTStrategy: invalid price");
+      ).to.be.revertedWith("AnchorNonUSTStrategy: invalid price");
     });
 
     it("Revert if underlying feed updated time is zero", async () => {
@@ -510,7 +512,7 @@ describe("NonUSTStrategy", () => {
           ],
           lockedUntil: 0,
         })
-      ).to.be.revertedWith("NonUSTStrategy: invalid price");
+      ).to.be.revertedWith("AnchorNonUSTStrategy: invalid price");
     });
 
     it("Calculate correct Underlying amount from UST amount", async () => {

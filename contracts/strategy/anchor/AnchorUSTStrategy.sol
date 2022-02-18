@@ -5,13 +5,13 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
-import {BaseStrategy} from "./BaseStrategy.sol";
-import {PercentMath} from "../lib/PercentMath.sol";
+import {AnchorBaseStrategy} from "./AnchorBaseStrategy.sol";
+import {PercentMath} from "../../lib/PercentMath.sol";
 
 /**
- * A Eth Anchor strategy that uses UST as the underlying currency
+ * An Eth Anchor strategy that uses UST as the underlying currency
  */
-contract USTStrategy is BaseStrategy {
+contract AnchorUSTStrategy is AnchorBaseStrategy {
     using SafeERC20 for IERC20;
     using PercentMath for uint256;
 
@@ -30,7 +30,7 @@ contract USTStrategy is BaseStrategy {
         uint16 _perfFeePct,
         address _owner
     )
-        BaseStrategy(
+        AnchorBaseStrategy(
             _vault,
             _treasury,
             _ethAnchorRouter,
@@ -41,7 +41,10 @@ contract USTStrategy is BaseStrategy {
             _owner
         )
     {
-        require(underlying == _ustToken, "USTStrategy: invalid underlying");
+        require(
+            underlying == _ustToken,
+            "AnchorUSTStrategy: invalid underlying"
+        );
     }
 
     /**

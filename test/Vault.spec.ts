@@ -7,7 +7,7 @@ import type {
   TestERC20,
   Depositors,
   Claimers,
-  USTStrategy,
+  AnchorUSTStrategy,
 } from "../typechain";
 import { Claimers__factory, Depositors__factory } from "../typechain";
 
@@ -40,7 +40,7 @@ describe("Vault", () => {
   let vault: Vault;
   let depositors: Depositors;
   let claimers: Claimers;
-  let strategy: USTStrategy;
+  let strategy: AnchorUSTStrategy;
   const treasury = generateNewAddress();
 
   beforeEach(async () => {
@@ -73,7 +73,7 @@ describe("Vault", () => {
       owner.address
     )) as Vault;
 
-    strategy = (await MockStrategy.deploy(
+    strategy = await MockStrategy.deploy(
       vault.address,
       treasury,
       mockEthAnchorRouter.address,
@@ -81,7 +81,7 @@ describe("Vault", () => {
       underlying.address,
       aUstToken.address,
       BigNumber.from("200")
-    )) as USTStrategy;
+    );
 
     depositors = Depositors__factory.connect(await vault.depositors(), owner);
     claimers = Claimers__factory.connect(await vault.claimers(), owner);
