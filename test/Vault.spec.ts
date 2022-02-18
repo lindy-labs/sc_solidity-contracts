@@ -33,7 +33,7 @@ describe("Vault", () => {
   let carol: SignerWithAddress;
 
   let mockEthAnchorRouter: Contract;
-  let mockExchangeRateFeeder: Contract;
+  let mockAUstUstFeed: Contract;
 
   let underlying: TestERC20;
   let aUstToken: Contract;
@@ -61,10 +61,10 @@ describe("Vault", () => {
       aUstToken.address
     );
 
-    const MockExchangeRateFeederFactory = await ethers.getContractFactory(
-      "MockExchangeRateFeeder"
+    const MockChainlinkPriceFeedFactory = await ethers.getContractFactory(
+      "MockChainlinkPriceFeed"
     );
-    mockExchangeRateFeeder = await MockExchangeRateFeederFactory.deploy();
+    mockAUstUstFeed = await MockChainlinkPriceFeedFactory.deploy(18);
 
     vault = (await Vault.deploy(
       underlying.address,
@@ -77,7 +77,7 @@ describe("Vault", () => {
       vault.address,
       treasury,
       mockEthAnchorRouter.address,
-      mockExchangeRateFeeder.address,
+      mockAUstUstFeed.address,
       underlying.address,
       aUstToken.address,
       BigNumber.from("200")
