@@ -54,7 +54,6 @@ contract MockEthAnchorRouter is IEthAnchorRouter {
         external
         override(IEthAnchorRouter)
     {
-        require(depositFinishResults[_operation] > 0);
         aUstToken.safeTransfer(msg.sender, depositFinishResults[_operation]);
         depositFinishResults[_operation] = 0;
     }
@@ -79,7 +78,6 @@ contract MockEthAnchorRouter is IEthAnchorRouter {
     }
 
     function finishRedeemStable(address _operation) external override {
-        require(redeemFinishResults[_operation] > 0);
         ustToken.safeTransfer(msg.sender, redeemFinishResults[_operation]);
         redeemFinishResults[_operation] = 0;
     }

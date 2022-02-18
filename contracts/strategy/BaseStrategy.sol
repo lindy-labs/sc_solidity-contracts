@@ -13,7 +13,7 @@ import {IStrategy} from "./IStrategy.sol";
 import {IEthAnchorRouter} from "./anchor/IEthAnchorRouter.sol";
 
 /**
- * Base strategy that handles UST tokens and invests them via the EthAnchor
+ * Base eth anchor strategy that handles UST tokens and invests them via the EthAnchor
  * protocol (https://docs.anchorprotocol.com/ethanchor/ethanchor)
  */
 abstract contract BaseStrategy is IStrategy, AccessControl {
@@ -23,7 +23,24 @@ abstract contract BaseStrategy is IStrategy, AccessControl {
 
     event PerfFeeClaimed(uint256 amount);
     event PerfFeePctUpdated(uint256 pct);
-    event ExchangeRateFeederUpdated(address indexed exchangeRateFeeder);
+    event InitDepositStable(
+        address indexed operator,
+        uint256 indexed idx,
+        uint256 underlyingAmount,
+        uint256 ustAmount
+    );
+    event FinishDepositStable(
+        address indexed operator,
+        uint256 ustAmount,
+        uint256 aUstAmount
+    );
+    event InitRedeemStable(address indexed operator, uint256 aUstAmount);
+    event FinishRedeemStable(
+        address indexed operator,
+        uint256 aUstAmount,
+        uint256 ustAmount,
+        uint256 underlyingAmount
+    );
 
     struct Operation {
         address operator;
@@ -33,23 +50,25 @@ abstract contract BaseStrategy is IStrategy, AccessControl {
     bytes32 public constant MANAGER_ROLE =
         0x241ecf16d79d0f8dbfb92cbc07fe17840425976cf0667f022fe9877caa831b08; // keccak256("MANAGER_ROLE");
 
+    // Underlying token address
     IERC20 public override(IStrategy) underlying;
+
     // Vault address
     address public override(IStrategy) vault;
 
-    // address of the treasury
+    // Treasury address
     address public treasury;
 
-    // address for the UST token
+    // UST token address
     IERC20 public ustToken;
 
-    // address for the aUST token (wrapped Anchor UST, received to accrue interest for an Anchor deposit)
+    // aUST token address (wrapped Anchor UST, received to accrue interest for an Anchor deposit)
     IERC20 public aUstToken;
 
     // performance fee taken by the treasury on profits
     uint16 public perfFeePct;
 
-    // external contract to interact with EthAnchor
+    // Router contract to interact with EthAnchor
     IEthAnchorRouter public ethAnchorRouter;
 
     // Chainlink aUST / UST price feed
@@ -89,6 +108,20 @@ abstract contract BaseStrategy is IStrategy, AccessControl {
         _;
     }
 
+    /**
+     * Constructor of Base Strategy - Initialize required addresses and params
+     *
+     * @notice Vault will be automatically set to Manager Role to handle underlyings
+     *
+     * @param _vault Vault address
+     * @param _treasury Treasury address
+     * @param _ethAnchorRouter EthAnchorRouter address
+     * @param _aUstToUstFeed aUST / UST chainlink feed address
+     * @param _ustToken UST token address
+     * @param _aUstToken aUST token address
+     * @param _perfFeePct Performance fee percentage
+     * @param _owner Owner address
+     */
     constructor(
         address _vault,
         address _treasury,
@@ -99,14 +132,18 @@ abstract contract BaseStrategy is IStrategy, AccessControl {
         uint16 _perfFeePct,
         address _owner
     ) {
-        require(_ethAnchorRouter != address(0), "0x addr: _ethAnchorRouter");
-        require(address(_ustToken) != address(0), "0x addr: _usdToken");
-        require(address(_aUstToken) != address(0), "0x addr: _aUstToken");
-        require(PercentMath.validPerc(_perfFeePct), "invalid pct");
-        require(_treasury != address(0), "0x addr: _treasury");
+        require(_owner != address(0), "BaseStrategy: owner is 0x");
+        require(_ethAnchorRouter != address(0), "BaseStrategy: router is 0x");
+        require(address(_ustToken) != address(0), "BaseStrategy: ust is 0x");
+        require(address(_aUstToken) != address(0), "BaseStrategy: aUST is 0x");
+        require(_treasury != address(0), "BaseStrategy: treasury is 0x");
+        require(
+            PercentMath.validPerc(_perfFeePct),
+            "BaseStrategy: invalid performance fee"
+        );
         require(
             _vault.doesContractImplementInterface(type(IVault).interfaceId),
-            "_vault: not an IVault"
+            "BaseStrategy: not an IVault"
         );
 
         _setupRole(DEFAULT_ADMIN_ROLE, _owner);
@@ -122,50 +159,71 @@ abstract contract BaseStrategy is IStrategy, AccessControl {
         perfFeePct = _perfFeePct;
 
         _aUstToUstFeedDecimals = 10**_aUstToUstFeed.decimals();
-
-        // pre-approve EthAnchor router to transact all UST and aUST
-        ustToken.safeIncreaseAllowance(_ethAnchorRouter, type(uint256).max);
-        aUstToken.safeIncreaseAllowance(_ethAnchorRouter, type(uint256).max);
     }
 
     /**
-     * Initiates a deposit of all the currently held UST into EthAnchor
+     * Invest underlying assets to EthAnchor contract.
      *
-     * @notice since EthAnchor uses an asynchronous model, this function
-     * only starts the deposit process, but does not finish it.
+     * @notice We only deposit UST to EthAnchor. so if underlying is UST, we deposit directly,
+     * however, if underlying is not UST token, then we swap underlying to UST, then deposit to ethAnchor.
      */
     function doHardWork() external virtual;
 
-    function _initDepositStable() internal {
+    /**
+     * Initiates available UST to EthAnchor
+     *
+     * @notice since EthAnchor uses an asynchronous model, this function
+     * only starts the deposit process, but does not finish it.
+     * Each EthAnchor deposits are handled by different operator, so we store
+     * operator address to finish later.
+     * We need to increase pendingDeposits to track correct underlying assets.
+     */
+    function _initDepositStable() internal returns (address, uint256) {
         uint256 ustBalance = _getUstBalance();
-        require(ustBalance != 0, "balance 0");
+        require(ustBalance != 0, "BaseStrategy: no ust exist");
         pendingDeposits += ustBalance;
-        address _operator = ethAnchorRouter.initDepositStable(ustBalance);
+
+        ustToken.safeIncreaseAllowance(address(ethAnchorRouter), ustBalance);
+        address operator = ethAnchorRouter.initDepositStable(ustBalance);
         depositOperations.push(
-            Operation({operator: _operator, amount: ustBalance})
+            Operation({operator: operator, amount: ustBalance})
         );
+
+        return (operator, ustBalance);
     }
 
     /**
      * Calls EthAnchor with a pending deposit ID, and attempts to finish it.
      *
-     * @notice Must be called some time after `doHardWork()`. Will only work if
+     * @notice Must be called some time after `_initDepositStable()`. Will only work if
      * the EthAnchor bridge has finished processing the deposit.
      *
      * @param idx Id of the pending deposit operation
      */
     function finishDepositStable(uint256 idx) external onlyManager {
-        require(depositOperations.length > idx, "not running");
+        require(depositOperations.length > idx, "BaseStrategy: not running");
         Operation storage operation = depositOperations[idx];
-        ethAnchorRouter.finishDepositStable(operation.operator);
+        address operator = operation.operator;
+        uint256 aUstBalanceBefore = _getAUstBalance();
 
-        pendingDeposits -= operation.amount;
-        convertedUst += operation.amount;
+        ethAnchorRouter.finishDepositStable(operator);
+        uint256 newAUst = _getAUstBalance() - aUstBalanceBefore;
+        require(newAUst > 0, "BaseStrategy: no aUST returned");
 
-        operation.operator = depositOperations[depositOperations.length - 1]
-            .operator;
-        operation.amount = depositOperations[depositOperations.length - 1]
-            .amount;
+        uint256 ustAmount = operation.amount;
+        pendingDeposits -= ustAmount;
+        convertedUst += ustAmount;
+
+        emit FinishDepositStable(operator, ustAmount, newAUst);
+
+        if (idx < depositOperations.length - 1) {
+            Operation memory lastOperation = depositOperations[
+                depositOperations.length - 1
+            ];
+            operation.operator = lastOperation.operator;
+            operation.amount = lastOperation.amount;
+        }
+
         depositOperations.pop();
     }
 
@@ -178,21 +236,21 @@ abstract contract BaseStrategy is IStrategy, AccessControl {
      * @param amount Amount of aUST to redeem
      */
     function initRedeemStable(uint256 amount) public onlyManager {
-        uint256 aUstBalance = _getAUstBalance();
-        require(amount != 0, "amount 0");
-        require(aUstBalance >= amount, "insufficient");
+        require(amount != 0, "BaseStrategy: amount 0");
         pendingRedeems += amount;
-        address _operator = ethAnchorRouter.initRedeemStable(amount);
-        redeemOperations.push(Operation({operator: _operator, amount: amount}));
+
+        aUstToken.safeIncreaseAllowance(address(ethAnchorRouter), amount);
+        address operator = ethAnchorRouter.initRedeemStable(amount);
+
+        redeemOperations.push(Operation({operator: operator, amount: amount}));
+
+        emit InitRedeemStable(operator, amount);
     }
 
     /**
-     * Withdraws the entire amount back to the vault
+     * Request withdrawal from EthAnchor
      *
-     * @notice since some of the amount may be deposited into EthAnchor, this
-     * call may not withdraw all the funds right away. It will start a redeem
-     * process on EthAnchor, but this function must be called again a second
-     * time once that is finished.
+     * @notice since EthAnchor uses an asynchronous model, we can only request withdrawal for whole aUST
      */
     function withdrawAllToVault() external override(IStrategy) onlyManager {
         uint256 aUstBalance = _getAUstBalance();
@@ -204,19 +262,14 @@ abstract contract BaseStrategy is IStrategy, AccessControl {
     /**
      * Withdraws a specified amount back to the vault
      *
-     * @notice this function only considers the
-     * amount currently not invested, but only what is currently held by the
-     * strategy
-     *
-     * @param amount Amount to withdraw
+     * @notice since EthAnchor uses an asynchronous model, and there is no underlying amount
+     * in the strategy, this function do nothing at all, However override interface of IStrategy.
      */
     function withdrawToVault(uint256 amount)
         external
         override(IStrategy)
         onlyManager
-    {
-        underlying.safeTransfer(vault, amount);
-    }
+    {}
 
     /**
      * Updates the performance fee
@@ -226,7 +279,10 @@ abstract contract BaseStrategy is IStrategy, AccessControl {
      * @param _perfFeePct The new performance fee %
      */
     function setPerfFeePct(uint16 _perfFeePct) external onlyAdmin {
-        require(PercentMath.validPerc(_perfFeePct), "invalid pct");
+        require(
+            PercentMath.validPerc(_perfFeePct),
+            "BaseStrategy: invalid performance fee"
+        );
         perfFeePct = _perfFeePct;
         emit PerfFeePctUpdated(_perfFeePct);
     }
@@ -246,7 +302,8 @@ abstract contract BaseStrategy is IStrategy, AccessControl {
      * Amount, expressed in the underlying currency, currently in the strategy
      *
      * @notice both held and invested amounts are included here, using the
-     * latest known exchange rates to the underlying currency
+     * latest known exchange rates to the underlying currency.
+     * This will return value without performance fee.
      *
      * @return The total amount of underlying
      */
@@ -262,18 +319,33 @@ abstract contract BaseStrategy is IStrategy, AccessControl {
      *
      * @notice Must be called some time after `initRedeemStable()`. Will only work if
      * the EthAnchor bridge has finished processing the deposit.
+     * Will take performance fee if some yield generated.
      *
      * @param idx Id of the pending redeem operation
+     *
+     * @return Redeemed UST amount without performance fee.
      */
-    function _finishRedeemStable(uint256 idx) internal returns (uint256) {
-        require(redeemOperations.length > idx, "not running");
+    function _finishRedeemStable(uint256 idx)
+        internal
+        returns (
+            address,
+            uint256,
+            uint256
+        )
+    {
+        require(redeemOperations.length > idx, "BaseStrategy: not running");
         Operation storage operation = redeemOperations[idx];
         uint256 aUstBalance = _getAUstBalance() + pendingRedeems;
-        uint256 originalUst = (convertedUst * operation.amount) / aUstBalance;
 
-        ethAnchorRouter.finishRedeemStable(operation.operator);
+        uint256 operationAmount = operation.amount;
+        address operator = operation.operator;
+        uint256 originalUst = (convertedUst * operationAmount) / aUstBalance;
+
+        ethAnchorRouter.finishRedeemStable(operator);
 
         uint256 redeemedAmount = _getUstBalance();
+        require(redeemedAmount > 0, "BaseStrategy: nothing redeemed");
+
         uint256 perfFee = redeemedAmount > originalUst
             ? (redeemedAmount - originalUst).percOf(perfFeePct)
             : 0;
@@ -282,47 +354,68 @@ abstract contract BaseStrategy is IStrategy, AccessControl {
             emit PerfFeeClaimed(perfFee);
         }
         convertedUst -= originalUst;
-        pendingRedeems -= operation.amount;
+        pendingRedeems -= operationAmount;
 
-        operation.operator = redeemOperations[redeemOperations.length - 1]
-            .operator;
-        operation.amount = redeemOperations[redeemOperations.length - 1].amount;
+        if (idx < redeemOperations.length - 1) {
+            Operation memory lastOperation = redeemOperations[
+                redeemOperations.length - 1
+            ];
+            operation.operator = lastOperation.operator;
+            operation.amount = lastOperation.amount;
+        }
         redeemOperations.pop();
 
-        return redeemedAmount - perfFee;
+        return (operator, operationAmount, redeemedAmount - perfFee);
     }
 
-    // Amount of underlying tokens in the strategy
+    /**
+     * @return underlying balance of strategy
+     */
     function _getUnderlyingBalance() internal view returns (uint256) {
         return underlying.balanceOf(address(this));
     }
 
-    // Amount of UST tokens in the strategy
+    /**
+     * @return UST balance of strategy
+     */
     function _getUstBalance() internal view returns (uint256) {
         return ustToken.balanceOf(address(this));
     }
 
-    // Amount of aUST tokens in the strategy
+    /**
+     * @return aUST balance of strategy
+     */
     function _getAUstBalance() internal view returns (uint256) {
         return aUstToken.balanceOf(address(this));
     }
 
-    // Amount of pending deposit operations
+    /**
+     * @return Length of pending deposit operations
+     */
     function depositOperationLength() external view returns (uint256) {
         return depositOperations.length;
     }
 
-    // Amount of pending redeem operations
+    /**
+     * @return Length of pending redeem operations
+     */
     function redeemOperationLength() external view returns (uint256) {
         return redeemOperations.length;
     }
 
-    // Calculate performance fee in UST with aUST balance and exchange rate
-    function _performanceUstFeeWithInfo(
-        uint256 aUstBalance,
-        uint256 exchangeRate
-    ) private view returns (uint256) {
-        uint256 estimatedUstAmount = (exchangeRate * aUstBalance) / 1e18;
+    /**
+     * Calculate performance fee for known aUST balance and aUST / UST exchange rate.
+     *
+     * @return performance fee in UST.
+     */
+    function _performanceUstFeeWithInfo(uint256 aUstBalance, uint256 price)
+        private
+        view
+        returns (uint256)
+    {
+        // aUST and UST decimals are same, so we only care about aUST / UST feed decimals
+        uint256 estimatedUstAmount = (price * aUstBalance) /
+            _aUstToUstFeedDecimals;
         if (estimatedUstAmount > convertedUst) {
             return (estimatedUstAmount - convertedUst).percOf(perfFeePct);
         }
@@ -346,7 +439,9 @@ abstract contract BaseStrategy is IStrategy, AccessControl {
         return _performanceUstFeeWithInfo(aUstBalance, _aUstExchangeRate());
     }
 
-    // Get UST value of current aUST balance
+    /**
+     * @return UST value of current aUST balance (+ pending redeems) without performance fee
+     */
     function _estimateAUstBalanceInUstMinusFee()
         internal
         view
@@ -379,7 +474,7 @@ abstract contract BaseStrategy is IStrategy, AccessControl {
 
         require(
             price > 0 && updateTime != 0 && answeredInRound >= roundID,
-            "invalid price"
+            "BaseStrategy: invalid aUST rate"
         );
 
         return uint256(price);
