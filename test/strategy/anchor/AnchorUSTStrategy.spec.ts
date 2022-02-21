@@ -1,5 +1,6 @@
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { ethers } from "hardhat";
+import { time } from "@openzeppelin/test-helpers";
 import { expect } from "chai";
 import { BigNumber, utils, constants, ContractFactory } from "ethers";
 import {
@@ -24,6 +25,8 @@ describe("AnchorUSTStrategy", () => {
   let underlying: MockERC20;
   const TREASURY = generateNewAddress();
   const AUST_TO_UST_FEED_DECIMALS = utils.parseEther("1");
+  const MIN_LOCK_PERIOD = 1;
+  const twoWeeks = time.duration.days(14).toNumber();
   const PERFORMANCE_FEE_PCT = BigNumber.from("200");
   const INVEST_PCT = BigNumber.from("9000");
   const DENOMINATOR = BigNumber.from("10000");
@@ -55,7 +58,7 @@ describe("AnchorUSTStrategy", () => {
     const VaultFactory = await ethers.getContractFactory("Vault");
     vault = await VaultFactory.deploy(
       underlying.address,
-      0,
+      MIN_LOCK_PERIOD,
       INVEST_PCT,
       owner.address
     );
@@ -177,7 +180,7 @@ describe("AnchorUSTStrategy", () => {
       const VaultFactory = await ethers.getContractFactory("Vault");
       vault = await VaultFactory.deploy(
         aUstToken.address,
-        0,
+        1,
         INVEST_PCT,
         owner.address
       );
@@ -913,7 +916,7 @@ describe("AnchorUSTStrategy", () => {
           data: "0x",
         },
       ],
-      lockedUntil: 7777777777,
+      lockDuration: twoWeeks,
     });
   };
 

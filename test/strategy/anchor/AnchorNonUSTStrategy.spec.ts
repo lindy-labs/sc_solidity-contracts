@@ -3,6 +3,7 @@ import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { ethers } from "hardhat";
 import { expect } from "chai";
 import { BigNumber, utils, constants, ContractFactory } from "ethers";
+import { time } from "@openzeppelin/test-helpers";
 import type {
   Vault,
   AnchorNonUSTStrategy,
@@ -37,6 +38,7 @@ describe("AnchorNonUSTStrategy", () => {
   const CURVE_DECIMALS = utils.parseEther("1");
   const INVEST_PCT = BigNumber.from("9000");
   const DENOMINATOR = BigNumber.from("10000");
+  const twoWeeks = BigNumber.from(time.duration.days(14).toNumber());
 
   const MANAGER_ROLE = utils.keccak256(utils.toUtf8Bytes("MANAGER_ROLE"));
 
@@ -84,10 +86,11 @@ describe("AnchorNonUSTStrategy", () => {
     const VaultFactory = await ethers.getContractFactory("Vault");
     vault = await VaultFactory.deploy(
       underlying.address,
-      0,
+      1,
       INVEST_PCT,
       owner.address
     );
+    mockAUstUstFeed = await MockChainlinkPriceFeedFactory.deploy(18);
 
     const AnchorNonUSTStrategyFactory = await ethers.getContractFactory(
       "AnchorNonUSTStrategy"
@@ -152,7 +155,7 @@ describe("AnchorNonUSTStrategy", () => {
       const VaultFactory = await ethers.getContractFactory("Vault");
       vault = await VaultFactory.deploy(
         ustToken.address,
-        0,
+        1,
         INVEST_PCT,
         owner.address
       );
@@ -405,7 +408,7 @@ describe("AnchorNonUSTStrategy", () => {
               data: "0x",
             },
           ],
-          lockedUntil: 0,
+          lockDuration: twoWeeks,
         })
       ).to.be.revertedWith("AnchorNonUSTStrategy: invalid price");
     });
@@ -426,7 +429,7 @@ describe("AnchorNonUSTStrategy", () => {
               data: "0x",
             },
           ],
-          lockedUntil: 0,
+          lockDuration: twoWeeks,
         })
       ).to.be.revertedWith("AnchorNonUSTStrategy: invalid price");
     });
@@ -447,7 +450,7 @@ describe("AnchorNonUSTStrategy", () => {
               data: "0x",
             },
           ],
-          lockedUntil: 0,
+          lockDuration: twoWeeks,
         })
       ).to.be.revertedWith("AnchorNonUSTStrategy: invalid price");
     });
@@ -468,7 +471,7 @@ describe("AnchorNonUSTStrategy", () => {
               data: "0x",
             },
           ],
-          lockedUntil: 0,
+          lockDuration: twoWeeks,
         })
       ).to.be.revertedWith("AnchorNonUSTStrategy: invalid price");
     });
@@ -489,7 +492,7 @@ describe("AnchorNonUSTStrategy", () => {
               data: "0x",
             },
           ],
-          lockedUntil: 0,
+          lockDuration: twoWeeks,
         })
       ).to.be.revertedWith("AnchorNonUSTStrategy: invalid price");
     });
@@ -510,7 +513,7 @@ describe("AnchorNonUSTStrategy", () => {
               data: "0x",
             },
           ],
-          lockedUntil: 0,
+          lockDuration: twoWeeks,
         })
       ).to.be.revertedWith("AnchorNonUSTStrategy: invalid price");
     });
@@ -563,7 +566,7 @@ describe("AnchorNonUSTStrategy", () => {
           data: "0x",
         },
       ],
-      lockedUntil: 7777777777,
+      lockDuration: twoWeeks,
     });
   };
 
