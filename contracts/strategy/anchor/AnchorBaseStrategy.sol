@@ -89,8 +89,8 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
     // amount of UST converted (used to calculate yield)
     uint256 public convertedUst;
 
-    // Decimals of aUST / UST feed
-    uint256 internal _aUstToUstFeedDecimals;
+    // Multiplier of aUST / UST feed
+    uint256 internal _aUstToUstFeedMultiplier;
 
     modifier onlyManager() {
         require(
@@ -167,7 +167,7 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
         aUstToken = _aUstToken;
         perfFeePct = _perfFeePct;
 
-        _aUstToUstFeedDecimals = 10**_aUstToUstFeed.decimals();
+        _aUstToUstFeedMultiplier = 10**_aUstToUstFeed.decimals();
     }
 
     /**
@@ -433,7 +433,7 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
     {
         // aUST and UST decimals are same, so we only care about aUST / UST feed decimals
         uint256 estimatedUstAmount = (price * aUstBalance) /
-            _aUstToUstFeedDecimals;
+            _aUstToUstFeedMultiplier;
         if (estimatedUstAmount > convertedUst) {
             return (estimatedUstAmount - convertedUst).percOf(perfFeePct);
         }
@@ -475,7 +475,7 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
         uint256 aUstPrice = _aUstToUstExchangeRate();
 
         return
-            ((aUstPrice * aUstBalance) / _aUstToUstFeedDecimals) -
+            ((aUstPrice * aUstBalance) / _aUstToUstFeedMultiplier) -
             _performanceUstFeeWithInfo(aUstBalance, aUstPrice);
     }
 
