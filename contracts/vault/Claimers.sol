@@ -2,26 +2,49 @@
 pragma solidity =0.8.10;
 
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {Counters} from "@openzeppelin/contracts/utils/Counters.sol";
 
 import {IClaimers} from "./IClaimers.sol";
+import {IVault} from "../vault/IVault.sol";
 
 contract Claimers is ERC721, IClaimers {
     using Counters for Counters.Counter;
 
     Counters.Counter private _tokenIds;
-    address public vault = address(0);
+    IVault public vault;
 
     mapping(address => uint256) public addressToTokenID;
 
     modifier onlyVault() {
-        require(msg.sender == vault, "Claimers: not authorized");
+        require(msg.sender == address(vault), "Claimers: not authorized");
         _;
     }
 
-    // TODO Make names dynamic
-    constructor(address _vault) ERC721("Claimers", "SNDCLM") {
+    constructor(IVault _vault) ERC721("", "") {
         vault = _vault;
+    }
+
+    function name() public view override(ERC721) returns (string memory) {
+        return
+            string(
+                abi.encodePacked(
+                    "Sandclock",
+                    IERC20Metadata(address(vault.underlying())).name(),
+                    " - Depositors"
+                )
+            );
+    }
+
+    function symbol() public view override(ERC721) returns (string memory) {
+        return
+            string(
+                abi.encodePacked(
+                    "QUARTZ-",
+                    IERC20Metadata(address(vault.underlying())).symbol(),
+                    "-DEP"
+                )
+            );
     }
 
     function mint(address _to) external onlyVault returns (uint256) {
