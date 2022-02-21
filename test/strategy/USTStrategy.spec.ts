@@ -43,7 +43,7 @@ describe("USTStrategy", () => {
     mockExchangeRateFeeder = await MockExchangeRateFeederFactory.deploy();
 
     const MockVaultFactory = await ethers.getContractFactory("MockVault");
-    vault = await MockVaultFactory.deploy(underlying.address, 0, "10000");
+    vault = await MockVaultFactory.deploy(underlying.address, 1, "10000");
 
     const USTStrategyFactory = await ethers.getContractFactory("USTStrategy");
 
