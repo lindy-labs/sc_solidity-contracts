@@ -4,12 +4,13 @@ pragma solidity =0.8.10;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
-import "./curve/ICurve.sol";
-import "./BaseStrategy.sol";
-import "./IERC20Detailed.sol";
+
+import {ICurve} from "./curve/ICurve.sol";
+import {IERC20Detailed} from "./IERC20Detailed.sol";
+import {BaseStrategy} from "./BaseStrategy.sol";
 
 /**
- * Strategy that handles non-UST tokens, by first converting them to UST via
+ * EthAnchor Strategy that handles non-UST tokens, by first converting them to UST via
  * Curve (https://curve.fi/), and only then depositing into EthAnchor
  */
 contract NonUSTStrategy is BaseStrategy {
@@ -17,14 +18,14 @@ contract NonUSTStrategy is BaseStrategy {
 
     event Initialized();
 
-    // address of the Curve pool to use
-    ICurve public immutable curvePool;
+    // UST / USDC / USDT / DAI curve pool address
+    ICurve public curvePool;
 
-    // index of the underlying token in the pool
-    int128 public immutable underlyingI;
+    // index of the underlying token in the curve pool
+    int128 public underlyingI;
 
-    // index of the UST token in the pool
-    int128 public immutable ustI;
+    // index of the UST token in the curve pool
+    int128 public ustI;
 
     // flag to indicate initialization status
     bool public initialized;
@@ -32,21 +33,24 @@ contract NonUSTStrategy is BaseStrategy {
     // Chainlink UST / USD feed
     AggregatorV3Interface public ustFeed;
 
-    // Decimals of ust feed
-    uint256 internal ustFeedDecimals;
-
     // Chainlink underlying / USD feed - ex. USDT / USD
     AggregatorV3Interface public underlyingFeed;
 
-    // Decimals of underlying feed
-    uint256 internal underlyingFeedDecimals;
+    // Underlying decimals multiplier to calculate UST -> Underlying amount
+    uint256 internal _underlyingDecimalsMultiplier;
 
-    // Decimals of underlying token
-    uint256 internal immutable underlyingDecimals;
+    // UST decimals multiplier to calculate UST -> Underlying amount
+    uint256 internal _ustDecimalsMultiplier;
 
-    // Decimals of UST token
-    uint256 internal immutable ustDecimals;
-
+    /**
+     * Constructor of Non-UST Strategy
+     *
+     * @notice The underlying token must be different from UST token.
+     *
+     * @param _curvePool UST curve pool to swap UST
+     * @param _underlyingI underlying curve index in the pool
+     * @param _ustI UST curve index in the pool
+     */
     constructor(
         address _vault,
         address _treasury,
@@ -71,31 +75,48 @@ contract NonUSTStrategy is BaseStrategy {
             _owner
         )
     {
-        require(underlying != _ustToken, "invalid underlying");
-        require(_curvePool != address(0), "0x addr");
+        require(underlying != _ustToken, "NonUSTStrategy: invalid underlying");
+        require(_curvePool != address(0), "NonUSTStrategy: curve pool is 0x");
         curvePool = ICurve(_curvePool);
         underlyingI = _underlyingI;
         ustI = _ustI;
-
-        ustToken.safeIncreaseAllowance(_curvePool, type(uint256).max);
-        underlying.safeIncreaseAllowance(_curvePool, type(uint256).max);
-
-        ustDecimals = 10**IERC20Detailed(address(ustToken)).decimals();
-        underlyingDecimals = 10**IERC20Detailed(address(underlying)).decimals();
     }
 
+    /**
+     * Initialize UST / USD, and Underlying / USD chainlink feed
+     *
+     * @notice Since constructor has too many variables, we initialize these feed
+     * in different function
+     */
     function initializeStrategy(
         AggregatorV3Interface _ustFeed,
         AggregatorV3Interface _underlyingFeed
     ) external onlyAdmin {
-        require(!initialized, "already initialized");
+        require(!initialized, "NonUSTStrategy: already initialized");
 
         initialized = true;
 
         ustFeed = _ustFeed;
-        ustFeedDecimals = 10**_ustFeed.decimals();
         underlyingFeed = _underlyingFeed;
-        underlyingFeedDecimals = 10**_underlyingFeed.decimals();
+
+        uint8 _underlyingDecimals = _underlyingFeed.decimals() +
+            IERC20Detailed(address(underlying)).decimals();
+        uint8 _ustDecimals = _ustFeed.decimals() +
+            IERC20Detailed(address(ustToken)).decimals();
+
+        // Set underlying decimals multiplier and UST decimals multiplier based on
+        // feeds and token decimals
+        if (_underlyingDecimals > _ustDecimals) {
+            _underlyingDecimalsMultiplier =
+                10**(_underlyingDecimals - _ustDecimals);
+            _ustDecimalsMultiplier = 1;
+        } else if (_underlyingDecimals < _ustDecimals) {
+            _underlyingDecimalsMultiplier = 1;
+            _ustDecimalsMultiplier = 10**(_ustDecimals - _underlyingDecimals);
+        } else {
+            _underlyingDecimalsMultiplier = 1;
+            _ustDecimalsMultiplier = 1;
+        }
 
         emit Initialized();
     }
@@ -108,33 +129,44 @@ contract NonUSTStrategy is BaseStrategy {
      * only starts the deposit process, but does not finish it.
      */
     function doHardWork() external override(BaseStrategy) onlyManager {
-        require(initialized, "not initialized");
-        _swapUnderlyingToUst();
-        _initDepositStable();
+        require(initialized, "NonUSTStrategy: not initialized");
+        uint256 underlyingAmount = _swapUnderlyingToUst();
+
+        (address operator, uint256 ustAmount) = _initDepositStable();
+
+        emit InitDepositStable(
+            operator,
+            depositOperations.length - 1,
+            underlyingAmount,
+            ustAmount
+        );
     }
 
     /**
      * Calls Curve to convert the existing underlying balance into UST
+     *
+     * @return swapped underlying amount
      */
-    function _swapUnderlyingToUst() internal {
+    function _swapUnderlyingToUst() internal virtual returns (uint256) {
         uint256 underlyingBalance = _getUnderlyingBalance();
-        if (underlyingBalance > 0) {
-            // slither-disable-next-line unused-return
-            curvePool.exchange_underlying(
-                underlyingI,
-                ustI,
-                underlyingBalance,
-                0
-            );
-        }
+        require(underlyingBalance > 0, "NonUSTStrategy: no underlying exist");
+
+        underlying.safeIncreaseAllowance(address(curvePool), underlyingBalance);
+        // slither-disable-next-line unused-return
+        curvePool.exchange_underlying(underlyingI, ustI, underlyingBalance, 0);
+
+        return underlyingBalance;
     }
 
     /**
      * Calls Curve to convert the existing UST back into the underlying token
+     *
+     * @return swapped underlying amount
      */
-    function _swapUstToUnderlying() internal returns (uint256) {
+    function _swapUstToUnderlying() internal virtual returns (uint256) {
         uint256 ustBalance = _getUstBalance();
         if (ustBalance > 0) {
+            ustToken.safeIncreaseAllowance(address(curvePool), ustBalance);
             // slither-disable-next-line unused-return
             return
                 curvePool.exchange_underlying(ustI, underlyingI, ustBalance, 0);
@@ -146,6 +178,7 @@ contract NonUSTStrategy is BaseStrategy {
     /**
      * Calls EthAnchor with a pending redeem ID, and attempts to finish it.
      * Once UST is retrieved, convert it back to underlying via Curve
+     * Then transfer underlying to vault.
      *
      * @notice Must be called some time after `initRedeemStable()`. Will only work if
      * the EthAnchor bridge has finished processing the deposit.
@@ -153,9 +186,22 @@ contract NonUSTStrategy is BaseStrategy {
      * @param idx Id of the pending redeem operation
      */
     function finishRedeemStable(uint256 idx) external onlyManager {
-        _finishRedeemStable(idx);
+        (
+            address operator,
+            uint256 aUstAmount,
+            uint256 ustAmount
+        ) = _finishRedeemStable(idx);
+
         _swapUstToUnderlying();
-        underlying.safeTransfer(vault, _getUnderlyingBalance());
+        uint256 underlyingAmount = _getUnderlyingBalance();
+        underlying.safeTransfer(vault, underlyingAmount);
+
+        emit FinishRedeemStable(
+            operator,
+            aUstAmount,
+            ustAmount,
+            underlyingAmount
+        );
     }
 
     /**
@@ -163,6 +209,7 @@ contract NonUSTStrategy is BaseStrategy {
      *
      * @notice both held and invested amounts are included here, using the
      * latest known exchange rates to the underlying currency
+     * This will return value without performance fee.
      *
      * @return The total amount of underlying
      */
@@ -173,14 +220,18 @@ contract NonUSTStrategy is BaseStrategy {
         returns (uint256)
     {
         return
-            _estimateInvestedAmountInUnderlying(
+            _estimateUstAmountInUnderlying(
                 pendingDeposits + _estimateAUstBalanceInUstMinusFee()
             );
     }
 
-    function _estimateInvestedAmountInUnderlying(uint256 ustAmount)
+    /**
+     * @return Underlying value of UST amount
+     */
+    function _estimateUstAmountInUnderlying(uint256 ustAmount)
         internal
         view
+        virtual
         returns (uint256)
     {
         (
@@ -204,13 +255,10 @@ contract NonUSTStrategy is BaseStrategy {
                 underlyingUpdateTime != 0 &&
                 ustAnsweredInRound >= ustRoundID &&
                 underlyingAnsweredInRound >= underlyingRoundID,
-            "invalid price"
+            "NonUSTStrategy: invalid price"
         );
         return
-            (ustAmount *
-                uint256(ustPrice) *
-                underlyingFeedDecimals *
-                underlyingDecimals) /
-            (uint256(underlyingPrice) * ustFeedDecimals * ustDecimals);
+            (ustAmount * uint256(ustPrice) * _underlyingDecimalsMultiplier) /
+            (uint256(underlyingPrice) * _ustDecimalsMultiplier);
     }
 }
