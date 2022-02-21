@@ -931,7 +931,7 @@ describe("USTStrategy", () => {
   };
 
   const setAUstRate = async (rate: BigNumber) => {
-    await mockAUstUstFeed.setLatestRoundData(1, rate, 1000, 1000, 1);
+    await mockAUstUstFeed.setAnswer(rate);
   };
 
   const depositAndInvest = async (
