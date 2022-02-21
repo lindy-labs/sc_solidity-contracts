@@ -31,6 +31,7 @@ describe("USTStrategy Mainnet fork", () => {
   const FEE_PCT = BigNumber.from("200");
   const DENOMINATOR = BigNumber.from("10000");
   const FORK_BLOCK = 14023000;
+  const MANAGER_ROLE = utils.keccak256(utils.toUtf8Bytes("MANAGER_ROLE"));
 
   before(async () => {
     await ForkHelpers.forkToMainnet(FORK_BLOCK);
@@ -77,6 +78,8 @@ describe("USTStrategy Mainnet fork", () => {
         FEE_PCT,
         owner.address
       );
+
+      await strategy.connect(owner).grantRole(MANAGER_ROLE, owner.address);
 
       await vault.setStrategy(strategy.address);
 
@@ -236,6 +239,8 @@ describe("USTStrategy Mainnet fork", () => {
         FEE_PCT,
         owner.address
       );
+
+      await strategy.connect(owner).grantRole(MANAGER_ROLE, owner.address);
 
       await vault.setStrategy(strategy.address);
 
