@@ -2,6 +2,7 @@ import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
 import { ethers } from "hardhat";
 import { expect } from "chai";
+import { time } from "@openzeppelin/test-helpers";
 import { BigNumber, utils, constants } from "ethers";
 import type {
   Vault,
@@ -34,6 +35,7 @@ describe("EthAnchorNonUSTStrategy", () => {
   const ustI = 0;
   const perfFeePct = BigNumber.from("200");
   const DENOMINATOR = BigNumber.from("10000");
+  const twoWeeks = BigNumber.from(time.duration.days(14).toNumber());
 
   const MANAGER_ROLE = utils.keccak256(utils.toUtf8Bytes("MANAGER_ROLE"));
 
@@ -80,7 +82,7 @@ describe("EthAnchorNonUSTStrategy", () => {
     mockAUstUstFeed = await MockChainlinkPriceFeedFactory.deploy(18);
 
     const MockVaultFactory = await ethers.getContractFactory("MockVault");
-    vault = await MockVaultFactory.deploy(underlying.address, 0, "10000");
+    vault = await MockVaultFactory.deploy(underlying.address, 1, "10000");
 
     const NonUSTStrategyFactory = await ethers.getContractFactory(
       "NonUSTStrategy"
@@ -308,7 +310,7 @@ describe("EthAnchorNonUSTStrategy", () => {
               data: "0x",
             },
           ],
-          lockedUntil: 0,
+          lockDuration: twoWeeks,
         })
       ).to.be.revertedWith("invalid price");
     });
@@ -329,7 +331,7 @@ describe("EthAnchorNonUSTStrategy", () => {
               data: "0x",
             },
           ],
-          lockedUntil: 0,
+          lockDuration: twoWeeks,
         })
       ).to.be.revertedWith("invalid price");
     });
@@ -350,7 +352,7 @@ describe("EthAnchorNonUSTStrategy", () => {
               data: "0x",
             },
           ],
-          lockedUntil: 0,
+          lockDuration: twoWeeks,
         })
       ).to.be.revertedWith("invalid price");
     });
@@ -371,7 +373,7 @@ describe("EthAnchorNonUSTStrategy", () => {
               data: "0x",
             },
           ],
-          lockedUntil: 0,
+          lockDuration: twoWeeks,
         })
       ).to.be.revertedWith("invalid price");
     });
@@ -392,7 +394,7 @@ describe("EthAnchorNonUSTStrategy", () => {
               data: "0x",
             },
           ],
-          lockedUntil: 0,
+          lockDuration: twoWeeks,
         })
       ).to.be.revertedWith("invalid price");
     });
@@ -413,7 +415,7 @@ describe("EthAnchorNonUSTStrategy", () => {
               data: "0x",
             },
           ],
-          lockedUntil: 0,
+          lockDuration: twoWeeks,
         })
       ).to.be.revertedWith("invalid price");
     });
