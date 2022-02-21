@@ -142,8 +142,8 @@ contract AnchorNonUSTStrategy is AnchorBaseStrategy {
         onlyManager
     {
         require(initialized, "AnchorNonUSTStrategy: not initialized");
-        uint256 minAmount = abi.decode(data, (uint256));
-        uint256 underlyingAmount = _swapUnderlyingToUst(minAmount);
+        uint256 minExchangeRate = abi.decode(data, (uint256));
+        uint256 underlyingAmount = _swapUnderlyingToUst(minExchangeRate);
 
         (address operator, uint256 ustAmount) = _initDepositStable();
 
@@ -158,15 +158,18 @@ contract AnchorNonUSTStrategy is AnchorBaseStrategy {
     /**
      * Calls Curve to convert the existing underlying balance into UST
      *
-     * @param minAmount minimum UST amount to receive.
+     * @param minExchangeRate minimum exchange rate of Underlying/UST.
      * @return swapped underlying amount
      */
-    function _swapUnderlyingToUst(uint256 minAmount)
+    function _swapUnderlyingToUst(uint256 minExchangeRate)
         internal
         virtual
         returns (uint256)
     {
-        require(minAmount != 0, "AnchorNonUSTStrategy: minAmount is zero");
+        require(
+            minExchangeRate != 0,
+            "AnchorNonUSTStrategy: minExchangeRate is zero"
+        );
         uint256 underlyingBalance = _getUnderlyingBalance();
         require(
             underlyingBalance != 0,
@@ -179,7 +182,7 @@ contract AnchorNonUSTStrategy is AnchorBaseStrategy {
             underlyingI,
             ustI,
             underlyingBalance,
-            minAmount
+            (underlyingBalance * minExchangeRate) / 1e18
         );
 
         return underlyingBalance;
