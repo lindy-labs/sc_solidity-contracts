@@ -11,7 +11,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   const usdc = await get("USDC");
   const dai = await get("DAI");
 
-  const minLockPeriod = env.network.live ? 60 * 60 * 24 * 30 : 0;
+  const minLockPeriod = env.network.live ? 60 * 60 * 24 * 30 : 1;
   const investPerc = 10000;
   const { deployer } = await env.getNamedAccounts();
 

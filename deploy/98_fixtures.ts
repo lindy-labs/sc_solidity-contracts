@@ -34,9 +34,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   const lastTimestamp = (
     await ethers.provider.getBlock(await ethers.provider.getBlockNumber())
   ).timestamp;
-  const lockUntil = (await vault.MIN_SPONSOR_LOCK_DURATION())
-    .add(lastTimestamp)
-    .add(60);
+  const lockUntil = await vault.MIN_SPONSOR_LOCK_DURATION();
   await vault.connect(treasury).sponsor(parseUnits("1000", 6), lockUntil);
 
   console.log(
@@ -44,7 +42,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   );
   await vault.connect(alice).deposit({
     amount: parseUnits("1000", 6),
-    lockedUntil: 0,
+    lockDuration: 1,
     claims: [
       {
         beneficiary: alice.address,
@@ -64,7 +62,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   );
   await vault.connect(bob).deposit({
     amount: parseUnits("1000", 6),
-    lockedUntil: 0,
+    lockDuration: 1,
     claims: [
       {
         beneficiary: bob.address,
