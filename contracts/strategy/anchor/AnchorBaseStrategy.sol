@@ -176,7 +176,7 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
      * @notice We only deposit UST to EthAnchor. so if underlying is UST, we deposit directly,
      * however, if underlying is not UST token, then we swap underlying to UST, then deposit to ethAnchor.
      */
-    function doHardWork() external virtual;
+    function invest() external virtual;
 
     /**
      * Initiates available UST to EthAnchor

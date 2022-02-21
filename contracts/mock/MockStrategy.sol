@@ -28,7 +28,7 @@ contract MockStrategy is AnchorBaseStrategy {
         )
     {}
 
-    function doHardWork() external override(AnchorBaseStrategy) onlyManager {}
+    function invest() external override(AnchorBaseStrategy) onlyManager {}
 
     function finishRedeemStable(uint256 idx) external {
         _finishRedeemStable(idx);
