@@ -344,7 +344,12 @@ contract Vault is
      * @return Total amount of principal and yield help by the vault (not including sponsored amount).
      */
     function totalUnderlyingMinusSponsored() public view returns (uint256) {
-        return totalUnderlying() - totalSponsored;
+        uint256 _totalUnderlying = totalUnderlying();
+        if (totalSponsored > _totalUnderlying) {
+            return 0;
+        }
+
+        return _totalUnderlying - totalSponsored;
     }
 
     //
