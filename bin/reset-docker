@@ -6,6 +6,5 @@ docker-compose rm --force postgres
 docker-compose up --detach
 
 npx hardhat deploy --network docker --reset
-# npx hardhat run scripts/fixtures.ts --network docker
 
-# cd subgraph && yarn all-local
+cd subgraph && yarn all-local
