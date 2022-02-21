@@ -27,7 +27,6 @@ describe("USTStrategy Mainnet fork", () => {
   let exchangeRateFeeder: MockExchangeRateFeeder;
   const twoWeeks = time.duration.days(14).toNumber();
   const INVEST_PCT = 10000; // set 100% for test
-  const twoWeeks = BigNumber.from(time.duration.days(14).toNumber());
   const TREASURY = generateNewAddress();
   const FEE_PCT = BigNumber.from("200");
   const DENOMINATOR = BigNumber.from("10000");
