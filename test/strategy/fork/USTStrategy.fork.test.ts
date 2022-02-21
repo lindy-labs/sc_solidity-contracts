@@ -25,7 +25,7 @@ describe("USTStrategy Mainnet fork", () => {
   let aUstToken: MockERC20;
   // MockExchangeRateFeeder has same interface as Mainnet, so we can use it for test
   let exchangeRateFeeder: MockExchangeRateFeeder;
-  const MIN_LOCK_PERIOD = 0; // set zero for test
+  const twoWeeks = time.duration.days(14).toNumber();
   const INVEST_PCT = 10000; // set 100% for test
   const twoWeeks = BigNumber.from(time.duration.days(14).toNumber());
   const TREASURY = generateNewAddress();
@@ -62,7 +62,7 @@ describe("USTStrategy Mainnet fork", () => {
       const VaultFactory = await ethers.getContractFactory("Vault");
       vault = await VaultFactory.deploy(
         ustToken.address,
-        MIN_LOCK_PERIOD,
+        twoWeeks,
         INVEST_PCT,
         owner.address
       );
@@ -223,7 +223,7 @@ describe("USTStrategy Mainnet fork", () => {
       const VaultFactory = await ethers.getContractFactory("Vault");
       vault = await VaultFactory.deploy(
         ustToken.address,
-        MIN_LOCK_PERIOD,
+        twoWeeks,
         INVEST_PCT,
         owner.address
       );

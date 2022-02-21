@@ -24,6 +24,7 @@ describe("USTStrategy", () => {
   let aUstToken: MockERC20;
   let underlying: MockERC20;
   const TREASURY = generateNewAddress();
+  const MIN_LOCK_PERIOD = 1;
   const PERFORMANCE_FEE_PCT = BigNumber.from("200");
   const INVEST_PCT = BigNumber.from("10000");
   const DENOMINATOR = BigNumber.from("10000");
@@ -60,7 +61,7 @@ describe("USTStrategy", () => {
     const VaultFactory = await ethers.getContractFactory("Vault");
     vault = (await VaultFactory.deploy(
       underlying.address,
-      0,
+      MIN_LOCK_PERIOD,
       INVEST_PCT,
       owner.address
     )) as Vault;

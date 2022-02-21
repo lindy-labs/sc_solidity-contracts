@@ -11,7 +11,11 @@ import {
   MockERC20__factory,
   MockExchangeRateFeeder__factory,
 } from "../../../typechain";
-import { generateNewAddress, ForkHelpers } from "../../shared/";
+import {
+  getLastBlockTimestamp,
+  generateNewAddress,
+  ForkHelpers,
+} from "../../shared/";
 import config from "./config.json";
 
 describe("NonUSTStrategy Mainnet fork", () => {
@@ -28,9 +32,8 @@ describe("NonUSTStrategy Mainnet fork", () => {
   let daiToken: MockERC20;
   // MockExchangeRateFeeder has same interface as Mainnet, so we can use it for test
   let exchangeRateFeeder: MockExchangeRateFeeder;
-  const MIN_LOCK_PERIOD = 0; // set zero for test
+  const twoWeeks = time.duration.days(14).toNumber();
   const INVEST_PCT = 10000; // set 100% for test
-  const twoWeeks = BigNumber.from(time.duration.days(14).toNumber());
   const TREASURY = generateNewAddress();
   const FEE_PCT = BigNumber.from("200");
   const DENOMINATOR = BigNumber.from("10000");
@@ -68,7 +71,7 @@ describe("NonUSTStrategy Mainnet fork", () => {
       const VaultFactory = await ethers.getContractFactory("Vault");
       vault = await VaultFactory.deploy(
         usdtToken.address,
-        MIN_LOCK_PERIOD,
+        twoWeeks,
         INVEST_PCT,
         owner.address
       );
@@ -256,7 +259,7 @@ describe("NonUSTStrategy Mainnet fork", () => {
       const VaultFactory = await ethers.getContractFactory("Vault");
       vault = await VaultFactory.deploy(
         usdtToken.address,
-        MIN_LOCK_PERIOD,
+        twoWeeks,
         INVEST_PCT,
         owner.address
       );
@@ -304,7 +307,15 @@ describe("NonUSTStrategy Mainnet fork", () => {
             data: "0x",
           },
         ],
+<<<<<<< HEAD
         lockDuration: twoWeeks,
+||||||| 98d9d99
+        lockedUntil: 0,
+=======
+        lockedUntil: (
+          await getLastBlockTimestamp()
+        ).add(time.duration.days(15).toNumber()),
+>>>>>>> main
       });
       expect(await usdtToken.balanceOf(vault.address)).to.be.equal(amount);
       let exchangeRate = utils.parseEther("1.17");
