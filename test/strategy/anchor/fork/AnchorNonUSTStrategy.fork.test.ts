@@ -1,4 +1,5 @@
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { time } from "@openzeppelin/test-helpers";
 import { ethers } from "hardhat";
 import { expect } from "chai";
 import { BigNumber, utils, constants } from "ethers";
@@ -27,7 +28,7 @@ describe("AnchorNonUSTStrategy Mainnet fork", () => {
   let daiToken: MockERC20;
   // MockChainlinkPriceFeed has same interface as Mainnet, so we can use it for test
   let mockAUstUstFeed: MockChainlinkPriceFeed;
-  const MIN_LOCK_PERIOD = 0; // set zero for test
+  const twoWeeks = time.duration.days(14).toNumber();
   const INVEST_PCT = 10000; // set 100% for test
   const TREASURY = generateNewAddress();
   const FEE_PCT = BigNumber.from("200");
@@ -66,7 +67,7 @@ describe("AnchorNonUSTStrategy Mainnet fork", () => {
       const VaultFactory = await ethers.getContractFactory("Vault");
       vault = await VaultFactory.deploy(
         usdtToken.address,
-        MIN_LOCK_PERIOD,
+        twoWeeks,
         INVEST_PCT,
         owner.address
       );
@@ -114,7 +115,7 @@ describe("AnchorNonUSTStrategy Mainnet fork", () => {
             data: "0x",
           },
         ],
-        lockedUntil: 0,
+        lockDuration: twoWeeks,
       });
       expect(await usdtToken.balanceOf(vault.address)).to.be.equal(amount);
       let exchangeRate = (await mockAUstUstFeed.latestRoundData()).answer;
@@ -175,7 +176,7 @@ describe("AnchorNonUSTStrategy Mainnet fork", () => {
             data: "0x",
           },
         ],
-        lockedUntil: 0,
+        lockDuration: twoWeeks,
       });
 
       console.log((await vault.totalUnderlying()).toString());
@@ -242,7 +243,7 @@ describe("AnchorNonUSTStrategy Mainnet fork", () => {
       const VaultFactory = await ethers.getContractFactory("Vault");
       vault = await VaultFactory.deploy(
         usdtToken.address,
-        MIN_LOCK_PERIOD,
+        twoWeeks,
         INVEST_PCT,
         owner.address
       );
@@ -290,7 +291,7 @@ describe("AnchorNonUSTStrategy Mainnet fork", () => {
             data: "0x",
           },
         ],
-        lockedUntil: 0,
+        lockDuration: twoWeeks,
       });
       expect(await usdtToken.balanceOf(vault.address)).to.be.equal(amount);
       let exchangeRate = utils.parseEther("1.17");
@@ -361,7 +362,7 @@ describe("AnchorNonUSTStrategy Mainnet fork", () => {
             data: "0x",
           },
         ],
-        lockedUntil: 0,
+        lockDuration: twoWeeks,
       });
 
       expect(await vault.totalUnderlying()).to.be.equal(
