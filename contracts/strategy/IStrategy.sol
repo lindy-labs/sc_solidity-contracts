@@ -66,12 +66,15 @@ interface IStrategy {
      *
      * @return Amount with the fees applied.
      */
-    function applyInvestmentFee(uint256 _amount) external view returns (uint256);
+    function applyInvestmentFee(uint256 _amount)
+        external
+        view
+        returns (uint256);
 
     /**
      * Initiates the process of investing the underlying currency
      */
-    function doHardWork() external;
+    function invest() external;
 
     /**
      * Calls EthAnchor with a pending redeem ID, and attempts to finish it.

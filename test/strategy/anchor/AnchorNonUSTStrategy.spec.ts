@@ -227,9 +227,9 @@ describe("AnchorNonUSTStrategy", () => {
     });
   });
 
-  describe("#doHardWork function", () => {
+  describe("#invest function", () => {
     it("Revert if not initialized", async () => {
-      await expect(strategy.connect(manager).doHardWork()).to.be.revertedWith(
+      await expect(strategy.connect(manager).invest()).to.be.revertedWith(
         "AnchorNonUSTStrategy: not initialized"
       );
     });
@@ -237,7 +237,7 @@ describe("AnchorNonUSTStrategy", () => {
     it("Revert if msg.sender is not manager", async () => {
       await initializeStrategy();
 
-      await expect(strategy.connect(alice).doHardWork()).to.be.revertedWith(
+      await expect(strategy.connect(alice).invest()).to.be.revertedWith(
         "BaseStrategy: caller is not manager"
       );
     });
@@ -245,7 +245,7 @@ describe("AnchorNonUSTStrategy", () => {
     it("Revert if underlying balance is 0", async () => {
       await initializeStrategy();
 
-      await expect(strategy.connect(manager).doHardWork()).to.be.revertedWith(
+      await expect(strategy.connect(manager).invest()).to.be.revertedWith(
         "AnchorNonUSTStrategy: no underlying exist"
       );
     });

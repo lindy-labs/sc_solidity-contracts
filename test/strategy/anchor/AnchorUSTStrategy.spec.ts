@@ -218,15 +218,15 @@ describe("AnchorUSTStrategy", () => {
     });
   });
 
-  describe("#doHardWork function", () => {
+  describe("#invest function", () => {
     it("Revert if msg.sender is not manager", async () => {
-      await expect(strategy.connect(alice).doHardWork()).to.be.revertedWith(
+      await expect(strategy.connect(alice).invest()).to.be.revertedWith(
         "BaseStrategy: caller is not manager"
       );
     });
 
     it("Revert if underlying balance is zero", async () => {
-      await expect(strategy.connect(manager).doHardWork()).to.be.revertedWith(
+      await expect(strategy.connect(manager).invest()).to.be.revertedWith(
         "BaseStrategy: no ust exist"
       );
     });

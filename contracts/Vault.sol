@@ -290,7 +290,7 @@ contract Vault is
             emit Invested(_investable);
         }
 
-        strategy.doHardWork();
+        strategy.invest();
     }
 
     //
