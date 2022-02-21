@@ -16,7 +16,7 @@ interface IVault {
     struct DepositParams {
         uint256 amount;
         ClaimParams[] claims;
-        uint256 lockedUntil;
+        uint256 lockDuration;
     }
 
     //

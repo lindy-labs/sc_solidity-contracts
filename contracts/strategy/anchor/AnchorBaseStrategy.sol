@@ -454,7 +454,8 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
 
         uint256 aUstBalance = _getAUstBalance() + pendingRedeems;
 
-        return _performanceUstFeeWithInfo(aUstBalance, _aUstExchangeRate());
+        return
+            _performanceUstFeeWithInfo(aUstBalance, _aUstToUstExchangeRate());
     }
 
     /**
@@ -471,7 +472,7 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
             return 0;
         }
 
-        uint256 aUstPrice = _aUstExchangeRate();
+        uint256 aUstPrice = _aUstToUstExchangeRate();
 
         return
             ((aUstPrice * aUstBalance) / _aUstToUstFeedDecimals) -
@@ -481,7 +482,7 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
     /**
      * @return aUST / UST exchange rate from chainlink
      */
-    function _aUstExchangeRate() internal view virtual returns (uint256) {
+    function _aUstToUstExchangeRate() internal view virtual returns (uint256) {
         (
             uint80 roundID,
             int256 price,
