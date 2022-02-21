@@ -333,6 +333,9 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
      * the EthAnchor bridge has finished processing the deposit.
      * Will take performance fee if some yield generated.
      *
+     * @dev division by `aUstBalance` was not deemed worthy of a zero-check
+     *   (https://github.com/code-423n4/2022-01-sandclock-findings/issues/95)
+     *
      * @param idx Id of the pending redeem operation
      *
      * @return Redeemed UST amount without performance fee.
