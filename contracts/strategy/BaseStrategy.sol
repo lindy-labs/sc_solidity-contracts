@@ -71,7 +71,7 @@ abstract contract BaseStrategy is IStrategy, AccessControl {
     uint256 public convertedUst;
 
     // Decimals of aUST / UST feed
-    uint256 internal _aUstToUstFeedDecimals;
+    uint256 internal _aUstToUstFeedMultiplier;
 
     modifier onlyManager() {
         require(
@@ -121,7 +121,7 @@ abstract contract BaseStrategy is IStrategy, AccessControl {
         aUstToken = _aUstToken;
         perfFeePct = _perfFeePct;
 
-        _aUstToUstFeedDecimals = 10**_aUstToUstFeed.decimals();
+        _aUstToUstFeedMultiplier = 10**_aUstToUstFeed.decimals();
 
         // pre-approve EthAnchor router to transact all UST and aUST
         ustToken.safeIncreaseAllowance(_ethAnchorRouter, type(uint256).max);
@@ -365,7 +365,7 @@ abstract contract BaseStrategy is IStrategy, AccessControl {
         uint256 aUstPrice = _aUstToUstExchangeRate();
 
         return
-            ((aUstPrice * aUstBalance) / _aUstToUstFeedDecimals) -
+            ((aUstPrice * aUstBalance) / _aUstToUstFeedMultiplier) -
             _performanceUstFeeWithInfo(aUstBalance, aUstPrice);
     }
 
