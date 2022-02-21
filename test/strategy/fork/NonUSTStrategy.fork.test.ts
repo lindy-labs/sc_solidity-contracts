@@ -307,15 +307,7 @@ describe("NonUSTStrategy Mainnet fork", () => {
             data: "0x",
           },
         ],
-<<<<<<< HEAD
         lockDuration: twoWeeks,
-||||||| 98d9d99
-        lockedUntil: 0,
-=======
-        lockedUntil: (
-          await getLastBlockTimestamp()
-        ).add(time.duration.days(15).toNumber()),
->>>>>>> main
       });
       expect(await usdtToken.balanceOf(vault.address)).to.be.equal(amount);
       let exchangeRate = utils.parseEther("1.17");
