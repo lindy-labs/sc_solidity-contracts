@@ -452,7 +452,8 @@ describe("Vault", () => {
           alice.address,
           carol.address,
           1,
-          twoWeeks.add(await getLastBlockTimestamp())
+          twoWeeks.add(await getLastBlockTimestamp()),
+          "0x00"
         );
 
       await expect(tx)
@@ -465,7 +466,8 @@ describe("Vault", () => {
           alice.address,
           bob.address,
           2,
-          twoWeeks.add(await getLastBlockTimestamp())
+          twoWeeks.add(await getLastBlockTimestamp()),
+          "0x00"
         );
     });
 
