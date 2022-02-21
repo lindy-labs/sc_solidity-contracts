@@ -7,7 +7,7 @@ import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {Counters} from "@openzeppelin/contracts/utils/Counters.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
-import {Trust} from "@rari-capital/solmate/src/auth/Trust.sol";
+import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 import {IVault} from "./vault/IVault.sol";
@@ -30,7 +30,7 @@ contract Vault is
     IVaultSponsoring,
     Context,
     ERC165,
-    Trust,
+    AccessControl,
     ReentrancyGuard
 {
     using Counters for Counters.Counter;
@@ -43,6 +43,8 @@ contract Vault is
     // Constants
     //
 
+    bytes32 public constant MANAGER_ROLE =
+        0x241ecf16d79d0f8dbfb92cbc07fe17840425976cf0667f022fe9877caa831b08; // keccak256("MANAGER_ROLE");
     uint256 public constant MIN_SPONSOR_LOCK_DURATION = 1209600; // 2 weeks in seconds
     uint256 public constant SHARES_MULTIPLIER = 10**18;
 
@@ -103,6 +105,22 @@ contract Vault is
     // The total of principal deposited
     uint256 public totalPrincipal;
 
+    modifier onlyManager() {
+        require(
+            hasRole(MANAGER_ROLE, msg.sender),
+            "Vault: caller is not manager"
+        );
+        _;
+    }
+
+    modifier onlyAdmin() {
+        require(
+            hasRole(DEFAULT_ADMIN_ROLE, msg.sender),
+            "Vault: caller is not admin"
+        );
+        _;
+    }
+
     /**
      * @param _underlying Underlying ERC20 token to use.
      */
@@ -111,7 +129,7 @@ contract Vault is
         uint256 _minLockPeriod,
         uint256 _investPerc,
         address _owner
-    ) Trust(_owner) {
+    ) {
         require(
             PercentMath.validPerc(_investPerc),
             "Vault: invalid investPerc"
@@ -120,6 +138,9 @@ contract Vault is
             address(_underlying) != address(0x0),
             "VaultContext: underlying cannot be 0x0"
         );
+        _setupRole(DEFAULT_ADMIN_ROLE, _owner);
+        _setupRole(MANAGER_ROLE, _owner);
+
         investPerc = _investPerc;
         underlying = _underlying;
         minLockPeriod = _minLockPeriod;
@@ -136,7 +157,7 @@ contract Vault is
     function setStrategy(address _strategy)
         external
         override(IVault)
-        requiresTrust
+        onlyAdmin
     {
         require(_strategy != address(0), "Vault: strategy 0x");
         require(
@@ -162,8 +183,6 @@ contract Vault is
             return underlying.balanceOf(address(this));
         }
     }
-
-    /// See {IVault}
 
     /// See {IVault}
     function yieldFor(address _to)
@@ -254,7 +273,7 @@ contract Vault is
     }
 
     /// See {IVault}
-    function setInvestPerc(uint16 _investPerc) external requiresTrust {
+    function setInvestPerc(uint16 _investPerc) external onlyAdmin {
         require(
             PercentMath.validPerc(_investPerc),
             "Vault: invalid investPerc"
@@ -279,7 +298,7 @@ contract Vault is
     }
 
     /// See {IVault}
-    function updateInvested(bytes calldata data) external requiresTrust {
+    function updateInvested(bytes calldata data) external onlyManager {
         require(address(strategy) != address(0), "Vault: strategy is not set");
 
         uint256 _investable = investableAmount();
@@ -355,7 +374,7 @@ contract Vault is
         public
         view
         virtual
-        override(ERC165)
+        override(ERC165, AccessControl)
         returns (bool)
     {
         return
