@@ -46,7 +46,7 @@ contract USTStrategy is BaseStrategy {
      * @notice since EthAnchor uses an asynchronous model, this function
      * only starts the deposit process, but does not finish it.
      */
-    function doHardWork() external override restricted {
+    function doHardWork() external override onlyManager {
         _initDepositStable();
     }
 
@@ -58,7 +58,7 @@ contract USTStrategy is BaseStrategy {
      *
      * @param idx Id of the pending redeem operation
      */
-    function finishRedeemStable(uint256 idx) external restricted {
+    function finishRedeemStable(uint256 idx) external onlyManager {
         uint256 amount = _finishRedeemStable(idx);
         ustToken.safeTransfer(vault, amount);
     }
