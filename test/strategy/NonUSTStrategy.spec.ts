@@ -2,27 +2,26 @@ import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 
 import { ethers } from "hardhat";
 import { expect } from "chai";
+import { time } from "@openzeppelin/test-helpers";
 import { BigNumber, utils, constants } from "ethers";
 import type {
   Vault,
   NonUSTStrategy,
   MockEthAnchorRouter,
-  MockExchangeRateFeeder,
   MockCurvePool,
   MockERC20,
   MockChainlinkPriceFeed,
 } from "../../typechain";
 import { generateNewAddress } from "../shared/";
 
-// TODO: review unit tests again
-
 describe("EthAnchorNonUSTStrategy", () => {
   let owner: SignerWithAddress;
   let alice: SignerWithAddress;
+  let manager: SignerWithAddress;
   let vault: Vault;
   let strategy: NonUSTStrategy;
   let mockEthAnchorRouter: MockEthAnchorRouter;
-  let mockExchangeRateFeeder: MockExchangeRateFeeder;
+  let mockAUstUstFeed: MockChainlinkPriceFeed;
   let mockCurvePool: MockCurvePool;
   let ustToken: MockERC20;
   let aUstToken: MockERC20;
@@ -36,9 +35,12 @@ describe("EthAnchorNonUSTStrategy", () => {
   const ustI = 0;
   const perfFeePct = BigNumber.from("200");
   const DENOMINATOR = BigNumber.from("10000");
+  const twoWeeks = BigNumber.from(time.duration.days(14).toNumber());
+
+  const MANAGER_ROLE = utils.keccak256(utils.toUtf8Bytes("MANAGER_ROLE"));
 
   beforeEach(async () => {
-    [owner, alice] = await ethers.getSigners();
+    [owner, alice, manager] = await ethers.getSigners();
 
     const MockERC20 = await ethers.getContractFactory("MockERC20");
     ustToken = await MockERC20.deploy(utils.parseEther("1000000000"));
@@ -66,14 +68,8 @@ describe("EthAnchorNonUSTStrategy", () => {
     await mockCurvePool.updateRate(ustI, underlyingI, ustToUnderlyingRate);
     await mockCurvePool.updateRate(underlyingI, ustI, underlyingToUstRate);
 
-    await ustFeed.setLatestRoundData(1, utils.parseUnits("1", 8), 100, 100, 1);
-    await underlyingFeed.setLatestRoundData(
-      1,
-      utils.parseUnits("1", 8),
-      100,
-      100,
-      1
-    );
+    await ustFeed.setAnswer(utils.parseUnits("1", 8));
+    await underlyingFeed.setAnswer(utils.parseUnits("1", 8));
 
     const MockEthAnchorRouterFactory = await ethers.getContractFactory(
       "MockEthAnchorRouter"
@@ -83,13 +79,10 @@ describe("EthAnchorNonUSTStrategy", () => {
       aUstToken.address
     );
 
-    const MockExchangeRateFeederFactory = await ethers.getContractFactory(
-      "MockExchangeRateFeeder"
-    );
-    mockExchangeRateFeeder = await MockExchangeRateFeederFactory.deploy();
+    mockAUstUstFeed = await MockChainlinkPriceFeedFactory.deploy(18);
 
     const MockVaultFactory = await ethers.getContractFactory("MockVault");
-    vault = await MockVaultFactory.deploy(underlying.address, 0, "10000");
+    vault = await MockVaultFactory.deploy(underlying.address, 1, "10000");
 
     const NonUSTStrategyFactory = await ethers.getContractFactory(
       "NonUSTStrategy"
@@ -99,7 +92,7 @@ describe("EthAnchorNonUSTStrategy", () => {
       vault.address,
       treasury,
       mockEthAnchorRouter.address,
-      mockExchangeRateFeeder.address,
+      mockAUstUstFeed.address,
       ustToken.address,
       aUstToken.address,
       perfFeePct,
@@ -109,19 +102,21 @@ describe("EthAnchorNonUSTStrategy", () => {
       ustI
     );
 
+    await strategy.connect(owner).grantRole(MANAGER_ROLE, manager.address);
+
     await vault.setStrategy(strategy.address);
   });
 
   describe("#initializeStrategy function", () => {
-    it("Revert if msg.sender is not owner", async () => {
+    it("Revert if msg.sender is not admin", async () => {
       await expect(
         strategy
           .connect(alice)
           .initializeStrategy(ustFeed.address, underlyingFeed.address)
-      ).to.be.revertedWith("not trusted");
+      ).to.be.revertedWith("BaseStrategy: caller is not admin");
     });
 
-    it("Initialize by owner", async () => {
+    it("Initialize by admin", async () => {
       const tx = await strategy
         .connect(owner)
         .initializeStrategy(ustFeed.address, underlyingFeed.address);
@@ -136,9 +131,7 @@ describe("EthAnchorNonUSTStrategy", () => {
     });
 
     it("Revert if already initialized", async () => {
-      await strategy
-        .connect(owner)
-        .initializeStrategy(ustFeed.address, underlyingFeed.address);
+      await initializeStrategy();
 
       await expect(
         strategy
@@ -150,35 +143,29 @@ describe("EthAnchorNonUSTStrategy", () => {
 
   describe("#doHardWork function", () => {
     it("Revert if not initialized", async () => {
-      await expect(strategy.connect(owner).doHardWork()).to.be.revertedWith(
+      await expect(strategy.connect(manager).doHardWork()).to.be.revertedWith(
         "not initialized"
       );
     });
 
-    it("Revert if msg.sender is neither controller, owner, nor vault", async () => {
-      await strategy
-        .connect(owner)
-        .initializeStrategy(ustFeed.address, underlyingFeed.address);
+    it("Revert if msg.sender is not manager", async () => {
+      await initializeStrategy();
 
       await expect(strategy.connect(alice).doHardWork()).to.be.revertedWith(
-        "restricted"
+        "BaseStrategy: caller is not manager"
       );
     });
 
     it("Revert if underlying balance is zero", async () => {
-      await strategy
-        .connect(owner)
-        .initializeStrategy(ustFeed.address, underlyingFeed.address);
+      await initializeStrategy();
 
-      await expect(strategy.connect(owner).doHardWork()).to.be.revertedWith(
+      await expect(strategy.connect(manager).doHardWork()).to.be.revertedWith(
         "balance 0"
       );
     });
 
     it("Should swap underlying to UST and init deposit all UST", async () => {
-      await strategy
-        .connect(owner)
-        .initializeStrategy(ustFeed.address, underlyingFeed.address);
+      await initializeStrategy();
 
       const operator = generateNewAddress();
       await mockEthAnchorRouter.addPendingOperator(operator);
@@ -211,9 +198,7 @@ describe("EthAnchorNonUSTStrategy", () => {
     let redeemAmount0: BigNumber;
 
     beforeEach(async () => {
-      await strategy
-        .connect(owner)
-        .initializeStrategy(ustFeed.address, underlyingFeed.address);
+      await initializeStrategy();
 
       operator0 = generateNewAddress();
       await mockEthAnchorRouter.addPendingOperator(operator0);
@@ -221,36 +206,36 @@ describe("EthAnchorNonUSTStrategy", () => {
       amount0 = utils.parseUnits("100", 6);
       aUstAmount0 = utils.parseUnits("90", 18);
       await underlying.connect(owner).transfer(strategy.address, amount0);
-      await strategy.connect(owner).doHardWork();
+      await strategy.connect(manager).doHardWork();
 
       await aUstToken
         .connect(owner)
         .approve(mockEthAnchorRouter.address, aUstAmount0);
       await mockEthAnchorRouter.notifyDepositResult(operator0, aUstAmount0);
-      await strategy.connect(owner).finishDepositStable(0);
+      await strategy.connect(manager).finishDepositStable(0);
 
       operator0 = generateNewAddress();
       await mockEthAnchorRouter.addPendingOperator(operator0);
 
       redeemAmount0 = utils.parseUnits("50", 18);
-      await strategy.connect(owner).initRedeemStable(redeemAmount0);
+      await strategy.connect(manager).initRedeemStable(redeemAmount0);
     });
 
-    it("Revert if msg.sender is neither controller, owner, nor vault", async () => {
+    it("Revert if msg.sender is not manager", async () => {
       await expect(
         strategy.connect(alice).finishRedeemStable(0)
-      ).to.be.revertedWith("restricted");
+      ).to.be.revertedWith("BaseStrategy: caller is not manager");
     });
 
     it("Revert if idx is out of array", async () => {
       await expect(
-        strategy.connect(owner).finishRedeemStable(1)
+        strategy.connect(manager).finishRedeemStable(1)
       ).to.be.revertedWith("not running");
     });
 
     it("Should finish redeem operation and swap UST to underlying", async () => {
       let exchangeRate = amount0.mul(utils.parseEther("1")).div(aUstAmount0);
-      await mockExchangeRateFeeder.setExchangeRate(exchangeRate);
+      await mockAUstUstFeed.setAnswer(exchangeRate);
 
       let redeemedAmount0 = utils.parseUnits("40", 18);
       await ustToken
@@ -261,7 +246,7 @@ describe("EthAnchorNonUSTStrategy", () => {
       let underlyingAmount = redeemedAmount0
         .mul(utils.parseEther("1"))
         .div(ustToUnderlyingRate);
-      await strategy.connect(owner).finishRedeemStable(0);
+      await strategy.connect(manager).finishRedeemStable(0);
       expect(await ustToken.balanceOf(strategy.address)).equal(0);
       expect(await aUstToken.balanceOf(strategy.address)).equal(
         aUstAmount0.sub(redeemAmount0)
@@ -281,7 +266,7 @@ describe("EthAnchorNonUSTStrategy", () => {
 
     it("moves the funds to the vault", async () => {
       const exchangeRate = amount0.mul(utils.parseEther("1")).div(aUstAmount0);
-      await mockExchangeRateFeeder.setExchangeRate(exchangeRate);
+      await mockAUstUstFeed.setAnswer(exchangeRate);
 
       const redeemedAmount = utils.parseUnits("40", 18);
       await ustToken
@@ -289,7 +274,7 @@ describe("EthAnchorNonUSTStrategy", () => {
         .approve(mockEthAnchorRouter.address, redeemedAmount);
       await mockEthAnchorRouter.notifyRedeemResult(operator0, redeemedAmount);
 
-      await strategy.connect(owner).finishRedeemStable(0);
+      await strategy.connect(manager).finishRedeemStable(0);
 
       let underlyingAmount = redeemedAmount
         .mul(utils.parseEther("1"))
@@ -303,9 +288,7 @@ describe("EthAnchorNonUSTStrategy", () => {
     beforeEach(async () => {
       await underlying.transfer(alice.address, utils.parseEther("1000000"));
 
-      await strategy
-        .connect(owner)
-        .initializeStrategy(ustFeed.address, underlyingFeed.address);
+      await initializeStrategy();
       await underlying
         .connect(alice)
         .approve(vault.address, constants.MaxUint256);
@@ -327,7 +310,7 @@ describe("EthAnchorNonUSTStrategy", () => {
               data: "0x",
             },
           ],
-          lockedUntil: 0,
+          lockDuration: twoWeeks,
         })
       ).to.be.revertedWith("invalid price");
     });
@@ -348,7 +331,7 @@ describe("EthAnchorNonUSTStrategy", () => {
               data: "0x",
             },
           ],
-          lockedUntil: 0,
+          lockDuration: twoWeeks,
         })
       ).to.be.revertedWith("invalid price");
     });
@@ -369,7 +352,7 @@ describe("EthAnchorNonUSTStrategy", () => {
               data: "0x",
             },
           ],
-          lockedUntil: 0,
+          lockDuration: twoWeeks,
         })
       ).to.be.revertedWith("invalid price");
     });
@@ -390,7 +373,7 @@ describe("EthAnchorNonUSTStrategy", () => {
               data: "0x",
             },
           ],
-          lockedUntil: 0,
+          lockDuration: twoWeeks,
         })
       ).to.be.revertedWith("invalid price");
     });
@@ -411,7 +394,7 @@ describe("EthAnchorNonUSTStrategy", () => {
               data: "0x",
             },
           ],
-          lockedUntil: 0,
+          lockDuration: twoWeeks,
         })
       ).to.be.revertedWith("invalid price");
     });
@@ -432,9 +415,16 @@ describe("EthAnchorNonUSTStrategy", () => {
               data: "0x",
             },
           ],
-          lockedUntil: 0,
+          lockDuration: twoWeeks,
         })
       ).to.be.revertedWith("invalid price");
     });
   });
+
+  // Test helpers
+  const initializeStrategy = async () => {
+    await strategy
+      .connect(owner)
+      .initializeStrategy(ustFeed.address, underlyingFeed.address);
+  };
 });

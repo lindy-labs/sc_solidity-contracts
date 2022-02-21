@@ -3,21 +3,23 @@ pragma solidity =0.8.10;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Trust} from "@rari-capital/solmate/src/auth/Trust.sol";
+import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
-import "../lib/PercentMath.sol";
-import "../vault/IVault.sol";
-import "./IStrategy.sol";
-import "./anchor/IEthAnchorRouter.sol";
-import "./anchor/IExchangeRateFeeder.sol";
+import {PercentMath} from "../lib/PercentMath.sol";
+import {ERC165Query} from "../lib/ERC165Query.sol";
+import {IVault} from "../vault/IVault.sol";
+import {IStrategy} from "./IStrategy.sol";
+import {IEthAnchorRouter} from "./anchor/IEthAnchorRouter.sol";
 
 /**
  * Base strategy that handles UST tokens and invests them via the EthAnchor
  * protocol (https://docs.anchorprotocol.com/ethanchor/ethanchor)
  */
-abstract contract BaseStrategy is IStrategy, Trust {
+abstract contract BaseStrategy is IStrategy, AccessControl {
     using SafeERC20 for IERC20;
     using PercentMath for uint256;
+    using ERC165Query for address;
 
     event PerfFeeClaimed(uint256 amount);
     event PerfFeePctUpdated(uint256 pct);
@@ -27,6 +29,9 @@ abstract contract BaseStrategy is IStrategy, Trust {
         address operator;
         uint256 amount;
     }
+
+    bytes32 public constant MANAGER_ROLE =
+        0x241ecf16d79d0f8dbfb92cbc07fe17840425976cf0667f022fe9877caa831b08; // keccak256("MANAGER_ROLE");
 
     IERC20 public override(IStrategy) underlying;
     // Vault address
@@ -47,8 +52,8 @@ abstract contract BaseStrategy is IStrategy, Trust {
     // external contract to interact with EthAnchor
     IEthAnchorRouter public ethAnchorRouter;
 
-    // external exchange rate provider
-    IExchangeRateFeeder public exchangeRateFeeder;
+    // Chainlink aUST / UST price feed
+    AggregatorV3Interface public aUstToUstFeed;
 
     // amount currently pending in deposits to EthAnchor
     uint256 public pendingDeposits;
@@ -65,16 +70,22 @@ abstract contract BaseStrategy is IStrategy, Trust {
     // amount of UST converted (used to calculate yield)
     uint256 public convertedUst;
 
-    // restructs a function to be called only by the vault or governance
-    modifier restricted() {
-        require(msg.sender == vault || isTrusted[msg.sender], "restricted");
+    // Decimals of aUST / UST feed
+    uint256 internal _aUstToUstFeedMultiplier;
 
+    modifier onlyManager() {
+        require(
+            hasRole(MANAGER_ROLE, msg.sender),
+            "BaseStrategy: caller is not manager"
+        );
         _;
     }
 
-    modifier onlyVault() {
-        require(msg.sender == vault, "only vault");
-
+    modifier onlyAdmin() {
+        require(
+            hasRole(DEFAULT_ADMIN_ROLE, msg.sender),
+            "BaseStrategy: caller is not admin"
+        );
         _;
     }
 
@@ -82,40 +93,39 @@ abstract contract BaseStrategy is IStrategy, Trust {
         address _vault,
         address _treasury,
         address _ethAnchorRouter,
-        address _exchangeRateFeeder,
+        AggregatorV3Interface _aUstToUstFeed,
         IERC20 _ustToken,
         IERC20 _aUstToken,
         uint16 _perfFeePct,
         address _owner
-    ) Trust(_owner) {
-        require(_ethAnchorRouter != address(0), "0x addr");
-        require(_exchangeRateFeeder != address(0), "0x addr");
-        require(address(_ustToken) != address(0), "0x addr");
-        require(address(_aUstToken) != address(0), "0x addr");
+    ) {
+        require(_ethAnchorRouter != address(0), "0x addr: _ethAnchorRouter");
+        require(address(_ustToken) != address(0), "0x addr: _usdToken");
+        require(address(_aUstToken) != address(0), "0x addr: _aUstToken");
         require(PercentMath.validPerc(_perfFeePct), "invalid pct");
+        require(_treasury != address(0), "0x addr: _treasury");
+        require(
+            _vault.doesContractImplementInterface(type(IVault).interfaceId),
+            "_vault: not an IVault"
+        );
+
+        _setupRole(DEFAULT_ADMIN_ROLE, _owner);
+        _setupRole(MANAGER_ROLE, _vault);
 
         treasury = _treasury;
         vault = _vault;
         underlying = IVault(_vault).underlying();
         ethAnchorRouter = IEthAnchorRouter(_ethAnchorRouter);
-        exchangeRateFeeder = IExchangeRateFeeder(_exchangeRateFeeder);
+        aUstToUstFeed = _aUstToUstFeed;
         ustToken = _ustToken;
         aUstToken = _aUstToken;
         perfFeePct = _perfFeePct;
 
+        _aUstToUstFeedMultiplier = 10**_aUstToUstFeed.decimals();
+
         // pre-approve EthAnchor router to transact all UST and aUST
         ustToken.safeIncreaseAllowance(_ethAnchorRouter, type(uint256).max);
         aUstToken.safeIncreaseAllowance(_ethAnchorRouter, type(uint256).max);
-    }
-
-    function setExchangeRateFeeder(address _exchangeRateFeeder)
-        external
-        restricted
-    {
-        require(_exchangeRateFeeder != address(0), "0x addr");
-        exchangeRateFeeder = IExchangeRateFeeder(_exchangeRateFeeder);
-
-        emit ExchangeRateFeederUpdated(_exchangeRateFeeder);
     }
 
     /**
@@ -144,7 +154,7 @@ abstract contract BaseStrategy is IStrategy, Trust {
      *
      * @param idx Id of the pending deposit operation
      */
-    function finishDepositStable(uint256 idx) external restricted {
+    function finishDepositStable(uint256 idx) external onlyManager {
         require(depositOperations.length > idx, "not running");
         Operation storage operation = depositOperations[idx];
         ethAnchorRouter.finishDepositStable(operation.operator);
@@ -167,7 +177,7 @@ abstract contract BaseStrategy is IStrategy, Trust {
      *
      * @param amount Amount of aUST to redeem
      */
-    function initRedeemStable(uint256 amount) public restricted {
+    function initRedeemStable(uint256 amount) public onlyManager {
         uint256 aUstBalance = _getAUstBalance();
         require(amount != 0, "amount 0");
         require(aUstBalance >= amount, "insufficient");
@@ -184,7 +194,7 @@ abstract contract BaseStrategy is IStrategy, Trust {
      * process on EthAnchor, but this function must be called again a second
      * time once that is finished.
      */
-    function withdrawAllToVault() external override(IStrategy) restricted {
+    function withdrawAllToVault() external override(IStrategy) onlyManager {
         uint256 aUstBalance = _getAUstBalance();
         if (aUstBalance != 0) {
             initRedeemStable(aUstBalance);
@@ -203,7 +213,7 @@ abstract contract BaseStrategy is IStrategy, Trust {
     function withdrawToVault(uint256 amount)
         external
         override(IStrategy)
-        restricted
+        onlyManager
     {
         underlying.safeTransfer(vault, amount);
     }
@@ -215,7 +225,7 @@ abstract contract BaseStrategy is IStrategy, Trust {
      *
      * @param _perfFeePct The new performance fee %
      */
-    function setPerfFeePct(uint16 _perfFeePct) external restricted {
+    function setPerfFeePct(uint16 _perfFeePct) external onlyAdmin {
         require(PercentMath.validPerc(_perfFeePct), "invalid pct");
         perfFeePct = _perfFeePct;
         emit PerfFeePctUpdated(_perfFeePct);
@@ -254,6 +264,9 @@ abstract contract BaseStrategy is IStrategy, Trust {
      * the EthAnchor bridge has finished processing the deposit.
      *
      * @param idx Id of the pending redeem operation
+     *
+     * @dev division by `aUstBalance` was not deemed worthy of a zero-check
+     *   (https://github.com/code-423n4/2022-01-sandclock-findings/issues/95)
      */
     function _finishRedeemStable(uint256 idx) internal returns (uint256) {
         require(redeemOperations.length > idx, "not running");
@@ -334,10 +347,7 @@ abstract contract BaseStrategy is IStrategy, Trust {
         uint256 aUstBalance = _getAUstBalance() + pendingRedeems;
 
         return
-            _performanceUstFeeWithInfo(
-                aUstBalance,
-                exchangeRateFeeder.exchangeRateOf(address(ustToken), true)
-            );
+            _performanceUstFeeWithInfo(aUstBalance, _aUstToUstExchangeRate());
     }
 
     // Get UST value of current aUST balance
@@ -352,13 +362,30 @@ abstract contract BaseStrategy is IStrategy, Trust {
             return 0;
         }
 
-        uint256 exchangeRate = exchangeRateFeeder.exchangeRateOf(
-            address(ustToken),
-            true
-        );
+        uint256 aUstPrice = _aUstToUstExchangeRate();
 
         return
-            ((exchangeRate * aUstBalance) / 1e18) -
-            _performanceUstFeeWithInfo(aUstBalance, exchangeRate);
+            ((aUstPrice * aUstBalance) / _aUstToUstFeedMultiplier) -
+            _performanceUstFeeWithInfo(aUstBalance, aUstPrice);
+    }
+
+    /**
+     * @return aUST / UST exchange rate from chainlink
+     */
+    function _aUstToUstExchangeRate() internal view virtual returns (uint256) {
+        (
+            uint80 roundID,
+            int256 price,
+            ,
+            uint256 updateTime,
+            uint80 answeredInRound
+        ) = aUstToUstFeed.latestRoundData();
+
+        require(
+            price > 0 && updateTime != 0 && answeredInRound >= roundID,
+            "invalid price"
+        );
+
+        return uint256(price);
     }
 }

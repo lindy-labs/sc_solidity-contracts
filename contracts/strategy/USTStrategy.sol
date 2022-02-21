@@ -3,6 +3,7 @@ pragma solidity =0.8.10;
 
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import "./BaseStrategy.sol";
 import "../lib/PercentMath.sol";
 
@@ -20,7 +21,7 @@ contract USTStrategy is BaseStrategy {
         address _vault,
         address _treasury,
         address _ethAnchorRouter,
-        address _exchangeRateFeeder,
+        AggregatorV3Interface _aUstToUstFeed,
         IERC20 _ustToken,
         IERC20 _aUstToken,
         uint16 _perfFeePct,
@@ -30,7 +31,7 @@ contract USTStrategy is BaseStrategy {
             _vault,
             _treasury,
             _ethAnchorRouter,
-            _exchangeRateFeeder,
+            _aUstToUstFeed,
             _ustToken,
             _aUstToken,
             _perfFeePct,
@@ -46,7 +47,7 @@ contract USTStrategy is BaseStrategy {
      * @notice since EthAnchor uses an asynchronous model, this function
      * only starts the deposit process, but does not finish it.
      */
-    function doHardWork() external override restricted {
+    function doHardWork() external override onlyManager {
         _initDepositStable();
     }
 
@@ -58,7 +59,7 @@ contract USTStrategy is BaseStrategy {
      *
      * @param idx Id of the pending redeem operation
      */
-    function finishRedeemStable(uint256 idx) external restricted {
+    function finishRedeemStable(uint256 idx) external onlyManager {
         uint256 amount = _finishRedeemStable(idx);
         ustToken.safeTransfer(vault, amount);
     }

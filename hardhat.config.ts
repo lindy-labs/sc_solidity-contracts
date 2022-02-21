@@ -7,6 +7,7 @@ import "@primitivefi/hardhat-dodoc";
 import "@typechain/hardhat";
 import "hardhat-deploy";
 import "hardhat-gas-reporter";
+import 'solidity-coverage';
 
 const devMnemonic =
   process.env.MNEMONIC ||
@@ -77,10 +78,6 @@ const config: HardhatUserConfig = {
       "Depositors",
       "IVault",
       "IIntegration",
-      "IDCA",
-      "DCAQueue",
-      "DCAScheduler",
-      "DCAUniswapV3",
       "PercentMath",
     ],
   },

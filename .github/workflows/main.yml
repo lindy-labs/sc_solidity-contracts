@@ -6,11 +6,11 @@ name: CI
 on:
   push:
     branches:
-      - master
-      - dev
+      - main
     tags:
       - '*'
   pull_request:
+    branches: [ main ]
     types: [opened, synchronize]
 
   # Allows you to run this workflow manually from the Actions tab
@@ -34,6 +34,5 @@ jobs:
           python-version: '3.x'
 
       - run: yarn install
-      - run: pip install slither-analyzer
       - run: yarn run hardhat compile
       - run: yarn run hardhat test

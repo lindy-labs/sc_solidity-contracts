@@ -16,7 +16,7 @@ interface IVault {
     struct DepositParams {
         uint256 amount;
         ClaimParams[] claims;
-        uint256 lockedUntil;
+        uint256 lockDuration;
     }
 
     //
@@ -94,7 +94,12 @@ interface IVault {
      * Total amount of underlying currently controlled by the
      * vault and the its strategy.
      */
-    function totalUnderlyingWithSponsor() external view returns (uint256);
+    function totalUnderlying() external view returns (uint256);
+
+    /**
+     * Total amount of shares
+     */
+    function totalShares() external view returns (uint256);
 
     /**
      * Computes the amount of yield available for an an address.

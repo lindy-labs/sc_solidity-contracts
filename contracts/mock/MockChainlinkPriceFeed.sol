@@ -16,17 +16,19 @@ contract MockChainlinkPriceFeed is AggregatorV3Interface {
         decimals = _decimals;
     }
 
-    function description() external view override returns (string memory) {
+    function description() external pure override returns (string memory) {
         return "";
     }
 
-    function version() external view override returns (uint256) {
+    function version() external pure override returns (uint256) {
         return 1;
     }
 
-    function getRoundData(uint80 _roundId)
+    function getRoundData(
+        uint80 /* _roundId */
+    )
         external
-        view
+        pure
         override
         returns (
             uint80 roundId,
@@ -38,6 +40,14 @@ contract MockChainlinkPriceFeed is AggregatorV3Interface {
     {
         // return all zero because this function not used
         return (0, 0, 0, 0, 0);
+    }
+
+    function setAnswer(int256 answer) external {
+        roundId_ = 10;
+        answer_ = answer;
+        startedAt_ = block.timestamp;
+        updatedAt_ = block.timestamp;
+        answeredInRound_ = 10;
     }
 
     function setLatestRoundData(

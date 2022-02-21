@@ -51,7 +51,7 @@ contract NonUSTStrategy is BaseStrategy {
         address _vault,
         address _treasury,
         address _ethAnchorRouter,
-        address _exchangeRateFeeder,
+        AggregatorV3Interface _aUstToUstFeed,
         IERC20 _ustToken,
         IERC20 _aUstToken,
         uint16 _perfFeePct,
@@ -64,7 +64,7 @@ contract NonUSTStrategy is BaseStrategy {
             _vault,
             _treasury,
             _ethAnchorRouter,
-            _exchangeRateFeeder,
+            _aUstToUstFeed,
             _ustToken,
             _aUstToken,
             _perfFeePct,
@@ -87,8 +87,7 @@ contract NonUSTStrategy is BaseStrategy {
     function initializeStrategy(
         AggregatorV3Interface _ustFeed,
         AggregatorV3Interface _underlyingFeed
-    ) external {
-        require(isTrusted[msg.sender], "not trusted");
+    ) external onlyAdmin {
         require(!initialized, "already initialized");
 
         initialized = true;
@@ -108,7 +107,7 @@ contract NonUSTStrategy is BaseStrategy {
      * @notice since EthAnchor uses an asynchronous model, this function
      * only starts the deposit process, but does not finish it.
      */
-    function doHardWork() external override(BaseStrategy) restricted {
+    function doHardWork() external override(BaseStrategy) onlyManager {
         require(initialized, "not initialized");
         _swapUnderlyingToUst();
         _initDepositStable();
@@ -153,7 +152,7 @@ contract NonUSTStrategy is BaseStrategy {
      *
      * @param idx Id of the pending redeem operation
      */
-    function finishRedeemStable(uint256 idx) public restricted {
+    function finishRedeemStable(uint256 idx) external onlyManager {
         _finishRedeemStable(idx);
         _swapUstToUnderlying();
         underlying.safeTransfer(vault, _getUnderlyingBalance());
