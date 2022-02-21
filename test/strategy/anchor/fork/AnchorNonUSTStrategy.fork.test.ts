@@ -120,7 +120,9 @@ describe("AnchorNonUSTStrategy Mainnet fork", () => {
       let exchangeRate = (await mockAUstUstFeed.latestRoundData()).answer;
       console.log("ExchangeRate: ", utils.formatEther(exchangeRate));
 
-      await vault.connect(owner).updateInvested();
+      await vault
+        .connect(owner)
+        .updateInvested(getInvestData(BigNumber.from("1000")));
       console.log(
         `Invest: totalUnderlying - ${utils.formatUnits(
           await vault.totalUnderlying(),
@@ -193,7 +195,7 @@ describe("AnchorNonUSTStrategy Mainnet fork", () => {
       );
       exchangeRate = (await mockAUstUstFeed.latestRoundData()).answer;
       console.log("ExchangeRate: ", utils.formatEther(exchangeRate));
-      await vault.updateInvested();
+      await vault.updateInvested(getInvestData(BigNumber.from("1000")));
 
       exchangeRate = (await mockAUstUstFeed.latestRoundData()).answer;
       console.log("ExchangeRate: ", utils.formatEther(exchangeRate));
@@ -304,7 +306,9 @@ describe("AnchorNonUSTStrategy Mainnet fork", () => {
           6
         )} USDT`
       );
-      await vault.connect(owner).updateInvested();
+      await vault
+        .connect(owner)
+        .updateInvested(getInvestData(BigNumber.from("1000")));
       expect(await usdtToken.balanceOf(vault.address)).to.be.equal("0");
       expect(await usdtToken.balanceOf(strategy.address)).to.be.equal("0");
       expect(await strategy.pendingDeposits()).to.be.equal(
@@ -374,7 +378,7 @@ describe("AnchorNonUSTStrategy Mainnet fork", () => {
           await vault.totalUnderlying()
         )} UST`
       );
-      await vault.updateInvested();
+      await vault.updateInvested(getInvestData(BigNumber.from("1000")));
 
       depositOperations = await strategy.depositOperations(0);
       let aUstBalance = expectAUstReceive;
@@ -438,7 +442,7 @@ describe("AnchorNonUSTStrategy Mainnet fork", () => {
         expectUstReceive
       );
 
-      await strategy.finishRedeemStable(0);
+      await strategy.finishRedeemStable(0, "100000000");
       let originalDeposit = convertedUst.mul(redeemAmount).div(aUstBalance);
       let profit = expectUstReceive.sub(originalDeposit);
       let fee = profit.mul(FEE_PCT).div(DENOMINATOR);
@@ -456,4 +460,8 @@ describe("AnchorNonUSTStrategy Mainnet fork", () => {
       );
     });
   });
+
+  const getInvestData = (minAmount: BigNumber) => {
+    return utils.defaultAbiCoder.encode(["uint256"], [minAmount]);
+  };
 });

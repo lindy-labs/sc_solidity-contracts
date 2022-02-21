@@ -52,8 +52,10 @@ contract AnchorUSTStrategy is AnchorBaseStrategy {
      *
      * @notice since EthAnchor uses an asynchronous model, this function
      * only starts the deposit process, but does not finish it.
+     *
+     * @dev external data is not required
      */
-    function invest() external override onlyManager {
+    function invest(bytes calldata) external override onlyManager {
         (address operator, uint256 ustAmount) = _initDepositStable();
 
         emit InitDepositStable(

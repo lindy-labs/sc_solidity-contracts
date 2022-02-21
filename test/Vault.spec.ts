@@ -168,7 +168,7 @@ describe("Vault", () => {
       await vault.connect(owner).setInvestPerc("8000");
       await addYieldToVault("100");
 
-      await vault.connect(owner).updateInvested();
+      await vault.connect(owner).updateInvested("0x");
 
       expect(await underlying.balanceOf(strategy.address)).to.eq(
         parseUnits("80")

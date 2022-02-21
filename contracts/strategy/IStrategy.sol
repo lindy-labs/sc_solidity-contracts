@@ -73,16 +73,8 @@ interface IStrategy {
 
     /**
      * Initiates the process of investing the underlying currency
-     */
-    function invest() external;
-
-    /**
-     * Calls EthAnchor with a pending redeem ID, and attempts to finish it.
      *
-     * @notice Must be called some time after `initRedeemStable()`. Will only work if
-     * the EthAnchor bridge has finished processing the deposit.
-     *
-     * @param idx Id of the pending redeem operation
+     * @param data exteranl data to invest underlying
      */
-    function finishRedeemStable(uint256 idx) external;
+    function invest(bytes calldata data) external;
 }
