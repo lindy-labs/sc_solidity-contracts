@@ -150,6 +150,15 @@ describe("Vault", () => {
         expect((await vault.deposits(1)).amount).to.equal(6);
       });
     });
+    describe("issue #150", () => {
+      it("does not allow a minLockPeriod of 0", async () => {
+        const Vault = await ethers.getContractFactory("Vault");
+
+        const tx = Vault.deploy(underlying.address, 0, 0, owner.address);
+
+        await expect(tx).to.be.revertedWith("minLockPeriod cannot be 0");
+      });
+    });
   });
 
   describe("setInvestPerc", () => {

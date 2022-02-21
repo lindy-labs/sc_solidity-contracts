@@ -120,6 +120,8 @@ contract Vault is
             address(_underlying) != address(0x0),
             "VaultContext: underlying cannot be 0x0"
         );
+        require(_minLockPeriod > 0, "minLockPeriod cannot be 0");
+
         investPerc = _investPerc;
         underlying = _underlying;
         minLockPeriod = _minLockPeriod;
