@@ -264,6 +264,9 @@ abstract contract BaseStrategy is IStrategy, AccessControl {
      * the EthAnchor bridge has finished processing the deposit.
      *
      * @param idx Id of the pending redeem operation
+     *
+     * @dev division by `aUstBalance` was not deemed worthy of a zero-check
+     *   (https://github.com/code-423n4/2022-01-sandclock-findings/issues/95)
      */
     function _finishRedeemStable(uint256 idx) internal returns (uint256) {
         require(redeemOperations.length > idx, "not running");
