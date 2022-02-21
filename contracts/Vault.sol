@@ -18,6 +18,8 @@ import {Claimers} from "./vault/Claimers.sol";
 import {IStrategy} from "./strategy/IStrategy.sol";
 import {ERC165Query} from "./lib/ERC165Query.sol";
 
+import "hardhat/console.sol";
+
 /**
  * A vault where other accounts can deposit an underlying token
  * currency and set distribution params for their principal and yield
@@ -43,7 +45,9 @@ contract Vault is
     // Constants
     //
 
-    uint256 public constant MIN_SPONSOR_LOCK_DURATION = 1209600; // 2 weeks in seconds
+    uint256 public constant MIN_SPONSOR_LOCK_DURATION = 2 weeks;
+    uint256 public constant MAX_SPONSOR_LOCK_DURATION = 24 weeks;
+    uint256 public constant MAX_DEPOSIT_LOCK_DURATION = 24 weeks;
     uint256 public constant SHARES_MULTIPLIER = 10**18;
 
     //
@@ -194,14 +198,20 @@ contract Vault is
     /// See {IVault}
     function deposit(DepositParams calldata _params) external nonReentrant {
         uint256 principalMinusStrategyFee = _applyInvestmentFee(totalPrincipal);
-
         require(_params.amount != 0, "Vault: cannot deposit 0");
+        require(
+            _params.lockDuration >= minLockPeriod &&
+                _params.lockDuration <= MAX_DEPOSIT_LOCK_DURATION,
+            "Vault: invalid lock period"
+        );
         require(
             principalMinusStrategyFee <= totalUnderlyingMinusSponsored(),
             "Vault: cannot deposit when yield is negative"
         );
 
-        _createDeposit(_params.amount, _params.lockedUntil, _params.claims);
+        uint256 lockedUntil = _params.lockDuration + block.timestamp;
+
+        _createDeposit(_params.amount, lockedUntil, _params.claims);
         _transferAndCheckUnderlying(_msgSender(), _params.amount);
     }
 
@@ -299,26 +309,25 @@ contract Vault is
     // IVaultSponsoring
 
     /// See {IVaultSponsoring}
-    function sponsor(uint256 _amount, uint256 _lockedUntil)
+    function sponsor(uint256 _amount, uint256 _lockDuration)
         external
         override(IVaultSponsoring)
         nonReentrant
     {
         require(_amount != 0, "Vault: cannot sponsor 0");
 
-        if (_lockedUntil == 0)
-            _lockedUntil = block.timestamp + MIN_SPONSOR_LOCK_DURATION;
-        else
-            require(
-                _lockedUntil >= block.timestamp + MIN_SPONSOR_LOCK_DURATION,
-                "Vault: lock time is too small"
-            );
+        require(
+            _lockDuration >= MIN_SPONSOR_LOCK_DURATION &&
+                _lockDuration <= MAX_SPONSOR_LOCK_DURATION,
+            "Vault: invalid lock period"
+        );
 
+        uint256 lockedUntil = _lockDuration + block.timestamp;
         uint256 tokenId = depositors.mint(_msgSender());
 
-        deposits[tokenId] = Deposit(_amount, 0, _lockedUntil, 0);
+        deposits[tokenId] = Deposit(_amount, 0, lockedUntil, 0);
 
-        emit Sponsored(tokenId, _amount, _msgSender(), _lockedUntil);
+        emit Sponsored(tokenId, _amount, _msgSender(), lockedUntil);
 
         totalSponsored += _amount;
         _transferAndCheckUnderlying(_msgSender(), _amount);
@@ -463,7 +472,7 @@ contract Vault is
      * @notice claims must add up to 100%.
      *
      * @param _amount Amount of underlying to consider @param claims claim
-     * @param _lockedUntil When the depositor can withdraw the amount.
+     * @param _lockedUntil Timestamp at which the deposit unlocks
      * @param claims Claim params
      * params.
      */
@@ -472,13 +481,6 @@ contract Vault is
         uint256 _lockedUntil,
         ClaimParams[] calldata claims
     ) internal {
-        if (_lockedUntil == 0) _lockedUntil = block.timestamp + minLockPeriod;
-        else
-            require(
-                _lockedUntil >= block.timestamp + minLockPeriod,
-                "Vault: lock time is too small"
-            );
-
         uint256 localTotalShares = totalShares;
         uint256 localTotalUnderlying = totalUnderlyingMinusSponsored();
         uint256 groupId = _depositGroupIds.current();

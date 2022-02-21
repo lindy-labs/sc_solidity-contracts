@@ -119,9 +119,7 @@ describe("NonUSTStrategy Mainnet fork", () => {
             data: "0x",
           },
         ],
-        lockedUntil: (
-          await getLastBlockTimestamp()
-        ).add(time.duration.days(15).toNumber()),
+        lockDuration: twoWeeks,
       });
       expect(await usdtToken.balanceOf(vault.address)).to.be.equal(amount);
       let exchangeRate = await exchangeRateFeeder.exchangeRateOf(
@@ -188,9 +186,7 @@ describe("NonUSTStrategy Mainnet fork", () => {
             data: "0x",
           },
         ],
-        lockedUntil: (
-          await getLastBlockTimestamp()
-        ).add(time.duration.days(15).toNumber()),
+        lockDuration: twoWeeks,
       });
 
       console.log((await vault.totalUnderlying()).toString());
@@ -311,9 +307,7 @@ describe("NonUSTStrategy Mainnet fork", () => {
             data: "0x",
           },
         ],
-        lockedUntil: (
-          await getLastBlockTimestamp()
-        ).add(time.duration.days(15).toNumber()),
+        lockDuration: twoWeeks,
       });
       expect(await usdtToken.balanceOf(vault.address)).to.be.equal(amount);
       let exchangeRate = utils.parseEther("1.17");
@@ -384,7 +378,7 @@ describe("NonUSTStrategy Mainnet fork", () => {
             data: "0x",
           },
         ],
-        lockedUntil: 0,
+        lockDuration: twoWeeks,
       });
 
       expect(await vault.totalUnderlying()).to.be.equal(
