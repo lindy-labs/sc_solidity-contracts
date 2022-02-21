@@ -258,23 +258,6 @@ describe("AnchorNonUSTStrategy", () => {
       ).to.be.revertedWith("AnchorNonUSTStrategy: no underlying exist");
     });
 
-    it("Revert if swapped UST amount is lower than minAmount", async () => {
-      await initializeStrategy();
-
-      let underlyingAmount = utils.parseUnits("100", 6);
-      await depositVault(underlyingAmount);
-
-      expect(await vault.totalUnderlying()).equal(underlyingAmount);
-      let investAmount = underlyingAmount.mul(INVEST_PCT).div(DENOMINATOR);
-      let ustAmount = investAmount
-        .mul(CURVE_DECIMALS)
-        .div(UNDERLYING_TO_UST_RATE);
-
-      await expect(
-        vault.updateInvested(getInvestData(ustAmount.add(BigNumber.from("1"))))
-      ).to.be.revertedWith("AnchorNonUSTStrategy: slippage failed");
-    });
-
     it("Should swap underlying to UST and init deposit all UST", async () => {
       await initializeStrategy();
 
@@ -374,26 +357,6 @@ describe("AnchorNonUSTStrategy", () => {
       await expect(
         strategy.connect(manager).finishRedeemStable(0, 0)
       ).to.be.revertedWith("AnchorNonUSTStrategy: minAmount is zero");
-    });
-
-    it("Should finish redeem operation and swap UST to underlying", async () => {
-      let aUstRate = utils.parseEther("1.1");
-      await setAUstRate(aUstRate);
-
-      let redeemedUSTAmount0 = utils.parseUnits("55", 18);
-      await notifyRedeemReturnAmount(operator0, redeemedUSTAmount0);
-      let redeemedUnderlyingAmount = redeemedUSTAmount0
-        .mul(CURVE_DECIMALS)
-        .div(UST_TO_UNDERLYING_RATE);
-
-      await expect(
-        strategy
-          .connect(manager)
-          .finishRedeemStable(
-            0,
-            redeemedUnderlyingAmount.add(BigNumber.from("1"))
-          )
-      ).to.be.revertedWith("AnchorNonUSTStrategy: slippage failed");
     });
 
     it("Should finish redeem operation and swap UST to underlying", async () => {

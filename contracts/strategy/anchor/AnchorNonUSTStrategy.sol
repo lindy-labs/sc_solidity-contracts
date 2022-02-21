@@ -175,14 +175,11 @@ contract AnchorNonUSTStrategy is AnchorBaseStrategy {
 
         underlying.safeIncreaseAllowance(address(curvePool), underlyingBalance);
         // slither-disable-next-line unused-return
-        require(
-            curvePool.exchange_underlying(
-                underlyingI,
-                ustI,
-                underlyingBalance,
-                0
-            ) >= minAmount,
-            "AnchorNonUSTStrategy: slippage failed"
+        curvePool.exchange_underlying(
+            underlyingI,
+            ustI,
+            underlyingBalance,
+            minAmount
         );
 
         return underlyingBalance;
@@ -199,11 +196,7 @@ contract AnchorNonUSTStrategy is AnchorBaseStrategy {
         require(ustBalance != 0, "AnchorNonUSTStrategy: no UST exist");
         ustToken.safeIncreaseAllowance(address(curvePool), ustBalance);
         // slither-disable-next-line unused-return
-        require(
-            curvePool.exchange_underlying(ustI, underlyingI, ustBalance, 0) >=
-                minAmount,
-            "AnchorNonUSTStrategy: slippage failed"
-        );
+        curvePool.exchange_underlying(ustI, underlyingI, ustBalance, minAmount);
     }
 
     /**
