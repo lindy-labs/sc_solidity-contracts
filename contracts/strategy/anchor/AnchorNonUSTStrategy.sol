@@ -5,15 +5,15 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
-import {ICurve} from "./curve/ICurve.sol";
-import {IERC20Detailed} from "./IERC20Detailed.sol";
-import {BaseStrategy} from "./BaseStrategy.sol";
+import {ICurve} from "../curve/ICurve.sol";
+import {IERC20Detailed} from "../IERC20Detailed.sol";
+import {AnchorBaseStrategy} from "./AnchorBaseStrategy.sol";
 
 /**
  * EthAnchor Strategy that handles non-UST tokens, by first converting them to UST via
  * Curve (https://curve.fi/), and only then depositing into EthAnchor
  */
-contract NonUSTStrategy is BaseStrategy {
+contract AnchorNonUSTStrategy is AnchorBaseStrategy {
     using SafeERC20 for IERC20;
 
     event Initialized();
@@ -64,7 +64,7 @@ contract NonUSTStrategy is BaseStrategy {
         int128 _underlyingI,
         int128 _ustI
     )
-        BaseStrategy(
+        AnchorBaseStrategy(
             _vault,
             _treasury,
             _ethAnchorRouter,
@@ -75,8 +75,14 @@ contract NonUSTStrategy is BaseStrategy {
             _owner
         )
     {
-        require(underlying != _ustToken, "NonUSTStrategy: invalid underlying");
-        require(_curvePool != address(0), "NonUSTStrategy: curve pool is 0x");
+        require(
+            underlying != _ustToken,
+            "AnchorNonUSTStrategy: invalid underlying"
+        );
+        require(
+            _curvePool != address(0),
+            "AnchorNonUSTStrategy: curve pool is 0x"
+        );
         curvePool = ICurve(_curvePool);
         underlyingI = _underlyingI;
         ustI = _ustI;
@@ -92,7 +98,7 @@ contract NonUSTStrategy is BaseStrategy {
         AggregatorV3Interface _ustFeed,
         AggregatorV3Interface _underlyingFeed
     ) external onlyAdmin {
-        require(!initialized, "NonUSTStrategy: already initialized");
+        require(!initialized, "AnchorNonUSTStrategy: already initialized");
 
         initialized = true;
 
@@ -128,8 +134,8 @@ contract NonUSTStrategy is BaseStrategy {
      * @notice since EthAnchor uses an asynchronous model, this function
      * only starts the deposit process, but does not finish it.
      */
-    function doHardWork() external override(BaseStrategy) onlyManager {
-        require(initialized, "NonUSTStrategy: not initialized");
+    function doHardWork() external override(AnchorBaseStrategy) onlyManager {
+        require(initialized, "AnchorNonUSTStrategy: not initialized");
         uint256 underlyingAmount = _swapUnderlyingToUst();
 
         (address operator, uint256 ustAmount) = _initDepositStable();
@@ -149,7 +155,10 @@ contract NonUSTStrategy is BaseStrategy {
      */
     function _swapUnderlyingToUst() internal virtual returns (uint256) {
         uint256 underlyingBalance = _getUnderlyingBalance();
-        require(underlyingBalance > 0, "NonUSTStrategy: no underlying exist");
+        require(
+            underlyingBalance > 0,
+            "AnchorNonUSTStrategy: no underlying exist"
+        );
 
         underlying.safeIncreaseAllowance(address(curvePool), underlyingBalance);
         // slither-disable-next-line unused-return
@@ -216,7 +225,7 @@ contract NonUSTStrategy is BaseStrategy {
     function investedAssets()
         external
         view
-        override(BaseStrategy)
+        override(AnchorBaseStrategy)
         returns (uint256)
     {
         return
@@ -255,7 +264,7 @@ contract NonUSTStrategy is BaseStrategy {
                 underlyingUpdateTime != 0 &&
                 ustAnsweredInRound >= ustRoundID &&
                 underlyingAnsweredInRound >= underlyingRoundID,
-            "NonUSTStrategy: invalid price"
+            "AnchorNonUSTStrategy: invalid price"
         );
         return
             (ustAmount * uint256(ustPrice) * _underlyingDecimalsMultiplier) /
