@@ -260,7 +260,7 @@ describe("NonUSTStrategy Mainnet fork", () => {
       const VaultFactory = await ethers.getContractFactory("Vault");
       vault = await VaultFactory.deploy(
         usdtToken.address,
-        MIN_LOCK_PERIOD,
+        twoWeeks,
         INVEST_PCT,
         owner.address
       );
