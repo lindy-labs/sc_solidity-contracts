@@ -130,8 +130,8 @@ contract Vault is
         underlying = _underlying;
         minLockPeriod = _minLockPeriod;
 
-        depositors = new Depositors(address(this), "depositors", "p");
-        claimers = new Claimers(address(this));
+        depositors = new Depositors(this);
+        claimers = new Claimers(this);
     }
 
     //
