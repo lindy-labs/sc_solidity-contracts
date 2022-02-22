@@ -220,29 +220,14 @@ test("handleDepositBurned removes a Deposit by marking as burned", () => {
   assert.fieldEquals("Deposit", "1", "burned", "true");
 });
 
-test("handleYieldClaimed creates Donations and reduces shares from Deposits", () => {
+test("handleYieldClaimed reduces shares from Deposits and creates Donations", () => {
   clearStore();
 
   let mockEvent = newMockEvent();
 
   // Create deposits
-  const deposit = new Deposit("1");
-  deposit.burned = false;
-  deposit.amount = BigInt.fromI32(50);
-  deposit.lockedUntil = BigInt.fromI32(1);
-  deposit.shares = BigInt.fromI32(50);
-  deposit.claimer = "1";
-  deposit.foundation = "1";
-  deposit.save();
-
-  const deposit2 = new Deposit("2");
-  deposit2.burned = false;
-  deposit2.amount = BigInt.fromI32(100);
-  deposit2.lockedUntil = BigInt.fromI32(1);
-  deposit2.shares = BigInt.fromI32(100);
-  deposit2.claimer = "1";
-  deposit2.foundation = "1";
-  deposit2.save();
+  createDeposit("1", 50, false, "1", "1", 1, 50);
+  createDeposit("2", 100, false, "1", "1", 1, 100);
 
   // Create vault
   const vault = new Vault(mockEvent.address.toString());
@@ -287,28 +272,63 @@ test("handleYieldClaimed creates Donations and reduces shares from Deposits", ()
   clearStore();
 });
 
+test("handleYieldClaimed doesn't create donations if the deposits are not to the treasury", () => {
+  clearStore();
+
+  let mockEvent = newMockEvent();
+
+  // Create deposits
+  createDeposit("1", 50, false, "1", "1", 1, 50);
+  createDeposit("2", 100, false, "1", "1", 1, 100);
+
+  // Create vault
+  const vault = new Vault(mockEvent.address.toString());
+  vault.treasury = Address.fromString(TREASURY_ADDRESS);
+  vault.save();
+
+  // Create claimer
+  const claimer = new Claimer("1");
+  claimer.vault = mockEvent.address.toString();
+  claimer.depositsIds = ["1", "2"];
+  claimer.save();
+
+  // Create foundation
+  const foundation = new Foundation("1");
+  foundation.vault = mockEvent.address.toString();
+  foundation.save();
+
+  const event = new YieldClaimed(
+    mockEvent.address,
+    mockEvent.logIndex,
+    mockEvent.transactionLogIndex,
+    mockEvent.logType,
+    mockEvent.block,
+    mockEvent.transaction,
+    mockEvent.parameters
+  );
+  event.parameters = new Array();
+
+  event.parameters.push(newI32("claimerId", 1));
+  event.parameters.push(newAddress("to", MOCK_ADDRESS_1));
+  event.parameters.push(newI32("amount", 150));
+  event.parameters.push(newI32("burnedShares", 75));
+
+  handleYieldClaimed(event);
+
+  assert.notInStore("Donation", donationId(mockEvent, "0"));
+  assert.notInStore("Donation", donationId(mockEvent, "1"));
+
+  clearStore();
+});
+
 test("handleYieldClaimed handles scenarios where only one of the deposits generated yield", () => {
   clearStore();
 
   let mockEvent = newMockEvent();
 
-  const deposit = new Deposit("1");
-  deposit.burned = false;
-  deposit.amount = BigInt.fromI32(50);
-  deposit.lockedUntil = BigInt.fromI32(1);
-  deposit.shares = BigInt.fromI32(50);
-  deposit.claimer = "1";
-  deposit.foundation = "1";
-  deposit.save();
-
-  const deposit2 = new Deposit("2");
-  deposit2.burned = false;
-  deposit2.amount = BigInt.fromI32(100);
-  deposit2.lockedUntil = BigInt.fromI32(1);
-  deposit2.shares = BigInt.fromI32(50);
-  deposit2.claimer = "1";
-  deposit2.foundation = "1";
-  deposit2.save();
+  // Create deposits
+  createDeposit("1", 50, false, "1", "1", 1, 50);
+  createDeposit("2", 100, false, "1", "1", 1, 50);
 
   const vault = new Vault(mockEvent.address.toString());
   vault.treasury = Address.fromString(TREASURY_ADDRESS);
@@ -352,23 +372,8 @@ test("handleYieldClaimed handles scenarios where the yield is not proportional t
 
   let mockEvent = newMockEvent();
 
-  const deposit = new Deposit("1");
-  deposit.burned = false;
-  deposit.amount = BigInt.fromI32(50);
-  deposit.lockedUntil = BigInt.fromI32(1);
-  deposit.shares = BigInt.fromI32(50);
-  deposit.claimer = "1";
-  deposit.foundation = "1";
-  deposit.save();
-
-  const deposit2 = new Deposit("2");
-  deposit2.burned = false;
-  deposit2.amount = BigInt.fromI32(100);
-  deposit2.lockedUntil = BigInt.fromI32(1);
-  deposit2.shares = BigInt.fromI32(50);
-  deposit2.claimer = "1";
-  deposit2.foundation = "1";
-  deposit2.save();
+  createDeposit("1", 50, false, "1", "1", 1, 50);
+  createDeposit("2", 100, false, "1", "1", 1, 50);
 
   const vault = new Vault(mockEvent.address.toString());
   vault.treasury = Address.fromString(TREASURY_ADDRESS);
@@ -431,4 +436,23 @@ function donationId(event: ethereum.Event, id: string): string {
   return (
     event.transaction.hash.toHex() + "-" + event.logIndex.toString() + "-" + id
   );
+}
+
+function createDeposit(
+  id: string,
+  amount: i32,
+  burned: bool,
+  claimer: string,
+  foundation: string,
+  lockedUntil: i32,
+  shares: i32
+): void {
+  const deposit = new Deposit(id);
+  deposit.amount = BigInt.fromI32(amount);
+  deposit.burned = burned;
+  deposit.claimer = claimer;
+  deposit.foundation = foundation;
+  deposit.lockedUntil = BigInt.fromI32(lockedUntil);
+  deposit.shares = BigInt.fromI32(shares);
+  deposit.save();
 }
