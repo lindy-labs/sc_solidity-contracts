@@ -1,8 +1,15 @@
-import { BigDecimal, BigInt, ByteArray, log } from "@graphprotocol/graph-ts";
+import {
+  BigDecimal,
+  BigInt,
+  ByteArray,
+  log,
+  Bytes
+} from "@graphprotocol/graph-ts";
 import {
   DepositBurned,
   DepositMinted,
-  YieldClaimed
+  YieldClaimed,
+  TreasuryUpdated
 } from "../types/templates/Vault/IVault";
 import {
   Sponsored,
@@ -46,9 +53,8 @@ export function handleYieldClaimed(event: YieldClaimed): void {
     deposit.save();
 
     if (
-      event.params.to.equals(
-        ByteArray.fromHexString("0x4940c6e628da11ac0bdcf7f82be8579b4696fa33")
-      ) &&
+      vault.treasury !== null &&
+      event.params.to.toString() == vault.treasury!.toString() &&
       claimedShares.gt(BigInt.fromI32(0))
     ) {
       const id =
@@ -119,6 +125,16 @@ export function handleDepositMinted(event: DepositMinted): void {
   foundation.save();
   claimer.save();
   deposit.save();
+  vault.save();
+}
+
+export function handleTreasuryUpdated(event: TreasuryUpdated): void {
+  const vaultId = event.address.toString();
+
+  const vault = Vault.load(vaultId)!;
+
+  vault.treasury = event.params.treasury;
+
   vault.save();
 }
 

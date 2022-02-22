@@ -57,6 +57,8 @@ templates:
           handler: handleUnsponsored
         - event: YieldClaimed(uint256,indexed address,uint256,uint256)
           handler: handleYieldClaimed
+        - event: TreasuryUpdated(indexed address)
+          handler: handleTreasuryUpdated
 
   - name: Claimers
     kind: ethereum/contract

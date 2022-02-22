@@ -43,6 +43,8 @@ interface IVault {
 
     event StrategyUpdated(address indexed strategy);
 
+    event TreasuryUpdated(address indexed treasury);
+
     event YieldClaimed(
         uint256 claimerId,
         address indexed to,
@@ -151,4 +153,11 @@ interface IVault {
      * @param _strategy the new strategy's address.
      */
     function setStrategy(address _strategy) external;
+
+    /**
+     * Changes the treasury used by the vault.
+     *
+     * @param _treasury the new strategy's address.
+     */
+    function setTreasury(address _treasury) external;
 }

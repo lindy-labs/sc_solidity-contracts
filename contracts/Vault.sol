@@ -137,6 +137,13 @@ contract Vault is
     //
     // IVault
     //
+    function setTreasury(address _treasury)
+        external
+        override(IVault)
+        requiresTrust
+    {
+        emit TreasuryUpdated(_treasury);
+    }
 
     /// See {IVault}
     function setStrategy(address _strategy)

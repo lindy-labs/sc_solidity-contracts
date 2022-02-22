@@ -30,10 +30,10 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
     )
   );
 
+  console.log("Set treasury");
+  await vault.connect(owner).setTreasury(treasury.address);
+
   console.log("The treasury sponsors 1000");
-  const lastTimestamp = (
-    await ethers.provider.getBlock(await ethers.provider.getBlockNumber())
-  ).timestamp;
   const lockUntil = await vault.MIN_SPONSOR_LOCK_DURATION();
   await vault.connect(treasury).sponsor(parseUnits("1000", 6), lockUntil);
 
