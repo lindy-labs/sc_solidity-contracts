@@ -1,0 +1,4 @@
+#!/bin/bash -ue
+
+yarn install
+cd subgraph && yarn install

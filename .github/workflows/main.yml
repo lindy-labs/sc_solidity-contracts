@@ -33,6 +33,7 @@ jobs:
         with:
           python-version: '3.x'
 
-      - run: yarn install
+      - run: bin/setup
       - run: yarn run hardhat compile
       - run: yarn run hardhat test
+      - run: cd subgraph && yarn all-local && yarn test

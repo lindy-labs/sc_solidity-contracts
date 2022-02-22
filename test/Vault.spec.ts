@@ -208,6 +208,14 @@ describe("Vault", () => {
     });
   });
 
+  describe("setTreasury", () => {
+    it("emits an event", async () => {
+      const tx = vault.connect(owner).setTreasury(treasury);
+
+      await expect(tx).to.emit(vault, "TreasuryUpdated").withArgs(treasury);
+    });
+  });
+
   describe("setStrategy", () => {
     it("changes the strategy", async () => {
       expect(await vault.strategy()).to.equal(
