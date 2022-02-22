@@ -14,6 +14,7 @@ jobs:
       matrix:
         test:
           - EchidnaPercentMath
+          - EchidnaVault
 
     steps:
     - uses: actions/checkout@v2
@@ -35,4 +36,4 @@ jobs:
         files: .
         contract: ${{ matrix.test }}
         crytic-args: --hardhat-ignore-compile
-        config: echidna.config.yml
+        config: contracts/test/${{ matrix.test }}.yml
