@@ -6,18 +6,38 @@ import type { SandclockFactory, TestERC20, Vault } from "@root/typechain";
 
 describe("SandclockFactory", () => {
   let owner: SignerWithAddress;
+  let governance: SignerWithAddress;
 
   let underlying: TestERC20;
   let factory: SandclockFactory;
 
   beforeEach(async () => {
-    [owner] = await ethers.getSigners();
+    [owner, governance] = await ethers.getSigners();
 
     let TestERC20 = await ethers.getContractFactory("TestERC20");
     let SandclockFactory = await ethers.getContractFactory("SandclockFactory");
 
     underlying = (await TestERC20.deploy(0)) as TestERC20;
-    factory = (await SandclockFactory.deploy()) as SandclockFactory;
+    factory = (await SandclockFactory.deploy(
+      governance.address
+    )) as SandclockFactory;
+  });
+
+  describe("roles", () => {
+    it("sets msg.sender as the deployer", async () => {
+      expect(
+        await factory.hasRole(await factory.DEPLOYER_ROLE(), owner.address)
+      ).to.be.true;
+    });
+
+    it("sets msg.sender as the admin", async () => {
+      expect(
+        await factory.hasRole(
+          await factory.DEFAULT_ADMIN_ROLE(),
+          governance.address
+        )
+      ).to.be.true;
+    });
   });
 
   describe("deployVault", () => {

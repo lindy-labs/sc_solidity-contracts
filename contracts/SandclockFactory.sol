@@ -2,10 +2,14 @@
 pragma solidity =0.8.10;
 
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
+import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 
-import {Trust} from "@rari-capital/solmate/src/auth/Trust.sol";
+contract SandclockFactory is Context, AccessControl {
+    //
+    // Constants
+    //
+    bytes32 public constant DEPLOYER_ROLE = keccak256("DEPLOYER_ROLE");
 
-contract SandclockFactory is Context, Trust {
     //
     // Events
     //
@@ -16,7 +20,10 @@ contract SandclockFactory is Context, Trust {
     // Constructor
     //
 
-    constructor() Trust(_msgSender()) {}
+    constructor(address _owner) {
+        _setupRole(DEFAULT_ADMIN_ROLE, _owner);
+        _setupRole(DEPLOYER_ROLE, msg.sender);
+    }
 
     //
     // Public API
@@ -24,7 +31,7 @@ contract SandclockFactory is Context, Trust {
 
     function deployVault(bytes memory code, uint256 salt)
         external
-        requiresTrust
+        onlyRole(DEPLOYER_ROLE)
     {
         address addr = deploy(code, salt);
 
@@ -37,6 +44,7 @@ contract SandclockFactory is Context, Trust {
 
     function deploy(bytes memory code, uint256 salt)
         internal
+        onlyRole(DEPLOYER_ROLE)
         returns (address)
     {
         address addr;
