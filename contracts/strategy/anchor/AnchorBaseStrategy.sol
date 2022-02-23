@@ -51,19 +51,19 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
         0x241ecf16d79d0f8dbfb92cbc07fe17840425976cf0667f022fe9877caa831b08; // keccak256("MANAGER_ROLE");
 
     // Underlying token address
-    IERC20 public override(IStrategy) underlying;
+    IERC20 public immutable override(IStrategy) underlying;
 
     // Vault address
-    address public override(IStrategy) vault;
+    address public immutable override(IStrategy) vault;
 
     // Treasury address
     address public treasury;
 
     // UST token address
-    IERC20 public ustToken;
+    IERC20 public immutable ustToken;
 
     // aUST token address (wrapped Anchor UST, received to accrue interest for an Anchor deposit)
-    IERC20 public aUstToken;
+    IERC20 public immutable aUstToken;
 
     // performance fee taken by the treasury on profits
     uint16 public perfFeePct;
@@ -72,7 +72,7 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
     IEthAnchorRouter public ethAnchorRouter;
 
     // Chainlink aUST / UST price feed
-    AggregatorV3Interface public aUstToUstFeed;
+    AggregatorV3Interface public immutable aUstToUstFeed;
 
     // amount currently pending in deposits to EthAnchor
     uint256 public pendingDeposits;

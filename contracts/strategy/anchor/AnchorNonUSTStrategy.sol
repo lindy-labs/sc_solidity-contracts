@@ -19,13 +19,13 @@ contract AnchorNonUSTStrategy is AnchorBaseStrategy {
     event Initialized();
 
     // UST / USDC / USDT / DAI curve pool address
-    ICurve public curvePool;
+    ICurve public immutable curvePool;
 
     // index of the underlying token in the curve pool
-    int128 public underlyingI;
+    int128 public immutable underlyingI;
 
     // index of the UST token in the curve pool
-    int128 public ustI;
+    int128 public immutable ustI;
 
     // flag to indicate initialization status
     bool public initialized;
