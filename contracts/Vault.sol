@@ -141,6 +141,13 @@ contract Vault is
     //
     // IVault
     //
+    function setTreasury(address _treasury)
+        external
+        override(IVault)
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        emit TreasuryUpdated(_treasury);
+    }
 
     /// See {IVault}
     function setStrategy(address _strategy)
@@ -562,7 +569,8 @@ contract Vault is
             _msgSender(),
             _claim.beneficiary,
             claimerId,
-            _lockedUntil
+            _lockedUntil,
+            _claim.data
         );
     }
 
