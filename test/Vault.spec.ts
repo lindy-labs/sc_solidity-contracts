@@ -1,6 +1,8 @@
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { time } from "@openzeppelin/test-helpers";
 import { Contract } from "ethers";
+import { ethers } from "hardhat";
+import { expect } from "chai";
 
 import type {
   Vault,
@@ -10,9 +12,6 @@ import type {
   AnchorUSTStrategy,
 } from "../typechain";
 import { Claimers__factory, Depositors__factory } from "../typechain";
-
-import { ethers } from "hardhat";
-import { expect } from "chai";
 
 import { depositParams, claimParams } from "./shared/factories";
 import {
