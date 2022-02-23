@@ -144,7 +144,7 @@ contract Vault is
     function setTreasury(address _treasury)
         external
         override(IVault)
-        requiresTrust
+        onlyRole(DEFAULT_ADMIN_ROLE)
     {
         emit TreasuryUpdated(_treasury);
     }
