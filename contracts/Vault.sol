@@ -45,8 +45,7 @@ contract Vault is
     // Constants
     //
 
-    bytes32 public constant MANAGER_ROLE =
-        0x241ecf16d79d0f8dbfb92cbc07fe17840425976cf0667f022fe9877caa831b08; // keccak256("MANAGER_ROLE");
+    bytes32 public constant INVESTOR_ROLE = keccak256("INVESTOR_ROLE");
     uint256 public constant MIN_SPONSOR_LOCK_DURATION = 2 weeks;
     uint256 public constant MAX_SPONSOR_LOCK_DURATION = 24 weeks;
     uint256 public constant MAX_DEPOSIT_LOCK_DURATION = 24 weeks;
@@ -109,22 +108,6 @@ contract Vault is
     // The total of principal deposited
     uint256 public totalPrincipal;
 
-    modifier onlyManager() {
-        require(
-            hasRole(MANAGER_ROLE, msg.sender),
-            "Vault: caller is not manager"
-        );
-        _;
-    }
-
-    modifier onlyAdmin() {
-        require(
-            hasRole(DEFAULT_ADMIN_ROLE, msg.sender),
-            "Vault: caller is not admin"
-        );
-        _;
-    }
-
     /**
      * @param _underlying Underlying ERC20 token to use.
      */
@@ -145,14 +128,14 @@ contract Vault is
         require(_minLockPeriod > 0, "minLockPeriod cannot be 0");
 
         _setupRole(DEFAULT_ADMIN_ROLE, _owner);
-        _setupRole(MANAGER_ROLE, _owner);
+        _setupRole(INVESTOR_ROLE, _owner);
 
         investPerc = _investPerc;
         underlying = _underlying;
         minLockPeriod = _minLockPeriod;
 
-        depositors = new Depositors(address(this), "depositors", "p");
-        claimers = new Claimers(address(this));
+        depositors = new Depositors(this);
+        claimers = new Claimers(this);
     }
 
     //
@@ -163,7 +146,7 @@ contract Vault is
     function setStrategy(address _strategy)
         external
         override(IVault)
-        onlyAdmin
+        onlyRole(DEFAULT_ADMIN_ROLE)
     {
         require(_strategy != address(0), "Vault: strategy 0x");
         require(
@@ -285,7 +268,10 @@ contract Vault is
     }
 
     /// See {IVault}
-    function setInvestPerc(uint16 _investPerc) external onlyAdmin {
+    function setInvestPerc(uint16 _investPerc)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         require(
             PercentMath.validPerc(_investPerc),
             "Vault: invalid investPerc"
@@ -310,7 +296,10 @@ contract Vault is
     }
 
     /// See {IVault}
-    function updateInvested(bytes calldata data) external onlyManager {
+    function updateInvested(bytes calldata data)
+        external
+        onlyRole(INVESTOR_ROLE)
+    {
         require(address(strategy) != address(0), "Vault: strategy is not set");
 
         uint256 _investable = investableAmount();

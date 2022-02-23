@@ -232,6 +232,31 @@ describe("AnchorNonUSTStrategy Mainnet fork", () => {
         )} aUST)`
       );
     });
+
+    it("Revert vault.updateInvested if exchanged rate is lower than minimum exchange rate.", async () => {
+      let amount = utils.parseUnits("10000", 6);
+
+      console.log(`Deposit ${utils.formatUnits(amount, 6)} USDT by alice`);
+      await vault.connect(alice).deposit({
+        amount,
+        claims: [
+          {
+            pct: 10000,
+            beneficiary: alice.address,
+            data: "0x",
+          },
+        ],
+        lockDuration: twoWeeks,
+      });
+      let exchangeRate = (await mockAUstUstFeed.latestRoundData()).answer;
+      console.log("ExchangeRate: ", utils.formatEther(exchangeRate));
+
+      await expect(
+        vault
+          .connect(owner)
+          .updateInvested(getInvestData(utils.parseUnits("1.1", 30)))
+      ).to.revertedWith("Too few coins in result");
+    });
   });
 
   // Use Mock aUST / UST Chainlink Feed to check performance fee and redeem
@@ -459,6 +484,50 @@ describe("AnchorNonUSTStrategy Mainnet fork", () => {
       expect(await usdtToken.balanceOf(vault.address)).to.be.equal(
         "6392897697"
       );
+    });
+
+    it("Revert strategy.finishRedeemStable if received underlying is lower than minAmount", async () => {
+      let amount = utils.parseUnits("9000", 6);
+
+      await vault.connect(alice).deposit({
+        amount,
+        claims: [
+          {
+            pct: 10000,
+            beneficiary: alice.address,
+            data: "0x",
+          },
+        ],
+        lockDuration: twoWeeks,
+      });
+
+      await vault
+        .connect(owner)
+        .updateInvested(getInvestData(BigNumber.from("1000")));
+
+      let depositOperations = await strategy.depositOperations(0);
+      let expectAUstReceive = utils.parseEther("7600");
+      await ForkHelpers.mintToken(
+        aUstToken,
+        depositOperations.operator,
+        expectAUstReceive
+      );
+      await strategy.finishDepositStable(0);
+
+      let redeemAmount = utils.parseEther("5000");
+      await strategy.initRedeemStable(redeemAmount);
+
+      let expectUstReceive = utils.parseEther("6400");
+      let redeemOperations = await strategy.redeemOperations(0);
+      await ForkHelpers.mintToken(
+        ustToken,
+        redeemOperations.operator,
+        expectUstReceive
+      );
+
+      await expect(
+        strategy.finishRedeemStable(0, utils.parseUnits("6500", 6))
+      ).to.revertedWith("Too few coins in result");
     });
   });
 

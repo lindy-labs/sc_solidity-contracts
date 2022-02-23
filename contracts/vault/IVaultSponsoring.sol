@@ -25,7 +25,7 @@ interface IVaultSponsoring {
      * The amount is locked until the timestamp specified in @param _lockedUntil.
      *
      * @param _amount Amount to sponsor.
-     * @param _lockedUntil When the depositor can unsponsor the amount.
+     * @param _lockedUntil When the sponsor can unsponsor the amount.
      */
     function sponsor(uint256 _amount, uint256 _lockedUntil) external;
 

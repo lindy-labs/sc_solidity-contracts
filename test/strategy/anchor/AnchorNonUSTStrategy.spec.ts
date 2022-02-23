@@ -233,7 +233,9 @@ describe("AnchorNonUSTStrategy", () => {
   describe("#invest function", () => {
     it("Revert if not initialized", async () => {
       await expect(
-        strategy.connect(manager).invest(getInvestData(BigNumber.from("100")))
+        strategy
+          .connect(manager)
+          .invest(getInvestData(utils.parseEther("1000000000000")))
       ).to.be.revertedWith("AnchorNonUSTStrategy: not initialized");
     });
 
@@ -241,23 +243,27 @@ describe("AnchorNonUSTStrategy", () => {
       await initializeStrategy();
 
       await expect(
-        strategy.connect(alice).invest(getInvestData(BigNumber.from("100")))
+        strategy
+          .connect(alice)
+          .invest(getInvestData(utils.parseEther("1000000000000")))
       ).to.be.revertedWith("BaseStrategy: caller is not manager");
     });
 
-    it("Revert if data.minAmount is zero", async () => {
+    it("Revert if data.minExchangeRate is zero", async () => {
       await initializeStrategy();
 
       await expect(
         strategy.connect(manager).invest(getInvestData(BigNumber.from("0")))
-      ).to.be.revertedWith("AnchorNonUSTStrategy: minAmount is zero");
+      ).to.be.revertedWith("AnchorNonUSTStrategy: minExchangeRate is zero");
     });
 
     it("Revert if underlying balance is 0", async () => {
       await initializeStrategy();
 
       await expect(
-        strategy.connect(manager).invest(getInvestData(BigNumber.from("100")))
+        strategy
+          .connect(manager)
+          .invest(getInvestData(utils.parseEther("1000000000000")))
       ).to.be.revertedWith("AnchorNonUSTStrategy: no underlying exist");
     });
 
@@ -276,7 +282,7 @@ describe("AnchorNonUSTStrategy", () => {
         .div(UNDERLYING_TO_UST_RATE);
 
       const tx = await vault.updateInvested(
-        getInvestData(BigNumber.from("100"))
+        getInvestData(utils.parseEther("1000000000000"))
       );
 
       expect(await underlying.balanceOf(strategy.address)).equal(0);
@@ -327,7 +333,7 @@ describe("AnchorNonUSTStrategy", () => {
 
       await vault
         .connect(owner)
-        .updateInvested(getInvestData(BigNumber.from("100")));
+        .updateInvested(getInvestData(utils.parseEther("1000000000000")));
 
       await notifyDepositReturnAmount(operator0, aUstAmount0);
       await strategy.connect(manager).finishDepositStable(0);
@@ -556,7 +562,7 @@ describe("AnchorNonUSTStrategy", () => {
 
       await vault
         .connect(owner)
-        .updateInvested(getInvestData(BigNumber.from("100")));
+        .updateInvested(getInvestData(utils.parseEther("1000000000000")));
 
       let remainingInVault = underlyingAmount.sub(investAmount);
 
