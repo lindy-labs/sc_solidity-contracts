@@ -1,18 +1,18 @@
 import type { HardhatRuntimeEnvironment } from "hardhat/types";
 import type { DeployFunction } from "hardhat-deploy/types";
 
-import { ethers } from "hardhat";
-
-import { deployViaFactory, logContract } from "../scripts/deployHelpers";
+import { getCurrentNetworkConfig } from "../scripts/deployConfigs";
 
 const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   const { get } = env.deployments;
 
+  const ust = await get("UST");
   const usdc = await get("USDC");
   const dai = await get("DAI");
 
-  const minLockPeriod = env.network.live ? 60 * 60 * 24 * 30 : 0;
+  const { minLockPeriod } = getCurrentNetworkConfig();
 
+  await deployVault(env, "Vault_UST", ust.address, minLockPeriod);
   await deployVault(env, "Vault_USDC", usdc.address, minLockPeriod);
   await deployVault(env, "Vault_DAI", dai.address, minLockPeriod);
 };
@@ -23,26 +23,17 @@ async function deployVault(
   underlyingAddr: string,
   minLockPeriod: number
 ) {
-  const { read, getOrNull } = env.deployments;
+  const { deployer } = await env.getNamedAccounts();
+  const { deploy } = env.deployments;
 
-  if (await getOrNull(name)) {
-    console.log(`Skipping deploy of ${name}`);
-    return;
-  }
+  const investPct = 9000; // 90%
 
-  const Vault = await ethers.getContractFactory("Vault");
-
-  const { address } = await deployViaFactory(env, "deployVault", name, Vault, [
-    underlyingAddr,
-    minLockPeriod,
-  ]);
-
-  const claimers = await read(name, "claimers");
-  const depositors = await read(name, "depositors");
-
-  logContract(name, address);
-  logContract(`${name}_Claimers`, claimers);
-  logContract(`${name}_Depositors`, depositors);
+  await deploy(name, {
+    contract: "Vault",
+    from: deployer,
+    log: true,
+    args: [underlyingAddr, minLockPeriod, investPct, deployer],
+  });
 }
 
 func.id = "deploy_vaults";
