@@ -42,6 +42,14 @@ contract MockChainlinkPriceFeed is AggregatorV3Interface {
         return (0, 0, 0, 0, 0);
     }
 
+    function setAnswer(int256 answer) external {
+        roundId_ = 10;
+        answer_ = answer;
+        startedAt_ = block.timestamp;
+        updatedAt_ = block.timestamp;
+        answeredInRound_ = 10;
+    }
+
     function setLatestRoundData(
         uint80 roundId,
         int256 answer,

@@ -10,11 +10,20 @@
     "noEmitOnError": true,
     "outDir": "dist",
     "resolveJsonModule": true,
-    "baseUrl":".",
+    "baseUrl": ".",
     "paths": {
       "@root/*": ["./*"]
     }
   },
-  "include": ["./hardhat.config.ts", "./artifacts/**/*", "./test", "./typechain", "./src", "./scripts", "./deploy", "./deployments"],
+  "include": [
+    "./hardhat.config.ts",
+    "./artifacts/**/*",
+    "./test",
+    "./typechain",
+    "./src",
+    "./scripts",
+    "./deploy",
+    "./deployments"
+  ],
   "exclude": ["./dist", "./node_modules"]
 }

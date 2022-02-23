@@ -7,7 +7,7 @@ import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {Counters} from "@openzeppelin/contracts/utils/Counters.sol";
 import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
-import {Trust} from "@rari-capital/solmate/src/auth/Trust.sol";
+import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 
 import {IVault} from "./vault/IVault.sol";
@@ -17,6 +17,8 @@ import {Depositors} from "./vault/Depositors.sol";
 import {Claimers} from "./vault/Claimers.sol";
 import {IStrategy} from "./strategy/IStrategy.sol";
 import {ERC165Query} from "./lib/ERC165Query.sol";
+
+import "hardhat/console.sol";
 
 /**
  * A vault where other accounts can deposit an underlying token
@@ -30,7 +32,7 @@ contract Vault is
     IVaultSponsoring,
     Context,
     ERC165,
-    Trust,
+    AccessControl,
     ReentrancyGuard
 {
     using Counters for Counters.Counter;
@@ -43,7 +45,10 @@ contract Vault is
     // Constants
     //
 
-    uint256 public constant MIN_SPONSOR_LOCK_DURATION = 1209600; // 2 weeks in seconds
+    bytes32 public constant INVESTOR_ROLE = keccak256("INVESTOR_ROLE");
+    uint256 public constant MIN_SPONSOR_LOCK_DURATION = 2 weeks;
+    uint256 public constant MAX_SPONSOR_LOCK_DURATION = 24 weeks;
+    uint256 public constant MAX_DEPOSIT_LOCK_DURATION = 24 weeks;
     uint256 public constant SHARES_MULTIPLIER = 10**18;
 
     //
@@ -111,7 +116,7 @@ contract Vault is
         uint256 _minLockPeriod,
         uint256 _investPerc,
         address _owner
-    ) Trust(_owner) {
+    ) {
         require(
             PercentMath.validPerc(_investPerc),
             "Vault: invalid investPerc"
@@ -120,23 +125,35 @@ contract Vault is
             address(_underlying) != address(0x0),
             "VaultContext: underlying cannot be 0x0"
         );
+        require(_minLockPeriod > 0, "minLockPeriod cannot be 0");
+
+        _setupRole(DEFAULT_ADMIN_ROLE, _owner);
+        _setupRole(INVESTOR_ROLE, _owner);
+
         investPerc = _investPerc;
         underlying = _underlying;
         minLockPeriod = _minLockPeriod;
 
-        depositors = new Depositors(address(this), "depositors", "p");
-        claimers = new Claimers(address(this));
+        depositors = new Depositors(this);
+        claimers = new Claimers(this);
     }
 
     //
     // IVault
     //
+    function setTreasury(address _treasury)
+        external
+        override(IVault)
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        emit TreasuryUpdated(_treasury);
+    }
 
     /// See {IVault}
     function setStrategy(address _strategy)
         external
         override(IVault)
-        requiresTrust
+        onlyRole(DEFAULT_ADMIN_ROLE)
     {
         require(_strategy != address(0), "Vault: strategy 0x");
         require(
@@ -162,8 +179,6 @@ contract Vault is
             return underlying.balanceOf(address(this));
         }
     }
-
-    /// See {IVault}
 
     /// See {IVault}
     function yieldFor(address _to)
@@ -192,14 +207,20 @@ contract Vault is
     /// See {IVault}
     function deposit(DepositParams calldata _params) external nonReentrant {
         uint256 principalMinusStrategyFee = _applyInvestmentFee(totalPrincipal);
-
         require(_params.amount != 0, "Vault: cannot deposit 0");
+        require(
+            _params.lockDuration >= minLockPeriod &&
+                _params.lockDuration <= MAX_DEPOSIT_LOCK_DURATION,
+            "Vault: invalid lock period"
+        );
         require(
             principalMinusStrategyFee <= totalUnderlyingMinusSponsored(),
             "Vault: cannot deposit when yield is negative"
         );
 
-        _createDeposit(_params.amount, _params.lockedUntil, _params.claims);
+        uint256 lockedUntil = _params.lockDuration + block.timestamp;
+
+        _createDeposit(_params.amount, lockedUntil, _params.claims);
         _transferAndCheckUnderlying(_msgSender(), _params.amount);
     }
 
@@ -254,7 +275,10 @@ contract Vault is
     }
 
     /// See {IVault}
-    function setInvestPerc(uint16 _investPerc) external requiresTrust {
+    function setInvestPerc(uint16 _investPerc)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         require(
             PercentMath.validPerc(_investPerc),
             "Vault: invalid investPerc"
@@ -279,7 +303,10 @@ contract Vault is
     }
 
     /// See {IVault}
-    function updateInvested() external requiresTrust {
+    function updateInvested(bytes calldata data)
+        external
+        onlyRole(INVESTOR_ROLE)
+    {
         require(address(strategy) != address(0), "Vault: strategy is not set");
 
         uint256 _investable = investableAmount();
@@ -290,33 +317,32 @@ contract Vault is
             emit Invested(_investable);
         }
 
-        strategy.doHardWork();
+        strategy.invest(data);
     }
 
     //
     // IVaultSponsoring
 
     /// See {IVaultSponsoring}
-    function sponsor(uint256 _amount, uint256 _lockedUntil)
+    function sponsor(uint256 _amount, uint256 _lockDuration)
         external
         override(IVaultSponsoring)
         nonReentrant
     {
         require(_amount != 0, "Vault: cannot sponsor 0");
 
-        if (_lockedUntil == 0)
-            _lockedUntil = block.timestamp + MIN_SPONSOR_LOCK_DURATION;
-        else
-            require(
-                _lockedUntil >= block.timestamp + MIN_SPONSOR_LOCK_DURATION,
-                "Vault: lock time is too small"
-            );
+        require(
+            _lockDuration >= MIN_SPONSOR_LOCK_DURATION &&
+                _lockDuration <= MAX_SPONSOR_LOCK_DURATION,
+            "Vault: invalid lock period"
+        );
 
+        uint256 lockedUntil = _lockDuration + block.timestamp;
         uint256 tokenId = depositors.mint(_msgSender());
 
-        deposits[tokenId] = Deposit(_amount, 0, _lockedUntil, 0);
+        deposits[tokenId] = Deposit(_amount, 0, lockedUntil, 0);
 
-        emit Sponsored(tokenId, _amount, _msgSender(), _lockedUntil);
+        emit Sponsored(tokenId, _amount, _msgSender(), lockedUntil);
 
         totalSponsored += _amount;
         _transferAndCheckUnderlying(_msgSender(), _amount);
@@ -344,7 +370,12 @@ contract Vault is
      * @return Total amount of principal and yield help by the vault (not including sponsored amount).
      */
     function totalUnderlyingMinusSponsored() public view returns (uint256) {
-        return totalUnderlying() - totalSponsored;
+        uint256 _totalUnderlying = totalUnderlying();
+        if (totalSponsored > _totalUnderlying) {
+            return 0;
+        }
+
+        return _totalUnderlying - totalSponsored;
     }
 
     //
@@ -355,7 +386,7 @@ contract Vault is
         public
         view
         virtual
-        override(ERC165)
+        override(ERC165, AccessControl)
         returns (bool)
     {
         return
@@ -456,7 +487,7 @@ contract Vault is
      * @notice claims must add up to 100%.
      *
      * @param _amount Amount of underlying to consider @param claims claim
-     * @param _lockedUntil When the depositor can withdraw the amount.
+     * @param _lockedUntil Timestamp at which the deposit unlocks
      * @param claims Claim params
      * params.
      */
@@ -465,13 +496,6 @@ contract Vault is
         uint256 _lockedUntil,
         ClaimParams[] calldata claims
     ) internal {
-        if (_lockedUntil == 0) _lockedUntil = block.timestamp + minLockPeriod;
-        else
-            require(
-                _lockedUntil >= block.timestamp + minLockPeriod,
-                "Vault: lock time is too small"
-            );
-
         uint256 localTotalShares = totalShares;
         uint256 localTotalUnderlying = totalUnderlyingMinusSponsored();
         uint256 groupId = _depositGroupIds.current();
@@ -545,7 +569,8 @@ contract Vault is
             _msgSender(),
             _claim.beneficiary,
             claimerId,
-            _lockedUntil
+            _lockedUntil,
+            _claim.data
         );
     }
 

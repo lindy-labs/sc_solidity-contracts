@@ -25,6 +25,12 @@ export class ClaimParamsFactory extends Factory<ClaimParams> {
       beneficiary: addr,
     });
   }
+
+  data(data: string) {
+    return this.params({
+      data,
+    });
+  }
 }
 
 export const claimParams = ClaimParamsFactory.define(() => {

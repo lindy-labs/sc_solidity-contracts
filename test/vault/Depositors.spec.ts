@@ -16,11 +16,7 @@ describe("Depositors", () => {
 
     let Depositors = await ethers.getContractFactory("Depositors");
 
-    depositors = (await Depositors.deploy(
-      vault.address,
-      "deposit",
-      "DEP"
-    )) as Depositors;
+    depositors = (await Depositors.deploy(vault.address)) as Depositors;
   });
 
   describe("mint", () => {

@@ -16,7 +16,7 @@ interface IVault {
     struct DepositParams {
         uint256 amount;
         ClaimParams[] claims;
-        uint256 lockedUntil;
+        uint256 lockDuration;
     }
 
     //
@@ -31,7 +31,8 @@ interface IVault {
         address indexed depositor,
         address indexed claimer,
         uint256 claimerId,
-        uint256 lockedUntil
+        uint256 lockedUntil,
+        bytes data
     );
 
     event DepositBurned(uint256 indexed id, uint256 shares, address indexed to);
@@ -41,6 +42,8 @@ interface IVault {
     event Invested(uint256 amount);
 
     event StrategyUpdated(address indexed strategy);
+
+    event TreasuryUpdated(address indexed treasury);
 
     event YieldClaimed(
         uint256 claimerId,
@@ -55,8 +58,10 @@ interface IVault {
 
     /**
      * Update the invested amount;
+     *
+     * @param data exteranl data to invest underlying
      */
-    function updateInvested() external;
+    function updateInvested(bytes calldata data) external;
 
     /**
      * Calculates underlying investable amount.
@@ -150,4 +155,11 @@ interface IVault {
      * @param _strategy the new strategy's address.
      */
     function setStrategy(address _strategy) external;
+
+    /**
+     * Changes the treasury used by the vault.
+     *
+     * @param _treasury the new strategy's address.
+     */
+    function setTreasury(address _treasury) external;
 }

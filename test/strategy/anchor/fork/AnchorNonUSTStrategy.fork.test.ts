@@ -1,38 +1,40 @@
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
+import { time } from "@openzeppelin/test-helpers";
 import { ethers } from "hardhat";
 import { expect } from "chai";
 import { BigNumber, utils, constants } from "ethers";
 import {
   Vault,
-  NonUSTStrategy,
+  AnchorNonUSTStrategy,
   MockERC20,
-  MockExchangeRateFeeder,
+  MockChainlinkPriceFeed,
   MockERC20__factory,
-  MockExchangeRateFeeder__factory,
-} from "../../../typechain";
-import { generateNewAddress, ForkHelpers } from "../../shared/";
+  MockChainlinkPriceFeed__factory,
+} from "../../../../typechain";
+import { generateNewAddress, ForkHelpers } from "../../../shared/";
 import config from "./config.json";
 
-describe("NonUSTStrategy Mainnet fork", () => {
+describe("AnchorNonUSTStrategy Mainnet fork", () => {
   let owner: SignerWithAddress;
   let alice: SignerWithAddress;
   let bob: SignerWithAddress;
 
   let vault: Vault;
-  let strategy: NonUSTStrategy;
+  let strategy: AnchorNonUSTStrategy;
   let ustToken: MockERC20;
   let aUstToken: MockERC20;
   let usdtToken: MockERC20;
   let usdcToken: MockERC20;
   let daiToken: MockERC20;
-  // MockExchangeRateFeeder has same interface as Mainnet, so we can use it for test
-  let exchangeRateFeeder: MockExchangeRateFeeder;
-  const MIN_LOCK_PERIOD = 0; // set zero for test
+  // MockChainlinkPriceFeed has same interface as Mainnet, so we can use it for test
+  let mockAUstUstFeed: MockChainlinkPriceFeed;
+  const twoWeeks = time.duration.days(14).toNumber();
   const INVEST_PCT = 10000; // set 100% for test
   const TREASURY = generateNewAddress();
   const FEE_PCT = BigNumber.from("200");
   const DENOMINATOR = BigNumber.from("10000");
   const FORK_BLOCK = 14023000;
+  const MANAGER_ROLE = utils.keccak256(utils.toUtf8Bytes("MANAGER_ROLE"));
 
   before(async () => {
     await ForkHelpers.forkToMainnet(FORK_BLOCK);
@@ -56,29 +58,29 @@ describe("NonUSTStrategy Mainnet fork", () => {
     );
   });
 
-  describe("Use Mainnet ExchangeRateFeeder (USDT)", () => {
+  describe("Use Mainnet aUST / UST Chainlink feed (Underlying: USDT)", () => {
     before(async () => {
-      exchangeRateFeeder = new MockExchangeRateFeeder__factory(owner).attach(
-        config.exchangeRateFeeder
+      mockAUstUstFeed = new MockChainlinkPriceFeed__factory(owner).attach(
+        config.aUstUstFeed
       );
 
       const VaultFactory = await ethers.getContractFactory("Vault");
       vault = await VaultFactory.deploy(
         usdtToken.address,
-        MIN_LOCK_PERIOD,
+        twoWeeks,
         INVEST_PCT,
         owner.address
       );
 
-      const NonUSTStrategyFactory = await ethers.getContractFactory(
-        "NonUSTStrategy"
+      const AnchorNonUSTStrategyFactory = await ethers.getContractFactory(
+        "AnchorNonUSTStrategy"
       );
 
-      strategy = await NonUSTStrategyFactory.deploy(
+      strategy = await AnchorNonUSTStrategyFactory.deploy(
         vault.address,
         TREASURY,
         config.ethAnchorRouter,
-        exchangeRateFeeder.address,
+        config.aUstUstFeed,
         ustToken.address,
         aUstToken.address,
         FEE_PCT,
@@ -87,6 +89,8 @@ describe("NonUSTStrategy Mainnet fork", () => {
         config.usdtI,
         config.ustI
       );
+
+      await strategy.connect(owner).grantRole(MANAGER_ROLE, owner.address);
 
       await strategy.initializeStrategy(config.ustFeed, config.usdtFeed);
 
@@ -111,16 +115,15 @@ describe("NonUSTStrategy Mainnet fork", () => {
             data: "0x",
           },
         ],
-        lockedUntil: 0,
+        lockDuration: twoWeeks,
       });
       expect(await usdtToken.balanceOf(vault.address)).to.be.equal(amount);
-      let exchangeRate = await exchangeRateFeeder.exchangeRateOf(
-        ustToken.address,
-        true
-      );
+      let exchangeRate = (await mockAUstUstFeed.latestRoundData()).answer;
       console.log("ExchangeRate: ", utils.formatEther(exchangeRate));
 
-      await vault.connect(owner).updateInvested();
+      await vault
+        .connect(owner)
+        .updateInvested(getInvestData(BigNumber.from("1000")));
       console.log(
         `Invest: totalUnderlying - ${utils.formatUnits(
           await vault.totalUnderlying(),
@@ -151,10 +154,7 @@ describe("NonUSTStrategy Mainnet fork", () => {
         expectAUstReceive
       );
 
-      exchangeRate = await exchangeRateFeeder.exchangeRateOf(
-        ustToken.address,
-        true
-      );
+      exchangeRate = (await mockAUstUstFeed.latestRoundData()).answer;
       console.log("ExchangeRate: ", utils.formatEther(exchangeRate));
 
       totalUnderlying = await vault.totalUnderlying();
@@ -178,7 +178,7 @@ describe("NonUSTStrategy Mainnet fork", () => {
             data: "0x",
           },
         ],
-        lockedUntil: 0,
+        lockDuration: twoWeeks,
       });
 
       console.log((await vault.totalUnderlying()).toString());
@@ -194,17 +194,11 @@ describe("NonUSTStrategy Mainnet fork", () => {
           6
         )} USDT`
       );
-      exchangeRate = await exchangeRateFeeder.exchangeRateOf(
-        ustToken.address,
-        true
-      );
+      exchangeRate = (await mockAUstUstFeed.latestRoundData()).answer;
       console.log("ExchangeRate: ", utils.formatEther(exchangeRate));
-      await vault.updateInvested();
+      await vault.updateInvested(getInvestData(BigNumber.from("1000")));
 
-      exchangeRate = await exchangeRateFeeder.exchangeRateOf(
-        ustToken.address,
-        true
-      );
+      exchangeRate = (await mockAUstUstFeed.latestRoundData()).answer;
       console.log("ExchangeRate: ", utils.formatEther(exchangeRate));
 
       depositOperations = await strategy.depositOperations(0);
@@ -238,33 +232,58 @@ describe("NonUSTStrategy Mainnet fork", () => {
         )} aUST)`
       );
     });
+
+    it("Revert vault.updateInvested if exchanged rate is lower than minimum exchange rate.", async () => {
+      let amount = utils.parseUnits("10000", 6);
+
+      console.log(`Deposit ${utils.formatUnits(amount, 6)} USDT by alice`);
+      await vault.connect(alice).deposit({
+        amount,
+        claims: [
+          {
+            pct: 10000,
+            beneficiary: alice.address,
+            data: "0x",
+          },
+        ],
+        lockDuration: twoWeeks,
+      });
+      let exchangeRate = (await mockAUstUstFeed.latestRoundData()).answer;
+      console.log("ExchangeRate: ", utils.formatEther(exchangeRate));
+
+      await expect(
+        vault
+          .connect(owner)
+          .updateInvested(getInvestData(utils.parseUnits("1.1", 30)))
+      ).to.revertedWith("Too few coins in result");
+    });
   });
 
-  // Use Mock ExchangeRateFeeder for performance fee and redeem
-  describe("Use Mock ExchangeRateFeeder (USDT)", () => {
+  // Use Mock aUST / UST Chainlink Feed to check performance fee and redeem
+  describe("Use Mock aUST / UST Chainlink feed (Underlying: USDT)", () => {
     before(async () => {
-      const MockExchangeRateFeederFactory = await ethers.getContractFactory(
-        "MockExchangeRateFeeder"
+      const MockChainlinkPriceFeedFactory = await ethers.getContractFactory(
+        "MockChainlinkPriceFeed"
       );
-      exchangeRateFeeder = await MockExchangeRateFeederFactory.deploy();
+      mockAUstUstFeed = await MockChainlinkPriceFeedFactory.deploy(18);
 
       const VaultFactory = await ethers.getContractFactory("Vault");
       vault = await VaultFactory.deploy(
         usdtToken.address,
-        MIN_LOCK_PERIOD,
+        twoWeeks,
         INVEST_PCT,
         owner.address
       );
 
-      const NonUSTStrategyFactory = await ethers.getContractFactory(
-        "NonUSTStrategy"
+      const AnchorNonUSTStrategyFactory = await ethers.getContractFactory(
+        "AnchorNonUSTStrategy"
       );
 
-      strategy = await NonUSTStrategyFactory.deploy(
+      strategy = await AnchorNonUSTStrategyFactory.deploy(
         vault.address,
         TREASURY,
         config.ethAnchorRouter,
-        exchangeRateFeeder.address,
+        mockAUstUstFeed.address,
         ustToken.address,
         aUstToken.address,
         FEE_PCT,
@@ -273,6 +292,8 @@ describe("NonUSTStrategy Mainnet fork", () => {
         config.usdtI,
         config.ustI
       );
+
+      await strategy.connect(owner).grantRole(MANAGER_ROLE, owner.address);
 
       await strategy.initializeStrategy(config.ustFeed, config.usdtFeed);
 
@@ -297,11 +318,11 @@ describe("NonUSTStrategy Mainnet fork", () => {
             data: "0x",
           },
         ],
-        lockedUntil: 0,
+        lockDuration: twoWeeks,
       });
       expect(await usdtToken.balanceOf(vault.address)).to.be.equal(amount);
       let exchangeRate = utils.parseEther("1.17");
-      await exchangeRateFeeder.setExchangeRate(exchangeRate);
+      await mockAUstUstFeed.setAnswer(exchangeRate);
 
       console.log("ExchangeRate: ", utils.formatEther(exchangeRate));
 
@@ -311,7 +332,9 @@ describe("NonUSTStrategy Mainnet fork", () => {
           6
         )} USDT`
       );
-      await vault.connect(owner).updateInvested();
+      await vault
+        .connect(owner)
+        .updateInvested(getInvestData(BigNumber.from("1000")));
       expect(await usdtToken.balanceOf(vault.address)).to.be.equal("0");
       expect(await usdtToken.balanceOf(strategy.address)).to.be.equal("0");
       expect(await strategy.pendingDeposits()).to.be.equal(
@@ -368,7 +391,7 @@ describe("NonUSTStrategy Mainnet fork", () => {
             data: "0x",
           },
         ],
-        lockedUntil: 0,
+        lockDuration: twoWeeks,
       });
 
       expect(await vault.totalUnderlying()).to.be.equal(
@@ -381,7 +404,7 @@ describe("NonUSTStrategy Mainnet fork", () => {
           await vault.totalUnderlying()
         )} UST`
       );
-      await vault.updateInvested();
+      await vault.updateInvested(getInvestData(BigNumber.from("1000")));
 
       depositOperations = await strategy.depositOperations(0);
       let aUstBalance = expectAUstReceive;
@@ -414,10 +437,10 @@ describe("NonUSTStrategy Mainnet fork", () => {
       );
 
       exchangeRate = utils.parseEther("1.3");
-      await exchangeRateFeeder.setExchangeRate(exchangeRate);
+      await mockAUstUstFeed.setAnswer(exchangeRate);
       console.log(
         `Update exchange rate: ${utils.formatEther(
-          await exchangeRateFeeder.exchangeRateOf(ustToken.address, true)
+          (await mockAUstUstFeed.latestRoundData()).answer
         )}`
       );
 
@@ -445,7 +468,7 @@ describe("NonUSTStrategy Mainnet fork", () => {
         expectUstReceive
       );
 
-      await strategy.finishRedeemStable(0);
+      await strategy.finishRedeemStable(0, "100000000");
       let originalDeposit = convertedUst.mul(redeemAmount).div(aUstBalance);
       let profit = expectUstReceive.sub(originalDeposit);
       let fee = profit.mul(FEE_PCT).div(DENOMINATOR);
@@ -462,5 +485,53 @@ describe("NonUSTStrategy Mainnet fork", () => {
         "6392897697"
       );
     });
+
+    it("Revert strategy.finishRedeemStable if received underlying is lower than minAmount", async () => {
+      let amount = utils.parseUnits("9000", 6);
+
+      await vault.connect(alice).deposit({
+        amount,
+        claims: [
+          {
+            pct: 10000,
+            beneficiary: alice.address,
+            data: "0x",
+          },
+        ],
+        lockDuration: twoWeeks,
+      });
+
+      await vault
+        .connect(owner)
+        .updateInvested(getInvestData(BigNumber.from("1000")));
+
+      let depositOperations = await strategy.depositOperations(0);
+      let expectAUstReceive = utils.parseEther("7600");
+      await ForkHelpers.mintToken(
+        aUstToken,
+        depositOperations.operator,
+        expectAUstReceive
+      );
+      await strategy.finishDepositStable(0);
+
+      let redeemAmount = utils.parseEther("5000");
+      await strategy.initRedeemStable(redeemAmount);
+
+      let expectUstReceive = utils.parseEther("6400");
+      let redeemOperations = await strategy.redeemOperations(0);
+      await ForkHelpers.mintToken(
+        ustToken,
+        redeemOperations.operator,
+        expectUstReceive
+      );
+
+      await expect(
+        strategy.finishRedeemStable(0, utils.parseUnits("6500", 6))
+      ).to.revertedWith("Too few coins in result");
+    });
   });
+
+  const getInvestData = (minAmount: BigNumber) => {
+    return utils.defaultAbiCoder.encode(["uint256"], [minAmount]);
+  };
 });

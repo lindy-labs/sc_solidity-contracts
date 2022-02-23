@@ -4,6 +4,7 @@ type Vault @entity {
   totalShares: BigInt!
   foundations: [Foundation!]! @derivedFrom(field: "vault")
   claimers: [Claimer!]! @derivedFrom(field: "vault")
+  treasury: Bytes
 }
 
 type Foundation @entity {
@@ -21,6 +22,7 @@ type Deposit @entity {
   lockedUntil: BigInt!
   shares: BigInt!
   burned: Boolean!
+  data: Bytes!
 }
 
 type Claimer @entity {
@@ -28,9 +30,18 @@ type Claimer @entity {
   owner: Bytes!
   vault: Vault!
   deposits: [Deposit!]! @derivedFrom(field: "claimer")
+  depositsIds: [String!]!
   principal: BigInt!
   shares: BigInt!
   claimed: BigInt!
+}
+
+type Donation @entity {
+  id: ID!
+  txHash: Bytes!
+  amount: BigInt!
+  owner: Bytes!
+  destination: Bytes!
 }
 
 type Sponsor @entity {
