@@ -5,22 +5,22 @@ import { expect } from "chai";
 import { BigNumber, utils, constants } from "ethers";
 import {
   Vault,
-  USTStrategy,
+  AnchorUSTStrategy,
   MockERC20,
   MockChainlinkPriceFeed,
   MockERC20__factory,
   MockChainlinkPriceFeed__factory,
-} from "../../../typechain";
-import { generateNewAddress, ForkHelpers } from "../../shared/";
+} from "../../../../typechain";
+import { generateNewAddress, ForkHelpers } from "../../../shared";
 import config from "./config.json";
 
-describe("USTStrategy Mainnet fork", () => {
+describe("AnchorUSTStrategy Mainnet fork", () => {
   let owner: SignerWithAddress;
   let alice: SignerWithAddress;
   let bob: SignerWithAddress;
 
   let vault: Vault;
-  let strategy: USTStrategy;
+  let strategy: AnchorUSTStrategy;
   let ustToken: MockERC20;
   let aUstToken: MockERC20;
   // MockChainlinkPriceFeed has same interface as Mainnet, so we can use it for test
@@ -66,9 +66,11 @@ describe("USTStrategy Mainnet fork", () => {
         owner.address
       );
 
-      const USTStrategyFactory = await ethers.getContractFactory("USTStrategy");
+      const AnchorUSTStrategyFactory = await ethers.getContractFactory(
+        "AnchorUSTStrategy"
+      );
 
-      strategy = await USTStrategyFactory.deploy(
+      strategy = await AnchorUSTStrategyFactory.deploy(
         vault.address,
         TREASURY,
         config.ethAnchorRouter,
@@ -113,7 +115,7 @@ describe("USTStrategy Mainnet fork", () => {
           await vault.totalUnderlying()
         )} UST`
       );
-      await vault.connect(owner).updateInvested();
+      await vault.connect(owner).updateInvested("0x");
       expect(await ustToken.balanceOf(vault.address)).to.be.equal("0");
       expect(await ustToken.balanceOf(strategy.address)).to.be.equal("0");
       expect(await strategy.pendingDeposits()).to.be.equal(amount);
@@ -169,7 +171,7 @@ describe("USTStrategy Mainnet fork", () => {
       );
       exchangeRate = (await mockAUstUstFeed.latestRoundData()).answer;
       console.log("ExchangeRate: ", utils.formatEther(exchangeRate));
-      await vault.updateInvested();
+      await vault.updateInvested("0x");
 
       exchangeRate = await (await mockAUstUstFeed.latestRoundData()).answer;
       console.log("ExchangeRate: ", utils.formatEther(exchangeRate));
@@ -215,9 +217,11 @@ describe("USTStrategy Mainnet fork", () => {
         owner.address
       );
 
-      const USTStrategyFactory = await ethers.getContractFactory("USTStrategy");
+      const AnchorUSTStrategyFactory = await ethers.getContractFactory(
+        "AnchorUSTStrategy"
+      );
 
-      strategy = await USTStrategyFactory.deploy(
+      strategy = await AnchorUSTStrategyFactory.deploy(
         vault.address,
         TREASURY,
         config.ethAnchorRouter,
@@ -264,7 +268,7 @@ describe("USTStrategy Mainnet fork", () => {
           await vault.totalUnderlying()
         )} UST`
       );
-      await vault.connect(owner).updateInvested();
+      await vault.connect(owner).updateInvested("0x");
       expect(await ustToken.balanceOf(vault.address)).to.be.equal("0");
       expect(await ustToken.balanceOf(strategy.address)).to.be.equal("0");
       expect(await strategy.pendingDeposits()).to.be.equal(amount);
@@ -316,7 +320,7 @@ describe("USTStrategy Mainnet fork", () => {
           await vault.totalUnderlying()
         )} UST`
       );
-      await vault.updateInvested();
+      await vault.updateInvested("0x");
 
       depositOperations = await strategy.depositOperations(0);
       let aUstBalance = expectAUstReceive;

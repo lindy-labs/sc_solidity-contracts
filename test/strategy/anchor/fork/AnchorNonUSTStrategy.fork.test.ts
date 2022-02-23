@@ -5,26 +5,22 @@ import { expect } from "chai";
 import { BigNumber, utils, constants } from "ethers";
 import {
   Vault,
-  NonUSTStrategy,
+  AnchorNonUSTStrategy,
   MockERC20,
   MockChainlinkPriceFeed,
   MockERC20__factory,
   MockChainlinkPriceFeed__factory,
-} from "../../../typechain";
-import {
-  getLastBlockTimestamp,
-  generateNewAddress,
-  ForkHelpers,
-} from "../../shared/";
+} from "../../../../typechain";
+import { generateNewAddress, ForkHelpers } from "../../../shared/";
 import config from "./config.json";
 
-describe("NonUSTStrategy Mainnet fork", () => {
+describe("AnchorNonUSTStrategy Mainnet fork", () => {
   let owner: SignerWithAddress;
   let alice: SignerWithAddress;
   let bob: SignerWithAddress;
 
   let vault: Vault;
-  let strategy: NonUSTStrategy;
+  let strategy: AnchorNonUSTStrategy;
   let ustToken: MockERC20;
   let aUstToken: MockERC20;
   let usdtToken: MockERC20;
@@ -76,11 +72,11 @@ describe("NonUSTStrategy Mainnet fork", () => {
         owner.address
       );
 
-      const NonUSTStrategyFactory = await ethers.getContractFactory(
-        "NonUSTStrategy"
+      const AnchorNonUSTStrategyFactory = await ethers.getContractFactory(
+        "AnchorNonUSTStrategy"
       );
 
-      strategy = await NonUSTStrategyFactory.deploy(
+      strategy = await AnchorNonUSTStrategyFactory.deploy(
         vault.address,
         TREASURY,
         config.ethAnchorRouter,
@@ -125,7 +121,9 @@ describe("NonUSTStrategy Mainnet fork", () => {
       let exchangeRate = (await mockAUstUstFeed.latestRoundData()).answer;
       console.log("ExchangeRate: ", utils.formatEther(exchangeRate));
 
-      await vault.connect(owner).updateInvested();
+      await vault
+        .connect(owner)
+        .updateInvested(getInvestData(BigNumber.from("1000")));
       console.log(
         `Invest: totalUnderlying - ${utils.formatUnits(
           await vault.totalUnderlying(),
@@ -198,7 +196,7 @@ describe("NonUSTStrategy Mainnet fork", () => {
       );
       exchangeRate = (await mockAUstUstFeed.latestRoundData()).answer;
       console.log("ExchangeRate: ", utils.formatEther(exchangeRate));
-      await vault.updateInvested();
+      await vault.updateInvested(getInvestData(BigNumber.from("1000")));
 
       exchangeRate = (await mockAUstUstFeed.latestRoundData()).answer;
       console.log("ExchangeRate: ", utils.formatEther(exchangeRate));
@@ -234,6 +232,31 @@ describe("NonUSTStrategy Mainnet fork", () => {
         )} aUST)`
       );
     });
+
+    it("Revert vault.updateInvested if exchanged rate is lower than minimum exchange rate.", async () => {
+      let amount = utils.parseUnits("10000", 6);
+
+      console.log(`Deposit ${utils.formatUnits(amount, 6)} USDT by alice`);
+      await vault.connect(alice).deposit({
+        amount,
+        claims: [
+          {
+            pct: 10000,
+            beneficiary: alice.address,
+            data: "0x",
+          },
+        ],
+        lockDuration: twoWeeks,
+      });
+      let exchangeRate = (await mockAUstUstFeed.latestRoundData()).answer;
+      console.log("ExchangeRate: ", utils.formatEther(exchangeRate));
+
+      await expect(
+        vault
+          .connect(owner)
+          .updateInvested(getInvestData(utils.parseUnits("1.1", 30)))
+      ).to.revertedWith("Too few coins in result");
+    });
   });
 
   // Use Mock aUST / UST Chainlink Feed to check performance fee and redeem
@@ -252,11 +275,11 @@ describe("NonUSTStrategy Mainnet fork", () => {
         owner.address
       );
 
-      const NonUSTStrategyFactory = await ethers.getContractFactory(
-        "NonUSTStrategy"
+      const AnchorNonUSTStrategyFactory = await ethers.getContractFactory(
+        "AnchorNonUSTStrategy"
       );
 
-      strategy = await NonUSTStrategyFactory.deploy(
+      strategy = await AnchorNonUSTStrategyFactory.deploy(
         vault.address,
         TREASURY,
         config.ethAnchorRouter,
@@ -309,7 +332,9 @@ describe("NonUSTStrategy Mainnet fork", () => {
           6
         )} USDT`
       );
-      await vault.connect(owner).updateInvested();
+      await vault
+        .connect(owner)
+        .updateInvested(getInvestData(BigNumber.from("1000")));
       expect(await usdtToken.balanceOf(vault.address)).to.be.equal("0");
       expect(await usdtToken.balanceOf(strategy.address)).to.be.equal("0");
       expect(await strategy.pendingDeposits()).to.be.equal(
@@ -379,7 +404,7 @@ describe("NonUSTStrategy Mainnet fork", () => {
           await vault.totalUnderlying()
         )} UST`
       );
-      await vault.updateInvested();
+      await vault.updateInvested(getInvestData(BigNumber.from("1000")));
 
       depositOperations = await strategy.depositOperations(0);
       let aUstBalance = expectAUstReceive;
@@ -443,7 +468,7 @@ describe("NonUSTStrategy Mainnet fork", () => {
         expectUstReceive
       );
 
-      await strategy.finishRedeemStable(0);
+      await strategy.finishRedeemStable(0, "100000000");
       let originalDeposit = convertedUst.mul(redeemAmount).div(aUstBalance);
       let profit = expectUstReceive.sub(originalDeposit);
       let fee = profit.mul(FEE_PCT).div(DENOMINATOR);
@@ -460,5 +485,53 @@ describe("NonUSTStrategy Mainnet fork", () => {
         "6392897697"
       );
     });
+
+    it("Revert strategy.finishRedeemStable if received underlying is lower than minAmount", async () => {
+      let amount = utils.parseUnits("9000", 6);
+
+      await vault.connect(alice).deposit({
+        amount,
+        claims: [
+          {
+            pct: 10000,
+            beneficiary: alice.address,
+            data: "0x",
+          },
+        ],
+        lockDuration: twoWeeks,
+      });
+
+      await vault
+        .connect(owner)
+        .updateInvested(getInvestData(BigNumber.from("1000")));
+
+      let depositOperations = await strategy.depositOperations(0);
+      let expectAUstReceive = utils.parseEther("7600");
+      await ForkHelpers.mintToken(
+        aUstToken,
+        depositOperations.operator,
+        expectAUstReceive
+      );
+      await strategy.finishDepositStable(0);
+
+      let redeemAmount = utils.parseEther("5000");
+      await strategy.initRedeemStable(redeemAmount);
+
+      let expectUstReceive = utils.parseEther("6400");
+      let redeemOperations = await strategy.redeemOperations(0);
+      await ForkHelpers.mintToken(
+        ustToken,
+        redeemOperations.operator,
+        expectUstReceive
+      );
+
+      await expect(
+        strategy.finishRedeemStable(0, utils.parseUnits("6500", 6))
+      ).to.revertedWith("Too few coins in result");
+    });
   });
+
+  const getInvestData = (minAmount: BigNumber) => {
+    return utils.defaultAbiCoder.encode(["uint256"], [minAmount]);
+  };
 });

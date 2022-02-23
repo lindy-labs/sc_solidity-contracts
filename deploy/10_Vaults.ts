@@ -1,36 +1,21 @@
 import type { HardhatRuntimeEnvironment } from "hardhat/types";
 import type { DeployFunction } from "hardhat-deploy/types";
 
-import { ethers } from "hardhat";
-
-import { deployViaFactory, logContract } from "../scripts/deployHelpers";
+import { getCurrentNetworkConfig } from "../scripts/deployConfigs";
 
 const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   const { get } = env.deployments;
 
+  const ust = await get("UST");
   const usdc = await get("USDC");
   const dai = await get("DAI");
 
-  const minLockPeriod = env.network.live ? 60 * 60 * 24 * 30 : 1;
+  const { minLockPeriod } = getCurrentNetworkConfig();
   const investPerc = 10000;
-  const { deployer } = await env.getNamedAccounts();
 
-  await deployVault(
-    env,
-    "Vault_USDC",
-    usdc.address,
-    minLockPeriod,
-    investPerc,
-    deployer
-  );
-  await deployVault(
-    env,
-    "Vault_DAI",
-    dai.address,
-    minLockPeriod,
-    investPerc,
-    deployer
-  );
+  await deployVault(env, "Vault_USDC", usdc.address, minLockPeriod, investPerc);
+  await deployVault(env, "Vault_DAI", dai.address, minLockPeriod, investPerc);
+  await deployVault(env, "Vault_UST", ust.address, minLockPeriod, investPerc);
 };
 
 async function deployVault(
@@ -38,31 +23,19 @@ async function deployVault(
   name: string,
   underlyingAddr: string,
   minLockPeriod: number,
-  investPerc: number,
-  owner: string
+  investPerc: number
 ) {
-  const { read, getOrNull } = env.deployments;
+  const { deployer } = await env.getNamedAccounts();
+  const { deploy } = env.deployments;
 
-  if (await getOrNull(name)) {
-    console.log(`Skipping deploy of ${name}`);
-    return;
-  }
+  const investPct = 9000; // 90%
 
-  const Vault = await ethers.getContractFactory("Vault");
-
-  const { address } = await deployViaFactory(env, "deployVault", name, Vault, [
-    underlyingAddr,
-    minLockPeriod,
-    investPerc,
-    owner,
-  ]);
-
-  const claimers = await read(name, "claimers");
-  const depositors = await read(name, "depositors");
-
-  logContract(name, address);
-  logContract(`${name}_Claimers`, claimers);
-  logContract(`${name}_Depositors`, depositors);
+  await deploy(name, {
+    contract: "Vault",
+    from: deployer,
+    log: true,
+    args: [underlyingAddr, minLockPeriod, investPct, deployer],
+  });
 }
 
 func.id = "deploy_vaults";

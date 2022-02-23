@@ -4,9 +4,9 @@ pragma solidity =0.8.10;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
-import {BaseStrategy} from "../strategy/BaseStrategy.sol";
+import {AnchorBaseStrategy} from "../strategy/anchor/AnchorBaseStrategy.sol";
 
-contract MockStrategy is BaseStrategy {
+contract MockStrategy is AnchorBaseStrategy {
     constructor(
         address _vault,
         address _treasury,
@@ -16,7 +16,7 @@ contract MockStrategy is BaseStrategy {
         IERC20 _aUstToken,
         uint16 _perfFeePct
     )
-        BaseStrategy(
+        AnchorBaseStrategy(
             _vault,
             _treasury,
             _ethAnchorRouter,
@@ -28,7 +28,11 @@ contract MockStrategy is BaseStrategy {
         )
     {}
 
-    function doHardWork() external override(BaseStrategy) onlyManager {}
+    function invest(bytes calldata)
+        external
+        override(AnchorBaseStrategy)
+        onlyManager
+    {}
 
     function finishRedeemStable(uint256 idx) external {
         _finishRedeemStable(idx);

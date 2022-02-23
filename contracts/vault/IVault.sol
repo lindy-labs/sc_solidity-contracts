@@ -58,8 +58,10 @@ interface IVault {
 
     /**
      * Update the invested amount;
+     *
+     * @param data exteranl data to invest underlying
      */
-    function updateInvested() external;
+    function updateInvested(bytes calldata data) external;
 
     /**
      * Calculates underlying investable amount.

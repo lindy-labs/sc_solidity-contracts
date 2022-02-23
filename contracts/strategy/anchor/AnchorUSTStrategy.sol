@@ -4,19 +4,22 @@ pragma solidity =0.8.10;
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
-import "./BaseStrategy.sol";
-import "../lib/PercentMath.sol";
+
+import {AnchorBaseStrategy} from "./AnchorBaseStrategy.sol";
+import {PercentMath} from "../../lib/PercentMath.sol";
 
 /**
- * A strategy that uses UST as the underlying currency
- *
- * @notice The base implementation for EthAnchorUSTBaseStrategy already handles
- * everything, since in this case _underlying and _ustToken are the same token
+ * An Eth Anchor strategy that uses UST as the underlying currency
  */
-contract USTStrategy is BaseStrategy {
+contract AnchorUSTStrategy is AnchorBaseStrategy {
     using SafeERC20 for IERC20;
     using PercentMath for uint256;
 
+    /**
+     * Constructor of UST Strategy
+     *
+     * @notice The underlying token must be UST token.
+     */
     constructor(
         address _vault,
         address _treasury,
@@ -27,7 +30,7 @@ contract USTStrategy is BaseStrategy {
         uint16 _perfFeePct,
         address _owner
     )
-        BaseStrategy(
+        AnchorBaseStrategy(
             _vault,
             _treasury,
             _ethAnchorRouter,
@@ -38,7 +41,10 @@ contract USTStrategy is BaseStrategy {
             _owner
         )
     {
-        require(underlying == _ustToken, "invalid underlying");
+        require(
+            underlying == _ustToken,
+            "AnchorUSTStrategy: invalid underlying"
+        );
     }
 
     /**
@@ -46,9 +52,18 @@ contract USTStrategy is BaseStrategy {
      *
      * @notice since EthAnchor uses an asynchronous model, this function
      * only starts the deposit process, but does not finish it.
+     *
+     * @dev external data is not required
      */
-    function doHardWork() external override onlyManager {
-        _initDepositStable();
+    function invest(bytes calldata) external override onlyManager {
+        (address operator, uint256 ustAmount) = _initDepositStable();
+
+        emit InitDepositStable(
+            operator,
+            depositOperations.length - 1,
+            ustAmount,
+            ustAmount
+        );
     }
 
     /**
@@ -60,15 +75,22 @@ contract USTStrategy is BaseStrategy {
      * @param idx Id of the pending redeem operation
      */
     function finishRedeemStable(uint256 idx) external onlyManager {
-        uint256 amount = _finishRedeemStable(idx);
-        ustToken.safeTransfer(vault, amount);
+        (
+            address operator,
+            uint256 aUstAmount,
+            uint256 ustAmount
+        ) = _finishRedeemStable(idx);
+        emit FinishRedeemStable(operator, aUstAmount, ustAmount, ustAmount);
+
+        underlying.safeTransfer(vault, _getUnderlyingBalance());
     }
 
     /**
      * Amount, expressed in the underlying currency, currently in the strategy
      *
      * @notice both held and invested amounts are included here, using the
-     * latest known exchange rates to the underlying currency
+     * latest known exchange rates to the underlying currency.
+     * This will return value without performance fee.
      *
      * @return The total amount of underlying
      */

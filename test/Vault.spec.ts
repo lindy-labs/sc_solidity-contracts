@@ -1,18 +1,17 @@
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { time } from "@openzeppelin/test-helpers";
 import { Contract } from "ethers";
+import { ethers } from "hardhat";
+import { expect } from "chai";
 
 import type {
   Vault,
   TestERC20,
   Depositors,
   Claimers,
-  USTStrategy,
+  AnchorUSTStrategy,
 } from "../typechain";
 import { Claimers__factory, Depositors__factory } from "../typechain";
-
-import { ethers } from "hardhat";
-import { expect } from "chai";
 
 import { depositParams, claimParams } from "./shared/factories";
 import {
@@ -40,7 +39,7 @@ describe("Vault", () => {
   let vault: Vault;
   let depositors: Depositors;
   let claimers: Claimers;
-  let strategy: USTStrategy;
+  let strategy: AnchorUSTStrategy;
   const treasury = generateNewAddress();
 
   // @openzeppelin/test-helpers actually does not use the same BigNumber lib,
@@ -77,7 +76,7 @@ describe("Vault", () => {
       owner.address
     )) as Vault;
 
-    strategy = (await MockStrategy.deploy(
+    strategy = await MockStrategy.deploy(
       vault.address,
       treasury,
       mockEthAnchorRouter.address,
@@ -85,7 +84,7 @@ describe("Vault", () => {
       underlying.address,
       aUstToken.address,
       BigNumber.from("200")
-    )) as USTStrategy;
+    );
 
     depositors = Depositors__factory.connect(await vault.depositors(), owner);
     claimers = Claimers__factory.connect(await vault.claimers(), owner);
@@ -181,7 +180,7 @@ describe("Vault", () => {
       await vault.connect(owner).setInvestPerc("8000");
       await addYieldToVault("100");
 
-      await vault.connect(owner).updateInvested();
+      await vault.connect(owner).updateInvested("0x");
 
       expect(await underlying.balanceOf(strategy.address)).to.eq(
         parseUnits("80")
