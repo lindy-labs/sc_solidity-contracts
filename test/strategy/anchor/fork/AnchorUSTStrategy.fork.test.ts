@@ -115,7 +115,7 @@ describe("AnchorUSTStrategy Mainnet fork", () => {
           await vault.totalUnderlying()
         )} UST`
       );
-      await vault.connect(owner).updateInvested();
+      await vault.connect(owner).updateInvested("0x");
       expect(await ustToken.balanceOf(vault.address)).to.be.equal("0");
       expect(await ustToken.balanceOf(strategy.address)).to.be.equal("0");
       expect(await strategy.pendingDeposits()).to.be.equal(amount);
@@ -171,7 +171,7 @@ describe("AnchorUSTStrategy Mainnet fork", () => {
       );
       exchangeRate = (await mockAUstUstFeed.latestRoundData()).answer;
       console.log("ExchangeRate: ", utils.formatEther(exchangeRate));
-      await vault.updateInvested();
+      await vault.updateInvested("0x");
 
       exchangeRate = await (await mockAUstUstFeed.latestRoundData()).answer;
       console.log("ExchangeRate: ", utils.formatEther(exchangeRate));
@@ -268,7 +268,7 @@ describe("AnchorUSTStrategy Mainnet fork", () => {
           await vault.totalUnderlying()
         )} UST`
       );
-      await vault.connect(owner).updateInvested();
+      await vault.connect(owner).updateInvested("0x");
       expect(await ustToken.balanceOf(vault.address)).to.be.equal("0");
       expect(await ustToken.balanceOf(strategy.address)).to.be.equal("0");
       expect(await strategy.pendingDeposits()).to.be.equal(amount);
@@ -320,7 +320,7 @@ describe("AnchorUSTStrategy Mainnet fork", () => {
           await vault.totalUnderlying()
         )} UST`
       );
-      await vault.updateInvested();
+      await vault.updateInvested("0x");
 
       depositOperations = await strategy.depositOperations(0);
       let aUstBalance = expectAUstReceive;

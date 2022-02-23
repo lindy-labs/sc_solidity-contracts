@@ -133,10 +133,17 @@ contract AnchorNonUSTStrategy is AnchorBaseStrategy {
      *
      * @notice since EthAnchor uses an asynchronous model, this function
      * only starts the deposit process, but does not finish it.
+     *
+     * @param data slippage information
      */
-    function invest() external override(AnchorBaseStrategy) onlyManager {
+    function invest(bytes calldata data)
+        external
+        override(AnchorBaseStrategy)
+        onlyManager
+    {
         require(initialized, "AnchorNonUSTStrategy: not initialized");
-        uint256 underlyingAmount = _swapUnderlyingToUst();
+        uint256 minExchangeRate = abi.decode(data, (uint256));
+        uint256 underlyingAmount = _swapUnderlyingToUst(minExchangeRate);
 
         (address operator, uint256 ustAmount) = _initDepositStable();
 
@@ -151,18 +158,32 @@ contract AnchorNonUSTStrategy is AnchorBaseStrategy {
     /**
      * Calls Curve to convert the existing underlying balance into UST
      *
+     * @param minExchangeRate minimum exchange rate of Underlying/UST.
      * @return swapped underlying amount
      */
-    function _swapUnderlyingToUst() internal virtual returns (uint256) {
+    function _swapUnderlyingToUst(uint256 minExchangeRate)
+        internal
+        virtual
+        returns (uint256)
+    {
+        require(
+            minExchangeRate != 0,
+            "AnchorNonUSTStrategy: minExchangeRate is zero"
+        );
         uint256 underlyingBalance = _getUnderlyingBalance();
         require(
-            underlyingBalance > 0,
+            underlyingBalance != 0,
             "AnchorNonUSTStrategy: no underlying exist"
         );
 
         underlying.safeIncreaseAllowance(address(curvePool), underlyingBalance);
         // slither-disable-next-line unused-return
-        curvePool.exchange_underlying(underlyingI, ustI, underlyingBalance, 0);
+        curvePool.exchange_underlying(
+            underlyingI,
+            ustI,
+            underlyingBalance,
+            (underlyingBalance * minExchangeRate) / 1e18
+        );
 
         return underlyingBalance;
     }
@@ -170,18 +191,15 @@ contract AnchorNonUSTStrategy is AnchorBaseStrategy {
     /**
      * Calls Curve to convert the existing UST back into the underlying token
      *
-     * @return swapped underlying amount
+     * @param minAmount minimum underlying amount to receive.
      */
-    function _swapUstToUnderlying() internal virtual returns (uint256) {
+    function _swapUstToUnderlying(uint256 minAmount) internal virtual {
+        require(minAmount != 0, "AnchorNonUSTStrategy: minAmount is zero");
         uint256 ustBalance = _getUstBalance();
-        if (ustBalance > 0) {
-            ustToken.safeIncreaseAllowance(address(curvePool), ustBalance);
-            // slither-disable-next-line unused-return
-            return
-                curvePool.exchange_underlying(ustI, underlyingI, ustBalance, 0);
-        }
-
-        return 0;
+        require(ustBalance != 0, "AnchorNonUSTStrategy: no UST exist");
+        ustToken.safeIncreaseAllowance(address(curvePool), ustBalance);
+        // slither-disable-next-line unused-return
+        curvePool.exchange_underlying(ustI, underlyingI, ustBalance, minAmount);
     }
 
     /**
@@ -193,15 +211,19 @@ contract AnchorNonUSTStrategy is AnchorBaseStrategy {
      * the EthAnchor bridge has finished processing the deposit.
      *
      * @param idx Id of the pending redeem operation
+     * @param minUnderlyingAmount minimum underlying amount to get.
      */
-    function finishRedeemStable(uint256 idx) external onlyManager {
+    function finishRedeemStable(uint256 idx, uint256 minUnderlyingAmount)
+        external
+        onlyManager
+    {
         (
             address operator,
             uint256 aUstAmount,
             uint256 ustAmount
         ) = _finishRedeemStable(idx);
 
-        _swapUstToUnderlying();
+        _swapUstToUnderlying(minUnderlyingAmount);
         uint256 underlyingAmount = _getUnderlyingBalance();
         underlying.safeTransfer(vault, underlyingAmount);
 

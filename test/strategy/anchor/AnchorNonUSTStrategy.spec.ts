@@ -232,25 +232,39 @@ describe("AnchorNonUSTStrategy", () => {
 
   describe("#invest function", () => {
     it("Revert if not initialized", async () => {
-      await expect(strategy.connect(manager).invest()).to.be.revertedWith(
-        "AnchorNonUSTStrategy: not initialized"
-      );
+      await expect(
+        strategy
+          .connect(manager)
+          .invest(getInvestData(utils.parseEther("1000000000000")))
+      ).to.be.revertedWith("AnchorNonUSTStrategy: not initialized");
     });
 
     it("Revert if msg.sender is not manager", async () => {
       await initializeStrategy();
 
-      await expect(strategy.connect(alice).invest()).to.be.revertedWith(
-        "BaseStrategy: caller is not manager"
-      );
+      await expect(
+        strategy
+          .connect(alice)
+          .invest(getInvestData(utils.parseEther("1000000000000")))
+      ).to.be.revertedWith("BaseStrategy: caller is not manager");
+    });
+
+    it("Revert if data.minExchangeRate is zero", async () => {
+      await initializeStrategy();
+
+      await expect(
+        strategy.connect(manager).invest(getInvestData(BigNumber.from("0")))
+      ).to.be.revertedWith("AnchorNonUSTStrategy: minExchangeRate is zero");
     });
 
     it("Revert if underlying balance is 0", async () => {
       await initializeStrategy();
 
-      await expect(strategy.connect(manager).invest()).to.be.revertedWith(
-        "AnchorNonUSTStrategy: no underlying exist"
-      );
+      await expect(
+        strategy
+          .connect(manager)
+          .invest(getInvestData(utils.parseEther("1000000000000")))
+      ).to.be.revertedWith("AnchorNonUSTStrategy: no underlying exist");
     });
 
     it("Should swap underlying to UST and init deposit all UST", async () => {
@@ -267,7 +281,9 @@ describe("AnchorNonUSTStrategy", () => {
         .mul(CURVE_DECIMALS)
         .div(UNDERLYING_TO_UST_RATE);
 
-      const tx = await vault.updateInvested();
+      const tx = await vault.updateInvested(
+        getInvestData(utils.parseEther("1000000000000"))
+      );
 
       expect(await underlying.balanceOf(strategy.address)).equal(0);
       expect(await strategy.convertedUst()).equal(0);
@@ -315,7 +331,9 @@ describe("AnchorNonUSTStrategy", () => {
 
       aUstAmount0 = utils.parseUnits("80", 18);
 
-      await vault.connect(owner).updateInvested();
+      await vault
+        .connect(owner)
+        .updateInvested(getInvestData(utils.parseEther("1000000000000")));
 
       await notifyDepositReturnAmount(operator0, aUstAmount0);
       await strategy.connect(manager).finishDepositStable(0);
@@ -328,14 +346,26 @@ describe("AnchorNonUSTStrategy", () => {
 
     it("Revert if msg.sender is not manager", async () => {
       await expect(
-        strategy.connect(alice).finishRedeemStable(0)
+        strategy.connect(alice).finishRedeemStable(0, 100)
       ).to.be.revertedWith("BaseStrategy: caller is not manager");
     });
 
     it("Revert if idx is out of array", async () => {
       await expect(
-        strategy.connect(manager).finishRedeemStable(1)
+        strategy.connect(manager).finishRedeemStable(1, 100)
       ).to.be.revertedWith("BaseStrategy: not running");
+    });
+
+    it("Revert if minUnderlyingAmount is zero", async () => {
+      let aUstRate = utils.parseEther("1.1");
+      await setAUstRate(aUstRate);
+
+      let redeemedUSTAmount0 = utils.parseUnits("55", 18);
+      await notifyRedeemReturnAmount(operator0, redeemedUSTAmount0);
+
+      await expect(
+        strategy.connect(manager).finishRedeemStable(0, 0)
+      ).to.be.revertedWith("AnchorNonUSTStrategy: minAmount is zero");
     });
 
     it("Should finish redeem operation and swap UST to underlying", async () => {
@@ -348,7 +378,7 @@ describe("AnchorNonUSTStrategy", () => {
         .mul(CURVE_DECIMALS)
         .div(UST_TO_UNDERLYING_RATE);
 
-      const tx = await strategy.connect(manager).finishRedeemStable(0);
+      const tx = await strategy.connect(manager).finishRedeemStable(0, 100);
 
       expect(await aUstToken.balanceOf(strategy.address)).equal(
         aUstAmount0.sub(redeemAmount0)
@@ -530,7 +560,9 @@ describe("AnchorNonUSTStrategy", () => {
         .mul(CURVE_DECIMALS)
         .div(UNDERLYING_TO_UST_RATE);
 
-      await vault.connect(owner).updateInvested();
+      await vault
+        .connect(owner)
+        .updateInvested(getInvestData(utils.parseEther("1000000000000")));
 
       let remainingInVault = underlyingAmount.sub(investAmount);
 
@@ -586,5 +618,9 @@ describe("AnchorNonUSTStrategy", () => {
 
   const setAUstRate = async (rate: BigNumber) => {
     await mockAUstUstFeed.setLatestRoundData(1, rate, 1000, 1000, 1);
+  };
+
+  const getInvestData = (minAmount: BigNumber) => {
+    return utils.defaultAbiCoder.encode(["uint256"], [minAmount]);
   };
 });

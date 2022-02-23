@@ -291,7 +291,7 @@ contract Vault is
     }
 
     /// See {IVault}
-    function updateInvested() external requiresTrust {
+    function updateInvested(bytes calldata data) external requiresTrust {
         require(address(strategy) != address(0), "Vault: strategy is not set");
 
         uint256 _investable = investableAmount();
@@ -302,7 +302,7 @@ contract Vault is
             emit Invested(_investable);
         }
 
-        strategy.invest();
+        strategy.invest(data);
     }
 
     //
