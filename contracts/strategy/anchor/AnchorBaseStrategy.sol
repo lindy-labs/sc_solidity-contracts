@@ -65,6 +65,11 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
     // aUST token address (wrapped Anchor UST, received to accrue interest for an Anchor deposit)
     IERC20 public aUstToken;
 
+    // internal tracker of aUST balance.
+    // We keep an internal balance in order to avoid griefing attacks
+    // https://github.com/code-423n4/2022-01-sandclock-findings/issues/91
+    uint256 public aUstBalance;
+
     // performance fee taken by the treasury on profits
     uint16 public perfFeePct;
 
@@ -216,17 +221,18 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
         );
         Operation storage operation = depositOperations[idx];
         address operator = operation.operator;
-        uint256 aUstBalanceBefore = _getAUstBalance();
+        uint256 aUstRawBalanceBefore = _getAUstRawBalance();
 
         ethAnchorRouter.finishDepositStable(operator);
-        uint256 newAUst = _getAUstBalance() - aUstBalanceBefore;
-        require(newAUst > 0, "AnchorBaseStrategy: no aUST returned");
+        uint256 newAUstRaw = _getAUstRawBalance() - aUstRawBalanceBefore;
+        require(newAUstRaw > 0, "AnchorBaseStrategy: no aUST returned");
 
         uint256 ustAmount = operation.amount;
         pendingDeposits -= ustAmount;
         convertedUst += ustAmount;
+        aUstBalance += newAUstRaw;
 
-        emit FinishDepositStable(operator, ustAmount, newAUst);
+        emit FinishDepositStable(operator, ustAmount, newAUstRaw);
 
         if (idx < depositOperations.length - 1) {
             Operation memory lastOperation = depositOperations[
@@ -251,6 +257,7 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
         require(amount != 0, "AnchorBaseStrategy: amount 0");
         pendingRedeems += amount;
 
+        aUstBalance -= amount;
         aUstToken.safeIncreaseAllowance(address(ethAnchorRouter), amount);
         address operator = ethAnchorRouter.initRedeemStable(amount);
 
@@ -265,7 +272,6 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
      * @notice since EthAnchor uses an asynchronous model, we can only request withdrawal for whole aUST
      */
     function withdrawAllToVault() external override(IStrategy) onlyManager {
-        uint256 aUstBalance = _getAUstBalance();
         if (aUstBalance != 0) {
             initRedeemStable(aUstBalance);
         }
@@ -353,7 +359,7 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
             "AnchorBaseStrategy: not running"
         );
         Operation storage operation = redeemOperations[idx];
-        uint256 aUstBalance = _getAUstBalance() + pendingRedeems;
+        uint256 aUstBalance = aUstBalance + pendingRedeems;
 
         uint256 operationAmount = operation.amount;
         address operator = operation.operator;
@@ -403,7 +409,7 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
     /**
      * @return aUST balance of strategy
      */
-    function _getAUstBalance() internal view returns (uint256) {
+    function _getAUstRawBalance() internal view returns (uint256) {
         return aUstToken.balanceOf(address(this));
     }
 
@@ -452,7 +458,7 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
             return 0;
         }
 
-        uint256 aUstBalance = _getAUstBalance() + pendingRedeems;
+        uint256 aUstBalance = aUstBalance + pendingRedeems;
 
         return
             _performanceUstFeeWithInfo(aUstBalance, _aUstToUstExchangeRate());
@@ -466,7 +472,7 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
         view
         returns (uint256)
     {
-        uint256 aUstBalance = _getAUstBalance() + pendingRedeems;
+        uint256 aUstBalance = aUstBalance + pendingRedeems;
 
         if (aUstBalance == 0) {
             return 0;
