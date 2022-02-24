@@ -4,8 +4,6 @@ import { parseUnits } from "@ethersproject/units";
 import { BigNumber } from "ethers";
 import { run, ethers } from "hardhat";
 
-import { deployViaFactory, logContract } from "../scripts/deployHelpers";
-
 const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   const { get } = env.deployments;
 
@@ -13,10 +11,8 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
 
   console.table([alice, bob, treasury]);
 
-  const underlying = await ethers.getContractAt(
-    "MockERC20",
-    "0x91b72467CFB9Bb79697AD58DBfcbd7dA8E4B65DA"
-  );
+  const ust = await get("USDC");
+  const underlying = await ethers.getContractAt("MockERC20", ust.address);
 
   const vaultAddress = (await get("Vault_USDC")).address;
   const vault = await ethers.getContractAt("Vault", vaultAddress);
