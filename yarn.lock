@@ -751,11 +751,6 @@
   dependencies:
     squirrelly "^8.0.8"
 
-"@rari-capital/solmate@^5.9.0":
-  version "5.9.0"
-  resolved "https://registry.npmjs.org/@rari-capital/solmate/-/solmate-5.9.0.tgz"
-  integrity sha512-Rf01eoR5i+8RMvavatNu8hdxDvzIOxpb3lAhjqGX2STvVB0a99V4GXVPMqoUomucuy0umZ39ORssPIgXTNHJdA==
-
 "@resolver-engine/core@^0.3.3":
   version "0.3.3"
   resolved "https://registry.npmjs.org/@resolver-engine/core/-/core-0.3.3.tgz"
