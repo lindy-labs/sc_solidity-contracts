@@ -22,22 +22,18 @@ contract AnchorUSTStrategy is AnchorBaseStrategy {
      */
     constructor(
         address _vault,
-        address _treasury,
         address _ethAnchorRouter,
         AggregatorV3Interface _aUstToUstFeed,
         IERC20 _ustToken,
         IERC20 _aUstToken,
-        uint16 _perfFeePct,
         address _owner
     )
         AnchorBaseStrategy(
             _vault,
-            _treasury,
             _ethAnchorRouter,
             _aUstToUstFeed,
             _ustToken,
             _aUstToken,
-            _perfFeePct,
             _owner
         )
     {

@@ -46,6 +46,7 @@ contract Vault is
     //
 
     bytes32 public constant INVESTOR_ROLE = keccak256("INVESTOR_ROLE");
+    bytes32 public constant HARVESTOR_ROLE = keccak256("HARVESTOR_ROLE");
     uint256 public constant MIN_SPONSOR_LOCK_DURATION = 2 weeks;
     uint256 public constant MAX_SPONSOR_LOCK_DURATION = 24 weeks;
     uint256 public constant MAX_DEPOSIT_LOCK_DURATION = 24 weeks;
@@ -108,6 +109,20 @@ contract Vault is
     // The total of principal deposited
     uint256 public totalPrincipal;
 
+    address public treasury;
+    uint16 public perfFeePct;
+    uint256 public totalDebt;
+    uint256 public perfFee;
+
+    modifier updateDebt() {
+        uint256 _totalUnderlying = totalUnderlying();
+        if (totalDebt < _totalUnderlying) {
+            perfFee += (_totalUnderlying - totalDebt).percOf(perfFeePct);
+            totalDebt = _totalUnderlying;
+        }
+        _;
+    }
+
     /**
      * @param _underlying Underlying ERC20 token to use.
      */
@@ -115,6 +130,7 @@ contract Vault is
         IERC20 _underlying,
         uint256 _minLockPeriod,
         uint256 _investPerc,
+        address _treasury,
         address _owner
     ) {
         require(
@@ -125,13 +141,19 @@ contract Vault is
             address(_underlying) != address(0x0),
             "VaultContext: underlying cannot be 0x0"
         );
+        require(
+            address(_treasury) != address(0x0),
+            "VaultContext: treasury cannot be 0x0"
+        );
         require(_minLockPeriod > 0, "minLockPeriod cannot be 0");
 
         _setupRole(DEFAULT_ADMIN_ROLE, _owner);
         _setupRole(INVESTOR_ROLE, _owner);
+        _setupRole(HARVESTOR_ROLE, _owner);
 
         investPerc = _investPerc;
         underlying = _underlying;
+        treasury = _treasury;
         minLockPeriod = _minLockPeriod;
 
         depositors = new Depositors(this);
@@ -146,6 +168,11 @@ contract Vault is
         override(IVault)
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
+        require(
+            address(_treasury) != address(0x0),
+            "VaultContext: treasury cannot be 0x0"
+        );
+        treasury = _treasury;
         emit TreasuryUpdated(_treasury);
     }
 
@@ -181,6 +208,24 @@ contract Vault is
     }
 
     /// See {IVault}
+    function totalUnderlyingMinusPerfFee()
+        public
+        view
+        override(IVault)
+        returns (uint256)
+    {
+        uint256 _totalUnderlying = totalUnderlying();
+        if (totalDebt < _totalUnderlying) {
+            uint256 _newPerfFee = (_totalUnderlying - totalDebt).percOf(
+                perfFeePct
+            );
+            return _totalUnderlying - perfFee - _newPerfFee;
+        } else {
+            return _totalUnderlying - perfFee;
+        }
+    }
+
+    /// See {IVault}
     function yieldFor(address _to)
         public
         view
@@ -205,7 +250,11 @@ contract Vault is
     }
 
     /// See {IVault}
-    function deposit(DepositParams calldata _params) external nonReentrant {
+    function deposit(DepositParams calldata _params)
+        external
+        updateDebt
+        nonReentrant
+    {
         uint256 principalMinusStrategyFee = _applyInvestmentFee(totalPrincipal);
         require(_params.amount != 0, "Vault: cannot deposit 0");
         require(
@@ -221,11 +270,18 @@ contract Vault is
         uint256 lockedUntil = _params.lockDuration + block.timestamp;
 
         _createDeposit(_params.amount, lockedUntil, _params.claims);
+
+        totalDebt += _params.amount;
         _transferAndCheckUnderlying(_msgSender(), _params.amount);
     }
 
     /// See {IVault}
-    function claimYield(address _to) external override(IVault) nonReentrant {
+    function claimYield(address _to)
+        external
+        override(IVault)
+        updateDebt
+        nonReentrant
+    {
         require(_to != address(0), "Vault: destination address is 0x");
 
         uint256 yield = yieldFor(_msgSender());
@@ -245,6 +301,7 @@ contract Vault is
 
         uint256 claimerId = claimers.tokenOf(_msgSender());
 
+        totalDebt -= sharesAmount;
         underlying.safeTransfer(_to, sharesAmount);
 
         claimer[claimerId].totalShares -= shares;
@@ -327,6 +384,7 @@ contract Vault is
     function sponsor(uint256 _amount, uint256 _lockDuration)
         external
         override(IVaultSponsoring)
+        updateDebt
         nonReentrant
     {
         require(_amount != 0, "Vault: cannot sponsor 0");
@@ -345,6 +403,7 @@ contract Vault is
         emit Sponsored(tokenId, _amount, _msgSender(), lockedUntil);
 
         totalSponsored += _amount;
+        totalDebt += _amount;
         _transferAndCheckUnderlying(_msgSender(), _amount);
     }
 
@@ -356,6 +415,12 @@ contract Vault is
         require(_to != address(0), "Vault: destination address is 0x");
 
         _unsponsor(_to, _ids);
+    }
+
+    function harvest() external onlyRole(HARVESTOR_ROLE) {
+        require(perfFee != 0, "Vault: no performance fee");
+        underlying.safeTransfer(treasury, perfFee);
+        perfFee = 0;
     }
 
     //
@@ -370,7 +435,7 @@ contract Vault is
      * @return Total amount of principal and yield help by the vault (not including sponsored amount).
      */
     function totalUnderlyingMinusSponsored() public view returns (uint256) {
-        uint256 _totalUnderlying = totalUnderlying();
+        uint256 _totalUnderlying = totalUnderlyingMinusPerfFee();
         if (totalSponsored > _totalUnderlying) {
             return 0;
         }
@@ -412,7 +477,7 @@ contract Vault is
         address _to,
         uint256[] memory _ids,
         bool _force
-    ) internal {
+    ) internal updateDebt {
         uint256 localTotalShares = totalShares;
         uint256 localTotalPrincipal = totalUnderlyingMinusSponsored();
         uint256 amount;
@@ -428,6 +493,7 @@ contract Vault is
             );
         }
 
+        totalDebt -= amount;
         underlying.safeTransfer(_to, amount);
     }
 
@@ -440,7 +506,10 @@ contract Vault is
      * @param _to Address that will receive the funds.
      * @param _ids Array with the ids of the deposits.
      */
-    function _unsponsor(address _to, uint256[] memory _ids) internal {
+    function _unsponsor(address _to, uint256[] memory _ids)
+        internal
+        updateDebt
+    {
         uint256 sponsorAmount;
         uint256 idsLen = _ids.length;
 
@@ -466,10 +535,11 @@ contract Vault is
         uint256 sponsorToTransfer = sponsorAmount;
 
         require(
-            sponsorToTransfer <= totalUnderlying(),
+            sponsorToTransfer <= totalUnderlyingMinusPerfFee(),
             "Vault: not enough funds"
         );
 
+        totalDebt -= sponsorAmount;
         totalSponsored -= sponsorAmount;
 
         underlying.safeTransfer(_to, sponsorToTransfer);
@@ -663,9 +733,9 @@ contract Vault is
     function _transferAndCheckUnderlying(address _from, uint256 _amount)
         internal
     {
-        uint256 balanceBefore = totalUnderlying();
+        uint256 balanceBefore = underlying.balanceOf(address(this));
         underlying.safeTransferFrom(_from, address(this), _amount);
-        uint256 balanceAfter = totalUnderlying();
+        uint256 balanceAfter = underlying.balanceOf(address(this));
 
         require(
             balanceAfter == balanceBefore + _amount,

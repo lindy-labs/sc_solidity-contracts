@@ -101,6 +101,11 @@ interface IVault {
     function totalUnderlying() external view returns (uint256);
 
     /**
+     * Total underlying amount without performance fee
+     */
+    function totalUnderlyingMinusPerfFee() external view returns (uint256);
+
+    /**
      * Total amount of shares
      */
     function totalShares() external view returns (uint256);

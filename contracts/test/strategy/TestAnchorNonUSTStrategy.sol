@@ -27,24 +27,20 @@ contract TestAnchorNonUSTStrategy is AnchorNonUSTStrategy {
      */
     constructor(
         address _vault,
-        address _treasury,
         address _ethAnchorRouter,
         AggregatorV3Interface _aUstToUstFeed,
         IExchangeRateFeeder _exchangeRateFeeder,
         IERC20 _ustToken,
         IERC20 _aUstToken,
-        uint16 _perfFeePct,
         address _owner,
         address _uniV2Router
     )
         AnchorNonUSTStrategy(
             _vault,
-            _treasury,
             _ethAnchorRouter,
             _aUstToUstFeed,
             _ustToken,
             _aUstToken,
-            _perfFeePct,
             _owner,
             address(0x1), // fake curve address
             0, // fake index
