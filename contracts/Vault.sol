@@ -131,11 +131,16 @@ contract Vault is
         uint256 _minLockPeriod,
         uint256 _investPerc,
         address _treasury,
-        address _owner
+        address _owner,
+        uint16 _perfFeePct
     ) {
         require(
             PercentMath.validPerc(_investPerc),
             "Vault: invalid investPerc"
+        );
+        require(
+            PercentMath.validPerc(_perfFeePct),
+            "VaultContext: invalid performance fee"
         );
         require(
             address(_underlying) != address(0x0),
@@ -155,6 +160,7 @@ contract Vault is
         underlying = _underlying;
         treasury = _treasury;
         minLockPeriod = _minLockPeriod;
+        perfFeePct = _perfFeePct;
 
         depositors = new Depositors(this);
         claimers = new Claimers(this);
@@ -163,6 +169,8 @@ contract Vault is
     //
     // IVault
     //
+
+    /// See {IVault}
     function setTreasury(address _treasury)
         external
         override(IVault)
@@ -174,6 +182,19 @@ contract Vault is
         );
         treasury = _treasury;
         emit TreasuryUpdated(_treasury);
+    }
+
+    /// See {IVault}
+    function setPerfFeePct(uint16 _perfFeePct)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        require(
+            PercentMath.validPerc(_perfFeePct),
+            "VaultContext: invalid performance fee"
+        );
+        perfFeePct = _perfFeePct;
+        emit PerfFeePctUpdated(_perfFeePct);
     }
 
     /// See {IVault}
@@ -418,8 +439,10 @@ contract Vault is
     }
 
     function harvest() external onlyRole(HARVESTOR_ROLE) {
-        require(perfFee != 0, "Vault: no performance fee");
-        underlying.safeTransfer(treasury, perfFee);
+        uint256 _perfFee = perfFee;
+        require(_perfFee != 0, "Vault: no performance fee");
+        underlying.safeTransfer(treasury, _perfFee);
+        emit FeeHarvested(_perfFee);
         perfFee = 0;
     }
 

@@ -45,12 +45,16 @@ interface IVault {
 
     event TreasuryUpdated(address indexed treasury);
 
+    event PerfFeePctUpdated(uint16 pct);
+
     event YieldClaimed(
         uint256 claimerId,
         address indexed to,
         uint256 amount,
         uint256 burnedShares
     );
+
+    event FeeHarvested(uint256 amount);
 
     //
     // Public API
@@ -167,4 +171,11 @@ interface IVault {
      * @param _treasury the new strategy's address.
      */
     function setTreasury(address _treasury) external;
+
+    /**
+     * Changes the performance fee
+     *
+     * @param _perfFeePct The new performance fee %
+     */
+    function setPerfFeePct(uint16 _perfFeePct) external;
 }
