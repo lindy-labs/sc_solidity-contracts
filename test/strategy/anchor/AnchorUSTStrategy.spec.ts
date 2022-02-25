@@ -128,7 +128,7 @@ describe("AnchorUSTStrategy", () => {
       ).to.be.revertedWith("AnchorBaseStrategy: router is 0x");
     });
 
-    it("Revert if vault does not have interface", async () => {
+    it("Revert if vault does not have IVault interface", async () => {
       await expect(
         AnchorUSTStrategyFactory.deploy(
           TREASURY,

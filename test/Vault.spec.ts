@@ -1,17 +1,18 @@
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { time } from "@openzeppelin/test-helpers";
-import { Contract } from "ethers";
+import { Contract, utils, BigNumber } from "ethers";
 import { ethers } from "hardhat";
 import { expect } from "chai";
 
-import type {
+import {
   Vault,
   TestERC20,
   Depositors,
   Claimers,
   AnchorUSTStrategy,
+  Claimers__factory,
+  Depositors__factory,
 } from "../typechain";
-import { Claimers__factory, Depositors__factory } from "../typechain";
 
 import { depositParams, claimParams } from "./shared/factories";
 import {
@@ -22,7 +23,6 @@ import {
   arrayFromTo,
 } from "./shared";
 
-const { utils, BigNumber } = ethers;
 const { parseUnits } = ethers.utils;
 
 describe("Vault", () => {
