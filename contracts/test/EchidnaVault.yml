@@ -1,4 +1,0 @@
-prefix: echidna_
-initialize: contracts/test/seed/EchidnaVault.json
-multi-abi: true
-coverage: true

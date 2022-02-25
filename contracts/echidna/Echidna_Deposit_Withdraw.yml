@@ -1,0 +1,5 @@
+initialize: contracts/echidna/init.json
+coverage: true
+testMode: assertion
+corpusDir: 'corpus'
+codeSize: 0xfffffffffff
