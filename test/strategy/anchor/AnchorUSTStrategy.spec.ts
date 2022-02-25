@@ -9,6 +9,7 @@ import {
   AnchorUSTStrategy,
   MockEthAnchorRouter,
   MockERC20,
+  AnchorUSTStrategy__factory,
 } from "../../../typechain";
 import { generateNewAddress } from "../../shared/";
 
@@ -60,7 +61,9 @@ describe("AnchorUSTStrategy", () => {
       underlying.address,
       MIN_LOCK_PERIOD,
       INVEST_PCT,
-      owner.address
+      TREASURY,
+      owner.address,
+      PERFORMANCE_FEE_PCT
     );
 
     const AnchorUSTStrategyFactory = await ethers.getContractFactory(
@@ -69,12 +72,10 @@ describe("AnchorUSTStrategy", () => {
 
     strategy = await AnchorUSTStrategyFactory.deploy(
       vault.address,
-      TREASURY,
       mockEthAnchorRouter.address,
       mockAUstUstFeed.address,
       ustToken.address,
       aUstToken.address,
-      PERFORMANCE_FEE_PCT,
       owner.address
     );
 
@@ -93,7 +94,7 @@ describe("AnchorUSTStrategy", () => {
   });
 
   describe("constructor", () => {
-    let AnchorUSTStrategyFactory: ContractFactory;
+    let AnchorUSTStrategyFactory: AnchorUSTStrategy__factory;
 
     beforeEach(async () => {
       AnchorUSTStrategyFactory = await ethers.getContractFactory(
@@ -105,75 +106,39 @@ describe("AnchorUSTStrategy", () => {
       await expect(
         AnchorUSTStrategyFactory.deploy(
           vault.address,
-          TREASURY,
           mockEthAnchorRouter.address,
           mockAUstUstFeed.address,
           ustToken.address,
           aUstToken.address,
-          PERFORMANCE_FEE_PCT,
           constants.AddressZero
         )
-      ).to.be.revertedWith("BaseStrategy: owner is 0x");
+      ).to.be.revertedWith("AnchorBaseStrategy: owner is 0x");
     });
 
     it("Revert if ethAnchorRouter is address(0)", async () => {
       await expect(
         AnchorUSTStrategyFactory.deploy(
           vault.address,
-          TREASURY,
           constants.AddressZero,
           mockAUstUstFeed.address,
           ustToken.address,
           aUstToken.address,
-          PERFORMANCE_FEE_PCT,
           owner.address
         )
-      ).to.be.revertedWith("BaseStrategy: router is 0x");
-    });
-
-    it("Revert if treasury is address(0)", async () => {
-      await expect(
-        AnchorUSTStrategyFactory.deploy(
-          vault.address,
-          constants.AddressZero,
-          mockEthAnchorRouter.address,
-          mockAUstUstFeed.address,
-          ustToken.address,
-          aUstToken.address,
-          PERFORMANCE_FEE_PCT,
-          owner.address
-        )
-      ).to.be.revertedWith("BaseStrategy: treasury is 0x");
-    });
-
-    it("Revert if performance fee is greater than 100%", async () => {
-      await expect(
-        AnchorUSTStrategyFactory.deploy(
-          vault.address,
-          TREASURY,
-          mockEthAnchorRouter.address,
-          mockAUstUstFeed.address,
-          ustToken.address,
-          aUstToken.address,
-          "10001",
-          owner.address
-        )
-      ).to.be.revertedWith("BaseStrategy: invalid performance fee");
+      ).to.be.revertedWith("AnchorBaseStrategy: router is 0x");
     });
 
     it("Revert if vault does not have interface", async () => {
       await expect(
         AnchorUSTStrategyFactory.deploy(
           TREASURY,
-          TREASURY,
           mockEthAnchorRouter.address,
           mockAUstUstFeed.address,
           ustToken.address,
           aUstToken.address,
-          PERFORMANCE_FEE_PCT,
           owner.address
         )
-      ).to.be.revertedWith("BaseStrategy: not an IVault");
+      ).to.be.revertedWith("AnchorBaseStrategy: not an IVault");
     });
 
     it("Revert if underlying is not ustToken", async () => {
@@ -182,18 +147,18 @@ describe("AnchorUSTStrategy", () => {
         aUstToken.address,
         1,
         INVEST_PCT,
-        owner.address
+        TREASURY,
+        owner.address,
+        PERFORMANCE_FEE_PCT
       );
 
       await expect(
         AnchorUSTStrategyFactory.deploy(
           vault.address,
-          TREASURY,
           mockEthAnchorRouter.address,
           mockAUstUstFeed.address,
           ustToken.address,
           aUstToken.address,
-          PERFORMANCE_FEE_PCT,
           owner.address
         )
       ).to.be.revertedWith("AnchorUSTStrategy: invalid underlying");
@@ -206,7 +171,6 @@ describe("AnchorUSTStrategy", () => {
       expect(await strategy.hasRole(MANAGER_ROLE, vault.address)).to.be.equal(
         true
       );
-      expect(await strategy.treasury()).to.be.equal(TREASURY);
       expect(await strategy.vault()).to.be.equal(vault.address);
       expect(await strategy.underlying()).to.be.equal(underlying.address);
       expect(await strategy.ethAnchorRouter()).to.be.equal(
@@ -217,20 +181,19 @@ describe("AnchorUSTStrategy", () => {
       );
       expect(await strategy.ustToken()).to.be.equal(ustToken.address);
       expect(await strategy.aUstToken()).to.be.equal(aUstToken.address);
-      expect(await strategy.perfFeePct()).to.be.equal(PERFORMANCE_FEE_PCT);
     });
   });
 
   describe("#invest function", () => {
     it("Revert if msg.sender is not manager", async () => {
       await expect(strategy.connect(alice).invest("0x")).to.be.revertedWith(
-        "BaseStrategy: caller is not manager"
+        "AnchorBaseStrategy: caller is not manager"
       );
     });
 
     it("Revert if underlying balance is zero", async () => {
       await expect(strategy.connect(manager).invest("0x")).to.be.revertedWith(
-        "BaseStrategy: no ust exist"
+        "AnchorBaseStrategy: no ust exist"
       );
     });
 
@@ -256,7 +219,7 @@ describe("AnchorUSTStrategy", () => {
       await mockAUstUstFeed.setLatestRoundData(1, 0, 100, 100, 1);
       await expect(
         vault.connect(owner).updateInvested("0x")
-      ).to.be.revertedWith("BaseStrategy: invalid aUST rate");
+      ).to.be.revertedWith("AnchorBaseStrategy: invalid aUST rate");
 
       // when round id is invalid
       await mockAUstUstFeed.setLatestRoundData(
@@ -268,7 +231,7 @@ describe("AnchorUSTStrategy", () => {
       );
       await expect(
         vault.connect(owner).updateInvested("0x")
-      ).to.be.revertedWith("BaseStrategy: invalid aUST rate");
+      ).to.be.revertedWith("AnchorBaseStrategy: invalid aUST rate");
 
       // when updated time is zero
       await mockAUstUstFeed.setLatestRoundData(
@@ -280,7 +243,7 @@ describe("AnchorUSTStrategy", () => {
       );
       await expect(
         vault.connect(owner).updateInvested("0x")
-      ).to.be.revertedWith("BaseStrategy: invalid aUST rate");
+      ).to.be.revertedWith("AnchorBaseStrategy: invalid aUST rate");
     });
 
     it("Should init deposit stable with all underlying", async () => {
@@ -296,7 +259,6 @@ describe("AnchorUSTStrategy", () => {
       const tx = await vault.connect(owner).updateInvested("0x");
 
       expect(await underlying.balanceOf(strategy.address)).equal(0);
-      expect(await strategy.convertedUst()).equal(0);
       expect(await strategy.pendingDeposits()).equal(investAmount);
       expect(await strategy.investedAssets()).equal(investAmount);
       expect(await vault.totalUnderlying()).equal(underlyingAmount);
@@ -333,7 +295,6 @@ describe("AnchorUSTStrategy", () => {
       await vault.connect(owner).updateInvested("0x");
 
       expect(await underlying.balanceOf(strategy.address)).equal(0);
-      expect(await strategy.convertedUst()).equal(0);
       expect(await strategy.pendingDeposits()).equal(
         investAmount0.add(investAmount1)
       );
@@ -373,19 +334,19 @@ describe("AnchorUSTStrategy", () => {
     it("Revert if msg.sender is not manager", async () => {
       await expect(
         strategy.connect(alice).finishDepositStable(0)
-      ).to.be.revertedWith("BaseStrategy: caller is not manager");
+      ).to.be.revertedWith("AnchorBaseStrategy: caller is not manager");
     });
 
     it("Revert if idx is out of array", async () => {
       await expect(
         strategy.connect(manager).finishDepositStable(1)
-      ).to.be.revertedWith("BaseStrategy: not running");
+      ).to.be.revertedWith("AnchorBaseStrategy: not running");
     });
 
     it("Revert if no aUST returned", async () => {
       await expect(
         strategy.connect(manager).finishDepositStable(0)
-      ).to.be.revertedWith("BaseStrategy: no aUST returned");
+      ).to.be.revertedWith("AnchorBaseStrategy: no aUST returned");
     });
 
     it("Should finish deposit operation", async () => {
@@ -407,7 +368,6 @@ describe("AnchorUSTStrategy", () => {
           .add(underlyingAmount0.sub(investAmount0))
       );
 
-      expect(await strategy.convertedUst()).equal(investAmount0);
       expect(await strategy.pendingDeposits()).equal(0);
       expect(await strategy.depositOperationLength()).equal(0);
 
@@ -455,7 +415,6 @@ describe("AnchorUSTStrategy", () => {
           .sub(investAmount0)
       );
 
-      expect(await strategy.convertedUst()).equal(investAmount0);
       expect(await strategy.pendingDeposits()).equal(investAmount1);
       expect(await strategy.depositOperationLength()).equal(1);
 
@@ -484,13 +443,13 @@ describe("AnchorUSTStrategy", () => {
     it("Revert if msg.sender is not manager", async () => {
       await expect(
         strategy.connect(alice).initRedeemStable(aUstAmount0)
-      ).to.be.revertedWith("BaseStrategy: caller is not manager");
+      ).to.be.revertedWith("AnchorBaseStrategy: caller is not manager");
     });
 
     it("Revert if amount is 0", async () => {
       await expect(
         strategy.connect(manager).initRedeemStable(0)
-      ).to.be.revertedWith("BaseStrategy: amount 0");
+      ).to.be.revertedWith("AnchorBaseStrategy: amount 0");
     });
 
     it("Should init redeem operation", async () => {
@@ -581,19 +540,19 @@ describe("AnchorUSTStrategy", () => {
     it("Revert if msg.sender is not manager", async () => {
       await expect(
         strategy.connect(alice).finishRedeemStable(0)
-      ).to.be.revertedWith("BaseStrategy: caller is not manager");
+      ).to.be.revertedWith("AnchorBaseStrategy: caller is not manager");
     });
 
     it("Revert if idx is out of array", async () => {
       await expect(
         strategy.connect(manager).finishRedeemStable(1)
-      ).to.be.revertedWith("BaseStrategy: not running");
+      ).to.be.revertedWith("AnchorBaseStrategy: not running");
     });
 
     it("Revert if 0 UST redeemed", async () => {
       await expect(
         strategy.connect(manager).finishRedeemStable(0)
-      ).to.be.revertedWith("BaseStrategy: nothing redeemed");
+      ).to.be.revertedWith("AnchorBaseStrategy: nothing redeemed");
     });
 
     it("Should finish redeem operation", async () => {
@@ -637,7 +596,7 @@ describe("AnchorUSTStrategy", () => {
         );
     });
 
-    it("Should pop finished operation", async () => {
+    it("Should pop finished operation(when no yield)", async () => {
       let aUstRate = utils.parseEther("1.1");
       await setAUstRate(aUstRate);
 
@@ -667,7 +626,7 @@ describe("AnchorUSTStrategy", () => {
       expect(operation.amount).equal(redeemAmount1);
     });
 
-    it("Should send performace fee if there is yield", async () => {
+    it("Should pop finished operation(when yield generated)", async () => {
       let aUstRate = utils.parseEther("1.1");
       await setAUstRate(aUstRate);
 
@@ -679,10 +638,6 @@ describe("AnchorUSTStrategy", () => {
       const yieldAmount = redeemedUSTAmount0.sub(
         investAmount0.mul(redeemAmount0).div(aUstAmount0)
       );
-      const perfFee = yieldAmount.mul(PERFORMANCE_FEE_PCT).div(DENOMINATOR);
-      expect(tx).to.emit(strategy, "PerfFeeClaimed").withArgs(perfFee);
-
-      expect(await ustToken.balanceOf(TREASURY)).equal(perfFee);
 
       expect(await aUstToken.balanceOf(strategy.address)).equal(
         aUstAmount0.sub(redeemAmount0)
@@ -696,7 +651,7 @@ describe("AnchorUSTStrategy", () => {
       );
       expect(await underlying.balanceOf(strategy.address)).equal(0);
       expect(await underlying.balanceOf(vault.address)).equal(
-        vaultBalanceBefore.add(redeemedUSTAmount0.sub(perfFee))
+        vaultBalanceBefore.add(redeemedUSTAmount0)
       );
 
       expect(await strategy.redeemOperationLength()).equal(0);
@@ -720,7 +675,7 @@ describe("AnchorUSTStrategy", () => {
     it("Revert if msg.sender is not manager", async () => {
       await expect(
         strategy.connect(alice).withdrawAllToVault()
-      ).to.be.revertedWith("BaseStrategy: caller is not manager");
+      ).to.be.revertedWith("AnchorBaseStrategy: caller is not manager");
     });
 
     it("Should init redeem all aUST", async () => {
@@ -746,101 +701,6 @@ describe("AnchorUSTStrategy", () => {
     });
   });
 
-  describe("#setPerfFeePct function", () => {
-    it("Revert if msg.sender is not admin", async () => {
-      await expect(
-        strategy.connect(alice).setPerfFeePct("100")
-      ).to.be.revertedWith("BaseStrategy: caller is not admin");
-    });
-
-    it("Revert if pct is greater than 100%", async () => {
-      await expect(
-        strategy
-          .connect(owner)
-          .setPerfFeePct(DENOMINATOR.add(BigNumber.from("1")))
-      ).to.be.revertedWith("BaseStrategy: invalid performance fee");
-    });
-
-    it("Should set invest percentage all by owner", async () => {
-      expect(await strategy.perfFeePct()).equal(PERFORMANCE_FEE_PCT);
-      const tx = await strategy.connect(owner).setPerfFeePct("100");
-      expect(await strategy.perfFeePct()).equal(100);
-
-      await expect(tx).to.emit(strategy, "PerfFeePctUpdated").withArgs("100");
-    });
-  });
-
-  describe("#currentPerformanceFee function", () => {
-    let underlyingAmount = utils.parseEther("100");
-    let aUstAmount = utils.parseEther("80");
-    let convertedUst: BigNumber;
-    let aUstBalance: BigNumber;
-
-    it("Return 0 if no UST deposited", async () => {
-      expect(await strategy.currentPerformanceFee()).to.be.equal(0);
-    });
-
-    it("Return 0 if there is a loss", async () => {
-      [convertedUst, aUstBalance] = await depositAndInvest(
-        underlyingAmount,
-        aUstAmount
-      );
-
-      await setAUstRate(utils.parseEther("1.12"));
-
-      expect(await strategy.currentPerformanceFee()).to.be.equal(0);
-    });
-
-    it("Return correct performance fee if there is some yield", async () => {
-      [convertedUst, aUstBalance] = await depositAndInvest(
-        underlyingAmount,
-        aUstAmount
-      );
-
-      const aUstRate = utils.parseEther("1.13");
-      await setAUstRate(aUstRate);
-
-      const ustValue = aUstAmount.mul(aUstRate).div(AUST_TO_UST_FEED_DECIMALS);
-
-      console.log(
-        "Performance fee: ",
-        utils.formatUnits(
-          ustValue.sub(convertedUst).mul(PERFORMANCE_FEE_PCT).div(DENOMINATOR),
-          18
-        )
-      );
-      expect(await strategy.currentPerformanceFee()).to.be.equal(
-        ustValue.sub(convertedUst).mul(PERFORMANCE_FEE_PCT).div(DENOMINATOR)
-      );
-    });
-
-    it("Return correct performance fee when there is pending redeem", async () => {
-      [convertedUst, aUstBalance] = await depositAndInvest(
-        underlyingAmount,
-        aUstAmount
-      );
-
-      await registerNewTestOperator();
-      await strategy.connect(manager).initRedeemStable(utils.parseEther("20"));
-
-      const aUstRate = utils.parseEther("1.13");
-      await setAUstRate(aUstRate);
-
-      const ustValue = aUstAmount.mul(aUstRate).div(AUST_TO_UST_FEED_DECIMALS);
-
-      console.log(
-        "Performance fee: ",
-        utils.formatUnits(
-          ustValue.sub(convertedUst).mul(PERFORMANCE_FEE_PCT).div(DENOMINATOR),
-          18
-        )
-      );
-      expect(await strategy.currentPerformanceFee()).to.be.equal(
-        ustValue.sub(convertedUst).mul(PERFORMANCE_FEE_PCT).div(DENOMINATOR)
-      );
-    });
-  });
-
   describe("#investedAssets function", () => {
     let underlyingAmount = utils.parseEther("100");
     let aUstAmount = utils.parseEther("80");
@@ -861,28 +721,19 @@ describe("AnchorUSTStrategy", () => {
       );
     });
 
-    it("Subtract performance fee from invested assets", async () => {
-      [convertedUst, aUstBalance] = await depositAndInvest(
-        underlyingAmount,
-        aUstAmount
-      );
+    it("Return correct investAssets when there is no pending redeem", async () => {
+      aUstBalance = await depositAndInvest(underlyingAmount, aUstAmount);
 
       const aUstRate = utils.parseEther("1.13");
       await setAUstRate(aUstRate);
 
       expect(await strategy.investedAssets()).to.be.equal(
-        aUstBalance
-          .mul(aUstRate)
-          .div(AUST_TO_UST_FEED_DECIMALS)
-          .sub(await strategy.currentPerformanceFee())
+        aUstBalance.mul(aUstRate).div(AUST_TO_UST_FEED_DECIMALS)
       );
     });
 
     it("Return correct investAssets when there is pending redeem", async () => {
-      [convertedUst, aUstBalance] = await depositAndInvest(
-        underlyingAmount,
-        aUstAmount
-      );
+      aUstBalance = await depositAndInvest(underlyingAmount, aUstAmount);
 
       await registerNewTestOperator();
       await strategy.connect(manager).initRedeemStable(utils.parseEther("20"));
@@ -891,10 +742,7 @@ describe("AnchorUSTStrategy", () => {
       await setAUstRate(aUstRate);
 
       expect(await strategy.investedAssets()).to.be.equal(
-        aUstBalance
-          .mul(aUstRate)
-          .div(AUST_TO_UST_FEED_DECIMALS)
-          .sub(await strategy.currentPerformanceFee())
+        aUstBalance.mul(aUstRate).div(AUST_TO_UST_FEED_DECIMALS)
       );
     });
   });
@@ -941,7 +789,7 @@ describe("AnchorUSTStrategy", () => {
   const depositAndInvest = async (
     underlyingAmount: BigNumber,
     aUstAmount: BigNumber
-  ): Promise<BigNumber[]> => {
+  ): Promise<BigNumber> => {
     const operator = await registerNewTestOperator();
     await depositVault(underlyingAmount);
     await vault.updateInvested("0x");
@@ -950,7 +798,6 @@ describe("AnchorUSTStrategy", () => {
     await strategy.connect(manager).finishDepositStable(0);
 
     const aUSTBalance = await aUstToken.balanceOf(strategy.address);
-    const convertedUst = await strategy.convertedUst();
-    return [convertedUst, aUSTBalance];
+    return aUSTBalance;
   };
 });

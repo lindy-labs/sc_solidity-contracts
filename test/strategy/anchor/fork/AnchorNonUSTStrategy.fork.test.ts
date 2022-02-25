@@ -31,8 +31,7 @@ describe("AnchorNonUSTStrategy Mainnet fork", () => {
   const TWO_WEEKS = time.duration.days(14).toNumber();
   const INVEST_PCT = 10000; // set 100% for test
   const TREASURY = generateNewAddress();
-  const FEE_PCT = BigNumber.from("200");
-  const DENOMINATOR = BigNumber.from("10000");
+  const PERFORMANCE_FEE_PCT = BigNumber.from("200");
   const FORK_BLOCK = 14023000;
   const MANAGER_ROLE = utils.keccak256(utils.toUtf8Bytes("MANAGER_ROLE"));
 
@@ -69,7 +68,9 @@ describe("AnchorNonUSTStrategy Mainnet fork", () => {
         usdtToken.address,
         TWO_WEEKS,
         INVEST_PCT,
-        owner.address
+        TREASURY,
+        owner.address,
+        PERFORMANCE_FEE_PCT
       );
 
       const AnchorNonUSTStrategyFactory = await ethers.getContractFactory(
@@ -78,21 +79,19 @@ describe("AnchorNonUSTStrategy Mainnet fork", () => {
 
       strategy = await AnchorNonUSTStrategyFactory.deploy(
         vault.address,
-        TREASURY,
         config.ethAnchorRouter,
         config.aUstUstFeed,
         ustToken.address,
         aUstToken.address,
-        FEE_PCT,
         owner.address,
         config.curve,
         config.usdtI,
-        config.ustI
+        config.ustI,
+        config.ustFeed,
+        config.usdtFeed
       );
 
       await strategy.connect(owner).grantRole(MANAGER_ROLE, owner.address);
-
-      await strategy.initializeStrategy(config.ustFeed, config.usdtFeed);
 
       await vault.setStrategy(strategy.address);
 
@@ -272,7 +271,9 @@ describe("AnchorNonUSTStrategy Mainnet fork", () => {
         usdtToken.address,
         TWO_WEEKS,
         INVEST_PCT,
-        owner.address
+        TREASURY,
+        owner.address,
+        PERFORMANCE_FEE_PCT
       );
 
       const AnchorNonUSTStrategyFactory = await ethers.getContractFactory(
@@ -281,21 +282,19 @@ describe("AnchorNonUSTStrategy Mainnet fork", () => {
 
       strategy = await AnchorNonUSTStrategyFactory.deploy(
         vault.address,
-        TREASURY,
         config.ethAnchorRouter,
         mockAUstUstFeed.address,
         ustToken.address,
         aUstToken.address,
-        FEE_PCT,
         owner.address,
         config.curve,
         config.usdtI,
-        config.ustI
+        config.ustI,
+        config.ustFeed,
+        config.usdtFeed
       );
 
       await strategy.connect(owner).grantRole(MANAGER_ROLE, owner.address);
-
-      await strategy.initializeStrategy(config.ustFeed, config.usdtFeed);
 
       await vault.setStrategy(strategy.address);
 
@@ -368,12 +367,6 @@ describe("AnchorNonUSTStrategy Mainnet fork", () => {
       let totalUnderlying = await vault.totalUnderlying();
 
       console.log(
-        `Converted UST - ${utils.formatEther(
-          await strategy.convertedUst()
-        )} UST`
-      );
-
-      console.log(
         `FinishDepositStable: totalUnderlying - ${utils.formatUnits(
           totalUnderlying,
           6
@@ -430,12 +423,6 @@ describe("AnchorNonUSTStrategy Mainnet fork", () => {
         )} USDT (0 USDT + ${utils.formatEther(aUstBalance)} aUST)`
       );
 
-      console.log(
-        `Converted UST - ${utils.formatEther(
-          await strategy.convertedUst()
-        )} UST`
-      );
-
       exchangeRate = utils.parseEther("1.3");
       await mockAUstUstFeed.setAnswer(exchangeRate);
       console.log(
@@ -453,8 +440,6 @@ describe("AnchorNonUSTStrategy Mainnet fork", () => {
 
       totalUnderlying = await vault.totalUnderlying();
 
-      let convertedUst = await strategy.convertedUst();
-
       let redeemAmount = utils.parseEther("5000");
       await strategy.initRedeemStable(redeemAmount);
       expect(await strategy.pendingRedeems()).to.be.equal(redeemAmount);
@@ -469,20 +454,14 @@ describe("AnchorNonUSTStrategy Mainnet fork", () => {
       );
 
       await strategy.finishRedeemStable(0, "100000000");
-      let originalDeposit = convertedUst.mul(redeemAmount).div(aUstBalance);
-      let profit = expectUstReceive.sub(originalDeposit);
-      let fee = profit.mul(FEE_PCT).div(DENOMINATOR);
-      expect(await ustToken.balanceOf(TREASURY)).to.be.equal(fee);
-      console.log(
-        `Finish redeem stable: profit - ${utils.formatEther(profit)} UST`
-      );
-      expect(await vault.totalUnderlying()).to.be.equal("10873546114");
+
+      expect(await vault.totalUnderlying()).to.be.equal("10891563662");
       aUstBalance = aUstBalance.sub(redeemAmount);
       expect(await aUstToken.balanceOf(strategy.address)).to.be.equal(
         aUstBalance
       );
       expect(await usdtToken.balanceOf(vault.address)).to.be.equal(
-        "6392897697"
+        "6402739985"
       );
     });
 
@@ -531,7 +510,7 @@ describe("AnchorNonUSTStrategy Mainnet fork", () => {
     });
   });
 
-  const getInvestData = (minAmount: BigNumber) => {
-    return utils.defaultAbiCoder.encode(["uint256"], [minAmount]);
+  const getInvestData = (minExchangeRate: BigNumber) => {
+    return utils.defaultAbiCoder.encode(["uint256"], [minExchangeRate]);
   };
 });

@@ -28,8 +28,7 @@ describe("AnchorUSTStrategy Mainnet fork", () => {
   const TWO_WEEKS = time.duration.days(14).toNumber();
   const INVEST_PCT = 10000; // set 100% for test
   const TREASURY = generateNewAddress();
-  const FEE_PCT = BigNumber.from("200");
-  const DENOMINATOR = BigNumber.from("10000");
+  const PERFORMANCE_FEE_PCT = BigNumber.from("200");
   const FORK_BLOCK = 14023000;
   const MANAGER_ROLE = utils.keccak256(utils.toUtf8Bytes("MANAGER_ROLE"));
 
@@ -63,7 +62,9 @@ describe("AnchorUSTStrategy Mainnet fork", () => {
         ustToken.address,
         TWO_WEEKS,
         INVEST_PCT,
-        owner.address
+        TREASURY,
+        owner.address,
+        PERFORMANCE_FEE_PCT
       );
 
       const AnchorUSTStrategyFactory = await ethers.getContractFactory(
@@ -72,12 +73,10 @@ describe("AnchorUSTStrategy Mainnet fork", () => {
 
       strategy = await AnchorUSTStrategyFactory.deploy(
         vault.address,
-        TREASURY,
         config.ethAnchorRouter,
         config.aUstUstFeed,
         ustToken.address,
         aUstToken.address,
-        FEE_PCT,
         owner.address
       );
 
@@ -201,7 +200,7 @@ describe("AnchorUSTStrategy Mainnet fork", () => {
     });
   });
 
-  // Use Mock aUST / UST Chainlink Feed to check performance fee and redeem
+  // Use Mock aUST / UST Chainlink Feed to check redeem
   describe("Use Mock aUST / UST Chainlink feed", () => {
     before(async () => {
       const MockChainlinkPriceFeedFactory = await ethers.getContractFactory(
@@ -214,7 +213,9 @@ describe("AnchorUSTStrategy Mainnet fork", () => {
         ustToken.address,
         TWO_WEEKS,
         INVEST_PCT,
-        owner.address
+        TREASURY,
+        owner.address,
+        PERFORMANCE_FEE_PCT
       );
 
       const AnchorUSTStrategyFactory = await ethers.getContractFactory(
@@ -223,12 +224,10 @@ describe("AnchorUSTStrategy Mainnet fork", () => {
 
       strategy = await AnchorUSTStrategyFactory.deploy(
         vault.address,
-        TREASURY,
         config.ethAnchorRouter,
         mockAUstUstFeed.address,
         ustToken.address,
         aUstToken.address,
-        FEE_PCT,
         owner.address
       );
 
@@ -381,20 +380,18 @@ describe("AnchorUSTStrategy Mainnet fork", () => {
         .mul(redeemAmount)
         .div(aUstBalance);
       let profit = expectUstReceive.sub(originalDeposit);
-      let fee = profit.mul(FEE_PCT).div(DENOMINATOR);
-      expect(await ustToken.balanceOf(TREASURY)).to.be.equal(fee);
       console.log(
         `Finish redeem stable: profit - ${utils.formatEther(profit)} UST`
       );
       expect(await vault.totalUnderlying()).to.be.equal(
-        "10867300000000000000001"
+        "10885000000000000000000"
       );
       aUstBalance = aUstBalance.sub(redeemAmount);
       expect(await aUstToken.balanceOf(strategy.address)).to.be.equal(
         aUstBalance
       );
       expect(await ustToken.balanceOf(vault.address)).to.be.equal(
-        expectUstReceive.sub(fee)
+        expectUstReceive
       );
     });
   });

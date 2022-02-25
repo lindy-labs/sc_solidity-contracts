@@ -11,6 +11,7 @@ import type {
   MockCurvePool,
   MockERC20,
   MockChainlinkPriceFeed,
+  AnchorNonUSTStrategy__factory,
 } from "../../../typechain";
 import { generateNewAddress } from "../../shared/";
 
@@ -88,7 +89,9 @@ describe("AnchorNonUSTStrategy", () => {
       underlying.address,
       1,
       INVEST_PCT,
-      owner.address
+      TREASURY,
+      owner.address,
+      PERFORMANCE_FEE_PCT
     );
     mockAUstUstFeed = await MockChainlinkPriceFeedFactory.deploy(18);
 
@@ -98,16 +101,16 @@ describe("AnchorNonUSTStrategy", () => {
 
     strategy = await AnchorNonUSTStrategyFactory.deploy(
       vault.address,
-      TREASURY,
       mockEthAnchorRouter.address,
       mockAUstUstFeed.address,
       ustToken.address,
       aUstToken.address,
-      PERFORMANCE_FEE_PCT,
       owner.address,
       mockCurvePool.address,
       underlyingI,
-      ustI
+      ustI,
+      ustFeed.address,
+      underlyingFeed.address
     );
 
     await strategy.connect(owner).grantRole(MANAGER_ROLE, manager.address);
@@ -125,7 +128,7 @@ describe("AnchorNonUSTStrategy", () => {
   });
 
   describe("constructor", () => {
-    let AnchorNonUSTStrategyFactory: ContractFactory;
+    let AnchorNonUSTStrategyFactory: AnchorNonUSTStrategy__factory;
 
     beforeEach(async () => {
       AnchorNonUSTStrategyFactory = await ethers.getContractFactory(
@@ -137,16 +140,16 @@ describe("AnchorNonUSTStrategy", () => {
       await expect(
         AnchorNonUSTStrategyFactory.deploy(
           vault.address,
-          TREASURY,
           mockEthAnchorRouter.address,
           mockAUstUstFeed.address,
           ustToken.address,
           aUstToken.address,
-          PERFORMANCE_FEE_PCT,
           owner.address,
           constants.AddressZero,
           underlyingI,
-          ustI
+          ustI,
+          ustFeed.address,
+          underlyingFeed.address
         )
       ).to.be.revertedWith("AnchorNonUSTStrategy: curve pool is 0x");
     });
@@ -157,28 +160,29 @@ describe("AnchorNonUSTStrategy", () => {
         ustToken.address,
         1,
         INVEST_PCT,
-        owner.address
+        TREASURY,
+        owner.address,
+        PERFORMANCE_FEE_PCT
       );
 
       await expect(
         AnchorNonUSTStrategyFactory.deploy(
           vault.address,
-          TREASURY,
           mockEthAnchorRouter.address,
           mockAUstUstFeed.address,
           ustToken.address,
           aUstToken.address,
-          PERFORMANCE_FEE_PCT,
           owner.address,
           mockCurvePool.address,
           underlyingI,
-          ustI
+          ustI,
+          ustFeed.address,
+          underlyingFeed.address
         )
       ).to.be.revertedWith("AnchorNonUSTStrategy: invalid underlying");
     });
 
     it("Check initial values", async () => {
-      expect(await strategy.treasury()).to.be.equal(TREASURY);
       expect(await strategy.vault()).to.be.equal(vault.address);
       expect(await strategy.underlying()).to.be.equal(underlying.address);
       expect(await strategy.ethAnchorRouter()).to.be.equal(
@@ -189,77 +193,28 @@ describe("AnchorNonUSTStrategy", () => {
       );
       expect(await strategy.ustToken()).to.be.equal(ustToken.address);
       expect(await strategy.aUstToken()).to.be.equal(aUstToken.address);
-      expect(await strategy.perfFeePct()).to.be.equal(PERFORMANCE_FEE_PCT);
       expect(await strategy.curvePool()).to.be.equal(mockCurvePool.address);
       expect(await strategy.underlyingI()).to.be.equal(underlyingI);
       expect(await strategy.ustI()).to.be.equal(ustI);
     });
   });
 
-  describe("#initializeStrategy function", () => {
-    it("Revert if msg.sender is not admin", async () => {
-      await expect(
-        strategy
-          .connect(alice)
-          .initializeStrategy(ustFeed.address, underlyingFeed.address)
-      ).to.be.revertedWith("BaseStrategy: caller is not admin");
-    });
-
-    it("Initialize by admin", async () => {
-      const tx = await strategy
-        .connect(owner)
-        .initializeStrategy(ustFeed.address, underlyingFeed.address);
-
-      expect(await strategy.ustFeed()).to.be.equal(ustFeed.address);
-      expect(await strategy.underlyingFeed()).to.be.equal(
-        underlyingFeed.address
-      );
-      expect(await strategy.initialized()).to.be.equal(true);
-
-      await expect(tx).to.emit(strategy, "Initialized");
-    });
-
-    it("Revert if already initialized", async () => {
-      await initializeStrategy();
-
-      await expect(
-        strategy
-          .connect(owner)
-          .initializeStrategy(ustFeed.address, underlyingFeed.address)
-      ).to.be.revertedWith("AnchorNonUSTStrategy: already initialized");
-    });
-  });
-
   describe("#invest function", () => {
-    it("Revert if not initialized", async () => {
-      await expect(
-        strategy
-          .connect(manager)
-          .invest(getInvestData(utils.parseEther("1000000000000")))
-      ).to.be.revertedWith("AnchorNonUSTStrategy: not initialized");
-    });
-
     it("Revert if msg.sender is not manager", async () => {
-      await initializeStrategy();
-
       await expect(
         strategy
           .connect(alice)
           .invest(getInvestData(utils.parseEther("1000000000000")))
-      ).to.be.revertedWith("BaseStrategy: caller is not manager");
+      ).to.be.revertedWith("AnchorBaseStrategy: caller is not manager");
     });
 
     it("Revert if data.minExchangeRate is zero", async () => {
-      await initializeStrategy();
-
       await expect(
         strategy.connect(manager).invest(getInvestData(BigNumber.from("0")))
       ).to.be.revertedWith("AnchorNonUSTStrategy: minExchangeRate is zero");
     });
 
     it("Revert if underlying balance is 0", async () => {
-      await initializeStrategy();
-
       await expect(
         strategy
           .connect(manager)
@@ -268,8 +223,6 @@ describe("AnchorNonUSTStrategy", () => {
     });
 
     it("Should swap underlying to UST and init deposit all UST", async () => {
-      await initializeStrategy();
-
       const operator = await registerNewTestOperator();
 
       let underlyingAmount = utils.parseUnits("100", 6);
@@ -286,7 +239,6 @@ describe("AnchorNonUSTStrategy", () => {
       );
 
       expect(await underlying.balanceOf(strategy.address)).equal(0);
-      expect(await strategy.convertedUst()).equal(0);
       expect(await strategy.pendingDeposits()).equal(ustAmount);
       expect(await strategy.investedAssets()).equal(
         ustAmount.div(utils.parseUnits("1", 12))
@@ -316,8 +268,6 @@ describe("AnchorNonUSTStrategy", () => {
     let redeemAmount0: BigNumber;
 
     beforeEach(async () => {
-      await initializeStrategy();
-
       operator0 = await registerNewTestOperator();
 
       underlyingAmount0 = utils.parseUnits("100", 6);
@@ -347,13 +297,13 @@ describe("AnchorNonUSTStrategy", () => {
     it("Revert if msg.sender is not manager", async () => {
       await expect(
         strategy.connect(alice).finishRedeemStable(0, 100)
-      ).to.be.revertedWith("BaseStrategy: caller is not manager");
+      ).to.be.revertedWith("AnchorBaseStrategy: caller is not manager");
     });
 
     it("Revert if idx is out of array", async () => {
       await expect(
         strategy.connect(manager).finishRedeemStable(1, 100)
-      ).to.be.revertedWith("BaseStrategy: not running");
+      ).to.be.revertedWith("AnchorBaseStrategy: not running");
     });
 
     it("Revert if minUnderlyingAmount is zero", async () => {
@@ -418,10 +368,6 @@ describe("AnchorNonUSTStrategy", () => {
   });
 
   describe("#_estimateUstAmountInUnderlying function", () => {
-    beforeEach(async () => {
-      await initializeStrategy();
-    });
-
     it("Revert if UST price is not positive", async () => {
       await ustFeed.setLatestRoundData(1, 0, 100, 100, 1);
       await underlyingFeed.setLatestRoundData(1, 10, 100, 100, 1);
@@ -576,12 +522,6 @@ describe("AnchorNonUSTStrategy", () => {
   });
 
   // Test helpers
-  const initializeStrategy = async () => {
-    await strategy
-      .connect(owner)
-      .initializeStrategy(ustFeed.address, underlyingFeed.address);
-  };
-
   const registerNewTestOperator = async (): Promise<string> => {
     const operator = generateNewAddress();
     await mockEthAnchorRouter.addPendingOperator(operator);
@@ -620,7 +560,7 @@ describe("AnchorNonUSTStrategy", () => {
     await mockAUstUstFeed.setLatestRoundData(1, rate, 1000, 1000, 1);
   };
 
-  const getInvestData = (minAmount: BigNumber) => {
-    return utils.defaultAbiCoder.encode(["uint256"], [minAmount]);
+  const getInvestData = (minExchangeRate: BigNumber) => {
+    return utils.defaultAbiCoder.encode(["uint256"], [minExchangeRate]);
   };
 });

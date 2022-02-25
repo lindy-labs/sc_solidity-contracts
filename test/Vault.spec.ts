@@ -40,7 +40,8 @@ describe("Vault", () => {
   let depositors: Depositors;
   let claimers: Claimers;
   let strategy: AnchorUSTStrategy;
-  const treasury = generateNewAddress();
+  const TREASURY = generateNewAddress();
+  const PERFORMANCE_FEE_PCT = BigNumber.from("0");
 
   // @openzeppelin/test-helpers actually does not use the same BigNumber lib,
   // so we need to convert
@@ -73,17 +74,17 @@ describe("Vault", () => {
       underlying.address,
       TWO_WEEKS,
       0,
-      owner.address
+      TREASURY,
+      owner.address,
+      PERFORMANCE_FEE_PCT
     )) as Vault;
 
     strategy = await MockStrategy.deploy(
       vault.address,
-      treasury,
       mockEthAnchorRouter.address,
       mockAUstUstFeed.address,
       underlying.address,
-      aUstToken.address,
-      BigNumber.from("200")
+      aUstToken.address
     );
 
     depositors = Depositors__factory.connect(await vault.depositors(), owner);
@@ -157,7 +158,14 @@ describe("Vault", () => {
       it("does not allow a minLockPeriod of 0", async () => {
         const Vault = await ethers.getContractFactory("Vault");
 
-        const tx = Vault.deploy(underlying.address, 0, 0, owner.address);
+        const tx = Vault.deploy(
+          underlying.address,
+          0,
+          0,
+          TREASURY,
+          owner.address,
+          PERFORMANCE_FEE_PCT
+        );
 
         await expect(tx).to.be.revertedWith("minLockPeriod cannot be 0");
       });
@@ -209,9 +217,9 @@ describe("Vault", () => {
 
   describe("setTreasury", () => {
     it("emits an event", async () => {
-      const tx = vault.connect(owner).setTreasury(treasury);
+      const tx = vault.connect(owner).setTreasury(TREASURY);
 
-      await expect(tx).to.emit(vault, "TreasuryUpdated").withArgs(treasury);
+      await expect(tx).to.emit(vault, "TreasuryUpdated").withArgs(TREASURY);
     });
   });
 
