@@ -86,11 +86,10 @@ contract AnchorUSTStrategy is AnchorBaseStrategy {
      *
      * @notice both held and invested amounts are included here, using the
      * latest known exchange rates to the underlying currency.
-     * This will return value without performance fee.
      *
      * @return The total amount of underlying
      */
     function investedAssets() external view override returns (uint256) {
-        return pendingDeposits + _estimateAUstBalanceInUstMinusFee();
+        return pendingDeposits + _estimateAUstBalanceInUst();
     }
 }

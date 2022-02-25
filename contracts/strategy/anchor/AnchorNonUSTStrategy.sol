@@ -16,8 +16,6 @@ import {AnchorBaseStrategy} from "./AnchorBaseStrategy.sol";
 contract AnchorNonUSTStrategy is AnchorBaseStrategy {
     using SafeERC20 for IERC20;
 
-    event Initialized();
-
     // UST / USDC / USDT / DAI curve pool address
     ICurve public immutable curvePool;
 
@@ -27,14 +25,11 @@ contract AnchorNonUSTStrategy is AnchorBaseStrategy {
     // index of the UST token in the curve pool
     int128 public immutable ustI;
 
-    // flag to indicate initialization status
-    bool public initialized;
-
     // Chainlink UST / USD feed
-    AggregatorV3Interface public ustFeed;
+    AggregatorV3Interface public immutable ustFeed;
 
     // Chainlink underlying / USD feed - ex. USDT / USD
-    AggregatorV3Interface public underlyingFeed;
+    AggregatorV3Interface public immutable underlyingFeed;
 
     // Underlying decimals multiplier to calculate UST -> Underlying amount
     uint256 internal _underlyingDecimalsMultiplier;
@@ -60,7 +55,9 @@ contract AnchorNonUSTStrategy is AnchorBaseStrategy {
         address _owner,
         address _curvePool,
         int128 _underlyingI,
-        int128 _ustI
+        int128 _ustI,
+        AggregatorV3Interface _ustFeed,
+        AggregatorV3Interface _underlyingFeed
     )
         AnchorBaseStrategy(
             _vault,
@@ -82,21 +79,6 @@ contract AnchorNonUSTStrategy is AnchorBaseStrategy {
         curvePool = ICurve(_curvePool);
         underlyingI = _underlyingI;
         ustI = _ustI;
-    }
-
-    /**
-     * Initialize UST / USD, and Underlying / USD chainlink feed
-     *
-     * @notice Since constructor has too many variables, we initialize these feed
-     * in different function
-     */
-    function initializeStrategy(
-        AggregatorV3Interface _ustFeed,
-        AggregatorV3Interface _underlyingFeed
-    ) external onlyAdmin {
-        require(!initialized, "AnchorNonUSTStrategy: already initialized");
-
-        initialized = true;
 
         ustFeed = _ustFeed;
         underlyingFeed = _underlyingFeed;
@@ -119,8 +101,6 @@ contract AnchorNonUSTStrategy is AnchorBaseStrategy {
             _underlyingDecimalsMultiplier = 1;
             _ustDecimalsMultiplier = 1;
         }
-
-        emit Initialized();
     }
 
     /**
@@ -137,7 +117,6 @@ contract AnchorNonUSTStrategy is AnchorBaseStrategy {
         override(AnchorBaseStrategy)
         onlyManager
     {
-        require(initialized, "AnchorNonUSTStrategy: not initialized");
         uint256 minExchangeRate = abi.decode(data, (uint256));
         uint256 underlyingAmount = _swapUnderlyingToUst(minExchangeRate);
 
@@ -236,7 +215,6 @@ contract AnchorNonUSTStrategy is AnchorBaseStrategy {
      *
      * @notice both held and invested amounts are included here, using the
      * latest known exchange rates to the underlying currency
-     * This will return value without performance fee.
      *
      * @return The total amount of underlying
      */
@@ -248,7 +226,7 @@ contract AnchorNonUSTStrategy is AnchorBaseStrategy {
     {
         return
             _estimateUstAmountInUnderlying(
-                pendingDeposits + _estimateAUstBalanceInUstMinusFee()
+                pendingDeposits + _estimateAUstBalanceInUst()
             );
     }
 

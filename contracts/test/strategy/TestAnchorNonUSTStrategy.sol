@@ -38,13 +38,15 @@ contract TestAnchorNonUSTStrategy is AnchorNonUSTStrategy {
         AnchorNonUSTStrategy(
             _vault,
             _ethAnchorRouter,
-            _aUstToUstFeed,
+            _aUstToUstFeed, // fake feed
             _ustToken,
             _aUstToken,
             _owner,
             address(0x1), // fake curve address
             0, // fake index
-            1 // fake index
+            1, // fake index,
+            _aUstToUstFeed, // fake feed
+            _aUstToUstFeed // fake feed
         )
     {
         exchangeRateFeeder = _exchangeRateFeeder;
@@ -52,9 +54,6 @@ contract TestAnchorNonUSTStrategy is AnchorNonUSTStrategy {
         _aUstToUstFeedMultiplier = 1e18;
 
         uniV2Router = IUniswapV2Router01(_uniV2Router);
-
-        // No need to initialize chainlink feed, because they don't exist on testnet
-        initialized = true;
     }
 
     /**

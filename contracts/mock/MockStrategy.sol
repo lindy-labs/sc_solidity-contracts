@@ -37,6 +37,6 @@ contract MockStrategy is AnchorBaseStrategy {
     function investedAssets() external view override returns (uint256) {
         uint256 underlyingBalance = _getUnderlyingBalance() + pendingDeposits;
 
-        return underlyingBalance + _estimateAUstBalanceInUstMinusFee();
+        return underlyingBalance + _estimateAUstBalanceInUst();
     }
 }

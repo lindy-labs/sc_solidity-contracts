@@ -21,7 +21,6 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
     using PercentMath for uint256;
     using ERC165Query for address;
 
-    event PerfFeePctUpdated(uint256 pct);
     event InitDepositStable(
         address indexed operator,
         uint256 indexed idx,
@@ -277,7 +276,6 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
      *
      * @notice both held and invested amounts are included here, using the
      * latest known exchange rates to the underlying currency.
-     * This will return value without performance fee.
      *
      * @return The total amount of underlying
      */
@@ -293,14 +291,13 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
      *
      * @notice Must be called some time after `initRedeemStable()`. Will only work if
      * the EthAnchor bridge has finished processing the deposit.
-     * Will take performance fee if some yield generated.
      *
      * @dev division by `aUstBalance` was not deemed worthy of a zero-check
      *   (https://github.com/code-423n4/2022-01-sandclock-findings/issues/95)
      *
      * @param idx Id of the pending redeem operation
      *
-     * @return Redeemed UST amount without performance fee.
+     * @return operator address, redeemed aUST and received UST amount
      */
     function _finishRedeemStable(uint256 idx)
         internal
@@ -374,13 +371,9 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
     }
 
     /**
-     * @return UST value of current aUST balance (+ pending redeems) without performance fee
+     * @return UST value of current aUST balance (+ pending redeems)
      */
-    function _estimateAUstBalanceInUstMinusFee()
-        internal
-        view
-        returns (uint256)
-    {
+    function _estimateAUstBalanceInUst() internal view returns (uint256) {
         uint256 aUstBalance = _getAUstBalance() + pendingRedeems;
 
         if (aUstBalance == 0) {
