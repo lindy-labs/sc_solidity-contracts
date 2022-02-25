@@ -25,7 +25,7 @@ describe("AnchorUSTStrategy Mainnet fork", () => {
   let aUstToken: MockERC20;
   // MockChainlinkPriceFeed has same interface as Mainnet, so we can use it for test
   let mockAUstUstFeed: MockChainlinkPriceFeed;
-  const twoWeeks = time.duration.days(14).toNumber();
+  const TWO_WEEKS = time.duration.days(14).toNumber();
   const INVEST_PCT = 10000; // set 100% for test
   const TREASURY = generateNewAddress();
   const FEE_PCT = BigNumber.from("200");
@@ -61,7 +61,7 @@ describe("AnchorUSTStrategy Mainnet fork", () => {
       const VaultFactory = await ethers.getContractFactory("Vault");
       vault = await VaultFactory.deploy(
         ustToken.address,
-        twoWeeks,
+        TWO_WEEKS,
         INVEST_PCT,
         owner.address
       );
@@ -104,7 +104,7 @@ describe("AnchorUSTStrategy Mainnet fork", () => {
             data: "0x",
           },
         ],
-        lockDuration: twoWeeks,
+        lockDuration: TWO_WEEKS,
       });
       expect(await ustToken.balanceOf(vault.address)).to.be.equal(amount);
       let exchangeRate = (await mockAUstUstFeed.latestRoundData()).answer;
@@ -156,7 +156,7 @@ describe("AnchorUSTStrategy Mainnet fork", () => {
             data: "0x",
           },
         ],
-        lockDuration: twoWeeks,
+        lockDuration: TWO_WEEKS,
       });
 
       expect(await vault.totalUnderlying()).to.be.equal(
@@ -212,7 +212,7 @@ describe("AnchorUSTStrategy Mainnet fork", () => {
       const VaultFactory = await ethers.getContractFactory("Vault");
       vault = await VaultFactory.deploy(
         ustToken.address,
-        twoWeeks,
+        TWO_WEEKS,
         INVEST_PCT,
         owner.address
       );
@@ -255,7 +255,7 @@ describe("AnchorUSTStrategy Mainnet fork", () => {
             data: "0x",
           },
         ],
-        lockDuration: twoWeeks,
+        lockDuration: TWO_WEEKS,
       });
       expect(await ustToken.balanceOf(vault.address)).to.be.equal(amount);
       let exchangeRate = utils.parseEther("1.17");
@@ -307,7 +307,7 @@ describe("AnchorUSTStrategy Mainnet fork", () => {
             data: "0x",
           },
         ],
-        lockDuration: twoWeeks,
+        lockDuration: TWO_WEEKS,
       });
 
       expect(await vault.totalUnderlying()).to.be.equal(

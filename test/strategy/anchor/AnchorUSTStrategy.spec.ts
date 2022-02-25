@@ -26,7 +26,7 @@ describe("AnchorUSTStrategy", () => {
   const TREASURY = generateNewAddress();
   const AUST_TO_UST_FEED_DECIMALS = utils.parseEther("1");
   const MIN_LOCK_PERIOD = 1;
-  const twoWeeks = time.duration.days(14).toNumber();
+  const TWO_WEEKS = time.duration.days(14).toNumber();
   const PERFORMANCE_FEE_PCT = BigNumber.from("200");
   const INVEST_PCT = BigNumber.from("9000");
   const DENOMINATOR = BigNumber.from("10000");
@@ -916,7 +916,7 @@ describe("AnchorUSTStrategy", () => {
           data: "0x",
         },
       ],
-      lockDuration: twoWeeks,
+      lockDuration: TWO_WEEKS,
     });
   };
 

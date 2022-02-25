@@ -38,7 +38,7 @@ describe("AnchorNonUSTStrategy", () => {
   const CURVE_DECIMALS = utils.parseEther("1");
   const INVEST_PCT = BigNumber.from("9000");
   const DENOMINATOR = BigNumber.from("10000");
-  const twoWeeks = BigNumber.from(time.duration.days(14).toNumber());
+  const TWO_WEEKS = BigNumber.from(time.duration.days(14).toNumber());
 
   const MANAGER_ROLE = utils.keccak256(utils.toUtf8Bytes("MANAGER_ROLE"));
 
@@ -438,7 +438,7 @@ describe("AnchorNonUSTStrategy", () => {
               data: "0x",
             },
           ],
-          lockDuration: twoWeeks,
+          lockDuration: TWO_WEEKS,
         })
       ).to.be.revertedWith("AnchorNonUSTStrategy: invalid price");
     });
@@ -459,7 +459,7 @@ describe("AnchorNonUSTStrategy", () => {
               data: "0x",
             },
           ],
-          lockDuration: twoWeeks,
+          lockDuration: TWO_WEEKS,
         })
       ).to.be.revertedWith("AnchorNonUSTStrategy: invalid price");
     });
@@ -480,7 +480,7 @@ describe("AnchorNonUSTStrategy", () => {
               data: "0x",
             },
           ],
-          lockDuration: twoWeeks,
+          lockDuration: TWO_WEEKS,
         })
       ).to.be.revertedWith("AnchorNonUSTStrategy: invalid price");
     });
@@ -501,7 +501,7 @@ describe("AnchorNonUSTStrategy", () => {
               data: "0x",
             },
           ],
-          lockDuration: twoWeeks,
+          lockDuration: TWO_WEEKS,
         })
       ).to.be.revertedWith("AnchorNonUSTStrategy: invalid price");
     });
@@ -522,7 +522,7 @@ describe("AnchorNonUSTStrategy", () => {
               data: "0x",
             },
           ],
-          lockDuration: twoWeeks,
+          lockDuration: TWO_WEEKS,
         })
       ).to.be.revertedWith("AnchorNonUSTStrategy: invalid price");
     });
@@ -543,7 +543,7 @@ describe("AnchorNonUSTStrategy", () => {
               data: "0x",
             },
           ],
-          lockDuration: twoWeeks,
+          lockDuration: TWO_WEEKS,
         })
       ).to.be.revertedWith("AnchorNonUSTStrategy: invalid price");
     });
@@ -598,7 +598,7 @@ describe("AnchorNonUSTStrategy", () => {
           data: "0x",
         },
       ],
-      lockDuration: twoWeeks,
+      lockDuration: TWO_WEEKS,
     });
   };
 

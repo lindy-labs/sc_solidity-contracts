@@ -44,7 +44,7 @@ describe("Vault", () => {
 
   // @openzeppelin/test-helpers actually does not use the same BigNumber lib,
   // so we need to convert
-  const twoWeeks = BigNumber.from(time.duration.days(14).toNumber());
+  const TWO_WEEKS = BigNumber.from(time.duration.days(14).toNumber());
 
   beforeEach(async () => {
     [owner, alice, bob, carol] = await ethers.getSigners();
@@ -71,7 +71,7 @@ describe("Vault", () => {
 
     vault = (await Vault.deploy(
       underlying.address,
-      twoWeeks,
+      TWO_WEEKS,
       0,
       owner.address
     )) as Vault;
@@ -243,8 +243,8 @@ describe("Vault", () => {
     it("adds a sponsor to the vault", async () => {
       await addUnderlyingBalance(alice, "1000");
 
-      await vault.connect(alice).sponsor(parseUnits("500"), twoWeeks);
-      await vault.connect(alice).sponsor(parseUnits("500"), twoWeeks);
+      await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
+      await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
 
       expect(await vault.totalSponsored()).to.eq(parseUnits("1000"));
     });
@@ -254,7 +254,7 @@ describe("Vault", () => {
 
       const tx = await vault
         .connect(alice)
-        .sponsor(parseUnits("500"), twoWeeks);
+        .sponsor(parseUnits("500"), TWO_WEEKS);
 
       await expect(tx)
         .to.emit(vault, "Sponsored")
@@ -262,7 +262,7 @@ describe("Vault", () => {
           0,
           parseUnits("500"),
           alice.address,
-          twoWeeks.add(await getLastBlockTimestamp())
+          TWO_WEEKS.add(await getLastBlockTimestamp())
         );
     });
 
@@ -305,8 +305,8 @@ describe("Vault", () => {
   describe("unsponsor", () => {
     it("removes a sponsor from the vault", async () => {
       await addUnderlyingBalance(alice, "1000");
-      await vault.connect(alice).sponsor(parseUnits("500"), twoWeeks);
-      await vault.connect(alice).sponsor(parseUnits("500"), twoWeeks);
+      await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
+      await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
 
       await moveForwardTwoWeeks();
       await vault.connect(alice)["unsponsor"](bob.address, [0]);
@@ -317,7 +317,7 @@ describe("Vault", () => {
 
     it("emits an event", async () => {
       await addUnderlyingBalance(alice, "1000");
-      await vault.connect(alice).sponsor(parseUnits("500"), twoWeeks);
+      await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
 
       await moveForwardTwoWeeks();
       const tx = await vault.connect(alice)["unsponsor"](bob.address, [0]);
@@ -327,7 +327,7 @@ describe("Vault", () => {
 
     it("fails if the caller is not the owner", async () => {
       await addUnderlyingBalance(alice, "1000");
-      await vault.connect(alice).sponsor(parseUnits("500"), twoWeeks);
+      await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
 
       await expect(
         vault.connect(bob)["unsponsor"](alice.address, [0])
@@ -336,7 +336,7 @@ describe("Vault", () => {
 
     it("fails if the destination address is 0x", async () => {
       await addUnderlyingBalance(alice, "1000");
-      await vault.connect(alice).sponsor(parseUnits("500"), twoWeeks);
+      await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
 
       await expect(
         vault
@@ -347,7 +347,7 @@ describe("Vault", () => {
 
     it("fails if the amount is still locked", async () => {
       await addUnderlyingBalance(alice, "1000");
-      await vault.connect(alice).sponsor(parseUnits("500"), twoWeeks);
+      await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
 
       await expect(
         vault.connect(alice)["unsponsor"](alice.address, [0])
@@ -359,12 +359,12 @@ describe("Vault", () => {
 
       await vault.connect(alice).deposit(
         depositParams.build({
-          lockDuration: twoWeeks,
+          lockDuration: TWO_WEEKS,
           amount: parseUnits("500"),
           claims: [claimParams.percent(100).to(alice.address).build()],
         })
       );
-      await vault.connect(alice).sponsor(parseUnits("500"), twoWeeks);
+      await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
 
       await moveForwardTwoWeeks();
 
@@ -375,7 +375,7 @@ describe("Vault", () => {
 
     it("fails if there are not enough funds", async () => {
       await addUnderlyingBalance(alice, "1000");
-      await vault.connect(alice).sponsor(parseUnits("1000"), twoWeeks);
+      await vault.connect(alice).sponsor(parseUnits("1000"), TWO_WEEKS);
       await moveForwardTwoWeeks();
 
       await removeUnderlyingFromVault("500");
@@ -391,7 +391,7 @@ describe("Vault", () => {
       await addUnderlyingBalance(alice, "1000");
 
       const params = depositParams.build({
-        lockDuration: twoWeeks,
+        lockDuration: TWO_WEEKS,
         amount: parseUnits("100"),
         claims: [
           claimParams.percent(50).to(carol.address).build(),
@@ -415,7 +415,7 @@ describe("Vault", () => {
           alice.address,
           carol.address,
           1,
-          twoWeeks.add(await getLastBlockTimestamp()),
+          TWO_WEEKS.add(await getLastBlockTimestamp()),
           "0x00"
         );
 
@@ -429,7 +429,7 @@ describe("Vault", () => {
           alice.address,
           bob.address,
           2,
-          twoWeeks.add(await getLastBlockTimestamp()),
+          TWO_WEEKS.add(await getLastBlockTimestamp()),
           ethers.utils.hexlify(123)
         );
     });
@@ -438,7 +438,7 @@ describe("Vault", () => {
       await addUnderlyingBalance(alice, "1000");
 
       const params = depositParams.build({
-        lockDuration: twoWeeks,
+        lockDuration: TWO_WEEKS,
         amount: parseUnits("100"),
         claims: [
           claimParams.percent(50).to(carol.address).build(),
@@ -459,7 +459,7 @@ describe("Vault", () => {
           alice.address,
           carol.address,
           1,
-          twoWeeks.add(await getLastBlockTimestamp()),
+          TWO_WEEKS.add(await getLastBlockTimestamp()),
           "0x00"
         );
 
@@ -473,7 +473,7 @@ describe("Vault", () => {
           alice.address,
           bob.address,
           2,
-          twoWeeks.add(await getLastBlockTimestamp()),
+          TWO_WEEKS.add(await getLastBlockTimestamp()),
           "0x00"
         );
     });
@@ -494,7 +494,7 @@ describe("Vault", () => {
       const deposit = await vault.deposits(0);
 
       expect(deposit.lockedUntil.toNumber()).to.be.at.least(
-        twoWeeks.add(await getLastBlockTimestamp())
+        TWO_WEEKS.add(await getLastBlockTimestamp())
       );
     });
 
@@ -708,7 +708,7 @@ describe("Vault", () => {
         await addUnderlyingBalance(alice, "1000");
 
         const params = depositParams.build({
-          lockDuration: twoWeeks,
+          lockDuration: TWO_WEEKS,
           amount: parseUnits("100"),
           claims: [claimParams.percent(100).to(bob.address).build()],
         });
@@ -725,12 +725,12 @@ describe("Vault", () => {
 
         await vault.connect(alice).deposit(
           depositParams.build({
-            lockDuration: twoWeeks,
+            lockDuration: TWO_WEEKS,
             amount: parseUnits("500"),
             claims: [claimParams.percent(100).to(alice.address).build()],
           })
         );
-        await vault.connect(alice).sponsor(parseUnits("500"), twoWeeks);
+        await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
 
         await moveForwardTwoWeeks();
 
