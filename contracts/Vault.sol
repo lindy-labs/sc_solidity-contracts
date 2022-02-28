@@ -439,9 +439,12 @@ contract Vault is
     function harvest() external updateDebt onlyRole(HARVESTOR_ROLE) {
         uint256 _perfFee = perfFee;
         require(_perfFee != 0, "Vault: no performance fee");
+
+        totalDebt -= _perfFee;
+        perfFee = 0;
+
         underlying.safeTransfer(treasury, _perfFee);
         emit FeeHarvested(_perfFee);
-        perfFee = 0;
     }
 
     //

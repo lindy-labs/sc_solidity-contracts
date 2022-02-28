@@ -366,6 +366,7 @@ describe("Vault", () => {
       await expect(tx).to.emit(vault, "FeeHarvested").withArgs(perfFee);
 
       expect(await vault.perfFee()).to.be.eq("0");
+      expect(await vault.totalDebt()).to.be.eq(await vault.totalUnderlying());
     });
 
     it("Revert if nothing to harvest", async () => {
