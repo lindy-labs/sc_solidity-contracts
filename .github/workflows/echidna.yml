@@ -13,7 +13,6 @@ jobs:
       fail-fast: false
       matrix:
         test:
-          - EchidnaPercentMath
           - Echidna_Deposit_Withdraw
 
     steps:
