@@ -22,4 +22,8 @@ contract MockERC20 is ERC20("MockERC20", "ME2") {
     function mint(address _user, uint256 _amount) public {
         _mint(_user, _amount);
     }
+
+    function burn(address _user, uint256 _amount) public {
+        _burn(_user, _amount);
+    }
 }

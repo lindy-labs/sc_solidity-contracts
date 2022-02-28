@@ -1,3 +1,4 @@
+import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { Wallet } from "ethers";
 
 export const generateNewAddress = (): string => {
@@ -12,4 +13,11 @@ export const arrayFromTo = (start: number, end: number) => {
 
     return memo;
   }, []);
+};
+
+export const getRoleErrorMsg = (
+  account: SignerWithAddress,
+  role: string
+): string => {
+  return `AccessControl: account ${account.address.toLowerCase()} is missing role ${role}`;
 };

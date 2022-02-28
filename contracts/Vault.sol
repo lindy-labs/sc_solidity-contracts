@@ -140,17 +140,15 @@ contract Vault is
         );
         require(
             PercentMath.validPerc(_perfFeePct),
-            "VaultContext: invalid performance fee"
+            "Vault: invalid performance fee"
         );
         require(
             address(_underlying) != address(0x0),
-            "VaultContext: underlying cannot be 0x0"
+            "Vault: underlying cannot be 0x0"
         );
-        require(
-            address(_treasury) != address(0x0),
-            "VaultContext: treasury cannot be 0x0"
-        );
-        require(_minLockPeriod > 0, "minLockPeriod cannot be 0");
+        require(_treasury != address(0x0), "Vault: treasury cannot be 0x0");
+        require(_owner != address(0x0), "Vault: owner cannot be 0x0");
+        require(_minLockPeriod != 0, "Vault: minLockPeriod cannot be 0");
 
         _setupRole(DEFAULT_ADMIN_ROLE, _owner);
         _setupRole(INVESTOR_ROLE, _owner);
@@ -178,7 +176,7 @@ contract Vault is
     {
         require(
             address(_treasury) != address(0x0),
-            "VaultContext: treasury cannot be 0x0"
+            "Vault: treasury cannot be 0x0"
         );
         treasury = _treasury;
         emit TreasuryUpdated(_treasury);
@@ -191,7 +189,7 @@ contract Vault is
     {
         require(
             PercentMath.validPerc(_perfFeePct),
-            "VaultContext: invalid performance fee"
+            "Vault: invalid performance fee"
         );
         perfFeePct = _perfFeePct;
         emit PerfFeePctUpdated(_perfFeePct);
@@ -438,7 +436,7 @@ contract Vault is
         _unsponsor(_to, _ids);
     }
 
-    function harvest() external onlyRole(HARVESTOR_ROLE) {
+    function harvest() external updateDebt onlyRole(HARVESTOR_ROLE) {
         uint256 _perfFee = perfFee;
         require(_perfFee != 0, "Vault: no performance fee");
         underlying.safeTransfer(treasury, _perfFee);
