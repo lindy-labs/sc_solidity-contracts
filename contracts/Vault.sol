@@ -175,9 +175,9 @@ contract Vault is
         if (address(strategy) != address(0)) {
             return
                 underlying.balanceOf(address(this)) + strategy.investedAssets();
-        } else {
-            return underlying.balanceOf(address(this));
         }
+
+        return underlying.balanceOf(address(this));
     }
 
     /// See {IVault}
@@ -297,9 +297,9 @@ contract Vault is
 
         if (alreadyInvested >= maxInvestableAssets) {
             return 0;
-        } else {
-            return maxInvestableAssets - alreadyInvested;
         }
+
+        return maxInvestableAssets - alreadyInvested;
     }
 
     /// See {IVault}
@@ -716,9 +716,9 @@ contract Vault is
     ) internal pure returns (uint256) {
         if (_totalShares == 0 || _totalUnderlyingMinusSponsored == 0) {
             return 0;
-        } else {
-            return ((_totalUnderlyingMinusSponsored * _shares) / _totalShares);
         }
+        
+        return ((_totalUnderlyingMinusSponsored * _shares) / _totalShares);
     }
 
     /**
