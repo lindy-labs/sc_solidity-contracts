@@ -29,6 +29,12 @@ jobs:
     - run: yarn install
     - run: yarn run hardhat compile
 
+    - name: Cache ${{ matrix.test }} corpus
+      uses: actions/cache@v2
+      with:
+        path: corpus
+        key: abi-${{ matrix.test }}-v2
+
     - name: Run Echidna
       uses: crytic/echidna-action@v1
       with:
@@ -37,3 +43,9 @@ jobs:
         contract: ${{ matrix.test }}
         crytic-args: --hardhat-ignore-compile
         config: contracts/echidna/${{ matrix.test }}.yml
+
+    - name: Upload ${{ matrix.test }} coverage
+      uses: actions/upload-artifact@v2
+      with:
+        name: coverage-${{ matrix.test }}
+        path: corpus/covered.*
