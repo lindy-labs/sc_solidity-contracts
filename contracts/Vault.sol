@@ -443,8 +443,8 @@ contract Vault is
         totalDebt -= _perfFee;
         perfFee = 0;
 
-        underlying.safeTransfer(treasury, _perfFee);
         emit FeeHarvested(_perfFee);
+        underlying.safeTransfer(treasury, _perfFee);
     }
 
     //
