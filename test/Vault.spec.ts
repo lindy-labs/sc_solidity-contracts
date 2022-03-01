@@ -207,6 +207,14 @@ describe("Vault", () => {
     });
   });
 
+  describe("setTreasury", () => {
+    it("emits an event", async () => {
+      const tx = vault.connect(owner).setTreasury(treasury);
+
+      await expect(tx).to.emit(vault, "TreasuryUpdated").withArgs(treasury);
+    });
+  });
+
   describe("setStrategy", () => {
     it("changes the strategy", async () => {
       expect(await vault.strategy()).to.equal(
@@ -387,7 +395,11 @@ describe("Vault", () => {
         amount: parseUnits("100"),
         claims: [
           claimParams.percent(50).to(carol.address).build(),
-          claimParams.percent(50).to(bob.address).build(),
+          claimParams
+            .percent(50)
+            .data(ethers.utils.hexlify(123))
+            .to(bob.address)
+            .build(),
         ],
       });
 
@@ -403,7 +415,8 @@ describe("Vault", () => {
           alice.address,
           carol.address,
           1,
-          twoWeeks.add(await getLastBlockTimestamp())
+          twoWeeks.add(await getLastBlockTimestamp()),
+          "0x00"
         );
 
       await expect(tx)
@@ -416,7 +429,8 @@ describe("Vault", () => {
           alice.address,
           bob.address,
           2,
-          twoWeeks.add(await getLastBlockTimestamp())
+          twoWeeks.add(await getLastBlockTimestamp()),
+          ethers.utils.hexlify(123)
         );
     });
 
@@ -445,7 +459,8 @@ describe("Vault", () => {
           alice.address,
           carol.address,
           1,
-          twoWeeks.add(await getLastBlockTimestamp())
+          twoWeeks.add(await getLastBlockTimestamp()),
+          "0x00"
         );
 
       await expect(tx)
@@ -458,7 +473,8 @@ describe("Vault", () => {
           alice.address,
           bob.address,
           2,
-          twoWeeks.add(await getLastBlockTimestamp())
+          twoWeeks.add(await getLastBlockTimestamp()),
+          "0x00"
         );
     });
 
