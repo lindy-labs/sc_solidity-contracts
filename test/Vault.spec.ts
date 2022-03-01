@@ -350,6 +350,7 @@ describe("Vault", () => {
 
       await vault.connect(alice).deposit(params);
       const newYield = await addYieldToVault("100");
+      await vault.connect(bob).claimYield(carol.address);
       perfFee = newYield.mul(PERFORMANCE_FEE_PCT).div(DENOMINATOR);
     });
 
@@ -365,8 +366,7 @@ describe("Vault", () => {
       expect(await underlying.balanceOf(TREASURY)).to.be.equal(perfFee);
       await expect(tx).to.emit(vault, "FeeHarvested").withArgs(perfFee);
 
-      expect(await vault.perfFee()).to.be.eq("0");
-      expect(await vault.totalDebt()).to.be.eq(await vault.totalUnderlying());
+      expect(await vault.accumulatedPerfFee()).to.be.eq("0");
     });
 
     it("Revert if nothing to harvest", async () => {
@@ -983,9 +983,8 @@ describe("Vault", () => {
     it("claims the yield of a user", async () => {
       await addUnderlyingBalance(alice, "1000");
 
-      const amount = parseUnits("100");
       const params = depositParams.build({
-        amount,
+        amount: parseUnits("100"),
         claims: [
           claimParams.percent(50).to(carol.address).build(),
           claimParams.percent(50).to(bob.address).build(),
@@ -993,52 +992,49 @@ describe("Vault", () => {
       });
 
       await vault.connect(alice).deposit(params);
-      const newYield = await addYieldToVault("100");
-      const perfFee = newYield.mul(PERFORMANCE_FEE_PCT).div(DENOMINATOR);
-
-      const carolYield = newYield.sub(perfFee).div(BigNumber.from("2"));
-      expect(await vault.yieldFor(carol.address)).to.eq(carolYield);
-
-      const totalShares = await vault.totalShares();
-      const totalUnderlyingMinusFee = amount.add(newYield).sub(perfFee);
-      const shares = totalShares.mul(carolYield).div(totalUnderlyingMinusFee);
-      const shareAmount = totalUnderlyingMinusFee.mul(shares).div(totalShares);
-
+      await addYieldToVault("100");
       const tx = await vault.connect(carol).claimYield(carol.address);
 
+      const yieldWithFee = parseUnits("50");
+      const perfFee = yieldWithFee.mul(PERFORMANCE_FEE_PCT).div(DENOMINATOR);
       expect(await vault.yieldFor(carol.address)).to.eq(parseUnits("0"));
-      expect(await underlying.balanceOf(carol.address)).to.eq(shareAmount);
+      expect(await vault.accumulatedPerfFee()).to.eq(perfFee);
+      expect(await underlying.balanceOf(carol.address)).to.eq(
+        yieldWithFee.sub(perfFee)
+      );
       expect(await vault.yieldFor(bob.address)).to.eq(
-        newYield.sub(perfFee).div(BigNumber.from("2"))
+        yieldWithFee.sub(perfFee)
       );
 
       await expect(tx)
         .to.emit(vault, "YieldClaimed")
-        .withArgs(1, carol.address, shareAmount, shares);
+        .withArgs(
+          1,
+          carol.address,
+          yieldWithFee.sub(perfFee),
+          parseUnits("25").mul(SHARES_MULTIPLIER),
+          perfFee
+        );
     });
 
     it("claims the yield to a different address", async () => {
       await addUnderlyingBalance(alice, "1000");
 
-      const amount = parseUnits("100");
       const params = depositParams.build({
-        amount,
+        amount: parseUnits("100"),
         claims: [claimParams.percent(100).to(bob.address).build()],
       });
 
       await vault.connect(alice).deposit(params);
-      const newYield = await addYieldToVault("100");
-      const perfFee = newYield.mul(PERFORMANCE_FEE_PCT).div(DENOMINATOR);
+      await addYieldToVault("100");
 
-      const carolYield = newYield.sub(perfFee);
-      const totalShares = await vault.totalShares();
-      const totalUnderlyingMinusFee = amount.add(newYield).sub(perfFee);
-      const shares = totalShares.mul(carolYield).div(totalUnderlyingMinusFee);
-      const shareAmount = totalUnderlyingMinusFee.mul(shares).div(totalShares);
-
+      const yieldWithFee = parseUnits("100");
+      const perfFee = yieldWithFee.mul(PERFORMANCE_FEE_PCT).div(DENOMINATOR);
       await vault.connect(bob).claimYield(carol.address);
 
-      expect(await underlying.balanceOf(carol.address)).to.eq(shareAmount);
+      expect(await underlying.balanceOf(carol.address)).to.eq(
+        yieldWithFee.sub(perfFee)
+      );
     });
 
     it("fails is the destination address is 0x", async () => {
@@ -1074,13 +1070,14 @@ describe("Vault", () => {
 
       await vault.connect(alice).deposit(params);
       const newYield = await addYieldToVault("100");
-      const perfFee = newYield.mul(PERFORMANCE_FEE_PCT).div(DENOMINATOR);
+      const yieldPerUser = newYield.div(BigNumber.from("2"));
+      const perfFee = yieldPerUser.mul(PERFORMANCE_FEE_PCT).div(DENOMINATOR);
 
       expect(await vault.yieldFor(alice.address)).to.eq(
-        newYield.sub(perfFee).div(BigNumber.from("2"))
+        yieldPerUser.sub(perfFee)
       );
       expect(await vault.yieldFor(bob.address)).to.eq(
-        newYield.sub(perfFee).div(BigNumber.from("2"))
+        yieldPerUser.sub(perfFee)
       );
     });
   });

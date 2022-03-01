@@ -51,7 +51,8 @@ interface IVault {
         uint256 claimerId,
         address indexed to,
         uint256 amount,
-        uint256 burnedShares
+        uint256 burnedShares,
+        uint256 perfFee
     );
 
     event FeeHarvested(uint256 amount);
@@ -105,11 +106,6 @@ interface IVault {
     function totalUnderlying() external view returns (uint256);
 
     /**
-     * Total underlying amount without performance fee
-     */
-    function totalUnderlyingMinusPerfFee() external view returns (uint256);
-
-    /**
      * Total amount of shares
      */
     function totalShares() external view returns (uint256);
@@ -124,7 +120,7 @@ interface IVault {
     function yieldFor(address _to) external view returns (uint256);
 
     /**
-     * Transfers all the yield generated for the caller to
+     * Accumulate performance fee and transfers rest yield generated for the caller to
      *
      * @param _to Address that will receive the yield.
      */

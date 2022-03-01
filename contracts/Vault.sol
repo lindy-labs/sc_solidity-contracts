@@ -109,19 +109,14 @@ contract Vault is
     // The total of principal deposited
     uint256 public totalPrincipal;
 
+    // Treasury address to collect performance fee
     address public treasury;
-    uint16 public perfFeePct;
-    uint256 public totalDebt;
-    uint256 public perfFee;
 
-    modifier updateDebt() {
-        uint256 _totalUnderlying = totalUnderlying();
-        if (totalDebt < _totalUnderlying) {
-            perfFee += (_totalUnderlying - totalDebt).percOf(perfFeePct);
-            totalDebt = _totalUnderlying;
-        }
-        _;
-    }
+    // Performance fee percentage
+    uint16 public perfFeePct;
+
+    // Current accumulated performance fee;
+    uint256 public accumulatedPerfFee;
 
     /**
      * @param _underlying Underlying ERC20 token to use.
@@ -227,53 +222,35 @@ contract Vault is
     }
 
     /// See {IVault}
-    function totalUnderlyingMinusPerfFee()
-        public
-        view
-        override(IVault)
-        returns (uint256)
-    {
-        uint256 _totalUnderlying = totalUnderlying();
-        if (totalDebt < _totalUnderlying) {
-            uint256 _newPerfFee = (_totalUnderlying - totalDebt).percOf(
-                perfFeePct
-            );
-            return _totalUnderlying - perfFee - _newPerfFee;
-        } else {
-            return _totalUnderlying - perfFee;
-        }
-    }
-
-    /// See {IVault}
     function yieldFor(address _to)
-        public
+        external
         view
         override(IVault)
         returns (uint256)
     {
-        uint256 tokenId = claimers.tokenOf(_to);
-        uint256 claimerPrincipal = claimer[tokenId].totalPrincipal;
-        uint256 claimerShares = claimer[tokenId].totalShares;
+        uint256 yieldWithPerfFee = _yieldForWithPerfFee(_to);
 
-        uint256 currentClaimerPrincipal = _computeAmount(
-            claimerShares,
+        if (yieldWithPerfFee == 0) {
+            return 0;
+        }
+
+        uint256 shares = _computeShares(
+            yieldWithPerfFee,
+            totalShares,
+            totalUnderlyingMinusSponsored()
+        );
+        uint256 sharesAmount = _computeAmount(
+            shares,
             totalShares,
             totalUnderlyingMinusSponsored()
         );
 
-        if (currentClaimerPrincipal <= claimerPrincipal) {
-            return 0;
-        }
-
-        return currentClaimerPrincipal - claimerPrincipal;
+        uint256 fee = sharesAmount.percOf(perfFeePct);
+        return sharesAmount - fee;
     }
 
     /// See {IVault}
-    function deposit(DepositParams calldata _params)
-        external
-        updateDebt
-        nonReentrant
-    {
+    function deposit(DepositParams calldata _params) external nonReentrant {
         uint256 principalMinusStrategyFee = _applyInvestmentFee(totalPrincipal);
         require(_params.amount != 0, "Vault: cannot deposit 0");
         require(
@@ -289,21 +266,14 @@ contract Vault is
         uint256 lockedUntil = _params.lockDuration + block.timestamp;
 
         _createDeposit(_params.amount, lockedUntil, _params.claims);
-
-        totalDebt += _params.amount;
         _transferAndCheckUnderlying(_msgSender(), _params.amount);
     }
 
     /// See {IVault}
-    function claimYield(address _to)
-        external
-        override(IVault)
-        updateDebt
-        nonReentrant
-    {
+    function claimYield(address _to) external override(IVault) nonReentrant {
         require(_to != address(0), "Vault: destination address is 0x");
 
-        uint256 yield = yieldFor(_msgSender());
+        uint256 yield = _yieldForWithPerfFee(_msgSender());
 
         if (yield == 0) return;
 
@@ -320,13 +290,16 @@ contract Vault is
 
         uint256 claimerId = claimers.tokenOf(_msgSender());
 
-        totalDebt -= sharesAmount;
-        underlying.safeTransfer(_to, sharesAmount);
+        uint256 fee = sharesAmount.percOf(perfFeePct);
+        uint256 yieldWithoutFee = sharesAmount - fee;
+        accumulatedPerfFee += fee;
+
+        underlying.safeTransfer(_to, yieldWithoutFee);
 
         claimer[claimerId].totalShares -= shares;
         totalShares -= shares;
 
-        emit YieldClaimed(claimerId, _to, sharesAmount, shares);
+        emit YieldClaimed(claimerId, _to, yieldWithoutFee, shares, fee);
     }
 
     /// See {IVault}
@@ -403,7 +376,6 @@ contract Vault is
     function sponsor(uint256 _amount, uint256 _lockDuration)
         external
         override(IVaultSponsoring)
-        updateDebt
         nonReentrant
     {
         require(_amount != 0, "Vault: cannot sponsor 0");
@@ -422,7 +394,6 @@ contract Vault is
         emit Sponsored(tokenId, _amount, _msgSender(), lockedUntil);
 
         totalSponsored += _amount;
-        totalDebt += _amount;
         _transferAndCheckUnderlying(_msgSender(), _amount);
     }
 
@@ -436,12 +407,11 @@ contract Vault is
         _unsponsor(_to, _ids);
     }
 
-    function harvest() external updateDebt onlyRole(HARVESTOR_ROLE) {
-        uint256 _perfFee = perfFee;
+    function harvest() external onlyRole(HARVESTOR_ROLE) {
+        uint256 _perfFee = accumulatedPerfFee;
         require(_perfFee != 0, "Vault: no performance fee");
 
-        totalDebt -= _perfFee;
-        perfFee = 0;
+        accumulatedPerfFee = 0;
 
         emit FeeHarvested(_perfFee);
         underlying.safeTransfer(treasury, _perfFee);
@@ -454,17 +424,18 @@ contract Vault is
     /**
      * Computes the total amount of principal + yield currently controlled by the
      * vault and the strategy. The principal + yield is the total amount
-     * of underlying that can be claimed or withdrawn, excluding the sponsored amount.
+     * of underlying that can be claimed or withdrawn, excluding the sponsored amount and performance fee.
      *
-     * @return Total amount of principal and yield help by the vault (not including sponsored amount).
+     * @return Total amount of principal and yield help by the vault (not including sponsored amount and performance fee).
      */
     function totalUnderlyingMinusSponsored() public view returns (uint256) {
-        uint256 _totalUnderlying = totalUnderlyingMinusPerfFee();
-        if (totalSponsored > _totalUnderlying) {
+        uint256 _totalUnderlying = totalUnderlying();
+        uint256 deductAmount = totalSponsored + accumulatedPerfFee;
+        if (deductAmount > _totalUnderlying) {
             return 0;
         }
 
-        return _totalUnderlying - totalSponsored;
+        return _totalUnderlying - deductAmount;
     }
 
     //
@@ -501,7 +472,7 @@ contract Vault is
         address _to,
         uint256[] memory _ids,
         bool _force
-    ) internal updateDebt {
+    ) internal {
         uint256 localTotalShares = totalShares;
         uint256 localTotalPrincipal = totalUnderlyingMinusSponsored();
         uint256 amount;
@@ -517,7 +488,6 @@ contract Vault is
             );
         }
 
-        totalDebt -= amount;
         underlying.safeTransfer(_to, amount);
     }
 
@@ -530,10 +500,7 @@ contract Vault is
      * @param _to Address that will receive the funds.
      * @param _ids Array with the ids of the deposits.
      */
-    function _unsponsor(address _to, uint256[] memory _ids)
-        internal
-        updateDebt
-    {
+    function _unsponsor(address _to, uint256[] memory _ids) internal {
         uint256 sponsorAmount;
         uint256 idsLen = _ids.length;
 
@@ -559,11 +526,10 @@ contract Vault is
         uint256 sponsorToTransfer = sponsorAmount;
 
         require(
-            sponsorToTransfer <= totalUnderlyingMinusPerfFee(),
+            sponsorToTransfer <= totalUnderlying(),
             "Vault: not enough funds"
         );
 
-        totalDebt -= sponsorAmount;
         totalSponsored -= sponsorAmount;
 
         underlying.safeTransfer(_to, sponsorToTransfer);
@@ -811,8 +777,30 @@ contract Vault is
         if (_totalShares == 0 || _totalUnderlyingMinusSponsored == 0) {
             return 0;
         }
-        
+
         return ((_totalUnderlyingMinusSponsored * _shares) / _totalShares);
+    }
+
+    /**
+     * Calculate yield for account.
+     * @notice This value includes performance fee.
+     */
+    function _yieldForWithPerfFee(address _to) internal view returns (uint256) {
+        uint256 tokenId = claimers.tokenOf(_to);
+        uint256 claimerPrincipal = claimer[tokenId].totalPrincipal;
+        uint256 claimerShares = claimer[tokenId].totalShares;
+
+        uint256 currentClaimerPrincipal = _computeAmount(
+            claimerShares,
+            totalShares,
+            totalUnderlyingMinusSponsored()
+        );
+
+        if (currentClaimerPrincipal <= claimerPrincipal) {
+            return 0;
+        }
+
+        return currentClaimerPrincipal - claimerPrincipal;
     }
 
     /**
