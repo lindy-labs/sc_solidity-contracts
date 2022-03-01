@@ -38,7 +38,7 @@ describe("AnchorUSTStrategy Mainnet fork", () => {
     [owner, alice, bob] = await ethers.getSigners();
 
     ustToken = IERC20__factory.connect(config.ust, owner);
-    ustToken = IERC20__factory.connect(config.aUst, owner);
+    aUstToken = IERC20__factory.connect(config.aUst, owner);
 
     await ForkHelpers.mintToken(
       ustToken,
