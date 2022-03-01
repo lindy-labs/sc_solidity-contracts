@@ -6,10 +6,10 @@ import { BigNumber, utils, constants } from "ethers";
 import {
   Vault,
   AnchorUSTStrategy,
-  MockERC20,
+  IERC20,
   MockChainlinkPriceFeed,
-  MockERC20__factory,
   MockChainlinkPriceFeed__factory,
+  IERC20__factory,
 } from "../../../../typechain";
 import { generateNewAddress, ForkHelpers } from "../../../shared";
 import config from "./config.json";
@@ -21,8 +21,8 @@ describe("AnchorUSTStrategy Mainnet fork", () => {
 
   let vault: Vault;
   let strategy: AnchorUSTStrategy;
-  let ustToken: MockERC20;
-  let aUstToken: MockERC20;
+  let ustToken: IERC20;
+  let aUstToken: IERC20;
   // MockChainlinkPriceFeed has same interface as Mainnet, so we can use it for test
   let mockAUstUstFeed: MockChainlinkPriceFeed;
   const twoWeeks = time.duration.days(14).toNumber();
@@ -37,8 +37,8 @@ describe("AnchorUSTStrategy Mainnet fork", () => {
     await ForkHelpers.forkToMainnet(FORK_BLOCK);
     [owner, alice, bob] = await ethers.getSigners();
 
-    ustToken = new MockERC20__factory(owner).attach(config.ust);
-    aUstToken = new MockERC20__factory(owner).attach(config.aUst);
+    ustToken = IERC20__factory.connect(config.ust, owner);
+    ustToken = IERC20__factory.connect(config.aUst, owner);
 
     await ForkHelpers.mintToken(
       ustToken,
