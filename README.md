@@ -67,7 +67,7 @@ the steps.
 | ------------ | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
 | USTVault     | Vault                    | [0x135055b3f44c8511d1c2c078c93ba7ff53c8c72e](https://ropsten.etherscan.io/address/0x135055b3f44c8511d1c2c078c93ba7ff53c8c72e) |
 | USTStrategy  | TestUSTAnchorStrategy    | [0x0Ac1d08a5F8C535d002b236E0CA9f94822407B04](https://ropsten.etherscan.io/address/0x0Ac1d08a5F8C535d002b236E0CA9f94822407B04) |
-| USDTVault    | Vault                    | [0x135055B3f44c8511D1c2c078c93BA7ff53c8c72E](https://ropsten.etherscan.io/address/0x135055B3f44c8511D1c2c078c93BA7ff53c8c72E) |
+| USDTVault    | Vault                    | [0x554DCc8bF737AcaC78Fe2F947430E0D46424db9c](https://ropsten.etherscan.io/address/0x554DCc8bF737AcaC78Fe2F947430E0D46424db9c) |
 | USDTStrategy | TestNonUSTAnchorStrategy | [0xd5984553718867ab6b266220bdda6176ab688f2e](https://ropsten.etherscan.io/address/0xd5984553718867ab6b266220bdda6176ab688f2e) |
 | USDCVault    | Vault                    | [0xcEbdBeC07C66ABD29083240DefcDd4837452e2Ab](https://ropsten.etherscan.io/address/0xcEbdBeC07C66ABD29083240DefcDd4837452e2Ab) |
 | USDCStrategy | TestNonUSTAnchorStrategy | [0x5ECdb6E6d0BA18d05b263D49717134ae9bCC2dC3](https://ropsten.etherscan.io/address/0x5ECdb6E6d0BA18d05b263D49717134ae9bCC2dC3) |
