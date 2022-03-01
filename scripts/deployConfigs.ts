@@ -14,7 +14,7 @@ const networkConfigs: Record<number, Config> = {
   1: {
     investPct: 9000, // 90%
     perfFeePct: 0, // TODO
-    multisig: "TODO",
+    multisig: "0x035F210e5d14054E8AE5A6CFA76d643aA200D56E",
     minLockPeriod: 60 * 60 * 24 * 30, // 30 days
     ethAnchorRouter: "0xcEF9E167d3f8806771e9bac1d4a0d568c39a9388",
     AUstToUstPriceFeed: "0x7b80a92f7d1e5cEeDDf939d77BF281E7e88f2906",
