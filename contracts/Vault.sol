@@ -161,7 +161,7 @@ contract Vault is
             "Vault: invalid vault"
         );
         require(
-            address(strategy) == address(0) || strategy.investedAssets() == 0,
+            address(strategy) == address(0) || strategy.hasAssets() == false,
             "Vault: strategy has invested funds"
         );
 
