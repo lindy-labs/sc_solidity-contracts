@@ -138,7 +138,9 @@ interface IVault {
      *
      * @param _params Deposit params
      */
-    function deposit(DepositParams calldata _params) external;
+    function deposit(DepositParams calldata _params)
+        external
+        returns (uint256[] memory);
 
     /**
      * Withdraws the principal from the deposits with the ids provided in @param _ids and sends it to @param _to.
