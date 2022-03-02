@@ -12,3 +12,5 @@ docs/
 deployments/localhost
 deployments/hardhat
 deployments/docker
+subgraph/generated
+subgraph/tests/.bin/*

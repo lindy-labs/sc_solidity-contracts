@@ -47,7 +47,7 @@ templates:
         - name: IVaultSponsoring
           file: ../artifacts/contracts/vault/IVaultSponsoring.sol/IVaultSponsoring.json
       eventHandlers:
-        - event: DepositMinted(indexed uint256,uint256,uint256,uint256,indexed address,indexed address,uint256,uint256)
+        - event: DepositMinted(indexed uint256,uint256,uint256,uint256,indexed address,indexed address,uint256,uint256,bytes)
           handler: handleDepositMinted
         - event: DepositBurned(indexed uint256,uint256,indexed address)
           handler: handleDepositBurned
@@ -55,6 +55,10 @@ templates:
           handler: handleSponsored
         - event: Unsponsored(indexed uint256)
           handler: handleUnsponsored
+        - event: YieldClaimed(uint256,indexed address,uint256,uint256)
+          handler: handleYieldClaimed
+        - event: TreasuryUpdated(indexed address)
+          handler: handleTreasuryUpdated
 
   - name: Claimers
     kind: ethereum/contract
@@ -74,7 +78,5 @@ templates:
         - name: IERC721
           file: ../artifacts/@openzeppelin/contracts/token/ERC721/IERC721.sol/IERC721.json
       eventHandlers:
-        - event: YieldClaimed(uint256,indexed address,uint256,uint256)
-          handler: handleYieldClaimed
         - event: Transfer(indexed address,indexed address,indexed uint256)
           handler: handleClaimerTransfer

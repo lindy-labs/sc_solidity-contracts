@@ -22,15 +22,24 @@ to produce yield on behalf of the vault.
 
 Currently implemented strategies are:
 
-* **EthAnchorUSTStrategy**: Requires the underlying to be `UST`, and invests it via
-    [EthAnchor]
-* **EthAnchorNonUSTStrategy**: Takes an ERC20 underlying, converts it to UST, and
-    then pipes it to [EthAnchor]. The underlying is converted using
-    [Curve], so a corresponding pool must exist.
+- **AnchorUSTStrategy**: Requires the underlying to be `UST`, and invests it via
+  [EthAnchor]
+- **AnchorNonUSTStrategy**: Takes an ERC20 underlying, converts it to UST, and
+  then pipes it to [EthAnchor]. The underlying is converted using
+  [Curve], so a corresponding pool must exist.
 
-[Sandclock]: https://sandclock.org
-[Curve]: https://curve.fi
-[EthAnchor]: https://docs.anchorprotocol.com/ethanchor/ethanchor
+The following strategies are used on ropsten testnet, since testnet does not have chainlink feed and curve to swap UST.
+
+- **TestAnchorUSTStrategy**: Requires the underlying to be `UST`, and invests it via
+  [EthAnchor]
+- **TestAnchorNonUSTStrategy**: Takes an ERC20 underlying, converts it to UST, and
+  then pipes it to [EthAnchor]. The underlying is converted using
+  [Uniswap], so a corresponding pool must exist.
+
+[sandclock]: https://sandclock.org
+[curve]: https://curve.fi
+[ethanchor]: https://docs.anchorprotocol.com/ethanchor/ethanchor
+[uniswap]: https://uniswap.org/
 
 ## The Graph
 
@@ -42,7 +51,7 @@ section below, about the Docker dev setup)
 Run `docker-compose up` to get a full test environment with:
 
 - a ganache node with contracts & fixtures deployed, reachable at
-    `http://localhost:8545`
+  `http://localhost:8545`
 - a subgraph instance, with GraphiQL at `http://localhost:8000`
 
 If you're making changes to contracts and/or deployment setup, you'll need to
@@ -50,3 +59,17 @@ re-deploy the contracts, as well as reset the indexed data from subgraph.
 A helper script, `bin/reset-docker` is provided which should take care of all
 the steps.
 
+## Deployed contracts
+
+### Ropsten Testnet
+
+| Name         | Contract                 | Address                                                                                                                       |
+| ------------ | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
+| USTVault     | Vault                    | [0x135055b3f44c8511d1c2c078c93ba7ff53c8c72e](https://ropsten.etherscan.io/address/0x135055b3f44c8511d1c2c078c93ba7ff53c8c72e) |
+| USTStrategy  | TestUSTAnchorStrategy    | [0x0Ac1d08a5F8C535d002b236E0CA9f94822407B04](https://ropsten.etherscan.io/address/0x0Ac1d08a5F8C535d002b236E0CA9f94822407B04) |
+| USDTVault    | Vault                    | [0x554DCc8bF737AcaC78Fe2F947430E0D46424db9c](https://ropsten.etherscan.io/address/0x554DCc8bF737AcaC78Fe2F947430E0D46424db9c) |
+| USDTStrategy | TestNonUSTAnchorStrategy | [0xd5984553718867ab6b266220bdda6176ab688f2e](https://ropsten.etherscan.io/address/0xd5984553718867ab6b266220bdda6176ab688f2e) |
+| USDCVault    | Vault                    | [0xcEbdBeC07C66ABD29083240DefcDd4837452e2Ab](https://ropsten.etherscan.io/address/0xcEbdBeC07C66ABD29083240DefcDd4837452e2Ab) |
+| USDCStrategy | TestNonUSTAnchorStrategy | [0x5ECdb6E6d0BA18d05b263D49717134ae9bCC2dC3](https://ropsten.etherscan.io/address/0x5ECdb6E6d0BA18d05b263D49717134ae9bCC2dC3) |
+| DAIVault     | Vault                    | [0x615816ebE7faA3a2b7b0eEb0248e06650Fe31d95](https://ropsten.etherscan.io/address/0x615816ebE7faA3a2b7b0eEb0248e06650Fe31d95) |
+| DAIStrategy  | TestNonUSTAnchorStrategy | [0xfba53c466935118256981a6BA4f546da766cCdF3](https://ropsten.etherscan.io/address/0xfba53c466935118256981a6BA4f546da766cCdF3) |

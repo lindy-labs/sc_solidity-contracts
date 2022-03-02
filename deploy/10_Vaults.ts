@@ -11,17 +11,19 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   const dai = await get("DAI");
 
   const { minLockPeriod } = getCurrentNetworkConfig();
+  const investPerc = 10000;
 
-  await deployVault(env, "Vault_UST", ust.address, minLockPeriod);
-  await deployVault(env, "Vault_USDC", usdc.address, minLockPeriod);
-  await deployVault(env, "Vault_DAI", dai.address, minLockPeriod);
+  await deployVault(env, "Vault_USDC", usdc.address, minLockPeriod, investPerc);
+  await deployVault(env, "Vault_DAI", dai.address, minLockPeriod, investPerc);
+  await deployVault(env, "Vault_UST", ust.address, minLockPeriod, investPerc);
 };
 
 async function deployVault(
   env: HardhatRuntimeEnvironment,
   name: string,
   underlyingAddr: string,
-  minLockPeriod: number
+  minLockPeriod: number,
+  investPerc: number
 ) {
   const { deployer } = await env.getNamedAccounts();
   const { deploy } = env.deployments;

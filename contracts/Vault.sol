@@ -142,6 +142,13 @@ contract Vault is
     //
     // IVault
     //
+    function setTreasury(address _treasury)
+        external
+        override(IVault)
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        emit TreasuryUpdated(_treasury);
+    }
 
     /// See {IVault}
     function setStrategy(address _strategy)
@@ -155,7 +162,7 @@ contract Vault is
             "Vault: invalid vault"
         );
         require(
-            address(strategy) == address(0) || strategy.investedAssets() == 0,
+            address(strategy) == address(0) || strategy.hasAssets() == false,
             "Vault: strategy has invested funds"
         );
 
@@ -169,9 +176,9 @@ contract Vault is
         if (address(strategy) != address(0)) {
             return
                 underlying.balanceOf(address(this)) + strategy.investedAssets();
-        } else {
-            return underlying.balanceOf(address(this));
         }
+
+        return underlying.balanceOf(address(this));
     }
 
     /// See {IVault}
@@ -299,9 +306,9 @@ contract Vault is
 
         if (alreadyInvested >= maxInvestableAssets) {
             return 0;
-        } else {
-            return maxInvestableAssets - alreadyInvested;
         }
+
+        return maxInvestableAssets - alreadyInvested;
     }
 
     /// See {IVault}
@@ -597,7 +604,8 @@ contract Vault is
             _msgSender(),
             _claim.beneficiary,
             claimerId,
-            _lockedUntil
+            _lockedUntil,
+            _claim.data
         );
 
         return tokenId;
@@ -745,9 +753,9 @@ contract Vault is
     ) internal pure returns (uint256) {
         if (_totalShares == 0 || _totalUnderlyingMinusSponsored == 0) {
             return 0;
-        } else {
-            return ((_totalUnderlyingMinusSponsored * _shares) / _totalShares);
         }
+        
+        return ((_totalUnderlyingMinusSponsored * _shares) / _totalShares);
     }
 
     /**

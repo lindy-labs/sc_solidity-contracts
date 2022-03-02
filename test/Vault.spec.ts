@@ -1,6 +1,6 @@
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { time } from "@openzeppelin/test-helpers";
-import { Contract } from "ethers";
+import { Contract, BigNumber, utils } from "ethers";
 import { ethers } from "hardhat";
 import { expect } from "chai";
 
@@ -22,7 +22,6 @@ import {
   arrayFromTo,
 } from "./shared";
 
-const { utils, BigNumber } = ethers;
 const { parseUnits } = ethers.utils;
 
 describe("Vault", () => {
@@ -207,6 +206,14 @@ describe("Vault", () => {
     });
   });
 
+  describe("setTreasury", () => {
+    it("emits an event", async () => {
+      const tx = vault.connect(owner).setTreasury(treasury);
+
+      await expect(tx).to.emit(vault, "TreasuryUpdated").withArgs(treasury);
+    });
+  });
+
   describe("setStrategy", () => {
     it("changes the strategy", async () => {
       expect(await vault.strategy()).to.equal(
@@ -228,6 +235,33 @@ describe("Vault", () => {
       await expect(tx)
         .to.emit(vault, "StrategyUpdated")
         .withArgs(strategy.address);
+    });
+
+    it("set strategy if no asset invested even there is griefing attack", async () => {
+      await vault.connect(owner).setStrategy(strategy.address);
+
+      await aUstToken.transfer(strategy.address, utils.parseEther("2"));
+      await setAUstRate(utils.parseEther("1"));
+      expect(await strategy.investedAssets()).to.not.eq("0");
+      expect(await strategy.hasAssets()).to.equal(false);
+
+      let MockStrategy = await ethers.getContractFactory("MockStrategy");
+
+      const newStrategy = await MockStrategy.deploy(
+        vault.address,
+        treasury,
+        mockEthAnchorRouter.address,
+        mockAUstUstFeed.address,
+        underlying.address,
+        aUstToken.address,
+        BigNumber.from("200")
+      );
+
+      const tx = await vault.connect(owner).setStrategy(newStrategy.address);
+
+      await expect(tx)
+        .to.emit(vault, "StrategyUpdated")
+        .withArgs(newStrategy.address);
     });
   });
 
@@ -387,7 +421,11 @@ describe("Vault", () => {
         amount: parseUnits("100"),
         claims: [
           claimParams.percent(50).to(carol.address).build(),
-          claimParams.percent(50).to(bob.address).build(),
+          claimParams
+            .percent(50)
+            .data(ethers.utils.hexlify(123))
+            .to(bob.address)
+            .build(),
         ],
       });
 
@@ -403,7 +441,8 @@ describe("Vault", () => {
           alice.address,
           carol.address,
           1,
-          twoWeeks.add(await getLastBlockTimestamp())
+          twoWeeks.add(await getLastBlockTimestamp()),
+          "0x00"
         );
 
       await expect(tx)
@@ -416,7 +455,8 @@ describe("Vault", () => {
           alice.address,
           bob.address,
           2,
-          twoWeeks.add(await getLastBlockTimestamp())
+          twoWeeks.add(await getLastBlockTimestamp()),
+          ethers.utils.hexlify(123)
         );
     });
 
@@ -445,7 +485,8 @@ describe("Vault", () => {
           alice.address,
           carol.address,
           1,
-          twoWeeks.add(await getLastBlockTimestamp())
+          twoWeeks.add(await getLastBlockTimestamp()),
+          "0x00"
         );
 
       await expect(tx)
@@ -458,7 +499,8 @@ describe("Vault", () => {
           alice.address,
           bob.address,
           2,
-          twoWeeks.add(await getLastBlockTimestamp())
+          twoWeeks.add(await getLastBlockTimestamp()),
+          "0x00"
         );
     });
 
@@ -1008,4 +1050,8 @@ describe("Vault", () => {
   function removeUnderlyingFromVault(amount: string) {
     return underlying.burn(vault.address, parseUnits(amount));
   }
+
+  const setAUstRate = async (rate: BigNumber) => {
+    await mockAUstUstFeed.setLatestRoundData(1, rate, 1000, 1000, 1);
+  };
 });
