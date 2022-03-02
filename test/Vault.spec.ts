@@ -50,7 +50,6 @@ describe("Vault", () => {
 
   const DEFAULT_ADMIN_ROLE = constants.HashZero;
   const INVESTOR_ROLE = utils.keccak256(utils.toUtf8Bytes("INVESTOR_ROLE"));
-  const HARVESTOR_ROLE = utils.keccak256(utils.toUtf8Bytes("HARVESTOR_ROLE"));
 
   beforeEach(async () => {
     [owner, alice, bob, carol] = await ethers.getSigners();
@@ -253,9 +252,6 @@ describe("Vault", () => {
       expect(await vault.hasRole(INVESTOR_ROLE, owner.address)).to.be.equal(
         true
       );
-      expect(await vault.hasRole(HARVESTOR_ROLE, owner.address)).to.be.equal(
-        true
-      );
 
       expect(await vault.underlying()).to.be.equal(underlying.address);
       expect(await vault.minLockPeriod()).to.be.equal(TWO_WEEKS);
@@ -336,7 +332,7 @@ describe("Vault", () => {
     });
   });
 
-  describe("#harvest function", () => {
+  describe("#withdrawPerformanceFee function", () => {
     let perfFee: BigNumber;
 
     beforeEach(async () => {
@@ -354,27 +350,27 @@ describe("Vault", () => {
       perfFee = newYield.mul(PERFORMANCE_FEE_PCT).div(DENOMINATOR);
     });
 
-    it("Revert if msg.sender is not harvestor", async () => {
-      await expect(vault.connect(alice).harvest()).to.be.revertedWith(
-        getRoleErrorMsg(alice, HARVESTOR_ROLE)
-      );
+    it("Revert if msg.sender is not investor", async () => {
+      await expect(
+        vault.connect(alice).withdrawPerformanceFee()
+      ).to.be.revertedWith(getRoleErrorMsg(alice, INVESTOR_ROLE));
     });
 
-    it("Should harvest performance fee and emit FeeHarvested event", async () => {
-      const tx = await vault.connect(owner).harvest();
+    it("Should withdraw performance fee and emit FeeWithdrawn event", async () => {
+      const tx = await vault.connect(owner).withdrawPerformanceFee();
 
       expect(await underlying.balanceOf(TREASURY)).to.be.equal(perfFee);
-      await expect(tx).to.emit(vault, "FeeHarvested").withArgs(perfFee);
+      await expect(tx).to.emit(vault, "FeeWithdrawn").withArgs(perfFee);
 
       expect(await vault.accumulatedPerfFee()).to.be.eq("0");
     });
 
-    it("Revert if nothing to harvest", async () => {
-      await vault.connect(owner).harvest();
+    it("Revert if nothing to withdraw", async () => {
+      await vault.connect(owner).withdrawPerformanceFee();
 
-      await expect(vault.connect(owner).harvest()).to.be.revertedWith(
-        "Vault: no performance fee"
-      );
+      await expect(
+        vault.connect(owner).withdrawPerformanceFee()
+      ).to.be.revertedWith("Vault: no performance fee");
     });
   });
 
@@ -1022,14 +1018,18 @@ describe("Vault", () => {
 
       const yieldWithFee = parseUnits("50");
       const perfFee = yieldWithFee.mul(PERFORMANCE_FEE_PCT).div(DENOMINATOR);
-      expect(await vault.yieldFor(carol.address)).to.eq(parseUnits("0"));
+      const carolYield = await vault.yieldFor(carol.address);
+      expect(carolYield[0]).to.eq(parseUnits("0"));
+      expect(carolYield[1]).to.eq(parseUnits("0"));
+      expect(carolYield[2]).to.eq(parseUnits("0"));
       expect(await vault.accumulatedPerfFee()).to.eq(perfFee);
       expect(await underlying.balanceOf(carol.address)).to.eq(
         yieldWithFee.sub(perfFee)
       );
-      expect(await vault.yieldFor(bob.address)).to.eq(
-        yieldWithFee.sub(perfFee)
-      );
+      const bobYield = await vault.yieldFor(bob.address);
+      expect(bobYield[0]).to.eq(yieldWithFee.sub(perfFee));
+      expect(bobYield[1]).to.eq(parseUnits("25").mul(SHARES_MULTIPLIER));
+      expect(bobYield[2]).to.eq(perfFee);
 
       await expect(tx)
         .to.emit(vault, "YieldClaimed")
@@ -1098,12 +1098,15 @@ describe("Vault", () => {
       const yieldPerUser = newYield.div(BigNumber.from("2"));
       const perfFee = yieldPerUser.mul(PERFORMANCE_FEE_PCT).div(DENOMINATOR);
 
-      expect(await vault.yieldFor(alice.address)).to.eq(
-        yieldPerUser.sub(perfFee)
-      );
-      expect(await vault.yieldFor(bob.address)).to.eq(
-        yieldPerUser.sub(perfFee)
-      );
+      const aliceYield = await vault.yieldFor(alice.address);
+      expect(aliceYield[0]).to.eq(yieldPerUser.sub(perfFee));
+      expect(aliceYield[1]).to.eq(parseUnits("25").mul(SHARES_MULTIPLIER));
+      expect(aliceYield[2]).to.eq(perfFee);
+
+      const bobYield = await vault.yieldFor(bob.address);
+      expect(bobYield[0]).to.eq(yieldPerUser.sub(perfFee));
+      expect(bobYield[1]).to.eq(parseUnits("25").mul(SHARES_MULTIPLIER));
+      expect(bobYield[2]).to.eq(perfFee);
     });
   });
 

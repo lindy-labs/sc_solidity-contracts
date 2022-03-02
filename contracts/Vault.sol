@@ -46,7 +46,6 @@ contract Vault is
     //
 
     bytes32 public constant INVESTOR_ROLE = keccak256("INVESTOR_ROLE");
-    bytes32 public constant HARVESTOR_ROLE = keccak256("HARVESTOR_ROLE");
     uint256 public constant MIN_SPONSOR_LOCK_DURATION = 2 weeks;
     uint256 public constant MAX_SPONSOR_LOCK_DURATION = 24 weeks;
     uint256 public constant MAX_DEPOSIT_LOCK_DURATION = 24 weeks;
@@ -147,7 +146,6 @@ contract Vault is
 
         _setupRole(DEFAULT_ADMIN_ROLE, _owner);
         _setupRole(INVESTOR_ROLE, _owner);
-        _setupRole(HARVESTOR_ROLE, _owner);
 
         investPerc = _investPerc;
         underlying = _underlying;
@@ -223,16 +221,30 @@ contract Vault is
 
     /// See {IVault}
     function yieldFor(address _to)
-        external
+        public
         view
         override(IVault)
-        returns (uint256)
+        returns (
+            uint256,
+            uint256,
+            uint256
+        )
     {
-        uint256 yieldWithPerfFee = _yieldForWithPerfFee(_to);
+        uint256 tokenId = claimers.tokenOf(_to);
+        uint256 claimerPrincipal = claimer[tokenId].totalPrincipal;
+        uint256 claimerShares = claimer[tokenId].totalShares;
 
-        if (yieldWithPerfFee == 0) {
-            return 0;
+        uint256 currentClaimerPrincipal = _computeAmount(
+            claimerShares,
+            totalShares,
+            totalUnderlyingMinusSponsored()
+        );
+
+        if (currentClaimerPrincipal <= claimerPrincipal) {
+            return (0, 0, 0);
         }
+
+        uint256 yieldWithPerfFee = currentClaimerPrincipal - claimerPrincipal;
 
         uint256 shares = _computeShares(
             yieldWithPerfFee,
@@ -246,7 +258,7 @@ contract Vault is
         );
 
         uint256 fee = sharesAmount.percOf(perfFeePct);
-        return sharesAmount - fee;
+        return (sharesAmount - fee, shares, fee);
     }
 
     /// See {IVault}
@@ -273,33 +285,20 @@ contract Vault is
     function claimYield(address _to) external override(IVault) nonReentrant {
         require(_to != address(0), "Vault: destination address is 0x");
 
-        uint256 yield = _yieldForWithPerfFee(_msgSender());
+        (uint256 yield, uint256 shares, uint256 fee) = yieldFor(_msgSender());
 
         if (yield == 0) return;
 
-        uint256 shares = _computeShares(
-            yield,
-            totalShares,
-            totalUnderlyingMinusSponsored()
-        );
-        uint256 sharesAmount = _computeAmount(
-            shares,
-            totalShares,
-            totalUnderlyingMinusSponsored()
-        );
-
         uint256 claimerId = claimers.tokenOf(_msgSender());
 
-        uint256 fee = sharesAmount.percOf(perfFeePct);
-        uint256 yieldWithoutFee = sharesAmount - fee;
         accumulatedPerfFee += fee;
 
-        underlying.safeTransfer(_to, yieldWithoutFee);
+        underlying.safeTransfer(_to, yield);
 
         claimer[claimerId].totalShares -= shares;
         totalShares -= shares;
 
-        emit YieldClaimed(claimerId, _to, yieldWithoutFee, shares, fee);
+        emit YieldClaimed(claimerId, _to, yield, shares, fee);
     }
 
     /// See {IVault}
@@ -407,13 +406,13 @@ contract Vault is
         _unsponsor(_to, _ids);
     }
 
-    function harvest() external onlyRole(HARVESTOR_ROLE) {
+    function withdrawPerformanceFee() external onlyRole(INVESTOR_ROLE) {
         uint256 _perfFee = accumulatedPerfFee;
         require(_perfFee != 0, "Vault: no performance fee");
 
         accumulatedPerfFee = 0;
 
-        emit FeeHarvested(_perfFee);
+        emit FeeWithdrawn(_perfFee);
         underlying.safeTransfer(treasury, _perfFee);
     }
 
@@ -779,28 +778,6 @@ contract Vault is
         }
 
         return ((_totalUnderlyingMinusSponsored * _shares) / _totalShares);
-    }
-
-    /**
-     * Calculate yield for account.
-     * @notice This value includes performance fee.
-     */
-    function _yieldForWithPerfFee(address _to) internal view returns (uint256) {
-        uint256 tokenId = claimers.tokenOf(_to);
-        uint256 claimerPrincipal = claimer[tokenId].totalPrincipal;
-        uint256 claimerShares = claimer[tokenId].totalShares;
-
-        uint256 currentClaimerPrincipal = _computeAmount(
-            claimerShares,
-            totalShares,
-            totalUnderlyingMinusSponsored()
-        );
-
-        if (currentClaimerPrincipal <= claimerPrincipal) {
-            return 0;
-        }
-
-        return currentClaimerPrincipal - claimerPrincipal;
     }
 
     /**

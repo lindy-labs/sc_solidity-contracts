@@ -55,7 +55,7 @@ interface IVault {
         uint256 perfFee
     );
 
-    event FeeHarvested(uint256 amount);
+    event FeeWithdrawn(uint256 amount);
 
     //
     // Public API
@@ -115,9 +115,16 @@ interface IVault {
      *
      * @param _to address to consider.
      *
-     * @return amount of yield for @param _to.
+     * @return amount of yield for @param _to, share of yield, and performance fee from yield
      */
-    function yieldFor(address _to) external view returns (uint256);
+    function yieldFor(address _to)
+        external
+        view
+        returns (
+            uint256,
+            uint256,
+            uint256
+        );
 
     /**
      * Accumulate performance fee and transfers rest yield generated for the caller to
