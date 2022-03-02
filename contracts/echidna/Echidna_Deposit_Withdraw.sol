@@ -16,4 +16,14 @@ contract Echidna_Deposit_Withdraw is Helper {
             assert(true);
         }
     }
+
+    function withdraw_should_succeed(address recipient, uint256[] memory _ids) internal {
+        (bool success, ) = address(vault).call(
+            abi.encodeWithSignature("withdraw(address,uint256[])", recipient, _ids)
+        );
+        if (!success) {
+            assert(false);
+            return;
+        }
+    }
 }
