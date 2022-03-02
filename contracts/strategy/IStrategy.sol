@@ -56,6 +56,14 @@ interface IStrategy {
     function investedAssets() external view returns (uint256);
 
     /**
+     * Indicates if assets are invested into strategy or not.
+     *
+     * @notice this will be used when removing this strategy
+     * @return true if assets invested, false if nothing invested.
+     */
+    function hasAssets() external view returns (bool);
+
+    /**
      * Applies an estimated fee to the given @param _amount.
      *
      * This function should be used to estimate how much underlying will be

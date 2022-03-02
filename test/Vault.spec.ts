@@ -432,6 +432,31 @@ describe("Vault", () => {
         .to.emit(vault, "StrategyUpdated")
         .withArgs(strategy.address);
     });
+
+    it("set strategy if no asset invested even there is griefing attack", async () => {
+      await vault.connect(owner).setStrategy(strategy.address);
+
+      await aUstToken.transfer(strategy.address, utils.parseEther("2"));
+      await setAUstRate(utils.parseEther("1"));
+      expect(await strategy.investedAssets()).to.not.eq("0");
+      expect(await strategy.hasAssets()).to.equal(false);
+
+      let MockStrategy = await ethers.getContractFactory("MockStrategy");
+
+      const newStrategy = await MockStrategy.deploy(
+        vault.address,
+        mockEthAnchorRouter.address,
+        mockAUstUstFeed.address,
+        underlying.address,
+        aUstToken.address
+      );
+
+      const tx = await vault.connect(owner).setStrategy(newStrategy.address);
+
+      await expect(tx)
+        .to.emit(vault, "StrategyUpdated")
+        .withArgs(newStrategy.address);
+    });
   });
 
   describe("sponsor", () => {
@@ -1221,4 +1246,8 @@ describe("Vault", () => {
   function removeUnderlyingFromVault(amount: string) {
     return underlying.burn(vault.address, parseUnits(amount));
   }
+
+  const setAUstRate = async (rate: BigNumber) => {
+    await mockAUstUstFeed.setLatestRoundData(1, rate, 1000, 1000, 1);
+  };
 });

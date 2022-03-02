@@ -81,6 +81,8 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
     // Multiplier of aUST / UST feed
     uint256 internal _aUstToUstFeedMultiplier;
 
+    bool internal _allRedeemed;
+
     modifier onlyManager() {
         require(
             hasRole(MANAGER_ROLE, msg.sender),
@@ -146,6 +148,7 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
         aUstToken = _aUstToken;
 
         _aUstToUstFeedMultiplier = 10**_aUstToUstFeed.decimals();
+        _allRedeemed = true;
     }
 
     /**
@@ -175,6 +178,8 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
         depositOperations.push(
             Operation({operator: operator, amount: ustBalance})
         );
+
+        _allRedeemed = false;
 
         return (operator, ustBalance);
     }
@@ -226,6 +231,9 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
      */
     function initRedeemStable(uint256 amount) public onlyManager {
         require(amount != 0, "AnchorBaseStrategy: amount 0");
+        if (pendingDeposits == 0 && _getAUstBalance() == amount) {
+            _allRedeemed = true;
+        }
         pendingRedeems += amount;
 
         aUstToken.safeIncreaseAllowance(address(ethAnchorRouter), amount);
@@ -333,6 +341,11 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
         redeemOperations.pop();
 
         return (operator, operationAmount, redeemedAmount);
+    }
+
+    /// See {IStrategy}
+    function hasAssets() external view override returns (bool) {
+        return _allRedeemed == false || pendingRedeems != 0;
     }
 
     /**

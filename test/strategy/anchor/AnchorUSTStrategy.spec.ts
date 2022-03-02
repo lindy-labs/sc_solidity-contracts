@@ -181,6 +181,7 @@ describe("AnchorUSTStrategy", () => {
       );
       expect(await strategy.ustToken()).to.be.equal(ustToken.address);
       expect(await strategy.aUstToken()).to.be.equal(aUstToken.address);
+      expect(await strategy.hasAssets()).to.be.equal(false);
     });
   });
 
@@ -744,6 +745,99 @@ describe("AnchorUSTStrategy", () => {
       expect(await strategy.investedAssets()).to.be.equal(
         aUstBalance.mul(aUstRate).div(AUST_TO_UST_FEED_DECIMALS)
       );
+    });
+  });
+
+  describe("#hasAssets function", () => {
+    it("Return false if nothing invested", async () => {
+      expect(await strategy.hasAssets()).to.be.equal(false);
+    });
+
+    it("Return true if there is pendingDeposits", async () => {
+      await depositVault(utils.parseEther("100"));
+      await registerNewTestOperator();
+      await vault.updateInvested("0x");
+
+      expect(await strategy.hasAssets()).to.be.equal(true);
+    });
+
+    it("Return true if partical redeemed", async () => {
+      await depositVault(utils.parseEther("100"));
+      let operator = await registerNewTestOperator();
+      await vault.updateInvested("0x");
+
+      await notifyDepositReturnAmount(operator, utils.parseEther("90"));
+      await strategy.connect(manager).finishDepositStable(0);
+
+      operator = await registerNewTestOperator();
+      await strategy.connect(manager).initRedeemStable(utils.parseEther("30"));
+      expect(await strategy.hasAssets()).to.be.equal(true);
+
+      await notifyRedeemReturnAmount(operator, utils.parseEther("35"));
+
+      await strategy.connect(manager).finishRedeemStable(0);
+
+      expect(await strategy.hasAssets()).to.be.equal(true);
+    });
+
+    it("Return true if pendingRedeem exist after all redeem initialized", async () => {
+      await depositVault(utils.parseEther("100"));
+      const operator = await registerNewTestOperator();
+      await vault.updateInvested("0x");
+
+      await notifyDepositReturnAmount(operator, utils.parseEther("90"));
+      await strategy.connect(manager).finishDepositStable(0);
+
+      await registerNewTestOperator();
+      await strategy
+        .connect(manager)
+        .initRedeemStable(await aUstToken.balanceOf(strategy.address));
+      expect(await strategy.hasAssets()).to.be.equal(true);
+    });
+
+    it("Return false after all aUST redeemed", async () => {
+      await depositVault(utils.parseEther("100"));
+      let operator = await registerNewTestOperator();
+      await vault.updateInvested("0x");
+
+      await notifyDepositReturnAmount(operator, utils.parseEther("90"));
+      await strategy.connect(manager).finishDepositStable(0);
+
+      operator = await registerNewTestOperator();
+      await strategy
+        .connect(manager)
+        .initRedeemStable(await aUstToken.balanceOf(strategy.address));
+
+      await notifyRedeemReturnAmount(operator, utils.parseEther("105"));
+
+      await strategy.connect(manager).finishRedeemStable(0);
+
+      expect(await strategy.hasAssets()).to.be.equal(false);
+    });
+
+    it("Return true if all aUST redeem finished after new init deposit stable", async () => {
+      await depositVault(utils.parseEther("100"));
+      let operator = await registerNewTestOperator();
+      await vault.updateInvested("0x");
+
+      await notifyDepositReturnAmount(operator, utils.parseEther("90"));
+      await strategy.connect(manager).finishDepositStable(0);
+
+      operator = await registerNewTestOperator();
+      await strategy
+        .connect(manager)
+        .initRedeemStable(await aUstToken.balanceOf(strategy.address));
+
+      await notifyRedeemReturnAmount(operator, utils.parseEther("105"));
+
+      await setAUstRate(utils.parseEther("1.1"));
+      await depositVault(utils.parseEther("50"));
+      await registerNewTestOperator();
+      await vault.updateInvested("0x");
+
+      await strategy.connect(manager).finishRedeemStable(0);
+
+      expect(await strategy.hasAssets()).to.be.equal(true);
     });
   });
 
