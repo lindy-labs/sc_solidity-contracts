@@ -529,7 +529,7 @@ contract Vault is
 
         uint256[] memory result = new uint256[](locals.claimsLen);
 
-        for (uint256 i; i < locals.claimsLen; ++i) {
+        for (uint256 i = 0; i < locals.claimsLen; ++i) {
             ClaimParams memory data = claims[i];
             require(data.pct != 0, "Vault: claim percentage cannot be 0");
             // if it's the last claim, just grab all remaining amount, instead
@@ -754,7 +754,7 @@ contract Vault is
         if (_totalShares == 0 || _totalUnderlyingMinusSponsored == 0) {
             return 0;
         }
-        
+
         return ((_totalUnderlyingMinusSponsored * _shares) / _totalShares);
     }
 
