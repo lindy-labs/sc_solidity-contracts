@@ -64,7 +64,7 @@ contract Vault is
     IStrategy public strategy;
 
     /// See {IVault}
-    uint256 public investPerc;
+    uint16 public override(IVault) investPerc;
 
     /// See {IVault}
     uint256 public immutable override(IVault) minLockPeriod;
