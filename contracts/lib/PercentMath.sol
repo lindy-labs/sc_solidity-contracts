@@ -32,7 +32,7 @@ library PercentMath {
      * @param _amount Amount to take the percentage of
      * @param _fracNum Numerator of fraction representing the percentage with PERC_DIVISOR as the denominator
      */
-    function percOf(uint256 _amount, uint256 _fracNum)
+    function percOf(uint256 _amount, uint16 _fracNum)
         internal
         pure
         returns (uint256)

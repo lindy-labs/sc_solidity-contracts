@@ -38,6 +38,7 @@ contract Vault is
     using Counters for Counters.Counter;
     using SafeERC20 for IERC20;
     using PercentMath for uint256;
+    using PercentMath for uint16;
     using Address for address;
     using ERC165Query for address;
 
@@ -63,7 +64,7 @@ contract Vault is
     IStrategy public strategy;
 
     /// See {IVault}
-    uint256 public investPerc;
+    uint16 public override(IVault) investPerc;
 
     /// See {IVault}
     uint256 public immutable override(IVault) minLockPeriod;
@@ -114,7 +115,7 @@ contract Vault is
     constructor(
         IERC20 _underlying,
         uint256 _minLockPeriod,
-        uint256 _investPerc,
+        uint16 _investPerc,
         address _owner
     ) {
         require(
@@ -161,7 +162,7 @@ contract Vault is
             "Vault: invalid vault"
         );
         require(
-            address(strategy) == address(0) || strategy.investedAssets() == 0,
+            address(strategy) == address(0) || strategy.hasAssets() == false,
             "Vault: strategy has invested funds"
         );
 
@@ -175,9 +176,9 @@ contract Vault is
         if (address(strategy) != address(0)) {
             return
                 underlying.balanceOf(address(this)) + strategy.investedAssets();
-        } else {
-            return underlying.balanceOf(address(this));
         }
+
+        return underlying.balanceOf(address(this));
     }
 
     /// See {IVault}
@@ -205,7 +206,11 @@ contract Vault is
     }
 
     /// See {IVault}
-    function deposit(DepositParams calldata _params) external nonReentrant {
+    function deposit(DepositParams calldata _params)
+        external
+        nonReentrant
+        returns (uint256[] memory depositIds)
+    {
         uint256 principalMinusStrategyFee = _applyInvestmentFee(totalPrincipal);
         require(_params.amount != 0, "Vault: cannot deposit 0");
         require(
@@ -220,7 +225,11 @@ contract Vault is
 
         uint256 lockedUntil = _params.lockDuration + block.timestamp;
 
-        _createDeposit(_params.amount, lockedUntil, _params.claims);
+        depositIds = _createDeposit(
+            _params.amount,
+            lockedUntil,
+            _params.claims
+        );
         _transferAndCheckUnderlying(_msgSender(), _params.amount);
     }
 
@@ -297,9 +306,9 @@ contract Vault is
 
         if (alreadyInvested >= maxInvestableAssets) {
             return 0;
-        } else {
-            return maxInvestableAssets - alreadyInvested;
         }
+
+        return maxInvestableAssets - alreadyInvested;
     }
 
     /// See {IVault}
@@ -476,6 +485,19 @@ contract Vault is
     }
 
     /**
+     * @dev `_createDeposit` declares too many locals
+     * We move some of them to this struct to fix the problem
+     */
+    struct CreateDepositLocals {
+        uint256 totalShares;
+        uint256 totalUnderlying;
+        uint256 groupId;
+        uint16 accumulatedPct;
+        uint256 accumulatedAmount;
+        uint256 claimsLen;
+    }
+
+    /**
      * Creates a deposit with the given amount of underlying and claim
      * structure. The deposit is locked until the timestamp specified in @param _lockedUntil.
      * @notice This function assumes underlying will be transfered elsewhere in
@@ -495,39 +517,52 @@ contract Vault is
         uint256 _amount,
         uint256 _lockedUntil,
         ClaimParams[] calldata claims
-    ) internal {
-        uint256 localTotalShares = totalShares;
-        uint256 localTotalUnderlying = totalUnderlyingMinusSponsored();
-        uint256 groupId = _depositGroupIds.current();
-        uint256 pct;
-        uint256 accumulatedAmount;
-        uint256 claimsLen = claims.length;
+    ) internal returns (uint256[] memory) {
+        CreateDepositLocals memory locals = CreateDepositLocals({
+            totalShares: totalShares,
+            totalUnderlying: totalUnderlyingMinusSponsored(),
+            groupId: _depositGroupIds.current(),
+            accumulatedPct: 0,
+            accumulatedAmount: 0,
+            claimsLen: claims.length
+        });
 
-        _depositGroupIds.increment();
+        uint256[] memory result = new uint256[](locals.claimsLen);
 
-        for (uint256 i; i < claimsLen; ++i) {
+        for (uint256 i = 0; i < locals.claimsLen; ++i) {
             ClaimParams memory data = claims[i];
             require(data.pct != 0, "Vault: claim percentage cannot be 0");
             // if it's the last claim, just grab all remaining amount, instead
             // of relying on percentrages
-            uint256 localAmount = i == claimsLen - 1
-                ? _amount - accumulatedAmount
+            uint256 localAmount = i == locals.claimsLen - 1
+                ? _amount - locals.accumulatedAmount
                 : _amount.percOf(data.pct);
 
-            _createClaim(
-                groupId,
+            uint256 id = _createClaim(
+                locals.groupId,
                 localAmount,
                 _lockedUntil,
                 data,
-                localTotalShares,
-                localTotalUnderlying
+                locals.totalShares,
+                locals.totalUnderlying
             );
-            pct += data.pct;
-            accumulatedAmount += localAmount;
+            locals.accumulatedPct += data.pct;
+            locals.accumulatedAmount += localAmount;
+            result[i] = id;
         }
 
-        require(pct.is100Perc(), "Vault: claims don't add up to 100%");
-        require(accumulatedAmount == _amount, "Vault: amount doesn't add up");
+        require(
+            locals.accumulatedPct.is100Perc(),
+            "Vault: claims don't add up to 100%"
+        );
+        require(
+            locals.accumulatedAmount == _amount,
+            "Vault: amount doesn't add up"
+        );
+
+        _depositGroupIds.increment();
+
+        return result;
     }
 
     function _createClaim(
@@ -537,7 +572,7 @@ contract Vault is
         ClaimParams memory _claim,
         uint256 _localTotalShares,
         uint256 _localTotalPrincipal
-    ) internal {
+    ) internal returns (uint256) {
         uint256 newShares = _computeShares(
             _amount,
             _localTotalShares,
@@ -572,6 +607,8 @@ contract Vault is
             _lockedUntil,
             _claim.data
         );
+
+        return tokenId;
     }
 
     /**
@@ -716,9 +753,9 @@ contract Vault is
     ) internal pure returns (uint256) {
         if (_totalShares == 0 || _totalUnderlyingMinusSponsored == 0) {
             return 0;
-        } else {
-            return ((_totalUnderlyingMinusSponsored * _shares) / _totalShares);
         }
+
+        return ((_totalUnderlyingMinusSponsored * _shares) / _totalShares);
     }
 
     /**

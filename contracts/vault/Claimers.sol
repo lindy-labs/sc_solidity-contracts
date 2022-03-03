@@ -83,15 +83,17 @@ contract Claimers is ERC721, IClaimers {
         if (_from == address(0)) {
             // MINT
             addressToTokenID[_to] = _tokenId;
-        } else {
-            // TRANSFER
-            require(
-                addressToTokenID[_to] == 0,
-                "Claimers: destination already has an NFT"
-            );
 
-            addressToTokenID[_from] = 0;
-            addressToTokenID[_to] = _tokenId;
+            return;
         }
+
+        // TRANSFER
+        require(
+            addressToTokenID[_to] == 0,
+            "Claimers: destination already has an NFT"
+        );
+
+        addressToTokenID[_from] = 0;
+        addressToTokenID[_to] = _tokenId;
     }
 }
