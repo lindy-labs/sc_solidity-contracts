@@ -115,7 +115,8 @@ interface IVault {
      *
      * @param _to address to consider.
      *
-     * @return amount of yield for @param _to, share of yield, and performance fee from yield
+     * @return claimable yield for @param _to, share of generated yield by @param _to,
+     *      and performance fee from generated yield
      */
     function yieldFor(address _to)
         external

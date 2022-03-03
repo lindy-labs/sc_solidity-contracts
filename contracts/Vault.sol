@@ -226,9 +226,9 @@ contract Vault is
         view
         override(IVault)
         returns (
-            uint256,
-            uint256,
-            uint256
+            uint256 claimableYield,
+            uint256 shares,
+            uint256 perfFee
         )
     {
         uint256 tokenId = claimers.tokenOf(_to);
@@ -247,7 +247,7 @@ contract Vault is
 
         uint256 yieldWithPerfFee = currentClaimerPrincipal - claimerPrincipal;
 
-        uint256 shares = _computeShares(
+        shares = _computeShares(
             yieldWithPerfFee,
             totalShares,
             totalUnderlyingMinusSponsored()
@@ -258,8 +258,8 @@ contract Vault is
             totalUnderlyingMinusSponsored()
         );
 
-        uint256 fee = sharesAmount.percOf(perfFeePct);
-        return (sharesAmount - fee, shares, fee);
+        perfFee = sharesAmount.percOf(perfFeePct);
+        claimableYield = sharesAmount - perfFee;
     }
 
     /// See {IVault}
