@@ -8,7 +8,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   const { deploy, get } = env.deployments;
 
   const ust = await get("UST");
-  const aust = await get("AUST");
+  const aust = await get("aUST");
   const vault = await get("Vault_UST");
 
   const { multisig, ethAnchorRouter, perfFeePct } = getCurrentNetworkConfig();

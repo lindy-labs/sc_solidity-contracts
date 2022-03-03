@@ -2,7 +2,6 @@ import type { HardhatRuntimeEnvironment } from "hardhat/types";
 import type { DeployFunction } from "hardhat-deploy/types";
 
 import { ethers, network } from "hardhat";
-
 const func: DeployFunction = async function (env) {
   await deployDevToken(env, "DAI", "MockDAI");
   await deployDevToken(env, "USDC", "MockUSDC");
@@ -17,13 +16,6 @@ async function deployDevToken(
 ) {
   const { deployer, alice, bob, carol } = await env.getNamedAccounts();
   const { deploy, execute, getOrNull } = env.deployments;
-
-  // skip for mainnet
-  // we do this here instead of using `func.skip`
-  // to allow depending on this script on vault deploys
-  if (network.config.chainId == 1) {
-    return;
-  }
 
   const isDeployed = await getOrNull(name);
 
@@ -48,5 +40,6 @@ async function deployDevToken(
 
 func.id = "dev_setup";
 func.tags = ["dev_setup"];
+func.skip = async (hre) => hre.network.live;
 
 export default func;
