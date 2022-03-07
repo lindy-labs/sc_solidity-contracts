@@ -14,6 +14,7 @@ contract Echidna_Deposit_Withdraw is Helper {
 
     // withdraw without a deposit or beneficiary
     function withdraw_without_any_yield(address recipient, uint256[] memory _ids) public {
+        require(_ids.length != 0);
         withdraw_should_revert(recipient, _ids);
     }
 
