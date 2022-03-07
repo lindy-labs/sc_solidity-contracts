@@ -61,21 +61,6 @@ contract Echidna_Deposit_Withdraw is Helper {
         // assert user balanceAfter == balanceBefore - _amount
     }
     
-    // adding sponsor should never revert with valid inputs
-    function sponsor_valid_params(uint256 _amount, uint256 _lockDuration) public {
-        require(_amount > 0);
-        require(_lockDuration >= MIN_SPONSOR_LOCK_DURATION);
-        require(_lockDuration <= MAX_SPONSOR_LOCK_DURATION);
-        mint_helper(address(this), _amount);
-        (bool success, ) = address(vault).call(
-            abi.encodeWithSignature("sponsor(uint256,uint256)", _amount, _lockDuration)
-        );
-        if (!success) {
-            assert(false);
-            return;
-        }
-    }
-    
     function withdraw_should_revert(address recipient, uint256[] memory _ids) internal {
         try vault.withdraw(recipient, _ids) {
             assert(false);
