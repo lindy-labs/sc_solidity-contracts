@@ -109,6 +109,15 @@ contract Vault is
     // The total of principal deposited
     uint256 public totalPrincipal;
 
+    // Treasury address to collect performance fee
+    address public treasury;
+
+    // Performance fee percentage
+    uint16 public perfFeePct;
+
+    // Current accumulated performance fee;
+    uint256 public accumulatedPerfFee;
+
     /**
      * @param _underlying Underlying ERC20 token to use.
      */
@@ -116,24 +125,34 @@ contract Vault is
         IERC20 _underlying,
         uint256 _minLockPeriod,
         uint16 _investPerc,
-        address _owner
+        address _treasury,
+        address _owner,
+        uint16 _perfFeePct
     ) {
         require(
             PercentMath.validPerc(_investPerc),
             "Vault: invalid investPerc"
         );
         require(
-            address(_underlying) != address(0x0),
-            "VaultContext: underlying cannot be 0x0"
+            PercentMath.validPerc(_perfFeePct),
+            "Vault: invalid performance fee"
         );
-        require(_minLockPeriod > 0, "minLockPeriod cannot be 0");
+        require(
+            address(_underlying) != address(0x0),
+            "Vault: underlying cannot be 0x0"
+        );
+        require(_treasury != address(0x0), "Vault: treasury cannot be 0x0");
+        require(_owner != address(0x0), "Vault: owner cannot be 0x0");
+        require(_minLockPeriod != 0, "Vault: minLockPeriod cannot be 0");
 
         _setupRole(DEFAULT_ADMIN_ROLE, _owner);
         _setupRole(INVESTOR_ROLE, _owner);
 
         investPerc = _investPerc;
         underlying = _underlying;
+        treasury = _treasury;
         minLockPeriod = _minLockPeriod;
+        perfFeePct = _perfFeePct;
 
         depositors = new Depositors(this);
         claimers = new Claimers(this);
@@ -142,12 +161,32 @@ contract Vault is
     //
     // IVault
     //
+
+    /// See {IVault}
     function setTreasury(address _treasury)
         external
         override(IVault)
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
+        require(
+            address(_treasury) != address(0x0),
+            "Vault: treasury cannot be 0x0"
+        );
+        treasury = _treasury;
         emit TreasuryUpdated(_treasury);
+    }
+
+    /// See {IVault}
+    function setPerfFeePct(uint16 _perfFeePct)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        require(
+            PercentMath.validPerc(_perfFeePct),
+            "Vault: invalid performance fee"
+        );
+        perfFeePct = _perfFeePct;
+        emit PerfFeePctUpdated(_perfFeePct);
     }
 
     /// See {IVault}
@@ -186,7 +225,11 @@ contract Vault is
         public
         view
         override(IVault)
-        returns (uint256)
+        returns (
+            uint256 claimableYield,
+            uint256 shares,
+            uint256 perfFee
+        )
     {
         uint256 tokenId = claimers.tokenOf(_to);
         uint256 claimerPrincipal = claimer[tokenId].totalPrincipal;
@@ -199,10 +242,24 @@ contract Vault is
         );
 
         if (currentClaimerPrincipal <= claimerPrincipal) {
-            return 0;
+            return (0, 0, 0);
         }
 
-        return currentClaimerPrincipal - claimerPrincipal;
+        uint256 yieldWithPerfFee = currentClaimerPrincipal - claimerPrincipal;
+
+        shares = _computeShares(
+            yieldWithPerfFee,
+            totalShares,
+            totalUnderlyingMinusSponsored()
+        );
+        uint256 sharesAmount = _computeAmount(
+            shares,
+            totalShares,
+            totalUnderlyingMinusSponsored()
+        );
+
+        perfFee = sharesAmount.percOf(perfFeePct);
+        claimableYield = sharesAmount - perfFee;
     }
 
     /// See {IVault}
@@ -237,29 +294,20 @@ contract Vault is
     function claimYield(address _to) external override(IVault) nonReentrant {
         require(_to != address(0), "Vault: destination address is 0x");
 
-        uint256 yield = yieldFor(_msgSender());
+        (uint256 yield, uint256 shares, uint256 fee) = yieldFor(_msgSender());
 
         if (yield == 0) return;
 
-        uint256 shares = _computeShares(
-            yield,
-            totalShares,
-            totalUnderlyingMinusSponsored()
-        );
-        uint256 sharesAmount = _computeAmount(
-            shares,
-            totalShares,
-            totalUnderlyingMinusSponsored()
-        );
-
         uint256 claimerId = claimers.tokenOf(_msgSender());
 
-        underlying.safeTransfer(_to, sharesAmount);
+        accumulatedPerfFee += fee;
+
+        underlying.safeTransfer(_to, yield);
 
         claimer[claimerId].totalShares -= shares;
         totalShares -= shares;
 
-        emit YieldClaimed(claimerId, _to, sharesAmount, shares);
+        emit YieldClaimed(claimerId, _to, yield, shares, fee);
     }
 
     /// See {IVault}
@@ -367,6 +415,16 @@ contract Vault is
         _unsponsor(_to, _ids);
     }
 
+    function withdrawPerformanceFee() external onlyRole(INVESTOR_ROLE) {
+        uint256 _perfFee = accumulatedPerfFee;
+        require(_perfFee != 0, "Vault: no performance fee");
+
+        accumulatedPerfFee = 0;
+
+        emit FeeWithdrawn(_perfFee);
+        underlying.safeTransfer(treasury, _perfFee);
+    }
+
     //
     // Public API
     //
@@ -374,17 +432,18 @@ contract Vault is
     /**
      * Computes the total amount of principal + yield currently controlled by the
      * vault and the strategy. The principal + yield is the total amount
-     * of underlying that can be claimed or withdrawn, excluding the sponsored amount.
+     * of underlying that can be claimed or withdrawn, excluding the sponsored amount and performance fee.
      *
-     * @return Total amount of principal and yield help by the vault (not including sponsored amount).
+     * @return Total amount of principal and yield help by the vault (not including sponsored amount and performance fee).
      */
     function totalUnderlyingMinusSponsored() public view returns (uint256) {
         uint256 _totalUnderlying = totalUnderlying();
-        if (totalSponsored > _totalUnderlying) {
+        uint256 deductAmount = totalSponsored + accumulatedPerfFee;
+        if (deductAmount > _totalUnderlying) {
             return 0;
         }
 
-        return _totalUnderlying - totalSponsored;
+        return _totalUnderlying - deductAmount;
     }
 
     //
@@ -700,9 +759,9 @@ contract Vault is
     function _transferAndCheckUnderlying(address _from, uint256 _amount)
         internal
     {
-        uint256 balanceBefore = totalUnderlying();
+        uint256 balanceBefore = underlying.balanceOf(address(this));
         underlying.safeTransferFrom(_from, address(this), _amount);
-        uint256 balanceAfter = totalUnderlying();
+        uint256 balanceAfter = underlying.balanceOf(address(this));
 
         require(
             balanceAfter == balanceBefore + _amount,

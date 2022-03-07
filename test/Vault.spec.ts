@@ -1,17 +1,23 @@
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { time } from "@openzeppelin/test-helpers";
-import { Contract, BigNumber, utils } from "ethers";
-import { ethers } from "hardhat";
+import { Contract, utils, BigNumber, constants } from "ethers";
+import { ethers, deployments } from "hardhat";
 import { expect } from "chai";
 
-import type {
+import {
   Vault,
-  TestERC20,
+  MockERC20,
+  MockDAI__factory,
+  MockAUST__factory,
+  MockDAI,
+  MockAUST,
   Depositors,
   Claimers,
   AnchorUSTStrategy,
+  Vault__factory,
+  Claimers__factory,
+  Depositors__factory,
 } from "../typechain";
-import { Claimers__factory, Depositors__factory } from "../typechain";
 
 import { depositParams, claimParams } from "./shared/factories";
 import {
@@ -19,6 +25,7 @@ import {
   moveForwardTwoWeeks,
   SHARES_MULTIPLIER,
   generateNewAddress,
+  getRoleErrorMsg,
   arrayFromTo,
 } from "./shared";
 
@@ -33,27 +40,42 @@ describe("Vault", () => {
   let mockEthAnchorRouter: Contract;
   let mockAUstUstFeed: Contract;
 
-  let underlying: TestERC20;
-  let aUstToken: Contract;
+  let underlying: MockDAI;
+  let aUstToken: MockAUST;
   let vault: Vault;
   let depositors: Depositors;
   let claimers: Claimers;
   let strategy: AnchorUSTStrategy;
-  const treasury = generateNewAddress();
+  const TWO_WEEKS = BigNumber.from(time.duration.days(14).toNumber());
+  const TREASURY = generateNewAddress();
+  const PERFORMANCE_FEE_PCT = BigNumber.from("200");
+  const INVEST_PCT = BigNumber.from("9000");
+  const DENOMINATOR = BigNumber.from("10000");
 
-  // @openzeppelin/test-helpers actually does not use the same BigNumber lib,
-  // so we need to convert
-  const twoWeeks = BigNumber.from(time.duration.days(14).toNumber());
+  const DEFAULT_ADMIN_ROLE = constants.HashZero;
+  const INVESTOR_ROLE = utils.keccak256(utils.toUtf8Bytes("INVESTOR_ROLE"));
+
+  const fixtures = deployments.createFixture(async ({ deployments }) => {
+    await deployments.fixture(["vaults"]);
+
+    [owner] = await ethers.getSigners();
+
+    const daiDeployment = await deployments.get("DAI");
+    const austDeployment = await deployments.get("aUST");
+    const daiVaultDeployment = await deployments.get("Vault_DAI");
+
+    aUstToken = MockAUST__factory.connect(austDeployment.address, owner);
+    underlying = MockDAI__factory.connect(daiDeployment.address, owner);
+    vault = Vault__factory.connect(daiVaultDeployment.address, owner);
+  });
+
+  beforeEach(() => fixtures());
 
   beforeEach(async () => {
     [owner, alice, bob, carol] = await ethers.getSigners();
 
-    let TestERC20 = await ethers.getContractFactory("TestERC20");
     let Vault = await ethers.getContractFactory("Vault");
     let MockStrategy = await ethers.getContractFactory("MockStrategy");
-
-    underlying = (await TestERC20.deploy(0)) as TestERC20;
-    aUstToken = await TestERC20.deploy(utils.parseEther("1000000000"));
 
     const MockEthAnchorRouterFactory = await ethers.getContractFactory(
       "MockEthAnchorRouter"
@@ -68,21 +90,21 @@ describe("Vault", () => {
     );
     mockAUstUstFeed = await MockChainlinkPriceFeedFactory.deploy(18);
 
-    vault = (await Vault.deploy(
+    vault = await Vault.deploy(
       underlying.address,
-      twoWeeks,
-      0,
-      owner.address
-    )) as Vault;
+      TWO_WEEKS,
+      INVEST_PCT,
+      TREASURY,
+      owner.address,
+      PERFORMANCE_FEE_PCT
+    );
 
     strategy = await MockStrategy.deploy(
       vault.address,
-      treasury,
       mockEthAnchorRouter.address,
       mockAUstUstFeed.address,
       underlying.address,
-      aUstToken.address,
-      BigNumber.from("200")
+      aUstToken.address
     );
 
     depositors = Depositors__factory.connect(await vault.depositors(), owner);
@@ -92,8 +114,6 @@ describe("Vault", () => {
   describe("codearena", () => {
     describe("issue #125", () => {
       beforeEach(async () => {
-        await addUnderlyingBalance(alice, "1000");
-
         await vault.connect(alice).deposit(
           depositParams.build({
             amount: parseUnits("1000"),
@@ -152,24 +172,219 @@ describe("Vault", () => {
         expect((await vault.deposits(1)).amount).to.equal(6);
       });
     });
-    describe("issue #150", () => {
-      it("does not allow a minLockPeriod of 0", async () => {
-        const Vault = await ethers.getContractFactory("Vault");
+  });
 
-        const tx = Vault.deploy(underlying.address, 0, 0, owner.address);
+  describe("constructor", () => {
+    let VaultFactory: Vault__factory;
 
-        await expect(tx).to.be.revertedWith("minLockPeriod cannot be 0");
-      });
+    beforeEach(async () => {
+      VaultFactory = await ethers.getContractFactory("Vault");
+    });
+
+    it("it reverts if underlying is address(0)", async () => {
+      await expect(
+        VaultFactory.deploy(
+          constants.AddressZero,
+          TWO_WEEKS,
+          INVEST_PCT,
+          TREASURY,
+          owner.address,
+          PERFORMANCE_FEE_PCT
+        )
+      ).to.be.revertedWith("Vault: underlying cannot be 0x0");
+    });
+
+    it("it reverts if min lock period is zero", async () => {
+      await expect(
+        VaultFactory.deploy(
+          underlying.address,
+          0,
+          INVEST_PCT,
+          TREASURY,
+          owner.address,
+          PERFORMANCE_FEE_PCT
+        )
+      ).to.be.revertedWith("Vault: minLockPeriod cannot be 0");
+    });
+
+    it("it reverts if invest percentage is greater than 100%", async () => {
+      await expect(
+        VaultFactory.deploy(
+          underlying.address,
+          TWO_WEEKS,
+          DENOMINATOR.add(BigNumber.from("1")),
+          TREASURY,
+          owner.address,
+          PERFORMANCE_FEE_PCT
+        )
+      ).to.be.revertedWith("Vault: invalid investPerc");
+    });
+
+    it("it reverts if performance fee percentage is greater than 100%", async () => {
+      await expect(
+        VaultFactory.deploy(
+          underlying.address,
+          TWO_WEEKS,
+          INVEST_PCT,
+          TREASURY,
+          owner.address,
+          DENOMINATOR.add(BigNumber.from("1"))
+        )
+      ).to.be.revertedWith("Vault: invalid performance fee");
+    });
+
+    it("it reverts if treasury is address(0)", async () => {
+      await expect(
+        VaultFactory.deploy(
+          underlying.address,
+          TWO_WEEKS,
+          INVEST_PCT,
+          constants.AddressZero,
+          owner.address,
+          PERFORMANCE_FEE_PCT
+        )
+      ).to.be.revertedWith("Vault: treasury cannot be 0x0");
+    });
+
+    it("it reverts if owner is address(0)", async () => {
+      await expect(
+        VaultFactory.deploy(
+          underlying.address,
+          TWO_WEEKS,
+          INVEST_PCT,
+          TREASURY,
+          constants.AddressZero,
+          PERFORMANCE_FEE_PCT
+        )
+      ).to.be.revertedWith("Vault: owner cannot be 0x0");
+    });
+
+    it("Check initial values", async () => {
+      expect(
+        await vault.hasRole(DEFAULT_ADMIN_ROLE, owner.address)
+      ).to.be.equal(true);
+      expect(await vault.hasRole(INVESTOR_ROLE, owner.address)).to.be.equal(
+        true
+      );
+
+      expect(await vault.underlying()).to.be.equal(underlying.address);
+      expect(await vault.minLockPeriod()).to.be.equal(TWO_WEEKS);
+      expect(await vault.investPerc()).to.be.equal(INVEST_PCT);
+      expect(await vault.treasury()).to.be.equal(TREASURY);
+      expect(await vault.perfFeePct()).to.be.equal(PERFORMANCE_FEE_PCT);
+
+      expect(await vault.depositors()).to.be.not.equal(constants.AddressZero);
+      expect(await vault.claimers()).to.be.not.equal(constants.AddressZero);
     });
   });
 
-  describe("setInvestPerc", () => {
-    it("changes the investment percentage", async () => {
-      expect(await vault.investPerc()).to.equal(0);
+  describe("#setTreasury function", () => {
+    it("it reverts if msg.sender is not admin", async () => {
+      await expect(
+        vault.connect(alice).setTreasury(TREASURY)
+      ).to.be.revertedWith(getRoleErrorMsg(alice, DEFAULT_ADMIN_ROLE));
+    });
 
-      await vault.connect(owner).setInvestPerc(1);
+    it("it reverts if treasury is address(0)", async () => {
+      await expect(
+        vault.connect(owner).setTreasury(constants.AddressZero)
+      ).to.be.revertedWith("Vault: treasury cannot be 0x0");
+    });
 
-      expect(await vault.investPerc()).to.equal(1);
+    it("change treasury and emit TreasuryUpdated event", async () => {
+      const newTreasury = generateNewAddress();
+      const tx = await vault.connect(owner).setTreasury(newTreasury);
+
+      await expect(tx).emit(vault, "TreasuryUpdated").withArgs(newTreasury);
+      expect(await vault.treasury()).to.be.equal(newTreasury);
+    });
+  });
+
+  describe("#setPerfFeePct function", () => {
+    it("it reverts if msg.sender is not admin", async () => {
+      await expect(vault.connect(alice).setPerfFeePct(100)).to.be.revertedWith(
+        getRoleErrorMsg(alice, DEFAULT_ADMIN_ROLE)
+      );
+    });
+
+    it("it reverts if performance fee percentage is greater than 100%", async () => {
+      await expect(
+        vault.connect(owner).setPerfFeePct(DENOMINATOR.add(BigNumber.from("1")))
+      ).to.be.revertedWith("Vault: invalid performance fee");
+    });
+
+    it("change perfFeePct and emit PerfFeePctUpdated event", async () => {
+      const newFeePct = 100;
+      const tx = await vault.connect(owner).setPerfFeePct(newFeePct);
+
+      await expect(tx).emit(vault, "PerfFeePctUpdated").withArgs(newFeePct);
+      expect(await vault.perfFeePct()).to.be.equal(newFeePct);
+    });
+  });
+
+  describe("#setInvestPerc function", () => {
+    it("it reverts if msg.sender is not admin", async () => {
+      await expect(vault.connect(alice).setInvestPerc(100)).to.be.revertedWith(
+        getRoleErrorMsg(alice, DEFAULT_ADMIN_ROLE)
+      );
+    });
+
+    it("it reverts if invest percentage is greater than 100%", async () => {
+      await expect(
+        vault.connect(owner).setInvestPerc(DENOMINATOR.add(BigNumber.from("1")))
+      ).to.be.revertedWith("Vault: invalid investPerc");
+    });
+
+    it("change perfFeePct and emit PerfFeePctUpdated event", async () => {
+      const newInvestPct = 8000;
+      const tx = await vault.connect(owner).setInvestPerc(newInvestPct);
+
+      await expect(tx)
+        .emit(vault, "InvestPercentageUpdated")
+        .withArgs(newInvestPct);
+      expect(await vault.investPerc()).to.be.equal(newInvestPct);
+    });
+  });
+
+  describe("withdrawPerformanceFee", () => {
+    let perfFee: BigNumber;
+
+    beforeEach(async () => {
+      await addUnderlyingBalance(alice, "1000");
+
+      const amount = parseUnits("100");
+      const params = depositParams.build({
+        amount,
+        claims: [claimParams.percent(100).to(bob.address).build()],
+      });
+
+      await vault.connect(alice).deposit(params);
+      const newYield = await addYieldToVault("100");
+      await vault.connect(bob).claimYield(carol.address);
+      perfFee = newYield.mul(PERFORMANCE_FEE_PCT).div(DENOMINATOR);
+    });
+
+    it("it reverts if msg.sender is not investor", async () => {
+      await expect(
+        vault.connect(alice).withdrawPerformanceFee()
+      ).to.be.revertedWith(getRoleErrorMsg(alice, INVESTOR_ROLE));
+    });
+
+    it("withdraw performance fee and emit FeeWithdrawn event", async () => {
+      const tx = await vault.connect(owner).withdrawPerformanceFee();
+
+      expect(await underlying.balanceOf(TREASURY)).to.be.equal(perfFee);
+      await expect(tx).to.emit(vault, "FeeWithdrawn").withArgs(perfFee);
+
+      expect(await vault.accumulatedPerfFee()).to.be.eq("0");
+    });
+
+    it("it reverts if nothing to withdraw", async () => {
+      await vault.connect(owner).withdrawPerformanceFee();
+
+      await expect(
+        vault.connect(owner).withdrawPerformanceFee()
+      ).to.be.revertedWith("Vault: no performance fee");
     });
   });
 
@@ -190,7 +405,6 @@ describe("Vault", () => {
   describe("investableAmount", () => {
     it("returns the amount available to invest", async () => {
       await vault.connect(owner).setStrategy(strategy.address);
-      await vault.connect(owner).setInvestPerc("9000");
       await addYieldToVault("100");
 
       expect(await vault.investableAmount()).to.equal(parseUnits("90"));
@@ -203,14 +417,6 @@ describe("Vault", () => {
       await underlying.mint(strategy.address, parseUnits("100"));
 
       expect(await vault.investableAmount()).to.equal(parseUnits("80"));
-    });
-  });
-
-  describe("setTreasury", () => {
-    it("emits an event", async () => {
-      const tx = vault.connect(owner).setTreasury(treasury);
-
-      await expect(tx).to.emit(vault, "TreasuryUpdated").withArgs(treasury);
     });
   });
 
@@ -249,12 +455,10 @@ describe("Vault", () => {
 
       const newStrategy = await MockStrategy.deploy(
         vault.address,
-        treasury,
         mockEthAnchorRouter.address,
         mockAUstUstFeed.address,
         underlying.address,
-        aUstToken.address,
-        BigNumber.from("200")
+        aUstToken.address
       );
 
       const tx = await vault.connect(owner).setStrategy(newStrategy.address);
@@ -269,8 +473,8 @@ describe("Vault", () => {
     it("adds a sponsor to the vault", async () => {
       await addUnderlyingBalance(alice, "1000");
 
-      await vault.connect(alice).sponsor(parseUnits("500"), twoWeeks);
-      await vault.connect(alice).sponsor(parseUnits("500"), twoWeeks);
+      await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
+      await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
 
       expect(await vault.totalSponsored()).to.eq(parseUnits("1000"));
     });
@@ -280,7 +484,7 @@ describe("Vault", () => {
 
       const tx = await vault
         .connect(alice)
-        .sponsor(parseUnits("500"), twoWeeks);
+        .sponsor(parseUnits("500"), TWO_WEEKS);
 
       await expect(tx)
         .to.emit(vault, "Sponsored")
@@ -288,7 +492,7 @@ describe("Vault", () => {
           0,
           parseUnits("500"),
           alice.address,
-          twoWeeks.add(await getLastBlockTimestamp())
+          TWO_WEEKS.add(await getLastBlockTimestamp())
         );
     });
 
@@ -331,8 +535,8 @@ describe("Vault", () => {
   describe("unsponsor", () => {
     it("removes a sponsor from the vault", async () => {
       await addUnderlyingBalance(alice, "1000");
-      await vault.connect(alice).sponsor(parseUnits("500"), twoWeeks);
-      await vault.connect(alice).sponsor(parseUnits("500"), twoWeeks);
+      await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
+      await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
 
       await moveForwardTwoWeeks();
       await vault.connect(alice)["unsponsor"](bob.address, [0]);
@@ -343,7 +547,7 @@ describe("Vault", () => {
 
     it("emits an event", async () => {
       await addUnderlyingBalance(alice, "1000");
-      await vault.connect(alice).sponsor(parseUnits("500"), twoWeeks);
+      await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
 
       await moveForwardTwoWeeks();
       const tx = await vault.connect(alice)["unsponsor"](bob.address, [0]);
@@ -353,7 +557,7 @@ describe("Vault", () => {
 
     it("fails if the caller is not the owner", async () => {
       await addUnderlyingBalance(alice, "1000");
-      await vault.connect(alice).sponsor(parseUnits("500"), twoWeeks);
+      await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
 
       await expect(
         vault.connect(bob)["unsponsor"](alice.address, [0])
@@ -362,7 +566,7 @@ describe("Vault", () => {
 
     it("fails if the destination address is 0x", async () => {
       await addUnderlyingBalance(alice, "1000");
-      await vault.connect(alice).sponsor(parseUnits("500"), twoWeeks);
+      await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
 
       await expect(
         vault
@@ -373,7 +577,7 @@ describe("Vault", () => {
 
     it("fails if the amount is still locked", async () => {
       await addUnderlyingBalance(alice, "1000");
-      await vault.connect(alice).sponsor(parseUnits("500"), twoWeeks);
+      await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
 
       await expect(
         vault.connect(alice)["unsponsor"](alice.address, [0])
@@ -385,12 +589,12 @@ describe("Vault", () => {
 
       await vault.connect(alice).deposit(
         depositParams.build({
-          lockDuration: twoWeeks,
+          lockDuration: TWO_WEEKS,
           amount: parseUnits("500"),
           claims: [claimParams.percent(100).to(alice.address).build()],
         })
       );
-      await vault.connect(alice).sponsor(parseUnits("500"), twoWeeks);
+      await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
 
       await moveForwardTwoWeeks();
 
@@ -401,7 +605,7 @@ describe("Vault", () => {
 
     it("fails if there are not enough funds", async () => {
       await addUnderlyingBalance(alice, "1000");
-      await vault.connect(alice).sponsor(parseUnits("1000"), twoWeeks);
+      await vault.connect(alice).sponsor(parseUnits("1000"), TWO_WEEKS);
       await moveForwardTwoWeeks();
 
       await removeUnderlyingFromVault("500");
@@ -417,7 +621,7 @@ describe("Vault", () => {
       await addUnderlyingBalance(alice, "1000");
 
       const params = depositParams.build({
-        lockDuration: twoWeeks,
+        lockDuration: TWO_WEEKS,
         amount: parseUnits("100"),
         claims: [
           claimParams.percent(50).to(carol.address).build(),
@@ -441,7 +645,7 @@ describe("Vault", () => {
           alice.address,
           carol.address,
           1,
-          twoWeeks.add(await getLastBlockTimestamp()),
+          TWO_WEEKS.add(await getLastBlockTimestamp()),
           "0x00"
         );
 
@@ -455,7 +659,7 @@ describe("Vault", () => {
           alice.address,
           bob.address,
           2,
-          twoWeeks.add(await getLastBlockTimestamp()),
+          TWO_WEEKS.add(await getLastBlockTimestamp()),
           ethers.utils.hexlify(123)
         );
     });
@@ -464,7 +668,7 @@ describe("Vault", () => {
       await addUnderlyingBalance(alice, "1000");
 
       const params = depositParams.build({
-        lockDuration: twoWeeks,
+        lockDuration: TWO_WEEKS,
         amount: parseUnits("100"),
         claims: [
           claimParams.percent(50).to(carol.address).build(),
@@ -485,7 +689,7 @@ describe("Vault", () => {
           alice.address,
           carol.address,
           1,
-          twoWeeks.add(await getLastBlockTimestamp()),
+          TWO_WEEKS.add(await getLastBlockTimestamp()),
           "0x00"
         );
 
@@ -499,7 +703,7 @@ describe("Vault", () => {
           alice.address,
           bob.address,
           2,
-          twoWeeks.add(await getLastBlockTimestamp()),
+          TWO_WEEKS.add(await getLastBlockTimestamp()),
           "0x00"
         );
     });
@@ -520,7 +724,7 @@ describe("Vault", () => {
       const deposit = await vault.deposits(0);
 
       expect(deposit.lockedUntil.toNumber()).to.be.at.least(
-        twoWeeks.add(await getLastBlockTimestamp())
+        TWO_WEEKS.add(await getLastBlockTimestamp())
       );
     });
 
@@ -734,7 +938,7 @@ describe("Vault", () => {
         await addUnderlyingBalance(alice, "1000");
 
         const params = depositParams.build({
-          lockDuration: twoWeeks,
+          lockDuration: TWO_WEEKS,
           amount: parseUnits("100"),
           claims: [claimParams.percent(100).to(bob.address).build()],
         });
@@ -751,12 +955,12 @@ describe("Vault", () => {
 
         await vault.connect(alice).deposit(
           depositParams.build({
-            lockDuration: twoWeeks,
+            lockDuration: TWO_WEEKS,
             amount: parseUnits("500"),
             claims: [claimParams.percent(100).to(alice.address).build()],
           })
         );
-        await vault.connect(alice).sponsor(parseUnits("500"), twoWeeks);
+        await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
 
         await moveForwardTwoWeeks();
 
@@ -831,8 +1035,9 @@ describe("Vault", () => {
         .withArgs(
           1,
           carol.address,
-          parseUnits("50"),
-          parseUnits("25").mul(SHARES_MULTIPLIER)
+          parseUnits("49"),
+          parseUnits("25").mul(SHARES_MULTIPLIER),
+          parseUnits("1")
         );
     });
 
@@ -851,9 +1056,34 @@ describe("Vault", () => {
       await addYieldToVault("100");
       await vault.connect(carol).claimYield(carol.address);
 
-      expect(await vault.yieldFor(carol.address)).to.eq(parseUnits("0"));
-      expect(await underlying.balanceOf(carol.address)).to.eq(parseUnits("50"));
-      expect(await vault.yieldFor(bob.address)).to.eq(parseUnits("50"));
+      const carolYield = await vault.yieldFor(carol.address);
+      expect(carolYield[0]).to.eq(parseUnits("0"));
+      expect(carolYield[1]).to.eq(parseUnits("0"));
+      expect(carolYield[2]).to.eq(parseUnits("0"));
+
+      expect(await underlying.balanceOf(carol.address)).to.eq(parseUnits("49"));
+
+      const bobYield = await vault.yieldFor(bob.address);
+      expect(bobYield[0]).to.eq(parseUnits("49"));
+      expect(bobYield[1]).to.eq(parseUnits("25").mul(SHARES_MULTIPLIER));
+      expect(bobYield[2]).to.eq(parseUnits("1"));
+    });
+
+    it("accumulate performance fee", async () => {
+      await addUnderlyingBalance(alice, "1000");
+
+      const params = depositParams.build({
+        amount: parseUnits("100"),
+        claims: [
+          claimParams.percent(50).to(carol.address).build(),
+          claimParams.percent(50).to(bob.address).build(),
+        ],
+      });
+
+      await vault.connect(alice).deposit(params);
+      await addYieldToVault("100");
+      await vault.connect(carol).claimYield(carol.address);
+      expect(await vault.accumulatedPerfFee()).to.eq(parseUnits("1"));
     });
 
     it("claims the yield to a different address", async () => {
@@ -868,9 +1098,7 @@ describe("Vault", () => {
       await addYieldToVault("100");
       await vault.connect(bob).claimYield(carol.address);
 
-      expect(await underlying.balanceOf(carol.address)).to.eq(
-        parseUnits("100")
-      );
+      expect(await underlying.balanceOf(carol.address)).to.eq(parseUnits("98"));
     });
 
     it("fails is the destination address is 0x", async () => {
@@ -893,7 +1121,7 @@ describe("Vault", () => {
   });
 
   describe("yieldFor", () => {
-    it("returns the amount of yield claimable by a user", async () => {
+    it("returns the amount of yield claimable by a user, share of yield and performance fee", async () => {
       await addUnderlyingBalance(alice, "1000");
 
       const params = depositParams.build({
@@ -905,10 +1133,19 @@ describe("Vault", () => {
       });
 
       await vault.connect(alice).deposit(params);
-      await addYieldToVault("100");
+      const newYield = await addYieldToVault("100");
+      const yieldPerUser = newYield.div(BigNumber.from("2"));
+      const perfFee = yieldPerUser.mul(PERFORMANCE_FEE_PCT).div(DENOMINATOR);
 
-      expect(await vault.yieldFor(alice.address)).to.eq(parseUnits("50"));
-      expect(await vault.yieldFor(bob.address)).to.eq(parseUnits("50"));
+      const aliceYield = await vault.yieldFor(alice.address);
+      expect(aliceYield[0]).to.eq(yieldPerUser.sub(perfFee));
+      expect(aliceYield[1]).to.eq(parseUnits("25").mul(SHARES_MULTIPLIER));
+      expect(aliceYield[2]).to.eq(perfFee);
+
+      const bobYield = await vault.yieldFor(bob.address);
+      expect(bobYield[0]).to.eq(yieldPerUser.sub(perfFee));
+      expect(bobYield[1]).to.eq(parseUnits("25").mul(SHARES_MULTIPLIER));
+      expect(bobYield[2]).to.eq(perfFee);
     });
   });
 
@@ -1033,8 +1270,9 @@ describe("Vault", () => {
     });
   });
 
-  function addYieldToVault(amount: string) {
-    return underlying.mint(vault.address, parseUnits(amount));
+  async function addYieldToVault(amount: string) {
+    await underlying.mint(vault.address, parseUnits(amount));
+    return parseUnits(amount);
   }
 
   async function addUnderlyingBalance(

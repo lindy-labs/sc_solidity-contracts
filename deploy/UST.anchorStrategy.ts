@@ -11,7 +11,8 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   const aust = await get("aUST");
   const vault = await get("Vault_UST");
 
-  const { multisig, ethAnchorRouter, perfFeePct } = getCurrentNetworkConfig();
+  const { multisig, ethAnchorRouter, perfFeePct } =
+    await getCurrentNetworkConfig();
 
   const treasury = env.network.config.chainId == 1 ? multisig : deployer;
   const owner = env.network.config.chainId == 1 ? multisig : deployer;
@@ -37,6 +38,8 @@ func.tags = ["strategies", "ust"];
 func.dependencies = ["deploy_ust_vault"];
 
 // deploy only to mainnet
+// TODO we need to enable this on other networks as well
+// (e.g. hardhat forking ethanchor, or deploy fake ethanchor router)
 func.skip = async (hre) => hre.network.config.chainId != 1;
 
 export default func;

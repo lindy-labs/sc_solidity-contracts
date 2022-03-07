@@ -21,8 +21,6 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
     using PercentMath for uint256;
     using ERC165Query for address;
 
-    event PerfFeeClaimed(uint256 amount);
-    event PerfFeePctUpdated(uint256 pct);
     event InitDepositStable(
         address indexed operator,
         uint256 indexed idx,
@@ -56,17 +54,11 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
     // Vault address
     address public immutable override(IStrategy) vault;
 
-    // Treasury address
-    address public treasury;
-
     // UST token address
     IERC20 public immutable ustToken;
 
     // aUST token address (wrapped Anchor UST, received to accrue interest for an Anchor deposit)
     IERC20 public immutable aUstToken;
-
-    // performance fee taken by the treasury on profits
-    uint16 public perfFeePct;
 
     // Router contract to interact with EthAnchor
     IEthAnchorRouter public ethAnchorRouter;
@@ -85,9 +77,6 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
 
     // redeem operations history
     Operation[] public redeemOperations;
-
-    // amount of UST converted (used to calculate yield)
-    uint256 public convertedUst;
 
     // Multiplier of aUST / UST feed
     uint256 internal _aUstToUstFeedMultiplier;
@@ -116,22 +105,18 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
      * @notice Vault will be automatically set to Manager Role to handle underlyings
      *
      * @param _vault Vault address
-     * @param _treasury Treasury address
      * @param _ethAnchorRouter EthAnchorRouter address
      * @param _aUstToUstFeed aUST / UST chainlink feed address
      * @param _ustToken UST token address
      * @param _aUstToken aUST token address
-     * @param _perfFeePct Performance fee percentage
      * @param _owner Owner address
      */
     constructor(
         address _vault,
-        address _treasury,
         address _ethAnchorRouter,
         AggregatorV3Interface _aUstToUstFeed,
         IERC20 _ustToken,
         IERC20 _aUstToken,
-        uint16 _perfFeePct,
         address _owner
     ) {
         require(_owner != address(0), "AnchorBaseStrategy: owner is 0x");
@@ -147,11 +132,6 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
             address(_aUstToken) != address(0),
             "AnchorBaseStrategy: aUST is 0x"
         );
-        require(_treasury != address(0), "AnchorBaseStrategy: treasury is 0x");
-        require(
-            PercentMath.validPerc(_perfFeePct),
-            "AnchorBaseStrategy: invalid performance fee"
-        );
         require(
             _vault.doesContractImplementInterface(type(IVault).interfaceId),
             "AnchorBaseStrategy: not an IVault"
@@ -160,14 +140,12 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
         _setupRole(DEFAULT_ADMIN_ROLE, _owner);
         _setupRole(MANAGER_ROLE, _vault);
 
-        treasury = _treasury;
         vault = _vault;
         underlying = IVault(_vault).underlying();
         ethAnchorRouter = IEthAnchorRouter(_ethAnchorRouter);
         aUstToUstFeed = _aUstToUstFeed;
         ustToken = _ustToken;
         aUstToken = _aUstToken;
-        perfFeePct = _perfFeePct;
 
         _aUstToUstFeedMultiplier = 10**_aUstToUstFeed.decimals();
         _allRedeemed = true;
@@ -229,7 +207,6 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
 
         uint256 ustAmount = operation.amount;
         pendingDeposits -= ustAmount;
-        convertedUst += ustAmount;
 
         emit FinishDepositStable(operator, ustAmount, newAUst);
 
@@ -291,22 +268,6 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
         onlyManager
     {}
 
-    /**
-     * Updates the performance fee
-     *
-     * @notice Can only be called by governance
-     *
-     * @param _perfFeePct The new performance fee %
-     */
-    function setPerfFeePct(uint16 _perfFeePct) external onlyAdmin {
-        require(
-            PercentMath.validPerc(_perfFeePct),
-            "AnchorBaseStrategy: invalid performance fee"
-        );
-        perfFeePct = _perfFeePct;
-        emit PerfFeePctUpdated(_perfFeePct);
-    }
-
     /// See {IStrategy}
     function applyInvestmentFee(uint256 _amount)
         external
@@ -323,7 +284,6 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
      *
      * @notice both held and invested amounts are included here, using the
      * latest known exchange rates to the underlying currency.
-     * This will return value without performance fee.
      *
      * @return The total amount of underlying
      */
@@ -339,14 +299,13 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
      *
      * @notice Must be called some time after `initRedeemStable()`. Will only work if
      * the EthAnchor bridge has finished processing the deposit.
-     * Will take performance fee if some yield generated.
      *
      * @dev division by `aUstBalance` was not deemed worthy of a zero-check
      *   (https://github.com/code-423n4/2022-01-sandclock-findings/issues/95)
      *
      * @param idx Id of the pending redeem operation
      *
-     * @return Redeemed UST amount without performance fee.
+     * @return operator address, redeemed aUST and received UST amount
      */
     function _finishRedeemStable(uint256 idx)
         internal
@@ -361,25 +320,15 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
             "AnchorBaseStrategy: not running"
         );
         Operation storage operation = redeemOperations[idx];
-        uint256 aUstBalance = _getAUstBalance() + pendingRedeems;
 
         uint256 operationAmount = operation.amount;
         address operator = operation.operator;
-        uint256 originalUst = (convertedUst * operationAmount) / aUstBalance;
 
         ethAnchorRouter.finishRedeemStable(operator);
 
         uint256 redeemedAmount = _getUstBalance();
         require(redeemedAmount > 0, "AnchorBaseStrategy: nothing redeemed");
 
-        uint256 perfFee = redeemedAmount > originalUst
-            ? (redeemedAmount - originalUst).percOf(perfFeePct)
-            : 0;
-        if (perfFee != 0) {
-            ustToken.safeTransfer(treasury, perfFee);
-            emit PerfFeeClaimed(perfFee);
-        }
-        convertedUst -= originalUst;
         pendingRedeems -= operationAmount;
 
         if (idx < redeemOperations.length - 1) {
@@ -391,7 +340,7 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
         }
         redeemOperations.pop();
 
-        return (operator, operationAmount, redeemedAmount - perfFee);
+        return (operator, operationAmount, redeemedAmount);
     }
 
     /// See {IStrategy}
@@ -435,50 +384,9 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
     }
 
     /**
-     * Calculate performance fee for known aUST balance and aUST / UST exchange rate.
-     *
-     * @return performance fee in UST.
+     * @return UST value of current aUST balance (+ pending redeems)
      */
-    function _performanceUstFeeWithInfo(uint256 aUstBalance, uint256 price)
-        private
-        view
-        returns (uint256)
-    {
-        // aUST and UST decimals are same, so we only care about aUST / UST feed decimals
-        uint256 estimatedUstAmount = (price * aUstBalance) /
-            _aUstToUstFeedMultiplier;
-        if (estimatedUstAmount > convertedUst) {
-            return (estimatedUstAmount - convertedUst).percOf(perfFeePct);
-        }
-        return 0;
-    }
-
-    /**
-     * Calculate current performance fee amount
-     *
-     * @notice Performance fee is in UST
-     *
-     * @return current performance fee
-     */
-    function currentPerformanceFee() external view returns (uint256) {
-        if (convertedUst == 0) {
-            return 0;
-        }
-
-        uint256 aUstBalance = _getAUstBalance() + pendingRedeems;
-
-        return
-            _performanceUstFeeWithInfo(aUstBalance, _aUstToUstExchangeRate());
-    }
-
-    /**
-     * @return UST value of current aUST balance (+ pending redeems) without performance fee
-     */
-    function _estimateAUstBalanceInUstMinusFee()
-        internal
-        view
-        returns (uint256)
-    {
+    function _estimateAUstBalanceInUst() internal view returns (uint256) {
         uint256 aUstBalance = _getAUstBalance() + pendingRedeems;
 
         if (aUstBalance == 0) {
@@ -487,9 +395,7 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
 
         uint256 aUstPrice = _aUstToUstExchangeRate();
 
-        return
-            ((aUstPrice * aUstBalance) / _aUstToUstFeedMultiplier) -
-            _performanceUstFeeWithInfo(aUstBalance, aUstPrice);
+        return ((aUstPrice * aUstBalance) / _aUstToUstFeedMultiplier);
     }
 
     /**

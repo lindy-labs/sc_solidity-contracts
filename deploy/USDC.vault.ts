@@ -9,13 +9,16 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
 
   const usdc = await get("USDC");
 
-  const { minLockPeriod, investPct } = getCurrentNetworkConfig();
+  const { minLockPeriod, investPct, perfFeePct, multisig } =
+    await getCurrentNetworkConfig();
+  const treasury = multisig;
+  const owner = multisig;
 
   await deploy("Vault_USDC", {
     contract: "Vault",
     from: deployer,
     log: true,
-    args: [usdc.address, minLockPeriod, investPct, deployer],
+    args: [usdc.address, minLockPeriod, investPct, treasury, owner, perfFeePct],
   });
 };
 

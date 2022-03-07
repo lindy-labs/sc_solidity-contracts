@@ -1,8 +1,14 @@
 import type { HardhatRuntimeEnvironment } from "hardhat/types";
-import type { DeployFunction } from "hardhat-deploy/types";
 
-import { ethers, network } from "hardhat";
-const func: DeployFunction = async function (env) {
+import { ethers } from "hardhat";
+
+const { parseUnits } = ethers.utils;
+
+const func = async function (env: HardhatRuntimeEnvironment) {
+  if (env.network.live) {
+    return;
+  }
+
   await deployDevToken(env, "DAI", "MockDAI");
   await deployDevToken(env, "USDC", "MockUSDC");
   await deployDevToken(env, "UST", "MockUST");
@@ -15,24 +21,25 @@ async function deployDevToken(
   contract: string
 ) {
   const { deployer, alice, bob, carol } = await env.getNamedAccounts();
-  const { deploy, execute, getOrNull } = env.deployments;
+  const { deploy, execute, getOrNull, read } = env.deployments;
 
   const isDeployed = await getOrNull(name);
 
-  await deploy(name, {
-    contract,
-    from: deployer,
-    args: [0],
-  });
-
   if (!isDeployed) {
+    await deploy(name, {
+      contract,
+      from: deployer,
+      args: [0],
+    });
+
     for (let account of [deployer, alice, bob, carol]) {
+      const decimals = await read(name, "decimals");
       await execute(
         name,
         { from: account },
         "mint",
         account,
-        ethers.utils.parseUnits("1000000")
+        parseUnits("1000", decimals)
       );
     }
   }
@@ -40,6 +47,5 @@ async function deployDevToken(
 
 func.id = "dev_setup";
 func.tags = ["dev_setup"];
-func.skip = async (hre) => hre.network.live;
 
 export default func;

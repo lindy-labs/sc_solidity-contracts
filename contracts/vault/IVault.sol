@@ -45,12 +45,17 @@ interface IVault {
 
     event TreasuryUpdated(address indexed treasury);
 
+    event PerfFeePctUpdated(uint16 pct);
+
     event YieldClaimed(
         uint256 claimerId,
         address indexed to,
         uint256 amount,
-        uint256 burnedShares
+        uint256 burnedShares,
+        uint256 perfFee
     );
+
+    event FeeWithdrawn(uint256 amount);
 
     //
     // Public API
@@ -110,12 +115,20 @@ interface IVault {
      *
      * @param _to address to consider.
      *
-     * @return amount of yield for @param _to.
+     * @return claimable yield for @param _to, share of generated yield by @param _to,
+     *      and performance fee from generated yield
      */
-    function yieldFor(address _to) external view returns (uint256);
+    function yieldFor(address _to)
+        external
+        view
+        returns (
+            uint256,
+            uint256,
+            uint256
+        );
 
     /**
-     * Transfers all the yield generated for the caller to
+     * Accumulate performance fee and transfers rest yield generated for the caller to
      *
      * @param _to Address that will receive the yield.
      */
@@ -164,4 +177,11 @@ interface IVault {
      * @param _treasury the new strategy's address.
      */
     function setTreasury(address _treasury) external;
+
+    /**
+     * Changes the performance fee
+     *
+     * @param _perfFeePct The new performance fee %
+     */
+    function setPerfFeePct(uint16 _perfFeePct) external;
 }
