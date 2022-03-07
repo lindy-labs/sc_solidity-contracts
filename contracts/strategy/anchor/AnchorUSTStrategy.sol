@@ -22,22 +22,18 @@ contract AnchorUSTStrategy is AnchorBaseStrategy {
      */
     constructor(
         address _vault,
-        address _treasury,
         address _ethAnchorRouter,
         AggregatorV3Interface _aUstToUstFeed,
         IERC20 _ustToken,
         IERC20 _aUstToken,
-        uint16 _perfFeePct,
         address _owner
     )
         AnchorBaseStrategy(
             _vault,
-            _treasury,
             _ethAnchorRouter,
             _aUstToUstFeed,
             _ustToken,
             _aUstToken,
-            _perfFeePct,
             _owner
         )
     {
@@ -90,11 +86,10 @@ contract AnchorUSTStrategy is AnchorBaseStrategy {
      *
      * @notice both held and invested amounts are included here, using the
      * latest known exchange rates to the underlying currency.
-     * This will return value without performance fee.
      *
      * @return The total amount of underlying
      */
     function investedAssets() external view override returns (uint256) {
-        return pendingDeposits + _estimateAUstBalanceInUstMinusFee();
+        return pendingDeposits + _estimateAUstBalanceInUst();
     }
 }
