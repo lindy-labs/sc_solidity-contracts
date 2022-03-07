@@ -59,6 +59,16 @@ re-deploy the contracts, as well as reset the indexed data from subgraph.
 A helper script, `bin/reset-docker` is provided which should take care of all
 the steps.
 
+## Echidna
+
+First install [Echidna]. 
+
+Examples:
+
+`$ echidna-test . --contract Echidna_Deposit_Withdraw --config contracts/echidna/Echidna_Deposit_Withdraw.yml`
+
+[echidna]: https://github.com/crytic/echidna
+
 ## Deployed contracts
 
 ### Ropsten Testnet
