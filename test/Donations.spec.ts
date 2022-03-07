@@ -1,10 +1,10 @@
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { ethers } from "hardhat";
 import { expect } from "chai";
+import { constants } from "ethers";
 
 import type { Donations, TestERC20 } from "../typechain";
 import { donationParams } from "./shared/factories";
-import { constants } from "ethers";
 
 const { parseUnits } = ethers.utils;
 
@@ -28,11 +28,11 @@ describe("Donations", () => {
     const TestERC20 = await ethers.getContractFactory("TestERC20");
 
     underlying = (await TestERC20.deploy(0)) as TestERC20;
-    donations = (await Donations.deploy()) as Donations;
+    donations = (await Donations.deploy(owner.address)) as Donations;
   });
 
   describe("donate", () => {
-    it("transfers the amount the charity", async () => {
+    it("transfers the available amount in the given token to the charity", async () => {
       // set donated amount
       await underlying.mint(donations.address, parseUnits("200"));
 
@@ -63,6 +63,37 @@ describe("Donations", () => {
         parseUnits("200")
       );
     });
+
+    it("sets the available amount for that charity and token to 0", async () => {
+      // set donated amount
+      await underlying.mint(donations.address, parseUnits("200"));
+
+      // create donations
+      await donations.mint(DUMMY_TX, [
+        donationParams.build({
+          destinationId: CHARITY_ID,
+          amount: parseUnits("100"),
+          owner: alice.address,
+          token: underlying.address,
+        }),
+      ]);
+
+      // burn donations
+      await donations.connect(alice).burn("1");
+
+      // donate
+      await donations.donate(CHARITY_ID, underlying.address, bob.address);
+
+      expect(
+        await donations.transferableAmounts(underlying.address, CHARITY_ID)
+      ).to.equal(0);
+    });
+
+    it("fails if there's nothing to donate", async () => {
+      await expect(
+        donations.donate(CHARITY_ID, underlying.address, bob.address)
+      ).to.be.revertedWith("Donations: nothing to donate");
+    });
   });
 
   describe("burn", () => {
@@ -85,6 +116,55 @@ describe("Donations", () => {
       expect(
         await donations.transferableAmounts(underlying.address, CHARITY_ID)
       ).to.equal(parseUnits("100"));
+    });
+
+    it("works if the caller is the owner of the NFT", async () => {
+      await donations.mint(DUMMY_TX, [
+        donationParams.build({
+          destinationId: CHARITY_ID,
+          amount: parseUnits("100"),
+          owner: alice.address,
+          token: underlying.address,
+        }),
+      ]);
+
+      await donations.connect(alice).burn("1");
+
+      expect(
+        await donations.transferableAmounts(underlying.address, CHARITY_ID)
+      ).to.equal(parseUnits("100"));
+    });
+
+    it("works if the caller is the admin", async () => {
+      await donations.mint(DUMMY_TX, [
+        donationParams.build({
+          destinationId: CHARITY_ID,
+          amount: parseUnits("100"),
+          owner: alice.address,
+          token: underlying.address,
+        }),
+      ]);
+
+      await donations.connect(owner).burn("1");
+
+      expect(
+        await donations.transferableAmounts(underlying.address, CHARITY_ID)
+      ).to.equal(parseUnits("100"));
+    });
+
+    it("fails if the caller is not the owner nor the admin", async () => {
+      await donations.mint(DUMMY_TX, [
+        donationParams.build({
+          destinationId: CHARITY_ID,
+          amount: parseUnits("100"),
+          owner: alice.address,
+          token: underlying.address,
+        }),
+      ]);
+
+      await expect(donations.connect(bob).burn("1")).to.be.revertedWith(
+        "Donations: not allowed"
+      );
     });
   });
 
@@ -123,6 +203,14 @@ describe("Donations", () => {
       await donations.mint(DUMMY_TX, [donationParams.build()]);
 
       expect(await donations.processedTx(DUMMY_TX)).to.equal(true);
+    });
+
+    it("fails if the transaction was already processed", async () => {
+      await donations.mint(DUMMY_TX, [donationParams.build()]);
+
+      await expect(
+        donations.mint(DUMMY_TX, [donationParams.build()])
+      ).to.be.revertedWith("Donations: already processed");
     });
   });
 });
