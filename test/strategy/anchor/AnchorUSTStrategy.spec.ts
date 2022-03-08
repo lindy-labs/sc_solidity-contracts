@@ -39,8 +39,16 @@ describe("AnchorUSTStrategy", () => {
     [owner, alice, manager] = await ethers.getSigners();
 
     const MockERC20 = await ethers.getContractFactory("MockERC20");
-    ustToken = await MockERC20.deploy(utils.parseEther("1000000000"));
-    aUstToken = await MockERC20.deploy(utils.parseEther("1000000000"));
+    ustToken = await MockERC20.deploy(
+      "UST",
+      "UST",
+      utils.parseEther("1000000000")
+    );
+    aUstToken = await MockERC20.deploy(
+      "aUST",
+      "aUST",
+      utils.parseEther("1000000000")
+    );
     underlying = ustToken;
 
     const MockEthAnchorRouterFactory = await ethers.getContractFactory(
