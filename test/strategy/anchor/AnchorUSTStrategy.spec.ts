@@ -42,11 +42,13 @@ describe("AnchorUSTStrategy", () => {
     ustToken = await MockERC20.deploy(
       "UST",
       "UST",
+      18,
       utils.parseEther("1000000000")
     );
     aUstToken = await MockERC20.deploy(
       "aUST",
       "aUST",
+      18,
       utils.parseEther("1000000000")
     );
     underlying = ustToken;
