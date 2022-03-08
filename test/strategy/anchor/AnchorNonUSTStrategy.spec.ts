@@ -49,7 +49,7 @@ describe("AnchorNonUSTStrategy", () => {
     const MockERC20 = await ethers.getContractFactory("MockERC20");
     ustToken = await MockERC20.deploy("UST", "UST", 18, utils.parseEther("1000000000"));
     aUstToken = await MockERC20.deploy("aUST", "aUST", 18, utils.parseEther("1000000000"));
-    underlying = await MockERC20.deploy("DAI, "DAI", 18, utils.parseEther("1000000000"));
+    underlying = await MockERC20.deploy("DAI", "DAI", 18, utils.parseEther("1000000000"));
     await underlying.updateDecimals(6);
 
     const MockChainlinkPriceFeedFactory = await ethers.getContractFactory(
