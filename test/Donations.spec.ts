@@ -1,10 +1,12 @@
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { ethers } from "hardhat";
 import { expect } from "chai";
-import { constants } from "ethers";
+import { time } from "@openzeppelin/test-helpers";
+import { BigNumber } from "ethers";
 
 import type { Donations, TestERC20 } from "../typechain";
 import { donationParams } from "./shared/factories";
+import { getLastBlockTimestamp } from "./shared";
 
 const { parseUnits } = ethers.utils;
 
@@ -31,6 +33,26 @@ describe("Donations", () => {
     donations = (await Donations.deploy(owner.address)) as Donations;
   });
 
+  describe("setTTL", () => {
+    it("changes the TTL", async () => {
+      const newTTL = BigNumber.from(time.duration.days(100).toNumber());
+
+      expect(await donations.ttl()).not.to.equal(newTTL);
+
+      await donations.setTTL(newTTL);
+
+      expect(await donations.ttl()).to.equal(newTTL);
+    });
+
+    it("emits an event", async () => {
+      const newTTL = BigNumber.from(time.duration.days(100).toNumber());
+
+      const tx = donations.setTTL(newTTL);
+
+      await expect(tx).to.emit(donations, "TTLUpdated").withArgs(newTTL);
+    });
+  });
+
   describe("donate", () => {
     it("transfers the available amount in the given token to the charity", async () => {
       // set donated amount
@@ -53,8 +75,8 @@ describe("Donations", () => {
       ]);
 
       // burn donations
-      await donations.connect(alice).burn("1");
-      await donations.connect(alice).burn("2");
+      await donations.connect(alice).burn(0);
+      await donations.connect(alice).burn(1);
 
       // donate
       await donations.donate(CHARITY_ID, underlying.address, bob.address);
@@ -79,7 +101,7 @@ describe("Donations", () => {
       ]);
 
       // burn donations
-      await donations.connect(alice).burn("1");
+      await donations.connect(alice).burn(0);
 
       // donate
       await donations.donate(CHARITY_ID, underlying.address, bob.address);
@@ -87,6 +109,32 @@ describe("Donations", () => {
       expect(
         await donations.transferableAmounts(underlying.address, CHARITY_ID)
       ).to.equal(0);
+    });
+
+    it("emits an event", async () => {
+      // set donated amount
+      await underlying.mint(donations.address, parseUnits("200"));
+
+      // create donations
+      const amount = parseUnits("100");
+
+      await donations.mint(DUMMY_TX, [
+        donationParams.build({
+          destinationId: CHARITY_ID,
+          amount,
+          owner: alice.address,
+          token: underlying.address,
+        }),
+      ]);
+
+      // burn donations
+      await donations.connect(alice).burn(0);
+
+      const tx = donations.donate(CHARITY_ID, underlying.address, bob.address);
+
+      await expect(tx)
+        .to.emit(donations, "DonationsSent")
+        .withArgs(CHARITY_ID, underlying.address, bob.address, amount);
     });
 
     it("fails if there's nothing to donate", async () => {
@@ -111,7 +159,7 @@ describe("Donations", () => {
         await donations.transferableAmounts(underlying.address, CHARITY_ID)
       ).to.equal(0);
 
-      await donations.connect(alice).burn("1");
+      await donations.connect(alice).burn(0);
 
       expect(
         await donations.transferableAmounts(underlying.address, CHARITY_ID)
@@ -128,7 +176,7 @@ describe("Donations", () => {
         }),
       ]);
 
-      await donations.connect(alice).burn("1");
+      await donations.connect(alice).burn(0);
 
       expect(
         await donations.transferableAmounts(underlying.address, CHARITY_ID)
@@ -145,11 +193,26 @@ describe("Donations", () => {
         }),
       ]);
 
-      await donations.connect(owner).burn("1");
+      await donations.connect(owner).burn(0);
 
       expect(
         await donations.transferableAmounts(underlying.address, CHARITY_ID)
       ).to.equal(parseUnits("100"));
+    });
+
+    it("emits an event", async () => {
+      await donations.mint(DUMMY_TX, [
+        donationParams.build({
+          destinationId: CHARITY_ID,
+          amount: parseUnits("100"),
+          owner: alice.address,
+          token: underlying.address,
+        }),
+      ]);
+
+      const tx = donations.connect(owner).burn(0);
+
+      await expect(tx).to.emit(donations, "DonationBurned").withArgs(0);
     });
 
     it("fails if the caller is not the owner nor the admin", async () => {
@@ -162,7 +225,7 @@ describe("Donations", () => {
         }),
       ]);
 
-      await expect(donations.connect(bob).burn("1")).to.be.revertedWith(
+      await expect(donations.connect(bob).burn(0)).to.be.revertedWith(
         "Donations: not allowed"
       );
     });
@@ -177,7 +240,10 @@ describe("Donations", () => {
         donationParams.build(),
       ]);
 
-      expect(await donations.metadataId()).to.equal("4");
+      expect(await donations.metadata(0)).to.be.ok;
+      expect(await donations.metadata(1)).to.be.ok;
+      expect(await donations.metadata(2)).to.be.ok;
+      expect(await donations.metadata(3)).to.be.ok;
     });
 
     it("mints the correct NFT", async () => {
@@ -190,22 +256,51 @@ describe("Donations", () => {
         }),
       ]);
 
-      expect(await donations.ownerOf("1")).to.equal(owner.address);
+      expect(await donations.ownerOf(0)).to.equal(owner.address);
 
-      const donation = await donations.metadata("1");
+      const donation = await donations.metadata(0);
 
       expect(donation.amount).to.equal(parseUnits("1"));
       expect(donation.destinationId).to.equal(CHARITY_ID);
       expect(donation.token).to.equal(underlying.address);
     });
 
-    it("marks the transaction as processed", async () => {
+    it("marks the donations group as processed", async () => {
       await donations.mint(DUMMY_TX, [donationParams.build()]);
 
-      expect(await donations.processedTx(DUMMY_TX)).to.equal(true);
+      expect(await donations.processedDonationsGroups(DUMMY_TX)).to.equal(true);
     });
 
-    it("fails if the transaction was already processed", async () => {
+    it("emits an event", async () => {
+      const ttl = BigNumber.from(time.duration.days(180).toNumber());
+
+      await donations.setTTL(ttl);
+
+      const tx = donations.mint(DUMMY_TX, [
+        donationParams.build({
+          destinationId: CHARITY_ID,
+          amount: parseUnits("1"),
+          token: underlying.address,
+          owner: owner.address,
+        }),
+      ]);
+
+      const expiry = ttl.add(await getLastBlockTimestamp()).add(1);
+
+      await expect(tx)
+        .to.emit(donations, "DonationMinted")
+        .withArgs(
+          0,
+          CHARITY_ID,
+          DUMMY_TX,
+          underlying.address,
+          expiry,
+          parseUnits("1"),
+          owner.address
+        );
+    });
+
+    it("fails if the donations group was already processed", async () => {
       await donations.mint(DUMMY_TX, [donationParams.build()]);
 
       await expect(

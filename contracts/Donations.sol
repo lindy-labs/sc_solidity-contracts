@@ -1,16 +1,18 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity =0.8.10;
 
-import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import {Context} from "@openzeppelin/contracts/utils/Context.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {Context} from "@openzeppelin/contracts/utils/Context.sol";
+import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Counters} from "@openzeppelin/contracts/utils/Counters.sol";
 
 import "hardhat/console.sol";
 
 contract Donations is ERC721, AccessControl {
     using SafeERC20 for IERC20;
+    using Counters for Counters.Counter;
 
     struct DonationParams {
         uint256 destinationId;
@@ -26,18 +28,52 @@ contract Donations is ERC721, AccessControl {
         uint64 expiry;
     }
 
-    uint256 public metadataId;
+    event DonationMinted(
+        uint256 indexed id,
+        uint256 indexed destinationId,
+        bytes32 indexed groupId,
+        IERC20 token,
+        uint256 expiry,
+        uint256 amount,
+        address owner
+    );
 
-    uint64 public constant TTL = 180 days;
+    event DonationBurned(uint256 indexed id);
 
+    event DonationsSent(
+        uint256 indexed destinationId,
+        IERC20 indexed token,
+        address indexed to,
+        uint256 amount
+    );
+
+    event TTLUpdated(uint64 ttl);
+
+    Counters.Counter private metadataId;
     mapping(uint256 => Metadata) public metadata;
 
+    /// Duration of the expiration date for new donations.
+    uint64 public ttl = 180 days;
+
+    /// Used to indicate whether a group of donations identified by the key has been processed or not.
     mapping(bytes32 => bool) public processedDonationsGroups;
 
+    /// Stores how much should be transferred to each charity in each coin.
     mapping(IERC20 => mapping(uint256 => uint256)) public transferableAmounts;
 
     constructor(address _owner) ERC721("Sandclock Donation", "Donations") {
         _setupRole(DEFAULT_ADMIN_ROLE, _owner);
+    }
+
+    /**
+     * Change the TTL for new donations.
+     *
+     * @param _ttl the new TTL.
+     */
+    function setTTL(uint64 _ttl) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        ttl = _ttl;
+
+        emit TTLUpdated(_ttl);
     }
 
     /**
@@ -61,30 +97,33 @@ contract Donations is ERC721, AccessControl {
         transferableAmounts[_token][_destinationId] = 0;
 
         _token.safeTransfer(_to, amount);
+
+        emit DonationsSent(_destinationId, _token, _to, amount);
     }
 
     /**
      * This function mints an NFT for every donation in @param _params.
-     * The @param _donationsId is used to uniquely identify this collection of donations.
-     * Ideally, @param _donationsId is the hash of the transaction where the yield for the donations was claimed to by the treasury.
+     * The @param _groupId is used to uniquely identify this collection of donations.
+     * Ideally, @param _groupId is the hash of the transaction where the yield for the donations was claimed to by the treasury.
      *
-     * @param _donationsId Unique identifier for the group of donations in @param _params.
+     * @param _groupId Unique identifier for the group of donations in @param _params.
      * @param _params Donation params.
      */
-    function mint(bytes32 _donationsId, DonationParams[] calldata _params)
+    function mint(bytes32 _groupId, DonationParams[] calldata _params)
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         require(
-            processedDonationsGroups[_donationsId] == false,
+            processedDonationsGroups[_groupId] == false,
             "Donations: already processed"
         );
 
-        uint64 expiry = _getBlockTimestamp() + TTL;
+        uint64 expiry = _getBlockTimestamp() + ttl;
         uint256 length = _params.length;
 
         for (uint256 i = 0; i < length; i++) {
-            uint256 _metadataId = ++metadataId;
+            uint256 _metadataId = metadataId.current();
+            metadataId.increment();
 
             metadata[_metadataId] = Metadata({
                 destinationId: _params[i].destinationId,
@@ -94,9 +133,19 @@ contract Donations is ERC721, AccessControl {
             });
 
             _mint(_params[i].owner, _metadataId);
+
+            emit DonationMinted(
+                _metadataId,
+                _params[i].destinationId,
+                _groupId,
+                _params[i].token,
+                expiry,
+                _params[i].amount,
+                _params[i].owner
+            );
         }
 
-        processedDonationsGroups[_donationsId] = true;
+        processedDonationsGroups[_groupId] = true;
     }
 
     /**
@@ -118,6 +167,8 @@ contract Donations is ERC721, AccessControl {
         transferableAmounts[token][destinationId] += amount;
 
         _burn(_id);
+
+        emit DonationBurned(_id);
     }
 
     function _getBlockTimestamp() private view returns (uint64) {
