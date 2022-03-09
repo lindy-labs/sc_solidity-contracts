@@ -4,7 +4,8 @@ import { expect } from "chai";
 import { time } from "@openzeppelin/test-helpers";
 import { BigNumber } from "ethers";
 
-import type { Donations, TestERC20 } from "../typechain";
+import type { Donations } from "../typechain";
+import { MockDAI, MockDAI__factory } from "../typechain";
 import { donationParams } from "./shared/factories";
 import { getLastBlockTimestamp } from "./shared";
 
@@ -21,7 +22,7 @@ describe("Donations", () => {
   let bob: SignerWithAddress;
   let carol: SignerWithAddress;
   let donations: Donations;
-  let underlying: TestERC20;
+  let underlying: MockDAI;
   let WORKER_ROLE: string;
   let DEFAULT_ADMIN_ROLE: string;
 
@@ -29,9 +30,9 @@ describe("Donations", () => {
     [owner, alice, bob, carol] = await ethers.getSigners();
 
     const Donations = await ethers.getContractFactory("Donations");
-    const TestERC20 = await ethers.getContractFactory("TestERC20");
+    const MockDAI = await ethers.getContractFactory("MockDAI");
 
-    underlying = (await TestERC20.deploy(0)) as TestERC20;
+    underlying = (await MockDAI.deploy(0)) as MockDAI;
     donations = (await Donations.deploy(owner.address)) as Donations;
     WORKER_ROLE = await donations.WORKER_ROLE();
     DEFAULT_ADMIN_ROLE = await donations.DEFAULT_ADMIN_ROLE();
