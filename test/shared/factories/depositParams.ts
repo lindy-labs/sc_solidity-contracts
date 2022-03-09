@@ -1,6 +1,5 @@
-import { BigNumberish } from "ethers";
 import { Factory } from "fishery";
-import { ethers } from "ethers";
+import { ethers, BigNumberish } from "ethers";
 import { time } from "@openzeppelin/test-helpers";
 
 import type { ClaimParams } from "./claimParams";
