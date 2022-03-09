@@ -34,8 +34,13 @@ contract Echidna_Deposit_Withdraw is Helper {
     }
 
     // deposit zero should always revert
-    function deposit_with_zero_amount() internal {
+    function deposit_with_zero_amount(IVault.DepositParams memory _params) public {
+        require(_params.lockDuration >= 2 weeks &&
+                _params.lockDuration <= 24 weeks);
 
+        _params.amount = 0;
+
+        deposit_should_revert(_params);
     }
 
     // deposit with claim percentage zero should always revert
@@ -79,7 +84,7 @@ contract Echidna_Deposit_Withdraw is Helper {
         }
     }
 
-    function deposit_should_revert(IVault.DepositParams calldata _params) internal {
+    function deposit_should_revert(IVault.DepositParams memory _params) internal {
         try vault.deposit(_params) {
             assert(false);
         } catch {
@@ -87,7 +92,7 @@ contract Echidna_Deposit_Withdraw is Helper {
         }
     }
 
-    function deposit_should_succeed(IVault.DepositParams calldata _params) internal {
+    function deposit_should_succeed(IVault.DepositParams memory _params) internal {
         try vault.deposit(_params) {
             assert(true);
         } catch {
