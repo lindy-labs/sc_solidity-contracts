@@ -121,7 +121,7 @@ contract Donations is ERC721, AccessControl {
         onlyRole(WORKER_ROLE)
     {
         require(
-            processedDonationsGroups[_groupId] == false,
+            !processedDonationsGroups[_groupId],
             "Donations: already processed"
         );
 
