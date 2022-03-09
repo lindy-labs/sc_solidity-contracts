@@ -136,7 +136,7 @@ describe("Vault", () => {
       });
 
       it("works with a single withdraw", async () => {
-        await vault.connect(alice).withdraw(alice.address, arrayFromTo(0, 98));
+        await vault.connect(alice).withdraw(alice.address, arrayFromTo(1, 99));
 
         expect(await underlying.balanceOf(alice.address)).to.eq(
           parseUnits("990")
@@ -149,7 +149,7 @@ describe("Vault", () => {
 
       it("works with multiple withdraws", async () => {
         await Promise.all(
-          arrayFromTo(0, 98).map((i) =>
+          arrayFromTo(1, 99).map((i) =>
             vault.connect(alice).withdraw(alice.address, [i])
           )
         );
@@ -165,6 +165,8 @@ describe("Vault", () => {
 
     describe("issue #52", () => {
       it("works with irregular amounts without losing precision", async () => {
+        await addUnderlyingBalance(alice, "1000");
+
         await vault.connect(alice).deposit(
           depositParams.build({
             amount: 11,
@@ -175,8 +177,8 @@ describe("Vault", () => {
           })
         );
 
-        expect((await vault.deposits(0)).amount).to.equal(5);
-        expect((await vault.deposits(1)).amount).to.equal(6);
+        expect((await vault.deposits(1)).amount).to.equal(5);
+        expect((await vault.deposits(2)).amount).to.equal(6);
       });
     });
   });
@@ -389,6 +391,8 @@ describe("Vault", () => {
     let perfFee: BigNumber;
 
     beforeEach(async () => {
+      await addUnderlyingBalance(alice, "1000");
+
       const amount = parseUnits("100");
       const params = depositParams.build({
         amount,
@@ -593,6 +597,8 @@ describe("Vault", () => {
 
   describe("sponsor", () => {
     it("adds a sponsor to the vault", async () => {
+      await addUnderlyingBalance(alice, "1000");
+
       await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
       await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
 
@@ -600,6 +606,8 @@ describe("Vault", () => {
     });
 
     it("emits an event", async () => {
+      await addUnderlyingBalance(alice, "1000");
+
       const tx = await vault
         .connect(alice)
         .sponsor(parseUnits("500"), TWO_WEEKS);
@@ -607,7 +615,7 @@ describe("Vault", () => {
       await expect(tx)
         .to.emit(vault, "Sponsored")
         .withArgs(
-          0,
+          1,
           parseUnits("500"),
           alice.address,
           TWO_WEEKS.add(await getLastBlockTimestamp())
@@ -615,12 +623,15 @@ describe("Vault", () => {
     });
 
     it("fails if the lock duration 0", async () => {
+      await addUnderlyingBalance(alice, "1000");
+
       await expect(
         vault.connect(alice).sponsor(parseUnits("500"), 0)
       ).to.be.revertedWith("Vault: invalid lock period");
     });
 
     it("fails if the lock duration is less than the minimum", async () => {
+      await addUnderlyingBalance(alice, "1000");
       const lockDuration = 1;
 
       await expect(
@@ -629,6 +640,7 @@ describe("Vault", () => {
     });
 
     it("fails if the lock duration is larger than the maximum", async () => {
+      await addUnderlyingBalance(alice, "1000");
       const lockDuration = BigNumber.from(time.duration.years(100).toNumber());
 
       await expect(
@@ -637,6 +649,7 @@ describe("Vault", () => {
     });
 
     it("fails if the sponsor amount is 0", async () => {
+      await addUnderlyingBalance(alice, "1000");
       const lockDuration = BigNumber.from(time.duration.days(15).toNumber());
 
       await expect(
@@ -645,17 +658,21 @@ describe("Vault", () => {
     });
 
     it("mints Depositor NFT to sponsor", async () => {
+      await addUnderlyingBalance(alice, "1000");
+
       await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
 
       expect(await depositors.ownerOf("1")).to.be.equal(alice.address);
     });
 
     it("updates deposit info for sponsor", async () => {
+      await addUnderlyingBalance(alice, "1000");
+
       await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
 
       const currentTime = await getLastBlockTimestamp();
 
-      const deposit = await vault.deposits(0);
+      const deposit = await vault.deposits(1);
       expect(deposit.amount).to.be.equals(parseUnits("500"));
       expect(deposit.claimerId).to.be.equal(0);
       expect(deposit.lockedUntil).to.be.equal(currentTime.add(TWO_WEEKS));
@@ -681,7 +698,7 @@ describe("Vault", () => {
       await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
 
       await moveForwardTwoWeeks();
-      await vault.connect(alice).unsponsor(newAccount.address, [0]);
+      await vault.connect(alice).unsponsor(newAccount.address, [1]);
 
       expect(await vault.totalSponsored()).to.eq(parseUnits("500"));
       expect(await underlying.balanceOf(newAccount.address)).to.eq(
@@ -693,16 +710,16 @@ describe("Vault", () => {
       await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
 
       await moveForwardTwoWeeks();
-      const tx = await vault.connect(alice).unsponsor(bob.address, [0]);
+      const tx = await vault.connect(alice).unsponsor(bob.address, [1]);
 
-      await expect(tx).to.emit(vault, "Unsponsored").withArgs(0);
+      await expect(tx).to.emit(vault, "Unsponsored").withArgs(1);
     });
 
     it("fails if the caller is not the owner", async () => {
       await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
 
       await expect(
-        vault.connect(bob).unsponsor(alice.address, [0])
+        vault.connect(bob).unsponsor(alice.address, [1])
       ).to.be.revertedWith("Vault: you are not allowed");
     });
 
@@ -712,7 +729,7 @@ describe("Vault", () => {
       await expect(
         vault
           .connect(bob)
-          .unsponsor("0x0000000000000000000000000000000000000000", [0])
+          .unsponsor("0x0000000000000000000000000000000000000000", [1])
       ).to.be.revertedWith("Vault: destination address is 0x");
     });
 
@@ -720,7 +737,7 @@ describe("Vault", () => {
       await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
 
       await expect(
-        vault.connect(alice).unsponsor(alice.address, [0])
+        vault.connect(alice).unsponsor(alice.address, [1])
       ).to.be.revertedWith("Vault: amount is locked");
     });
 
@@ -737,7 +754,7 @@ describe("Vault", () => {
       await moveForwardTwoWeeks();
 
       await expect(
-        vault.connect(alice).unsponsor(alice.address, [0, 1])
+        vault.connect(alice).unsponsor(alice.address, [1, 2])
       ).to.be.revertedWith("Vault: token id is not a sponsor");
     });
 
@@ -748,7 +765,7 @@ describe("Vault", () => {
       await removeUnderlyingFromVault("500");
 
       await expect(
-        vault.connect(alice).unsponsor(alice.address, [0])
+        vault.connect(alice).unsponsor(alice.address, [1])
       ).to.be.revertedWith("Vault: not enough funds");
     });
   });
@@ -773,7 +790,7 @@ describe("Vault", () => {
       await expect(tx)
         .to.emit(vault, "DepositMinted")
         .withArgs(
-          0,
+          1,
           0,
           parseUnits("50"),
           parseUnits("50").mul(SHARES_MULTIPLIER),
@@ -787,7 +804,7 @@ describe("Vault", () => {
       await expect(tx)
         .to.emit(vault, "DepositMinted")
         .withArgs(
-          1,
+          2,
           0,
           parseUnits("50"),
           parseUnits("50").mul(SHARES_MULTIPLIER),
@@ -815,7 +832,7 @@ describe("Vault", () => {
       await expect(tx)
         .to.emit(vault, "DepositMinted")
         .withArgs(
-          2,
+          3,
           1,
           parseUnits("50"),
           parseUnits("50").mul(SHARES_MULTIPLIER),
@@ -829,7 +846,7 @@ describe("Vault", () => {
       await expect(tx)
         .to.emit(vault, "DepositMinted")
         .withArgs(
-          3,
+          4,
           1,
           parseUnits("50"),
           parseUnits("50").mul(SHARES_MULTIPLIER),
@@ -852,7 +869,7 @@ describe("Vault", () => {
 
       await vault.connect(alice).deposit(params);
 
-      const deposit = await vault.deposits(0);
+      const deposit = await vault.deposits(1);
 
       expect(deposit.lockedUntil.toNumber()).to.be.at.least(
         TWO_WEEKS.add(await getLastBlockTimestamp())
@@ -915,14 +932,14 @@ describe("Vault", () => {
         await moveForwardTwoWeeks();
         const tx = await vault
           .connect(alice)
-          [vaultAction](alice.address, [0, 1]);
+          [vaultAction](alice.address, [1, 2]);
 
         await expect(tx)
           .to.emit(vault, "DepositBurned")
-          .withArgs(0, parseUnits("50").mul(SHARES_MULTIPLIER), alice.address);
+          .withArgs(1, parseUnits("50").mul(SHARES_MULTIPLIER), alice.address);
         await expect(tx)
           .to.emit(vault, "DepositBurned")
-          .withArgs(1, parseUnits("50").mul(SHARES_MULTIPLIER), alice.address);
+          .withArgs(2, parseUnits("50").mul(SHARES_MULTIPLIER), alice.address);
       });
 
       it("withdraws the principal of a deposit", async () => {
@@ -941,7 +958,7 @@ describe("Vault", () => {
         );
 
         await moveForwardTwoWeeks();
-        await vault.connect(alice)[vaultAction](alice.address, [0, 1]);
+        await vault.connect(alice)[vaultAction](alice.address, [1, 2]);
 
         expect(await underlying.balanceOf(alice.address)).to.eq(
           parseUnits("1000")
@@ -956,7 +973,7 @@ describe("Vault", () => {
 
         await vault.connect(alice).deposit(params);
         await moveForwardTwoWeeks();
-        await vault.connect(alice)[vaultAction](carol.address, [0]);
+        await vault.connect(alice)[vaultAction](carol.address, [1]);
 
         expect(await underlying.balanceOf(carol.address)).to.eq(
           parseUnits("1100")
@@ -974,7 +991,7 @@ describe("Vault", () => {
 
         await vault.connect(alice).deposit(params);
         await moveForwardTwoWeeks();
-        await vault.connect(alice)[vaultAction](alice.address, [1, 0]);
+        await vault.connect(alice)[vaultAction](alice.address, [2, 1]);
 
         expect(await depositors.exists(1)).to.false;
         expect(await depositors.exists(2)).to.false;
@@ -999,7 +1016,7 @@ describe("Vault", () => {
         );
 
         await moveForwardTwoWeeks();
-        await vault.connect(alice)[vaultAction](alice.address, [0]);
+        await vault.connect(alice)[vaultAction](alice.address, [1]);
 
         expect(await vault.sharesOf(1)).to.eq(0);
         expect(await vault.sharesOf(2)).to.eq(
@@ -1022,7 +1039,7 @@ describe("Vault", () => {
         expect(await vault.principalOf(2)).to.eq(parseUnits("50"));
 
         await moveForwardTwoWeeks();
-        await vault.connect(alice)[vaultAction](alice.address, [0]);
+        await vault.connect(alice)[vaultAction](alice.address, [1]);
 
         expect(await vault.principalOf(1)).to.eq(0);
         expect(await vault.principalOf(2)).to.eq(parseUnits("50"));
@@ -1040,7 +1057,7 @@ describe("Vault", () => {
         await moveForwardTwoWeeks();
         const action = vault
           .connect(bob)
-          [vaultAction]("0x0000000000000000000000000000000000000000", [0, 1]);
+          [vaultAction]("0x0000000000000000000000000000000000000000", [1, 2]);
 
         await expect(action).to.be.revertedWith(
           "Vault: destination address is 0x"
@@ -1057,7 +1074,7 @@ describe("Vault", () => {
         await vault.connect(bob).deposit(params);
 
         await moveForwardTwoWeeks();
-        const action = vault.connect(bob)[vaultAction](bob.address, [0, 1]);
+        const action = vault.connect(bob)[vaultAction](bob.address, [1, 2]);
 
         await expect(action).to.be.revertedWith(
           "Vault: you are not the owner of a deposit"
@@ -1073,7 +1090,7 @@ describe("Vault", () => {
 
         await vault.connect(alice).deposit(params);
 
-        const action = vault.connect(alice)[vaultAction](alice.address, [0]);
+        const action = vault.connect(alice)[vaultAction](alice.address, [1]);
 
         await expect(action).to.be.revertedWith("Vault: deposit is locked");
       });
@@ -1091,7 +1108,7 @@ describe("Vault", () => {
         await moveForwardTwoWeeks();
 
         await expect(
-          vault.connect(alice)[vaultAction](alice.address, [0, 1])
+          vault.connect(alice)[vaultAction](alice.address, [1, 2])
         ).to.be.revertedWith("Vault: token id is not a deposit");
       });
     });
@@ -1108,7 +1125,7 @@ describe("Vault", () => {
       await moveForwardTwoWeeks();
       await removeUnderlyingFromVault("500");
 
-      await vault.connect(alice).forceWithdraw(alice.address, [0]);
+      await vault.connect(alice).forceWithdraw(alice.address, [1]);
 
       expect(await underlying.balanceOf(alice.address)).to.eq(
         parseUnits("500")
@@ -1128,7 +1145,7 @@ describe("Vault", () => {
       await moveForwardTwoWeeks();
       await removeUnderlyingFromVault("50");
 
-      const action = vault.connect(alice).withdraw(alice.address, [0]);
+      const action = vault.connect(alice).withdraw(alice.address, [1]);
 
       await expect(action).to.be.revertedWith(
         "Vault: cannot withdraw more than the available amount"
@@ -1536,7 +1553,7 @@ describe("Vault", () => {
 
       const currentTime = await getLastBlockTimestamp();
 
-      const deposit1 = await vault.deposits(0);
+      const deposit1 = await vault.deposits(1);
       expect(deposit1.amount).to.be.equal(parseUnits("0.4"));
       expect(deposit1.claimerId).to.be.equal(1);
       expect(deposit1.lockedUntil).to.be.equal(
@@ -1546,7 +1563,7 @@ describe("Vault", () => {
         parseUnits("0.4").mul(SHARES_MULTIPLIER)
       );
 
-      const deposit2 = await vault.deposits(1);
+      const deposit2 = await vault.deposits(2);
       expect(deposit2.amount).to.be.equal(parseUnits("0.6"));
       expect(deposit2.claimerId).to.be.equal(2);
       expect(deposit2.lockedUntil).to.be.equal(
