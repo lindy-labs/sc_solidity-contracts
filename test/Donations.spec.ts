@@ -22,6 +22,8 @@ describe("Donations", () => {
   let carol: SignerWithAddress;
   let donations: Donations;
   let underlying: TestERC20;
+  let WORKER_ROLE: string;
+  let DEFAULT_ADMIN_ROLE: string;
 
   beforeEach(async () => {
     [owner, alice, bob, carol] = await ethers.getSigners();
@@ -31,6 +33,8 @@ describe("Donations", () => {
 
     underlying = (await TestERC20.deploy(0)) as TestERC20;
     donations = (await Donations.deploy(owner.address)) as Donations;
+    WORKER_ROLE = await donations.WORKER_ROLE();
+    DEFAULT_ADMIN_ROLE = await donations.DEFAULT_ADMIN_ROLE();
   });
 
   describe("setTTL", () => {
@@ -50,6 +54,14 @@ describe("Donations", () => {
       const tx = donations.setTTL(newTTL);
 
       await expect(tx).to.emit(donations, "TTLUpdated").withArgs(newTTL);
+    });
+
+    it("fails if the caller is not authorized", async () => {
+      const newTTL = BigNumber.from(time.duration.days(100).toNumber());
+
+      await expect(donations.connect(alice).setTTL(newTTL)).to.be.revertedWith(
+        `AccessControl: account ${alice.address.toLocaleLowerCase()} is missing role ${DEFAULT_ADMIN_ROLE}`
+      );
     });
   });
 
@@ -141,6 +153,16 @@ describe("Donations", () => {
       await expect(
         donations.donate(CHARITY_ID, underlying.address, bob.address)
       ).to.be.revertedWith("Donations: nothing to donate");
+    });
+
+    it("fails if the caller is not authorized", async () => {
+      await expect(
+        donations
+          .connect(alice)
+          .donate(CHARITY_ID, underlying.address, bob.address)
+      ).to.be.revertedWith(
+        `AccessControl: account ${alice.address.toLocaleLowerCase()} is missing role ${WORKER_ROLE}`
+      );
     });
   });
 
@@ -298,6 +320,21 @@ describe("Donations", () => {
           parseUnits("1"),
           owner.address
         );
+    });
+
+    it("fails if the caller is not authorized", async () => {
+      await expect(
+        donations.connect(alice).mint(DUMMY_TX, [
+          donationParams.build({
+            destinationId: CHARITY_ID,
+            amount: parseUnits("1"),
+            token: underlying.address,
+            owner: owner.address,
+          }),
+        ])
+      ).to.be.revertedWith(
+        `AccessControl: account ${alice.address.toLocaleLowerCase()} is missing role ${WORKER_ROLE}`
+      );
     });
 
     it("fails if the donations group was already processed", async () => {

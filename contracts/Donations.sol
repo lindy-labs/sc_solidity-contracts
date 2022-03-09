@@ -8,11 +8,14 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Counters} from "@openzeppelin/contracts/utils/Counters.sol";
 
-import "hardhat/console.sol";
-
+/**
+ * A contract to store donations before they are transferred to the charities.
+ */
 contract Donations is ERC721, AccessControl {
     using SafeERC20 for IERC20;
     using Counters for Counters.Counter;
+
+    bytes32 public constant WORKER_ROLE = keccak256("WORKER_ROLE");
 
     struct DonationParams {
         uint256 destinationId;
@@ -61,12 +64,16 @@ contract Donations is ERC721, AccessControl {
     /// Stores how much should be transferred to each charity in each coin.
     mapping(IERC20 => mapping(uint256 => uint256)) public transferableAmounts;
 
+    /**
+     * @param _owner Account that will receive the admin role.
+     */
     constructor(address _owner) ERC721("Sandclock Donation", "Donations") {
         _setupRole(DEFAULT_ADMIN_ROLE, _owner);
+        _setupRole(WORKER_ROLE, _owner);
     }
 
     /**
-     * Change the TTL for new donations.
+     * Changes the TTL for new donations.
      *
      * @param _ttl the new TTL.
      */
@@ -87,7 +94,7 @@ contract Donations is ERC721, AccessControl {
         uint256 _destinationId,
         IERC20 _token,
         address _to
-    ) external onlyRole(DEFAULT_ADMIN_ROLE) {
+    ) external onlyRole(WORKER_ROLE) {
         require(
             transferableAmounts[_token][_destinationId] != 0,
             "Donations: nothing to donate"
@@ -102,8 +109,8 @@ contract Donations is ERC721, AccessControl {
     }
 
     /**
-     * This function mints an NFT for every donation in @param _params.
-     * The @param _groupId is used to uniquely identify this collection of donations.
+     * Mints an NFT for every donation in @param _params.
+     * The @param _groupId is used to uniquely identify this group of donations.
      * Ideally, @param _groupId is the hash of the transaction where the yield for the donations was claimed to by the treasury.
      *
      * @param _groupId Unique identifier for the group of donations in @param _params.
@@ -111,7 +118,7 @@ contract Donations is ERC721, AccessControl {
      */
     function mint(bytes32 _groupId, DonationParams[] calldata _params)
         external
-        onlyRole(DEFAULT_ADMIN_ROLE)
+        onlyRole(WORKER_ROLE)
     {
         require(
             processedDonationsGroups[_groupId] == false,
@@ -155,8 +162,7 @@ contract Donations is ERC721, AccessControl {
      */
     function burn(uint256 _id) external {
         require(
-            ownerOf(_id) == _msgSender() ||
-                hasRole(DEFAULT_ADMIN_ROLE, _msgSender()),
+            ownerOf(_id) == _msgSender() || hasRole(WORKER_ROLE, _msgSender()),
             "Donations: not allowed"
         );
 
