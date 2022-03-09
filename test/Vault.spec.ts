@@ -1,12 +1,16 @@
 import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { time } from "@openzeppelin/test-helpers";
-import { Contract, utils, BigNumber, constants } from "ethers";
-import { ethers } from "hardhat";
+import { Contract, utils, BigNumber, constants, Signer } from "ethers";
+import { ethers, deployments } from "hardhat";
 import { expect } from "chai";
 
 import {
   Vault,
   MockERC20,
+  MockDAI__factory,
+  MockAUST__factory,
+  MockDAI,
+  MockAUST,
   Depositors,
   Claimers,
   AnchorUSTStrategy,
@@ -26,18 +30,20 @@ import {
 } from "./shared";
 
 const { parseUnits } = ethers.utils;
+const { MaxUint256 } = ethers.constants;
 
 describe("Vault", () => {
   let owner: SignerWithAddress;
   let alice: SignerWithAddress;
   let bob: SignerWithAddress;
   let carol: SignerWithAddress;
+  let newAccount: SignerWithAddress;
 
   let mockEthAnchorRouter: Contract;
   let mockAUstUstFeed: Contract;
 
-  let underlying: MockERC20;
-  let aUstToken: Contract;
+  let underlying: MockDAI;
+  let aUstToken: MockAUST;
   let vault: Vault;
   let depositors: Depositors;
   let claimers: Claimers;
@@ -51,15 +57,27 @@ describe("Vault", () => {
   const DEFAULT_ADMIN_ROLE = constants.HashZero;
   const INVESTOR_ROLE = utils.keccak256(utils.toUtf8Bytes("INVESTOR_ROLE"));
 
-  beforeEach(async () => {
-    [owner, alice, bob, carol] = await ethers.getSigners();
+  const fixtures = deployments.createFixture(async ({ deployments }) => {
+    await deployments.fixture(["vaults"]);
 
-    let MockERC20 = await ethers.getContractFactory("MockERC20");
+    [owner] = await ethers.getSigners();
+
+    const daiDeployment = await deployments.get("DAI");
+    const austDeployment = await deployments.get("aUST");
+    const daiVaultDeployment = await deployments.get("Vault_DAI");
+
+    aUstToken = MockAUST__factory.connect(austDeployment.address, owner);
+    underlying = MockDAI__factory.connect(daiDeployment.address, owner);
+    vault = Vault__factory.connect(daiVaultDeployment.address, owner);
+  });
+
+  beforeEach(() => fixtures());
+
+  beforeEach(async () => {
+    [owner, alice, bob, carol, newAccount] = await ethers.getSigners();
+
     let Vault = await ethers.getContractFactory("Vault");
     let MockStrategy = await ethers.getContractFactory("MockStrategy");
-
-    underlying = await MockERC20.deploy(utils.parseEther("1000000000"));
-    aUstToken = await MockERC20.deploy(utils.parseEther("1000000000"));
 
     const MockEthAnchorRouterFactory = await ethers.getContractFactory(
       "MockEthAnchorRouter"
@@ -83,6 +101,11 @@ describe("Vault", () => {
       PERFORMANCE_FEE_PCT
     );
 
+    underlying.connect(owner).approve(vault.address, MaxUint256);
+    underlying.connect(alice).approve(vault.address, MaxUint256);
+    underlying.connect(bob).approve(vault.address, MaxUint256);
+    underlying.connect(carol).approve(vault.address, MaxUint256);
+
     strategy = await MockStrategy.deploy(
       vault.address,
       mockEthAnchorRouter.address,
@@ -98,8 +121,6 @@ describe("Vault", () => {
   describe("codearena", () => {
     describe("issue #125", () => {
       beforeEach(async () => {
-        await addUnderlyingBalance(alice, "1000");
-
         await vault.connect(alice).deposit(
           depositParams.build({
             amount: parseUnits("1000"),
@@ -520,19 +541,19 @@ describe("Vault", () => {
 
   describe("unsponsor", () => {
     it("removes a sponsor from the vault", async () => {
-      await addUnderlyingBalance(alice, "1000");
       await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
       await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
 
       await moveForwardTwoWeeks();
-      await vault.connect(alice)["unsponsor"](bob.address, [0]);
+      await vault.connect(alice)["unsponsor"](newAccount.address, [0]);
 
       expect(await vault.totalSponsored()).to.eq(parseUnits("500"));
-      expect(await underlying.balanceOf(bob.address)).to.eq(parseUnits("500"));
+      expect(await underlying.balanceOf(newAccount.address)).to.eq(
+        parseUnits("500")
+      );
     });
 
     it("emits an event", async () => {
-      await addUnderlyingBalance(alice, "1000");
       await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
 
       await moveForwardTwoWeeks();
@@ -542,7 +563,6 @@ describe("Vault", () => {
     });
 
     it("fails if the caller is not the owner", async () => {
-      await addUnderlyingBalance(alice, "1000");
       await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
 
       await expect(
@@ -551,7 +571,6 @@ describe("Vault", () => {
     });
 
     it("fails if the destination address is 0x", async () => {
-      await addUnderlyingBalance(alice, "1000");
       await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
 
       await expect(
@@ -562,7 +581,6 @@ describe("Vault", () => {
     });
 
     it("fails if the amount is still locked", async () => {
-      await addUnderlyingBalance(alice, "1000");
       await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
 
       await expect(
@@ -571,8 +589,6 @@ describe("Vault", () => {
     });
 
     it("fails if token id belongs to a withdraw", async () => {
-      await addUnderlyingBalance(alice, "1000");
-
       await vault.connect(alice).deposit(
         depositParams.build({
           lockDuration: TWO_WEEKS,
@@ -590,7 +606,6 @@ describe("Vault", () => {
     });
 
     it("fails if there are not enough funds", async () => {
-      await addUnderlyingBalance(alice, "1000");
       await vault.connect(alice).sponsor(parseUnits("1000"), TWO_WEEKS);
       await moveForwardTwoWeeks();
 
@@ -604,8 +619,6 @@ describe("Vault", () => {
 
   describe("deposit", () => {
     it("emits events", async () => {
-      await addUnderlyingBalance(alice, "1000");
-
       const params = depositParams.build({
         lockDuration: TWO_WEEKS,
         amount: parseUnits("100"),
@@ -651,8 +664,6 @@ describe("Vault", () => {
     });
 
     it("emits events with a different groupId per deposit", async () => {
-      await addUnderlyingBalance(alice, "1000");
-
       const params = depositParams.build({
         lockDuration: TWO_WEEKS,
         amount: parseUnits("100"),
@@ -695,8 +706,6 @@ describe("Vault", () => {
     });
 
     it("sets a timelock of at least 2 weeks by default", async () => {
-      await addUnderlyingBalance(alice, "1000");
-
       const params = depositParams.build({
         amount: parseUnits("100"),
         claims: [
@@ -715,8 +724,6 @@ describe("Vault", () => {
     });
 
     it("fails if the timelock is less than 2 weeks", async () => {
-      await addUnderlyingBalance(alice, "1000");
-
       const params = depositParams.build({
         amount: parseUnits("100"),
         lockDuration: BigNumber.from(time.duration.days(13).toNumber()),
@@ -729,8 +736,6 @@ describe("Vault", () => {
     });
 
     it("fails if the claim percentage is 0", async () => {
-      await addUnderlyingBalance(alice, "1000");
-
       const params = depositParams.build({
         amount: parseUnits("100"),
         claims: [
@@ -747,8 +752,6 @@ describe("Vault", () => {
     });
 
     it("fails if the amount is 0", async () => {
-      await addUnderlyingBalance(alice, "1000");
-
       const params = depositParams.build({
         amount: parseUnits("0"),
         claims: [claimParams.percent(100).to(bob.address).build()],
@@ -763,8 +766,6 @@ describe("Vault", () => {
   ["withdraw", "forceWithdraw"].map((vaultAction) => {
     describe(vaultAction, () => {
       it("emits events", async () => {
-        await addUnderlyingBalance(alice, "1000");
-
         const params = depositParams.build({
           amount: parseUnits("100"),
           claims: [
@@ -789,8 +790,6 @@ describe("Vault", () => {
       });
 
       it("withdraws the principal of a deposit", async () => {
-        await addUnderlyingBalance(alice, "1000");
-
         const params = depositParams.build({
           amount: parseUnits("100"),
           claims: [
@@ -814,8 +813,6 @@ describe("Vault", () => {
       });
 
       it("withdraws funds to a different address", async () => {
-        await addUnderlyingBalance(alice, "1000");
-
         const params = depositParams.build({
           amount: parseUnits("100"),
           claims: [claimParams.percent(100).to(bob.address).build()],
@@ -826,13 +823,11 @@ describe("Vault", () => {
         await vault.connect(alice)[vaultAction](carol.address, [0]);
 
         expect(await underlying.balanceOf(carol.address)).to.eq(
-          parseUnits("100")
+          parseUnits("1100")
         );
       });
 
       it("burns the NFTs of the deposits", async () => {
-        await addUnderlyingBalance(alice, "1000");
-
         const params = depositParams.build({
           amount: parseUnits("100"),
           claims: [
@@ -850,8 +845,6 @@ describe("Vault", () => {
       });
 
       it("removes the shares from the claimers", async () => {
-        await addUnderlyingBalance(alice, "1000");
-
         const params = depositParams.build({
           amount: parseUnits("100"),
           claims: [
@@ -879,9 +872,6 @@ describe("Vault", () => {
       });
 
       it("fails if the destination address is 0x", async () => {
-        await addUnderlyingBalance(alice, "1000");
-        await addUnderlyingBalance(bob, "1000");
-
         const params = depositParams.build({
           amount: parseUnits("100"),
           claims: [claimParams.percent(100).to(carol.address).build()],
@@ -901,9 +891,6 @@ describe("Vault", () => {
       });
 
       it("fails if the caller doesn't own the deposit", async () => {
-        await addUnderlyingBalance(alice, "1000");
-        await addUnderlyingBalance(bob, "1000");
-
         const params = depositParams.build({
           amount: parseUnits("100"),
           claims: [claimParams.percent(100).to(carol.address).build()],
@@ -921,8 +908,6 @@ describe("Vault", () => {
       });
 
       it("fails if the deposit is locked", async () => {
-        await addUnderlyingBalance(alice, "1000");
-
         const params = depositParams.build({
           lockDuration: TWO_WEEKS,
           amount: parseUnits("100"),
@@ -937,8 +922,6 @@ describe("Vault", () => {
       });
 
       it("fails if token id belongs to a sponsor", async () => {
-        await addUnderlyingBalance(alice, "1000");
-
         await vault.connect(alice).deposit(
           depositParams.build({
             lockDuration: TWO_WEEKS,
@@ -959,8 +942,6 @@ describe("Vault", () => {
 
   describe("forceWithdraw", () => {
     it("works if the vault doesn't have enough funds", async () => {
-      await addUnderlyingBalance(alice, "1000");
-
       const params = depositParams.build({
         amount: parseUnits("1000"),
         claims: [claimParams.percent(100).to(carol.address).build()],
@@ -980,8 +961,6 @@ describe("Vault", () => {
 
   describe("withdraw", () => {
     it("fails if the vault doesn't have enough funds", async () => {
-      await addUnderlyingBalance(alice, "100");
-
       const params = depositParams.build({
         amount: parseUnits("100"),
         claims: [claimParams.percent(100).to(carol.address).build()],
@@ -1002,8 +981,6 @@ describe("Vault", () => {
 
   describe("claimYield", () => {
     it("emits an event", async () => {
-      await addUnderlyingBalance(alice, "1000");
-
       const params = depositParams.build({
         amount: parseUnits("100"),
         claims: [
@@ -1028,8 +1005,6 @@ describe("Vault", () => {
     });
 
     it("claims the yield of a user", async () => {
-      await addUnderlyingBalance(alice, "1000");
-
       const params = depositParams.build({
         amount: parseUnits("100"),
         claims: [
@@ -1043,21 +1018,21 @@ describe("Vault", () => {
       await vault.connect(carol).claimYield(carol.address);
 
       const carolYield = await vault.yieldFor(carol.address);
-      expect(carolYield[0]).to.eq(parseUnits("0"));
-      expect(carolYield[1]).to.eq(parseUnits("0"));
-      expect(carolYield[2]).to.eq(parseUnits("0"));
+      expect(carolYield.claimableYield).to.eq(parseUnits("0"));
+      expect(carolYield.shares).to.eq(parseUnits("0"));
+      expect(carolYield.perfFee).to.eq(parseUnits("0"));
 
-      expect(await underlying.balanceOf(carol.address)).to.eq(parseUnits("49"));
+      expect(await underlying.balanceOf(carol.address)).to.eq(
+        parseUnits("1049")
+      );
 
       const bobYield = await vault.yieldFor(bob.address);
-      expect(bobYield[0]).to.eq(parseUnits("49"));
-      expect(bobYield[1]).to.eq(parseUnits("25").mul(SHARES_MULTIPLIER));
-      expect(bobYield[2]).to.eq(parseUnits("1"));
+      expect(bobYield.claimableYield).to.eq(parseUnits("49"));
+      expect(bobYield.shares).to.eq(parseUnits("25").mul(SHARES_MULTIPLIER));
+      expect(bobYield.perfFee).to.eq(parseUnits("1"));
     });
 
     it("accumulate performance fee", async () => {
-      await addUnderlyingBalance(alice, "1000");
-
       const params = depositParams.build({
         amount: parseUnits("100"),
         claims: [
@@ -1073,8 +1048,6 @@ describe("Vault", () => {
     });
 
     it("claims the yield to a different address", async () => {
-      await addUnderlyingBalance(alice, "1000");
-
       const params = depositParams.build({
         amount: parseUnits("100"),
         claims: [claimParams.percent(100).to(bob.address).build()],
@@ -1082,14 +1055,16 @@ describe("Vault", () => {
 
       await vault.connect(alice).deposit(params);
       await addYieldToVault("100");
-      await vault.connect(bob).claimYield(carol.address);
+      const action = () => vault.connect(bob).claimYield(carol.address);
 
-      expect(await underlying.balanceOf(carol.address)).to.eq(parseUnits("98"));
+      await expect(action).to.changeTokenBalance(
+        underlying,
+        carol,
+        parseUnits("98")
+      );
     });
 
     it("fails is the destination address is 0x", async () => {
-      await addUnderlyingBalance(alice, "1000");
-
       const params = depositParams.build({
         amount: parseUnits("100"),
         claims: [claimParams.percent(100).to(bob.address).build()],
@@ -1108,8 +1083,6 @@ describe("Vault", () => {
 
   describe("yieldFor", () => {
     it("returns the amount of yield claimable by a user, share of yield and performance fee", async () => {
-      await addUnderlyingBalance(alice, "1000");
-
       const params = depositParams.build({
         amount: parseUnits("100"),
         claims: [
@@ -1137,8 +1110,6 @@ describe("Vault", () => {
 
   describe("deposit", () => {
     it("fails if the yield is negative", async () => {
-      await addUnderlyingBalance(alice, "2000");
-
       const params = depositParams.build({
         amount: parseUnits("1000"),
       });
@@ -1155,30 +1126,24 @@ describe("Vault", () => {
     it("works if the negative yield is less than the strategy's estimated fees", async () => {
       await vault.setStrategy(strategy.address);
 
-      await addUnderlyingBalance(alice, "2000");
-
       const params = depositParams.build({
-        amount: parseUnits("1000"),
+        amount: parseUnits("500"),
       });
 
       await vault.connect(alice).deposit(params);
 
-      await removeUnderlyingFromVault("19");
+      await removeUnderlyingFromVault("1");
 
       await vault.connect(alice).deposit(params);
     });
 
     it("works with valid parameters", async () => {
-      await addUnderlyingBalance(alice, "1000");
-
       const params = depositParams.build();
 
       await vault.connect(alice).deposit(params);
     });
 
     it("works with multiple claims", async () => {
-      await addUnderlyingBalance(alice, "1000");
-
       const params = depositParams.build({
         claims: [
           claimParams.percent(50).build(),
@@ -1190,8 +1155,6 @@ describe("Vault", () => {
     });
 
     it("calculates correct number of shares for first deposit", async () => {
-      await addUnderlyingBalance(alice, "1000");
-
       const amount = parseUnits("1");
       const params = depositParams.build({ amount });
 
@@ -1201,9 +1164,6 @@ describe("Vault", () => {
     });
 
     it("calculates correct number of shares for second deposit of equal size", async () => {
-      await addUnderlyingBalance(alice, "1000");
-      await addUnderlyingBalance(bob, "1000");
-
       const amount = parseUnits("1");
       const params = depositParams.build({ amount });
 
@@ -1220,8 +1180,6 @@ describe("Vault", () => {
     });
 
     it("calculates correct number of shares for second deposit of different size", async () => {
-      await addUnderlyingBalance(alice, "1000");
-      await addUnderlyingBalance(bob, "1000");
       const amount = parseUnits("1");
 
       // deposit 1 unit
@@ -1239,8 +1197,6 @@ describe("Vault", () => {
     });
 
     it("fails if pct does not add up to 100%", async () => {
-      await addUnderlyingBalance(alice, "1000");
-
       const params = depositParams.build({
         claims: [
           claimParams.percent(49).build(),

@@ -3,15 +3,20 @@ pragma solidity =0.8.10;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-contract MockERC20 is ERC20("MockERC20", "ME2") {
+contract MockERC20 is ERC20 {
     uint8 private decimals_;
 
-    constructor(uint256 _totalSupply) {
-        decimals_ = 18;
+    constructor(
+        string memory _name,
+        string memory _symbol,
+        uint8 _decimals,
+        uint256 _totalSupply
+    ) ERC20(_name, _symbol) {
+        decimals_ = _decimals;
         _mint(msg.sender, _totalSupply);
     }
 
-    function decimals() public view override returns (uint8) {
+    function decimals() public view override(ERC20) returns (uint8) {
         return decimals_;
     }
 
@@ -26,4 +31,22 @@ contract MockERC20 is ERC20("MockERC20", "ME2") {
     function burn(address _user, uint256 _amount) public {
         _burn(_user, _amount);
     }
+}
+
+contract MockDAI is MockERC20 {
+    constructor(uint256 supply) MockERC20("Mock DAI", "mockDAI", 18, supply) {}
+}
+
+contract MockUSDC is MockERC20 {
+    constructor(uint256 supply) MockERC20("Mock USDC", "mockUSDC", 6, supply) {}
+}
+
+contract MockUST is MockERC20 {
+    constructor(uint256 supply) MockERC20("Mock UST", "mockUST", 18, supply) {}
+}
+
+contract MockAUST is MockERC20 {
+    constructor(uint256 supply)
+        MockERC20("Mock aUST", "mockaUST", 18, supply)
+    {}
 }

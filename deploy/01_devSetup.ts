@@ -1,39 +1,51 @@
 import type { HardhatRuntimeEnvironment } from "hardhat/types";
-import type { DeployFunction } from "hardhat-deploy/types";
 
 import { ethers } from "hardhat";
 
-const func: DeployFunction = async function (env) {
-  await deployDevToken(env, "USDC");
-  await deployDevToken(env, "DAI");
-  await deployDevToken(env, "UST");
+const { parseUnits } = ethers.utils;
+
+const func = async function (env: HardhatRuntimeEnvironment) {
+  if (env.network.live) {
+    return;
+  }
+
+  await deployDevToken(env, "DAI", "MockDAI");
+  await deployDevToken(env, "USDC", "MockUSDC");
+  await deployDevToken(env, "UST", "MockUST");
+  await deployDevToken(env, "aUST", "MockAUST");
 };
 
-async function deployDevToken(env: HardhatRuntimeEnvironment, name: string) {
+async function deployDevToken(
+  env: HardhatRuntimeEnvironment,
+  name: string,
+  contract: string
+) {
   const { deployer, alice, bob, carol } = await env.getNamedAccounts();
-  const { deploy, execute } = env.deployments;
+  const { deploy, execute, getOrNull, read } = env.deployments;
 
-  await deploy(name, {
-    from: deployer,
-    contract: "MockERC20",
-    args: [0],
-  });
+  const isDeployed = await getOrNull(name);
 
-  for (let account of [deployer, alice, bob, carol]) {
-    await execute(
-      name,
-      { from: account },
-      "mint",
-      account,
-      ethers.utils.parseUnits("1000000")
-    );
+  if (!isDeployed) {
+    await deploy(name, {
+      contract,
+      from: deployer,
+      args: [0],
+    });
+
+    for (let account of [deployer, alice, bob, carol]) {
+      const decimals = await read(name, "decimals");
+      await execute(
+        name,
+        { from: account },
+        "mint",
+        account,
+        parseUnits("1000", decimals)
+      );
+    }
   }
 }
 
-func.id = "deploy_mock_tokens";
-func.tags = ["MockTokens"];
-
-// run this only on local networks
-func.skip = async (env) => env.network.live;
+func.id = "dev_setup";
+func.tags = ["dev_setup"];
 
 export default func;
