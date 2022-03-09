@@ -48,8 +48,8 @@ const config: HardhatUserConfig = {
         mnemonic: process.env.MAINNET_MNEMONIC || "TODO",
       },
     },
-    rinkeby: {
-      url: `https://rinkeby.infura.io/v3/${
+    ropsten: {
+      url: `https://ropsten.infura.io/v3/${
         process.env.INFURA_KEY || "missing-key"
       }`,
       chainId: 4,
