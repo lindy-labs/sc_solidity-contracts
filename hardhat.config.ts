@@ -52,7 +52,7 @@ const config: HardhatUserConfig = {
       url: `https://ropsten.infura.io/v3/${
         process.env.INFURA_KEY || "missing-key"
       }`,
-      chainId: 4,
+      chainId: 3,
       accounts: {
         mnemonic: process.env.TESTNET_MNEMONIC || "TODO",
       },
