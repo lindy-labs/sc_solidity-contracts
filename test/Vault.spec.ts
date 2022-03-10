@@ -190,7 +190,7 @@ describe("Vault", () => {
       VaultFactory = await ethers.getContractFactory("Vault");
     });
 
-    it("it reverts if underlying is address(0)", async () => {
+    it("reverts if underlying is address(0)", async () => {
       await expect(
         VaultFactory.deploy(
           constants.AddressZero,
@@ -203,7 +203,7 @@ describe("Vault", () => {
       ).to.be.revertedWith("Vault: underlying cannot be 0x0");
     });
 
-    it("it reverts if min lock period is zero", async () => {
+    it("reverts if min lock period is zero", async () => {
       await expect(
         VaultFactory.deploy(
           underlying.address,
@@ -216,7 +216,7 @@ describe("Vault", () => {
       ).to.be.revertedWith("Vault: invalid minLockPeriod");
     });
 
-    it("it reverts if min lock period is greater than maximum", async () => {
+    it("reverts if min lock period is greater than maximum", async () => {
       await expect(
         VaultFactory.deploy(
           underlying.address,
@@ -229,7 +229,7 @@ describe("Vault", () => {
       ).to.be.revertedWith("Vault: invalid minLockPeriod");
     });
 
-    it("it reverts if invest percentage is greater than 100%", async () => {
+    it("reverts if invest percentage is greater than 100%", async () => {
       await expect(
         VaultFactory.deploy(
           underlying.address,
@@ -242,7 +242,7 @@ describe("Vault", () => {
       ).to.be.revertedWith("Vault: invalid investPerc");
     });
 
-    it("it reverts if performance fee percentage is greater than 100%", async () => {
+    it("reverts if performance fee percentage is greater than 100%", async () => {
       await expect(
         VaultFactory.deploy(
           underlying.address,
@@ -255,7 +255,7 @@ describe("Vault", () => {
       ).to.be.revertedWith("Vault: invalid performance fee");
     });
 
-    it("it reverts if treasury is address(0)", async () => {
+    it("reverts if treasury is address(0)", async () => {
       await expect(
         VaultFactory.deploy(
           underlying.address,
@@ -268,7 +268,7 @@ describe("Vault", () => {
       ).to.be.revertedWith("Vault: treasury cannot be 0x0");
     });
 
-    it("it reverts if owner is address(0)", async () => {
+    it("reverts if owner is address(0)", async () => {
       await expect(
         VaultFactory.deploy(
           underlying.address,
@@ -301,13 +301,13 @@ describe("Vault", () => {
   });
 
   describe("setTreasury", () => {
-    it("it reverts if msg.sender is not admin", async () => {
+    it("reverts if msg.sender is not admin", async () => {
       await expect(
         vault.connect(alice).setTreasury(TREASURY)
       ).to.be.revertedWith(getRoleErrorMsg(alice, DEFAULT_ADMIN_ROLE));
     });
 
-    it("it reverts if treasury is address(0)", async () => {
+    it("reverts if treasury is address(0)", async () => {
       await expect(
         vault.connect(owner).setTreasury(constants.AddressZero)
       ).to.be.revertedWith("Vault: treasury cannot be 0x0");
@@ -323,13 +323,13 @@ describe("Vault", () => {
   });
 
   describe("setPerfFeePct", () => {
-    it("it reverts if msg.sender is not admin", async () => {
+    it("reverts if msg.sender is not admin", async () => {
       await expect(vault.connect(alice).setPerfFeePct(100)).to.be.revertedWith(
         getRoleErrorMsg(alice, DEFAULT_ADMIN_ROLE)
       );
     });
 
-    it("it reverts if performance fee percentage is greater than 100%", async () => {
+    it("reverts if performance fee percentage is greater than 100%", async () => {
       await expect(
         vault.connect(owner).setPerfFeePct(DENOMINATOR.add(BigNumber.from("1")))
       ).to.be.revertedWith("Vault: invalid performance fee");
@@ -345,13 +345,13 @@ describe("Vault", () => {
   });
 
   describe("setInvestPerc", () => {
-    it("it reverts if msg.sender is not admin", async () => {
+    it("reverts if msg.sender is not admin", async () => {
       await expect(vault.connect(alice).setInvestPerc(100)).to.be.revertedWith(
         getRoleErrorMsg(alice, DEFAULT_ADMIN_ROLE)
       );
     });
 
-    it("it reverts if invest percentage is greater than 100%", async () => {
+    it("reverts if invest percentage is greater than 100%", async () => {
       await expect(
         vault.connect(owner).setInvestPerc(DENOMINATOR.add(BigNumber.from("1")))
       ).to.be.revertedWith("Vault: invalid investPerc");
@@ -405,7 +405,7 @@ describe("Vault", () => {
       perfFee = newYield.mul(PERFORMANCE_FEE_PCT).div(DENOMINATOR);
     });
 
-    it("it reverts if msg.sender is not investor", async () => {
+    it("reverts if msg.sender is not investor", async () => {
       await expect(
         vault.connect(alice).withdrawPerformanceFee()
       ).to.be.revertedWith(getRoleErrorMsg(alice, INVESTOR_ROLE));
@@ -420,7 +420,7 @@ describe("Vault", () => {
       expect(await vault.accumulatedPerfFee()).to.be.eq("0");
     });
 
-    it("it reverts if nothing to withdraw", async () => {
+    it("reverts if nothing to withdraw", async () => {
       await vault.connect(owner).withdrawPerformanceFee();
 
       await expect(
@@ -430,19 +430,19 @@ describe("Vault", () => {
   });
 
   describe("updateInvested", () => {
-    it("it reverts if msg.sender is not investor", async () => {
+    it("reverts if msg.sender is not investor", async () => {
       await expect(
         vault.connect(alice).updateInvested("0x")
       ).to.be.revertedWith(getRoleErrorMsg(alice, INVESTOR_ROLE));
     });
 
-    it("it reverts if strategy is not set", async () => {
+    it("reverts if strategy is not set", async () => {
       await expect(
         vault.connect(owner).updateInvested("0x")
       ).to.be.revertedWith("Vault: strategy is not set");
     });
 
-    it("it reverts if no investable amount", async () => {
+    it("reverts if no investable amount", async () => {
       await vault.connect(owner).setStrategy(strategy.address);
       await addYieldToVault("10");
       await underlying.mint(strategy.address, parseUnits("100"));
@@ -503,19 +503,19 @@ describe("Vault", () => {
   });
 
   describe("setStrategy", () => {
-    it("it reverts if msg.sender is not admin", async () => {
+    it("reverts if msg.sender is not admin", async () => {
       await expect(
         vault.connect(alice).setStrategy(strategy.address)
       ).to.be.revertedWith(getRoleErrorMsg(alice, DEFAULT_ADMIN_ROLE));
     });
 
-    it("it reverts if new strategy is address(0)", async () => {
+    it("reverts if new strategy is address(0)", async () => {
       await expect(
         vault.connect(owner).setStrategy(constants.AddressZero)
       ).to.be.revertedWith("Vault: strategy 0x");
     });
 
-    it("it reverts if new strategy's vault is invalid", async () => {
+    it("reverts if new strategy's vault is invalid", async () => {
       let Vault = await ethers.getContractFactory("Vault");
 
       const anotherVault = await Vault.deploy(
@@ -575,7 +575,7 @@ describe("Vault", () => {
         .withArgs(newStrategy.address);
     });
 
-    it("it reverts if strategy has invested funds", async () => {
+    it("reverts if strategy has invested funds", async () => {
       await vault.connect(owner).setStrategy(strategy.address);
 
       await strategy.setAllRedeemed(false); // This will force hasAssets function to return true;
