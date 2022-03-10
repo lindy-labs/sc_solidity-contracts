@@ -5,7 +5,6 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {Counters} from "@openzeppelin/contracts/utils/Counters.sol";
-import {Address} from "@openzeppelin/contracts/utils/Address.sol";
 import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
@@ -16,9 +15,6 @@ import {PercentMath} from "./lib/PercentMath.sol";
 import {Depositors} from "./vault/Depositors.sol";
 import {Claimers} from "./vault/Claimers.sol";
 import {IStrategy} from "./strategy/IStrategy.sol";
-import {ERC165Query} from "./lib/ERC165Query.sol";
-
-import "hardhat/console.sol";
 
 /**
  * A vault where other accounts can deposit an underlying token
@@ -39,24 +35,21 @@ contract Vault is
     using SafeERC20 for IERC20;
     using PercentMath for uint256;
     using PercentMath for uint16;
-    using Address for address;
-    using ERC165Query for address;
 
     //
     // Constants
     //
 
     bytes32 public constant INVESTOR_ROLE = keccak256("INVESTOR_ROLE");
-    uint256 public constant MIN_SPONSOR_LOCK_DURATION = 2 weeks;
-    uint256 public constant MAX_SPONSOR_LOCK_DURATION = 24 weeks;
-    uint256 public constant MAX_DEPOSIT_LOCK_DURATION = 24 weeks;
+    uint64 public constant MIN_SPONSOR_LOCK_DURATION = 2 weeks;
+    uint64 public constant MAX_SPONSOR_LOCK_DURATION = 24 weeks;
+    uint64 public constant MAX_DEPOSIT_LOCK_DURATION = 24 weeks;
     uint256 public constant SHARES_MULTIPLIER = 10**18;
 
     //
     // State
     //
 
-    /// Underlying ERC20 token accepted by the vault
     /// See {IVault}
     IERC20 public override(IVault) underlying;
 
@@ -67,7 +60,7 @@ contract Vault is
     uint16 public override(IVault) investPerc;
 
     /// See {IVault}
-    uint256 public immutable override(IVault) minLockPeriod;
+    uint64 public immutable override(IVault) minLockPeriod;
 
     /// See {IVaultSponsoring}
     uint256 public override(IVaultSponsoring) totalSponsored;
@@ -120,10 +113,15 @@ contract Vault is
 
     /**
      * @param _underlying Underlying ERC20 token to use.
+     * @param _minLockPeriod Minimum lock period to deposit
+     * @param _investPerc Percentage of the total underlying to invest in the strategy
+     * @param _treasury Treasury address to collect performance fee
+     * @param _owner Vault admin address
+     * @param _perfFeePct Performance fee percentage
      */
     constructor(
         IERC20 _underlying,
-        uint256 _minLockPeriod,
+        uint64 _minLockPeriod,
         uint16 _investPerc,
         address _treasury,
         address _owner,
@@ -143,7 +141,10 @@ contract Vault is
         );
         require(_treasury != address(0x0), "Vault: treasury cannot be 0x0");
         require(_owner != address(0x0), "Vault: owner cannot be 0x0");
-        require(_minLockPeriod != 0, "Vault: minLockPeriod cannot be 0");
+        require(
+            _minLockPeriod != 0 && _minLockPeriod <= MAX_DEPOSIT_LOCK_DURATION,
+            "Vault: invalid minLockPeriod"
+        );
 
         _setupRole(DEFAULT_ADMIN_ROLE, _owner);
         _setupRole(INVESTOR_ROLE, _owner);
@@ -268,19 +269,19 @@ contract Vault is
         nonReentrant
         returns (uint256[] memory depositIds)
     {
-        uint256 principalMinusStrategyFee = _applyInvestmentFee(totalPrincipal);
         require(_params.amount != 0, "Vault: cannot deposit 0");
         require(
             _params.lockDuration >= minLockPeriod &&
                 _params.lockDuration <= MAX_DEPOSIT_LOCK_DURATION,
             "Vault: invalid lock period"
         );
+        uint256 principalMinusStrategyFee = _applyInvestmentFee(totalPrincipal);
         require(
             principalMinusStrategyFee <= totalUnderlyingMinusSponsored(),
             "Vault: cannot deposit when yield is negative"
         );
 
-        uint256 lockedUntil = _params.lockDuration + block.timestamp;
+        uint64 lockedUntil = _params.lockDuration + _blockTimestamp();
 
         depositIds = _createDeposit(
             _params.amount,
@@ -311,7 +312,7 @@ contract Vault is
     }
 
     /// See {IVault}
-    function withdraw(address _to, uint256[] memory _ids)
+    function withdraw(address _to, uint256[] calldata _ids)
         external
         override(IVault)
         nonReentrant
@@ -322,7 +323,7 @@ contract Vault is
     }
 
     /// See {IVault}
-    function forceWithdraw(address _to, uint256[] memory _ids)
+    function forceWithdraw(address _to, uint256[] calldata _ids)
         external
         nonReentrant
     {
@@ -368,11 +369,11 @@ contract Vault is
 
         uint256 _investable = investableAmount();
 
-        if (_investable != 0) {
-            underlying.safeTransfer(address(strategy), _investable);
+        require(_investable != 0, "Vault: nothing to invest");
 
-            emit Invested(_investable);
-        }
+        underlying.safeTransfer(address(strategy), _investable);
+
+        emit Invested(_investable);
 
         strategy.invest(data);
     }
@@ -478,7 +479,7 @@ contract Vault is
      */
     function _withdraw(
         address _to,
-        uint256[] memory _ids,
+        uint256[] calldata _ids,
         bool _force
     ) internal {
         uint256 localTotalShares = totalShares;
@@ -486,7 +487,7 @@ contract Vault is
         uint256 amount;
         uint256 idsLen = _ids.length;
 
-        for (uint8 i; i < idsLen; i++) {
+        for (uint256 i; i < idsLen; ++i) {
             amount += _withdrawDeposit(
                 _ids[i],
                 localTotalShares,
@@ -512,7 +513,7 @@ contract Vault is
         uint256 sponsorAmount;
         uint256 idsLen = _ids.length;
 
-        for (uint8 i; i < idsLen; i++) {
+        for (uint8 i; i < idsLen; ++i) {
             uint256 tokenId = _ids[i];
 
             uint256 lockedUntil = deposits[tokenId].lockedUntil;
@@ -574,7 +575,7 @@ contract Vault is
      */
     function _createDeposit(
         uint256 _amount,
-        uint256 _lockedUntil,
+        uint64 _lockedUntil,
         ClaimParams[] calldata claims
     ) internal returns (uint256[] memory) {
         CreateDepositLocals memory locals = CreateDepositLocals({
@@ -588,7 +589,7 @@ contract Vault is
 
         uint256[] memory result = new uint256[](locals.claimsLen);
 
-        for (uint256 i = 0; i < locals.claimsLen; ++i) {
+        for (uint256 i; i < locals.claimsLen; ++i) {
             ClaimParams memory data = claims[i];
             require(data.pct != 0, "Vault: claim percentage cannot be 0");
             // if it's the last claim, just grab all remaining amount, instead
@@ -597,7 +598,7 @@ contract Vault is
                 ? _amount - locals.accumulatedAmount
                 : _amount.percOf(data.pct);
 
-            uint256 id = _createClaim(
+            result[i] = _createClaim(
                 locals.groupId,
                 localAmount,
                 _lockedUntil,
@@ -607,16 +608,11 @@ contract Vault is
             );
             locals.accumulatedPct += data.pct;
             locals.accumulatedAmount += localAmount;
-            result[i] = id;
         }
 
         require(
             locals.accumulatedPct.is100Perc(),
             "Vault: claims don't add up to 100%"
-        );
-        require(
-            locals.accumulatedAmount == _amount,
-            "Vault: amount doesn't add up"
         );
 
         _depositGroupIds.increment();
@@ -627,7 +623,7 @@ contract Vault is
     function _createClaim(
         uint256 _depositGroupId,
         uint256 _amount,
-        uint256 _lockedUntil,
+        uint64 _lockedUntil,
         ClaimParams memory _claim,
         uint256 _localTotalShares,
         uint256 _localTotalPrincipal
@@ -769,7 +765,7 @@ contract Vault is
         );
     }
 
-    function _blockTimestamp() external view returns (uint64) {
+    function _blockTimestamp() internal view returns (uint64) {
         return uint64(block.timestamp);
     }
 
@@ -778,7 +774,7 @@ contract Vault is
      *
      * @param _amount Amount of deposit to consider.
      * @param _totalShares Amount of existing shares to consider.
-     * @param _totalUnderlyingMinusSponsored Amounf of existing underlying to consider.
+     * @param _totalUnderlyingMinusSponsored Amount of existing underlying to consider.
      * @return Amount of shares the deposit will receive.
      */
     function _computeShares(
@@ -810,7 +806,11 @@ contract Vault is
         uint256 _totalShares,
         uint256 _totalUnderlyingMinusSponsored
     ) internal pure returns (uint256) {
-        if (_totalShares == 0 || _totalUnderlyingMinusSponsored == 0) {
+        if (
+            _shares == 0 ||
+            _totalShares == 0 ||
+            _totalUnderlyingMinusSponsored == 0
+        ) {
             return 0;
         }
 

@@ -1,7 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity =0.8.10;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import {AnchorBaseStrategy} from "../strategy/anchor/AnchorBaseStrategy.sol";
@@ -38,5 +37,9 @@ contract MockStrategy is AnchorBaseStrategy {
         uint256 underlyingBalance = _getUnderlyingBalance() + pendingDeposits;
 
         return underlyingBalance + _estimateAUstBalanceInUst();
+    }
+
+    function setAllRedeemed(bool __allRedeemed) external {
+        _allRedeemed = __allRedeemed;
     }
 }

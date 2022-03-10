@@ -16,7 +16,7 @@ interface IVault {
     struct DepositParams {
         uint256 amount;
         ClaimParams[] claims;
-        uint256 lockDuration;
+        uint64 lockDuration;
     }
 
     //
@@ -31,7 +31,7 @@ interface IVault {
         address indexed depositor,
         address indexed claimer,
         uint256 claimerId,
-        uint256 lockedUntil,
+        uint64 lockedUntil,
         bytes data
     );
 
@@ -97,7 +97,7 @@ interface IVault {
     /**
      * Minimum lock period for each deposit
      */
-    function minLockPeriod() external view returns (uint256);
+    function minLockPeriod() external view returns (uint64);
 
     /**
      * Total amount of underlying currently controlled by the
@@ -152,7 +152,7 @@ interface IVault {
      * @param _to Address that will receive the funds.
      * @param _ids Array with the ids of the deposits.
      */
-    function withdraw(address _to, uint256[] memory _ids) external;
+    function withdraw(address _to, uint256[] calldata _ids) external;
 
     /**
      * Withdraws the principal from the deposits with the ids provided in @param _ids and sends it to @param _to.
@@ -162,11 +162,12 @@ interface IVault {
      * @param _to Address that will receive the funds.
      * @param _ids Array with the ids of the deposits.
      */
-    function forceWithdraw(address _to, uint256[] memory _ids) external;
+    function forceWithdraw(address _to, uint256[] calldata _ids) external;
 
     /**
      * Changes the strategy used by the vault.
      *
+     * @notice if there is invested funds in previous strategy, it is not allowed to set new strategy.
      * @param _strategy the new strategy's address.
      */
     function setStrategy(address _strategy) external;

@@ -46,8 +46,8 @@ contract Depositors is ERC721 {
 
     // should only be callable by the vault
     function mint(address _owner) external onlyVault returns (uint256) {
-        uint256 localTokenId = _tokenIds.current();
         _tokenIds.increment();
+        uint256 localTokenId = _tokenIds.current();
 
         _safeMint(_owner, localTokenId);
 
