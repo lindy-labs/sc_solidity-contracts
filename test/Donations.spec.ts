@@ -7,7 +7,7 @@ import { BigNumber } from "ethers";
 import type { Donations } from "../typechain";
 import { MockDAI, MockDAI__factory } from "../typechain";
 import { donationParams } from "./shared/factories";
-import { getLastBlockTimestamp } from "./shared";
+import { getLastBlockTimestamp, moveForwardTwoWeeks } from "./shared";
 
 const { parseUnits } = ethers.utils;
 
@@ -206,7 +206,10 @@ describe("Donations", () => {
       ).to.equal(parseUnits("100"));
     });
 
-    it("works if the caller is the admin", async () => {
+    it("works if the caller is the admin and the NFT already expired", async () => {
+      const ttl = BigNumber.from(time.duration.days(14).toNumber());
+      await donations.setTTL(ttl);
+
       await donations.mint(DUMMY_TX, [
         donationParams.build({
           destinationId: CHARITY_ID,
@@ -216,11 +219,33 @@ describe("Donations", () => {
         }),
       ]);
 
+      await moveForwardTwoWeeks();
+
       await donations.connect(owner).burn(0);
 
       expect(
         await donations.transferableAmounts(underlying.address, CHARITY_ID)
       ).to.equal(parseUnits("100"));
+    });
+
+    it("fails if the caller is the admin and the NFT has not expired", async () => {
+      const ttl = BigNumber.from(time.duration.days(20).toNumber());
+      await donations.setTTL(ttl);
+
+      await donations.mint(DUMMY_TX, [
+        donationParams.build({
+          destinationId: CHARITY_ID,
+          amount: parseUnits("100"),
+          owner: alice.address,
+          token: underlying.address,
+        }),
+      ]);
+
+      await moveForwardTwoWeeks();
+
+      await expect(donations.connect(owner).burn(0)).to.be.revertedWith(
+        "Donations: not allowed"
+      );
     });
 
     it("emits an event", async () => {
@@ -233,7 +258,7 @@ describe("Donations", () => {
         }),
       ]);
 
-      const tx = donations.connect(owner).burn(0);
+      const tx = donations.connect(alice).burn(0);
 
       await expect(tx).to.emit(donations, "DonationBurned").withArgs(0);
     });

@@ -161,10 +161,11 @@ contract Donations is ERC721, AccessControl {
      * @param _id ID of the NFT.
      */
     function burn(uint256 _id) external {
-        require(
-            ownerOf(_id) == _msgSender() || hasRole(WORKER_ROLE, _msgSender()),
-            "Donations: not allowed"
-        );
+        bool isOwner = ownerOf(_id) == _msgSender();
+        bool isWorker = hasRole(WORKER_ROLE, _msgSender());
+        bool expired = metadata[_id].expiry <= _getBlockTimestamp();
+
+        require(isOwner || (isWorker && expired), "Donations: not allowed");
 
         uint256 destinationId = metadata[_id].destinationId;
         IERC20 token = metadata[_id].token;
