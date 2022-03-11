@@ -2,10 +2,12 @@
 pragma solidity =0.8.10;
 import "./Helper.sol";
 import {IVault} from "../vault/IVault.sol";
+import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 
-contract Echidna_Deposit_Withdraw is Helper {
+contract Echidna_Deposit_Withdraw is Helper,ERC721Holder {
 
-    event WithdrawFailed(string reason, uint256 amount);
+    event Log(string reason, uint256 amount);
+    event LogAddress(string reason, address a);
 
     // zero address should always revert
     function withdraw_zero_address_recipient(uint256[] memory _ids) public {
@@ -35,22 +37,60 @@ contract Echidna_Deposit_Withdraw is Helper {
 
     // deposit zero should always revert
     function deposit_with_zero_amount(IVault.DepositParams memory _params) public {
-        require(_params.lockDuration >= 2 weeks &&
-                _params.lockDuration <= 24 weeks);
 
-        _params.amount = 0;
+        _params.lockDuration = 2 weeks + (_params.lockDuration % (22 weeks));
+        emit Log("lockDuration", _params.lockDuration);
+
+        _params.amount = 0; 
+        emit Log("amount", _params.amount);
+
+        _params.claims[0].pct = 10000;
+        _params.claims[0].beneficiary = address(0x000000000000000000000000000000000000dEaD);
+        _params.claims[0].data = "0x7b";
 
         deposit_should_revert(_params);
     }
 
     // deposit with claim percentage zero should always revert
-    function deposit_claim_pct_zero() internal {
+    function deposit_claim_pct_zero(IVault.DepositParams memory _params) public {
+         _params.lockDuration = 2 weeks + (_params.lockDuration % (22 weeks));
+        emit Log("lockDuration", _params.lockDuration);
 
+        _params.amount = Helper.one_to_max_uint64(_params.amount);
+        emit Log("amount", _params.amount);
+
+        _params.claims[0].pct = 0;
+        _params.claims[0].beneficiary = address(0x000000000000000000000000000000000000dEaD);
+        _params.claims[0].data = "0x7b";
+
+        deposit_should_revert(_params);
     }
 
-    // deposit with non-valid lockduration should always revert
-    function deposit_invalid_lockduration() internal {
+    // deposit with invalid lockduration should always revert
+    function deposit_invalid_lockduration_1(IVault.DepositParams memory _params) public {
+        _params.lockDuration = (_params.lockDuration % (2 weeks - 1));
+        emit Log("lockDuration", _params.lockDuration);
 
+        _params.amount = Helper.one_to_max_uint64(_params.amount);
+        emit Log("amount", _params.amount);
+
+        _params.claims[0].pct = 10000;
+        _params.claims[0].beneficiary = address(0x000000000000000000000000000000000000dEaD);
+        _params.claims[0].data = "0x7b";
+
+        deposit_should_revert(_params);
+    }
+
+    // deposit with invalid lockduration should always revert
+    function deposit_invalid_lockduration_2(IVault.DepositParams memory _params) public {
+        _params.lockDuration += 24 weeks;
+        emit Log("lockDuration", _params.lockDuration);
+
+        require(_params.claims.length != 0);
+
+        require(_params.amount != 0);
+
+        deposit_should_revert(_params);
     }
 
     // deposit with claims not totalling exactly 100 percent should always revert
