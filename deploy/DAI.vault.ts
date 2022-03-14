@@ -1,3 +1,4 @@
+import { network, ethers } from "hardhat";
 import type { HardhatRuntimeEnvironment } from "hardhat/types";
 import type { DeployFunction } from "hardhat-deploy/types";
 
@@ -8,6 +9,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   const { deploy, get } = env.deployments;
 
   const dai = await get("DAI");
+  console.log(await ethers.provider.getNetwork());
 
   const { minLockPeriod, investPct, perfFeePct, multisig } =
     await getCurrentNetworkConfig();

@@ -10,9 +10,9 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   const ust = await get("UST");
   const aust = await get("aUST");
   const vault = await get("Vault_UST");
+  const ethAnchorRouter = await get("EthAnchorRouter");
 
-  const { multisig, ethAnchorRouter, perfFeePct } =
-    await getCurrentNetworkConfig();
+  const { multisig, perfFeePct } = await getCurrentNetworkConfig();
 
   const treasury = env.network.config.chainId == 1 ? multisig : deployer;
   const owner = env.network.config.chainId == 1 ? multisig : deployer;
@@ -24,7 +24,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
     args: [
       vault.address,
       treasury,
-      ethAnchorRouter,
+      ethAnchorRouter.address,
       ust.address,
       aust.address,
       perfFeePct,

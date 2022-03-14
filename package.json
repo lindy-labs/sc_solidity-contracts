@@ -7,7 +7,8 @@
     "coverage": "hardhat coverage",
     "test": "hardhat test && cd subgraph && yarn test",
     "compile": "hardhat compile",
-    "test:slither": "slither ."
+    "test:slither": "slither .",
+    "node:ropsten": "hardhat node --fork $ETH_ROPSTEN_ENDPOINT"
   },
   "devDependencies": {
     "@chainlink/contracts": "^0.3.1",

@@ -1,11 +1,16 @@
 import type { HardhatRuntimeEnvironment } from "hardhat/types";
+import { network, ethers } from "hardhat";
 
-import { ethers } from "hardhat";
+import { isRopstenFork } from "../scripts/deployConfigs";
 
 const { parseUnits } = ethers.utils;
 
 const func = async function (env: HardhatRuntimeEnvironment) {
   if (env.network.live) {
+    return;
+  }
+
+  if (await isRopstenFork()) {
     return;
   }
 

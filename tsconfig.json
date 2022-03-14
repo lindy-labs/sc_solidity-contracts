@@ -10,10 +10,7 @@
     "noEmitOnError": true,
     "outDir": "dist",
     "resolveJsonModule": true,
-    "baseUrl": ".",
-    "paths": {
-      "@root/*": ["./*"]
-    }
+    "baseUrl": "."
   },
   "include": [
     "./hardhat.config.ts",
