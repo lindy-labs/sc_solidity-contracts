@@ -6,10 +6,10 @@ import { BigNumber, utils, constants } from "ethers";
 import {
   Vault,
   AnchorNonUSTStrategy,
-  MockERC20,
+  IERC20,
   MockChainlinkPriceFeed,
-  MockERC20__factory,
   MockChainlinkPriceFeed__factory,
+  IERC20__factory,
 } from "../../../../typechain";
 import { generateNewAddress, ForkHelpers } from "../../../shared/";
 import config from "./config.json";
@@ -21,11 +21,11 @@ describe("AnchorNonUSTStrategy Mainnet fork", () => {
 
   let vault: Vault;
   let strategy: AnchorNonUSTStrategy;
-  let ustToken: MockERC20;
-  let aUstToken: MockERC20;
-  let usdtToken: MockERC20;
-  let usdcToken: MockERC20;
-  let daiToken: MockERC20;
+  let ustToken: IERC20;
+  let aUstToken: IERC20;
+  let usdtToken: IERC20;
+  let usdcToken: IERC20;
+  let daiToken: IERC20;
   // MockChainlinkPriceFeed has same interface as Mainnet, so we can use it for test
   let mockAUstUstFeed: MockChainlinkPriceFeed;
   const TWO_WEEKS = time.duration.days(14).toNumber();
@@ -39,11 +39,11 @@ describe("AnchorNonUSTStrategy Mainnet fork", () => {
     await ForkHelpers.forkToMainnet(FORK_BLOCK);
     [owner, alice, bob] = await ethers.getSigners();
 
-    daiToken = new MockERC20__factory(owner).attach(config.dai);
-    usdcToken = new MockERC20__factory(owner).attach(config.usdc);
-    usdtToken = new MockERC20__factory(owner).attach(config.usdt);
-    ustToken = new MockERC20__factory(owner).attach(config.ust);
-    aUstToken = new MockERC20__factory(owner).attach(config.aUst);
+    daiToken = IERC20__factory.connect(config.dai, owner);
+    usdcToken = IERC20__factory.connect(config.usdc, owner);
+    usdtToken = IERC20__factory.connect(config.usdt, owner);
+    ustToken = IERC20__factory.connect(config.ust, owner);
+    aUstToken = IERC20__factory.connect(config.aUst, owner);
 
     await ForkHelpers.mintToken(
       usdtToken,
