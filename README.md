@@ -67,7 +67,18 @@ Examples:
 
 `$ echidna-test . --contract Echidna_Deposit_Withdraw --config contracts/echidna/Echidna_Deposit_Withdraw.yml`
 
+In order to initialize echidna install [Etheno] and run:
+
+`$ etheno --ganache --ganache-args "--gasLimit=0x1fffffffffffff --allowUnlimitedContractSize -e 1000000000" -x ./init.json --debug`
+
+In another terminal run one test, for example:
+
+`$ yarn hardhat test test/Vault.spec.ts  --grep "works with valid parameters" --network etheno`
+
+Then Ctrl-C in the first terminal (twice) to save.
+
 [echidna]: https://github.com/crytic/echidna
+[etheno]: https://github.com/crytic/etheno
 
 ## Deployed contracts
 
