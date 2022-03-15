@@ -417,4 +417,18 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
 
         return uint256(price);
     }
+
+    /**
+     * @return redeemOperations array
+     */
+    function getRedeemOperations() public view returns (Operation[] memory) {
+        return redeemOperations;
+    }
+
+    /**
+     * @return depositOperations array
+     */
+    function getDepositOperations() public view returns (Operation[] memory) {
+        return depositOperations;
+    }
 }

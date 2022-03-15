@@ -521,6 +521,32 @@ describe("AnchorUSTStrategy", () => {
 
       expect(await strategy.redeemOperationLength()).equal(2);
     });
+
+    it("Returns array of depositOperations when calling getter function", async () => {
+      let aUstRate = utils.parseEther("1.1");
+      await setAUstRate(aUstRate);
+
+      let operator = await registerNewTestOperator();
+      await vault.updateInvested("0x");
+
+      const depositOperations = await strategy.getDepositOperations();
+
+      expect(depositOperations[0].operator).to.be.equal(operator);
+    });
+
+    it("Returns array of redeemOperations when calling getter function", async () => {
+      let aUstRate = utils.parseEther("1.1");
+      await setAUstRate(aUstRate);
+
+      const operator = await registerNewTestOperator();
+      const redeemAmount = utils.parseUnits("50", 18);
+
+      await strategy.connect(manager).initRedeemStable(redeemAmount);
+
+      const redeemOperations = await strategy.getRedeemOperations();
+
+      expect(redeemOperations[0].operator).to.be.equal(operator);
+    });
   });
 
   describe("#finishRedeemStable function", () => {
