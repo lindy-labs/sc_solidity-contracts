@@ -114,19 +114,18 @@ contract Echidna_Deposit_Withdraw is Helper,ERC721Holder {
         emit Log("balance of this before", balance_this_before);
         emit Log("balance of vault before", balance_vault_before);
 
-        uint256 length = _params.claims.length;
-        require(length > 0);
+        uint16 length = uint16(_params.claims.length);
         uint16 left = 10000;
-        for (uint16 i = 0; i < length - 1; ++i) {
-            _params.claims[i].pct = 1 + (_params.claims[i].pct % (left - i));
-            left -= _params.claims[i].pct;
-            _params.claims[i].beneficiary = carol;
-            emit Log("pct", _params.claims[i].pct);
+        for (uint16 i = length; i > 1; --i) {
+            _params.claims[i - 1].pct = 1 + (_params.claims[i - 1].pct % (left - i - 1));
+            left -= _params.claims[i - 1].pct;
+            _params.claims[i - 1].beneficiary = carol;
+            emit Log("pct", _params.claims[i - 1].pct);
         }
 
-        _params.claims[length - 1].pct = left;
-        _params.claims[length - 1].beneficiary = carol;
-        emit Log("pct", _params.claims[length - 1].pct);
+        _params.claims[0].pct = left;
+        _params.claims[0].beneficiary = carol;
+        emit Log("pct", _params.claims[0].pct);
 
         deposit_should_succeed(_params);
 
