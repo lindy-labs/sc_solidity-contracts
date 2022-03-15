@@ -5,7 +5,7 @@ import { time } from "@openzeppelin/test-helpers";
 import { BigNumber, constants, utils } from "ethers";
 
 import type { Donations } from "../typechain";
-import { MockDAI, MockDAI__factory } from "../typechain";
+import { MockDAI } from "../typechain";
 import { donationParams } from "./shared/factories";
 import {
   getLastBlockTimestamp,
