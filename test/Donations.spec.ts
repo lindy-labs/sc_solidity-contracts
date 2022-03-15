@@ -315,7 +315,7 @@ describe("Donations", () => {
       expect(donation.token).to.equal(underlying.address);
     });
 
-    it.only("marks the donations group as processed", async () => {
+    it("marks the donations group as processed", async () => {
       await donations.mint(DUMMY_TX, 0, [donationParams.build()]);
 
       const groupId = utils.solidityKeccak256(
@@ -342,12 +342,17 @@ describe("Donations", () => {
 
       const expiry = ttl.add(await getLastBlockTimestamp()).add(1);
 
+      const groupId = utils.solidityKeccak256(
+        ["bytes32", "uint256"],
+        [DUMMY_TX, 0]
+      );
+
       await expect(tx)
         .to.emit(donations, "DonationMinted")
         .withArgs(
           0,
           CHARITY_ID,
-          DUMMY_TX,
+          groupId,
           underlying.address,
           expiry,
           parseUnits("1"),
