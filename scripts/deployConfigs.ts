@@ -15,7 +15,7 @@ const networkConfigs: Record<number, Config> = {
     investPct: 9000, // 90%
     perfFeePct: 300, // TODO
     multisig: "0x035F210e5d14054E8AE5A6CFA76d643aA200D56E",
-    minLockPeriod: 60 * 60 * 24 * 30, // 30 days
+    minLockPeriod: 60 * 60 * 24 * 14, // 14 days
     AUstToUstPriceFeed: "0x7b80a92f7d1e5cEeDDf939d77BF281E7e88f2906",
   },
 
@@ -42,7 +42,7 @@ const networkConfigs: Record<number, Config> = {
     investPct: 9000, // 90%
     perfFeePct: 100, // 1%
     multisig: "deployer",
-    minLockPeriod: 1, // 1 second
+    minLockPeriod: 60 * 60 * 24 * 14, // 14 days
     AUstToUstPriceFeed: "TODO",
   },
 };
@@ -67,7 +67,10 @@ export const getCurrentNetworkConfig = async () => {
 };
 
 export const isRopstenFork = async () => {
-  const code = await ethers.provider.getCode(networkConfigs[3].ethAnchorRouter);
+  const code = await ethers.provider.getCode(
+    // EthAnchorRouter ropsten address
+    "0x7537aC093cE1315BCE08bBF0bf6f9b86B7475008"
+  );
 
-  return BigNumber.from(code).gt(0);
+  return code != "0x";
 };

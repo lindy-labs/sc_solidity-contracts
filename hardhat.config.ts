@@ -30,6 +30,7 @@ const config: HardhatUserConfig = {
         accountsBalance: "100000000000000000000000000",
       },
       initialBaseFeePerGas: 0,
+      tags: ["dev_setup", "vaults", "mocks"],
     },
     docker: {
       url: "http://localhost:8545",

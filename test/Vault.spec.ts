@@ -4,6 +4,8 @@ import { Contract, utils, BigNumber, constants, Signer } from "ethers";
 import { ethers, deployments } from "hardhat";
 import { expect } from "chai";
 
+import { getCurrentNetworkConfig } from "../scripts/deployConfigs";
+
 import {
   Vault,
   MockDAI__factory,
@@ -16,6 +18,8 @@ import {
   Vault__factory,
   Claimers__factory,
   Depositors__factory,
+  MockEthAnchorRouter__factory,
+  MockChainlinkPriceFeed__factory,
 } from "../typechain";
 
 import { depositParams, claimParams } from "./shared/factories";
@@ -47,6 +51,7 @@ describe("Vault", () => {
   let depositors: Depositors;
   let claimers: Claimers;
   let strategy: MockStrategy;
+  let deployConfigs: any;
   const TWO_WEEKS = BigNumber.from(time.duration.weeks(2).toNumber());
   const MAX_DEPOSIT_LOCK_DURATION = BigNumber.from(
     time.duration.weeks(24).toNumber()
@@ -60,54 +65,54 @@ describe("Vault", () => {
   const INVESTOR_ROLE = utils.keccak256(utils.toUtf8Bytes("INVESTOR_ROLE"));
 
   const fixtures = deployments.createFixture(async ({ deployments }) => {
-    await deployments.fixture(["vaults"]);
+    await deployments.fixture(["vaults", "mocks"]);
+    const { get } = deployments;
 
     [owner] = await ethers.getSigners();
 
-    const daiDeployment = await deployments.get("DAI");
-    const austDeployment = await deployments.get("aUST");
-    const daiVaultDeployment = await deployments.get("Vault_DAI");
+    const deps = {
+      dai: await get("DAI"),
+      aust: await get("aUST"),
+      daiVault: await get("Vault_DAI"),
+      mockEthAnchorRouter: await get("MockEthAnchorRouter"),
+      mockAUstUstFeed: await get("MockaUSTUSTPriceFeed"),
+    };
 
-    aUstToken = MockAUST__factory.connect(austDeployment.address, owner);
-    underlying = MockDAI__factory.connect(daiDeployment.address, owner);
-    vault = Vault__factory.connect(daiVaultDeployment.address, owner);
+    aUstToken = MockAUST__factory.connect(deps.aust.address, owner);
+    underlying = MockDAI__factory.connect(deps.dai.address, owner);
+    vault = Vault__factory.connect(deps.daiVault.address, owner);
+    mockEthAnchorRouter = MockEthAnchorRouter__factory.connect(
+      deps.mockEthAnchorRouter.address,
+      owner
+    );
+    mockAUstUstFeed = MockChainlinkPriceFeed__factory.connect(
+      deps.mockAUstUstFeed.address,
+      owner
+    );
+
+    return {
+      vault,
+      mockEthAnchorRouter,
+      mockAUstUstFeed,
+      underlying,
+      aUstToken,
+    };
   });
 
-  beforeEach(() => fixtures());
-
   beforeEach(async () => {
+    ({ vault, mockEthAnchorRouter, mockAUstUstFeed, underlying, aUstToken } =
+      await fixtures());
+
     [owner, alice, bob, carol, newAccount] = await ethers.getSigners();
 
-    let Vault = await ethers.getContractFactory("Vault");
-    let MockStrategy = await ethers.getContractFactory("MockStrategy");
-
-    const MockEthAnchorRouterFactory = await ethers.getContractFactory(
-      "MockEthAnchorRouter"
-    );
-    mockEthAnchorRouter = await MockEthAnchorRouterFactory.deploy(
-      underlying.address,
-      aUstToken.address
-    );
-
-    const MockChainlinkPriceFeedFactory = await ethers.getContractFactory(
-      "MockChainlinkPriceFeed"
-    );
-    mockAUstUstFeed = await MockChainlinkPriceFeedFactory.deploy(18);
-
-    vault = await Vault.deploy(
-      underlying.address,
-      TWO_WEEKS,
-      INVEST_PCT,
-      TREASURY,
-      owner.address,
-      PERFORMANCE_FEE_PCT
-    );
+    deployConfigs = await getCurrentNetworkConfig();
 
     underlying.connect(owner).approve(vault.address, MaxUint256);
     underlying.connect(alice).approve(vault.address, MaxUint256);
     underlying.connect(bob).approve(vault.address, MaxUint256);
     underlying.connect(carol).approve(vault.address, MaxUint256);
 
+    let MockStrategy = await ethers.getContractFactory("MockStrategy");
     strategy = await MockStrategy.deploy(
       vault.address,
       mockEthAnchorRouter.address,
@@ -126,8 +131,8 @@ describe("Vault", () => {
         await vault.connect(alice).deposit(
           depositParams.build({
             amount: parseUnits("1000"),
-            claims: arrayFromTo(1, 100).map(() =>
-              claimParams.percent(1).to(bob.address).build()
+            claims: arrayFromTo(1, 10).map(() =>
+              claimParams.percent(10).to(bob.address).build()
             ),
           })
         );
@@ -136,29 +141,29 @@ describe("Vault", () => {
       });
 
       it("works with a single withdraw", async () => {
-        await vault.connect(alice).withdraw(alice.address, arrayFromTo(1, 99));
+        await vault.connect(alice).withdraw(alice.address, arrayFromTo(1, 9));
 
         expect(await underlying.balanceOf(alice.address)).to.eq(
-          parseUnits("990")
+          parseUnits("900")
         );
 
         expect(await vault.sharesOf(1)).to.eq(
-          parseUnits("10").mul(SHARES_MULTIPLIER)
+          parseUnits("100").mul(SHARES_MULTIPLIER)
         );
       });
 
       it("works with multiple withdraws", async () => {
         await Promise.all(
-          arrayFromTo(1, 99).map((i) =>
+          arrayFromTo(1, 9).map((i) =>
             vault.connect(alice).withdraw(alice.address, [i])
           )
         );
 
         expect(await underlying.balanceOf(alice.address)).to.eq(
-          parseUnits("990")
+          parseUnits("900")
         );
         expect(await vault.sharesOf(1)).to.eq(
-          parseUnits("10").mul(SHARES_MULTIPLIER)
+          parseUnits("100").mul(SHARES_MULTIPLIER)
         );
       });
     });
@@ -282,6 +287,15 @@ describe("Vault", () => {
     });
 
     it("Check initial values", async () => {
+      vault = await VaultFactory.deploy(
+        underlying.address,
+        TWO_WEEKS,
+        INVEST_PCT,
+        TREASURY,
+        owner.address,
+        PERFORMANCE_FEE_PCT
+      );
+
       expect(
         await vault.hasRole(DEFAULT_ADMIN_ROLE, owner.address)
       ).to.be.equal(true);
@@ -402,7 +416,7 @@ describe("Vault", () => {
       await vault.connect(alice).deposit(params);
       const newYield = await addYieldToVault("100");
       await vault.connect(bob).claimYield(carol.address);
-      perfFee = newYield.mul(PERFORMANCE_FEE_PCT).div(DENOMINATOR);
+      perfFee = newYield.mul(deployConfigs.perfFeePct).div(DENOMINATOR);
     });
 
     it("reverts if msg.sender is not investor", async () => {
@@ -412,9 +426,11 @@ describe("Vault", () => {
     });
 
     it("withdraw performance fee and emit FeeWithdrawn event", async () => {
+      const balanceBefore = await underlying.balanceOf(await vault.treasury());
       const tx = await vault.connect(owner).withdrawPerformanceFee();
+      const balanceAfter = await underlying.balanceOf(await vault.treasury());
 
-      expect(await underlying.balanceOf(TREASURY)).to.be.equal(perfFee);
+      expect(balanceAfter).to.equal(balanceBefore.add(perfFee));
       await expect(tx).to.emit(vault, "FeeWithdrawn").withArgs(perfFee);
 
       expect(await vault.accumulatedPerfFee()).to.be.eq("0");
@@ -1172,9 +1188,9 @@ describe("Vault", () => {
         .withArgs(
           1,
           carol.address,
-          parseUnits("49"),
+          parseUnits("49.5"),
           parseUnits("25").mul(SHARES_MULTIPLIER),
-          parseUnits("1")
+          parseUnits("0.5")
         );
     });
 
@@ -1197,13 +1213,13 @@ describe("Vault", () => {
       expect(carolYield.perfFee).to.eq(parseUnits("0"));
 
       expect(await underlying.balanceOf(carol.address)).to.eq(
-        parseUnits("1049")
+        parseUnits("1049.5")
       );
 
       const bobYield = await vault.yieldFor(bob.address);
-      expect(bobYield.claimableYield).to.eq(parseUnits("49"));
+      expect(bobYield.claimableYield).to.eq(parseUnits("49.5"));
       expect(bobYield.shares).to.eq(parseUnits("25").mul(SHARES_MULTIPLIER));
-      expect(bobYield.perfFee).to.eq(parseUnits("1"));
+      expect(bobYield.perfFee).to.eq(parseUnits("0.5"));
     });
 
     it("accumulate performance fee", async () => {
@@ -1218,7 +1234,7 @@ describe("Vault", () => {
       await vault.connect(alice).deposit(params);
       await addYieldToVault("100");
       await vault.connect(carol).claimYield(carol.address);
-      expect(await vault.accumulatedPerfFee()).to.eq(parseUnits("1"));
+      expect(await vault.accumulatedPerfFee()).to.eq(parseUnits("0.5"));
     });
 
     it("claims the yield to a different address", async () => {
@@ -1234,7 +1250,7 @@ describe("Vault", () => {
       await expect(action).to.changeTokenBalance(
         underlying,
         carol,
-        parseUnits("98")
+        parseUnits("99")
       );
     });
 
@@ -1311,7 +1327,9 @@ describe("Vault", () => {
       await vault.connect(alice).deposit(params);
       const newYield = await addYieldToVault("100");
       const yieldPerUser = newYield.div(BigNumber.from("2"));
-      const perfFee = yieldPerUser.mul(PERFORMANCE_FEE_PCT).div(DENOMINATOR);
+      const perfFee = yieldPerUser
+        .mul(deployConfigs.perfFeePct)
+        .div(DENOMINATOR);
 
       const aliceYield = await vault.yieldFor(alice.address);
       expect(aliceYield.claimableYield).to.eq(yieldPerUser.sub(perfFee));

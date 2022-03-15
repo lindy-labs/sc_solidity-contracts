@@ -25,10 +25,14 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     address: "0x006479f75D6622AE6a21BE17C7F555B94c672342",
     abi: [],
   });
+  await save("EthAnchorRouter", {
+    address: "0x7537aC093cE1315BCE08bBF0bf6f9b86B7475008",
+    abi: [],
+  });
 };
 
-func.id = "dev_setup";
-func.tags = ["dev_setup"];
+func.id = "ropsten_setup";
+func.tags = ["test_setup"];
 func.skip = async () => !(await isRopstenFork());
 
 export default func;

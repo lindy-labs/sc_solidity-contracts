@@ -9,8 +9,6 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
 
   const [owner, alice, bob, treasury] = await ethers.getSigners();
 
-  console.table([alice, bob, treasury]);
-
   const ust = await get("USDC");
   const underlying = await ethers.getContractAt("MockERC20", ust.address);
 
@@ -26,10 +24,9 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
     )
   );
 
-  console.log("Set treasury");
   await vault.connect(owner).setTreasury(treasury.address);
 
-  console.log("The treasury sponsors 1000");
+  // The treasury sponsors 1000"
   const lockUntil = await vault.MIN_SPONSOR_LOCK_DURATION();
   await vault.connect(treasury).sponsor(parseUnits("1000", 6), lockUntil);
 
@@ -38,7 +35,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   );
   await vault.connect(alice).deposit({
     amount: parseUnits("1000", 6),
-    lockDuration: 1,
+    lockDuration: await vault.minLockPeriod(),
     claims: [
       {
         beneficiary: alice.address,
@@ -58,7 +55,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   );
   await vault.connect(bob).deposit({
     amount: parseUnits("1000", 6),
-    lockDuration: 1,
+    lockDuration: await vault.minLockPeriod(),
     claims: [
       {
         beneficiary: bob.address,
@@ -81,10 +78,12 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
 
   console.log("The treasury claims");
   await vault.connect(treasury).claimYield(treasury.address);
+  console.log(process.env);
 };
 
 func.id = "fixtures";
 func.tags = ["fixtures"];
 func.dependencies = ["vaults"];
+func.skip = async ({ network }) => network.config.chainId === 31337;
 
 export default func;

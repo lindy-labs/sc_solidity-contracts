@@ -9,7 +9,6 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   const { deploy, get } = env.deployments;
 
   const dai = await get("DAI");
-  console.log(await ethers.provider.getNetwork());
 
   const { minLockPeriod, investPct, perfFeePct, multisig } =
     await getCurrentNetworkConfig();
@@ -25,7 +24,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
 };
 
 func.id = "deploy_dai_vault";
-func.tags = ["vaults", "dai"];
+func.tags = ["vaults", "dai", "live"];
 func.dependencies = ["dev_setup"];
 
 export default func;

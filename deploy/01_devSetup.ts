@@ -51,6 +51,6 @@ async function deployDevToken(
 }
 
 func.id = "dev_setup";
-func.tags = ["dev_setup"];
+func.tags = ["dev_setup", "test_setup"];
 
 export default func;
