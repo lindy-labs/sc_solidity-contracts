@@ -7,7 +7,11 @@ import { BigNumber, utils } from "ethers";
 import type { Donations } from "../typechain";
 import { MockDAI, MockDAI__factory } from "../typechain";
 import { donationParams } from "./shared/factories";
-import { getLastBlockTimestamp, moveForwardTwoWeeks } from "./shared";
+import {
+  getLastBlockTimestamp,
+  getRoleErrorMsg,
+  moveForwardTwoWeeks,
+} from "./shared";
 
 const { parseUnits } = ethers.utils;
 
@@ -61,7 +65,7 @@ describe("Donations", () => {
       const newTTL = BigNumber.from(time.duration.days(100).toNumber());
 
       await expect(donations.connect(alice).setTTL(newTTL)).to.be.revertedWith(
-        `AccessControl: account ${alice.address.toLocaleLowerCase()} is missing role ${DEFAULT_ADMIN_ROLE}`
+        getRoleErrorMsg(alice, DEFAULT_ADMIN_ROLE)
       );
     });
   });
@@ -161,9 +165,7 @@ describe("Donations", () => {
         donations
           .connect(alice)
           .donate(CHARITY_ID, underlying.address, bob.address)
-      ).to.be.revertedWith(
-        `AccessControl: account ${alice.address.toLocaleLowerCase()} is missing role ${WORKER_ROLE}`
-      );
+      ).to.be.revertedWith(getRoleErrorMsg(alice, WORKER_ROLE));
     });
   });
 
@@ -363,9 +365,7 @@ describe("Donations", () => {
             owner: owner.address,
           }),
         ])
-      ).to.be.revertedWith(
-        `AccessControl: account ${alice.address.toLocaleLowerCase()} is missing role ${WORKER_ROLE}`
-      );
+      ).to.be.revertedWith(getRoleErrorMsg(alice, WORKER_ROLE));
     });
 
     it("fails if the donations group was already processed", async () => {
