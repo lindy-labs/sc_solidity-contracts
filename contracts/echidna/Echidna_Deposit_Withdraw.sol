@@ -99,11 +99,45 @@ contract Echidna_Deposit_Withdraw is Helper,ERC721Holder {
     }
 
     // deposit with valid params should always succeed 
-    function deposit_valid_params() internal {
+    function deposit_valid_params(IVault.DepositParams memory _params) public {
 
-        // assert vault balanceAfter == balanceBefore + _amount
+        _params.lockDuration = 2 weeks + (_params.lockDuration % (22 weeks));
+        emit Log("lockDuration", _params.lockDuration);
 
-        // assert user balanceAfter == balanceBefore - _amount
+        _params.amount = Helper.one_to_max_uint64(_params.amount); 
+        emit Log("amount", _params.amount);
+
+        Helper.mint_helper(address(this), _params.amount);
+
+        uint256 balance_this_before = underlying.balanceOf(address(this));
+        uint256 balance_vault_before = underlying.balanceOf(address(vault));
+        emit Log("balance of this before", balance_this_before);
+        emit Log("balance of vault before", balance_vault_before);
+
+        uint256 length = _params.claims.length;
+        require(length > 0);
+        uint16 left = 10000;
+        for (uint16 i = 0; i < length - 1; ++i) {
+            _params.claims[i].pct = 1 + (_params.claims[i].pct % (left - i));
+            left -= _params.claims[i].pct;
+            _params.claims[i].beneficiary = carol;
+            emit Log("pct", _params.claims[i].pct);
+        }
+
+        _params.claims[length - 1].pct = left;
+        _params.claims[length - 1].beneficiary = carol;
+        emit Log("pct", _params.claims[length - 1].pct);
+
+        deposit_should_succeed(_params);
+
+        uint256 balance_this_after = underlying.balanceOf(address(this));
+        uint256 balance_vault_after = underlying.balanceOf(address(vault));
+
+        emit Log("balance of this after", balance_this_after);
+        emit Log("balance of vault after", balance_vault_after);
+
+        assert(balance_vault_after == balance_vault_before + _params.amount);
+        assert(balance_this_after == balance_this_before - _params.amount);
     }
     
     function withdraw_should_revert(address recipient, uint256[] memory _ids) internal {
