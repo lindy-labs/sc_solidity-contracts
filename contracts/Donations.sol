@@ -70,6 +70,8 @@ contract Donations is ERC721, AccessControl {
      * @param _owner Account that will receive the admin role.
      */
     constructor(address _owner) ERC721("Sandclock Donation", "Donations") {
+        require(_owner != address(0x0), "Vault: owner cannot be 0x0");
+
         _setupRole(DEFAULT_ADMIN_ROLE, _owner);
         _setupRole(WORKER_ROLE, _owner);
     }

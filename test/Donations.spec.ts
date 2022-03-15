@@ -2,7 +2,7 @@ import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { ethers } from "hardhat";
 import { expect } from "chai";
 import { time } from "@openzeppelin/test-helpers";
-import { BigNumber, utils } from "ethers";
+import { BigNumber, constants, utils } from "ethers";
 
 import type { Donations } from "../typechain";
 import { MockDAI, MockDAI__factory } from "../typechain";
@@ -40,6 +40,25 @@ describe("Donations", () => {
     donations = (await Donations.deploy(owner.address)) as Donations;
     WORKER_ROLE = await donations.WORKER_ROLE();
     DEFAULT_ADMIN_ROLE = await donations.DEFAULT_ADMIN_ROLE();
+  });
+
+  describe("constructor", () => {
+    it("it reverts if owner is address(0)", async () => {
+      const Donations = await ethers.getContractFactory("Donations");
+
+      await expect(Donations.deploy(constants.AddressZero)).to.be.revertedWith(
+        "Vault: owner cannot be 0x0"
+      );
+    });
+
+    it("sets the initial state", async () => {
+      expect(
+        await donations.hasRole(DEFAULT_ADMIN_ROLE, owner.address)
+      ).to.be.equal(true);
+      expect(await donations.hasRole(WORKER_ROLE, owner.address)).to.be.equal(
+        true
+      );
+    });
   });
 
   describe("setTTL", () => {
