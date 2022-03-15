@@ -227,7 +227,7 @@ describe("Donations", () => {
       ).to.equal(parseUnits("100"));
     });
 
-    it("works if the caller is the admin and the NFT already expired", async () => {
+    it("works if the NFT is expired", async () => {
       const ttl = BigNumber.from(time.duration.days(14).toNumber());
       await donations.setTTL(ttl);
 
@@ -242,7 +242,7 @@ describe("Donations", () => {
 
       await moveForwardTwoWeeks();
 
-      await donations.connect(owner).burn(1);
+      await donations.connect(bob).burn(1);
 
       expect(
         await donations.transferableAmounts(underlying.address, CHARITY_ID)
@@ -315,7 +315,7 @@ describe("Donations", () => {
       expect(await donations.metadata(4)).to.be.ok;
     });
 
-    it.only("mints the correct NFT", async () => {
+    it("mints the correct NFT", async () => {
       const ttl = BigNumber.from(time.duration.days(180).toNumber());
       await donations.setTTL(ttl);
 
