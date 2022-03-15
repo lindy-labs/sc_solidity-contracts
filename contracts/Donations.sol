@@ -107,9 +107,9 @@ contract Donations is ERC721, AccessControl {
         uint256 amount = transferableAmounts[_token][_destinationId];
         transferableAmounts[_token][_destinationId] = 0;
 
-        _token.safeTransfer(_to, amount);
-
         emit DonationsSent(_destinationId, _token, _to, amount);
+
+        _token.safeTransfer(_to, amount);
     }
 
     /**
