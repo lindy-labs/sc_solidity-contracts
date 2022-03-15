@@ -315,7 +315,10 @@ describe("Donations", () => {
       expect(await donations.metadata(4)).to.be.ok;
     });
 
-    it("mints the correct NFT", async () => {
+    it.only("mints the correct NFT", async () => {
+      const ttl = BigNumber.from(time.duration.days(180).toNumber());
+      await donations.setTTL(ttl);
+
       await donations.mint(DUMMY_TX, 0, [
         donationParams.build({
           destinationId: CHARITY_ID,
@@ -328,10 +331,12 @@ describe("Donations", () => {
       expect(await donations.ownerOf(1)).to.equal(owner.address);
 
       const donation = await donations.metadata(1);
+      const expiry = ttl.add(await getLastBlockTimestamp());
 
       expect(donation.amount).to.equal(parseUnits("1"));
       expect(donation.destinationId).to.equal(CHARITY_ID);
       expect(donation.token).to.equal(underlying.address);
+      expect(donation.expiry).to.equal(expiry);
     });
 
     it("marks the donations group as processed", async () => {
