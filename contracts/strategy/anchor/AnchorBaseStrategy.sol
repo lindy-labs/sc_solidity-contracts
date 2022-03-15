@@ -256,18 +256,6 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
         }
     }
 
-    /**
-     * Withdraws a specified amount back to the vault
-     *
-     * @notice since EthAnchor uses an asynchronous model, and there is no underlying amount
-     * in the strategy, this function do nothing at all, However override interface of IStrategy.
-     */
-    function withdrawToVault(uint256 amount)
-        external
-        override(IStrategy)
-        onlyManager
-    {}
-
     /// See {IStrategy}
     function applyInvestmentFee(uint256 _amount)
         external
@@ -396,6 +384,23 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
         uint256 aUstPrice = _aUstToUstExchangeRate();
 
         return ((aUstPrice * aUstBalance) / _aUstToUstFeedMultiplier);
+    }
+
+    /**
+     * @return AUST value of UST amount
+     */
+    function _estimateUstAmountInAUst(uint256 ustAmount)
+        internal
+        view
+        returns (uint256)
+    {
+        if (ustAmount == 0) {
+            return 0;
+        }
+
+        uint256 aUstPrice = _aUstToUstExchangeRate();
+
+        return ((_aUstToUstFeedMultiplier * ustAmount) / aUstPrice);
     }
 
     /**

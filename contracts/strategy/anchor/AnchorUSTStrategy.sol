@@ -63,6 +63,19 @@ contract AnchorUSTStrategy is AnchorBaseStrategy {
     }
 
     /**
+     * @notice since EthAnchor uses an asynchronous model, and there is no underlying amount
+     * in the strategy, this function will init redeem stable, and actual withdraw will be done
+     * throuw finishRedeemStable function.
+     */
+    function withdrawToVault(uint256 amount) external override onlyManager {
+        uint256 _aUstToWithdraw = _estimateUstAmountInAUst(amount);
+
+        if (pendingRedeems < _aUstToWithdraw) {
+            initRedeemStable(_aUstToWithdraw - pendingRedeems);
+        }
+    }
+
+    /**
      * Calls EthAnchor with a pending redeem ID, and attempts to finish it.
      *
      * @notice Must be called some time after `initRedeemStable()`. Will only work if

@@ -131,6 +131,21 @@ contract AnchorNonUSTStrategy is AnchorBaseStrategy {
     }
 
     /**
+     * @notice since EthAnchor uses an asynchronous model, and there is no underlying amount
+     * in the strategy, this function will init redeem stable, and actual withdraw will be done
+     * throuw finishRedeemStable function.
+     */
+    function withdrawToVault(uint256 amount) external override onlyManager {
+        uint256 _aUstToWithdraw = _estimateUstAmountInAUst(
+            _estimateUnderlyingAmountInUst(amount)
+        );
+
+        if (pendingRedeems < _aUstToWithdraw) {
+            initRedeemStable(_aUstToWithdraw - pendingRedeems);
+        }
+    }
+
+    /**
      * Calls Curve to convert the existing underlying balance into UST
      *
      * @param minExchangeRate minimum exchange rate of Underlying/UST.
@@ -230,6 +245,38 @@ contract AnchorNonUSTStrategy is AnchorBaseStrategy {
             );
     }
 
+    function _getUstAndUnderlyingPrices()
+        internal
+        view
+        returns (uint256 ustPrice, uint256 underlyingPrice)
+    {
+        (
+            uint80 ustRoundID,
+            int256 ustPriceInt,
+            ,
+            uint256 ustUpdateTime,
+            uint80 ustAnsweredInRound
+        ) = ustFeed.latestRoundData();
+        (
+            uint80 underlyingRoundID,
+            int256 underlyingPriceInt,
+            ,
+            uint256 underlyingUpdateTime,
+            uint80 underlyingAnsweredInRound
+        ) = underlyingFeed.latestRoundData();
+        require(
+            ustPriceInt > 0 &&
+                underlyingPriceInt > 0 &&
+                ustUpdateTime != 0 &&
+                underlyingUpdateTime != 0 &&
+                ustAnsweredInRound >= ustRoundID &&
+                underlyingAnsweredInRound >= underlyingRoundID,
+            "AnchorNonUSTStrategy: invalid price"
+        );
+        ustPrice = uint256(ustPriceInt);
+        underlyingPrice = uint256(underlyingPriceInt);
+    }
+
     /**
      * @return Underlying value of UST amount
      */
@@ -240,30 +287,29 @@ contract AnchorNonUSTStrategy is AnchorBaseStrategy {
         returns (uint256)
     {
         (
-            uint80 ustRoundID,
-            int256 ustPrice,
-            ,
-            uint256 ustUpdateTime,
-            uint80 ustAnsweredInRound
-        ) = ustFeed.latestRoundData();
-        (
-            uint80 underlyingRoundID,
-            int256 underlyingPrice,
-            ,
-            uint256 underlyingUpdateTime,
-            uint80 underlyingAnsweredInRound
-        ) = underlyingFeed.latestRoundData();
-        require(
-            ustPrice > 0 &&
-                underlyingPrice > 0 &&
-                ustUpdateTime != 0 &&
-                underlyingUpdateTime != 0 &&
-                ustAnsweredInRound >= ustRoundID &&
-                underlyingAnsweredInRound >= underlyingRoundID,
-            "AnchorNonUSTStrategy: invalid price"
-        );
+            uint256 ustPrice,
+            uint256 underlyingPrice
+        ) = _getUstAndUnderlyingPrices();
         return
-            (ustAmount * uint256(ustPrice) * _underlyingDecimalsMultiplier) /
-            (uint256(underlyingPrice) * _ustDecimalsMultiplier);
+            (ustAmount * ustPrice * _underlyingDecimalsMultiplier) /
+            (underlyingPrice * _ustDecimalsMultiplier);
+    }
+
+    /**
+     * @return UST value of underlying amount
+     */
+    function _estimateUnderlyingAmountInUst(uint256 underlyingAmount)
+        internal
+        view
+        virtual
+        returns (uint256)
+    {
+        (
+            uint256 ustPrice,
+            uint256 underlyingPrice
+        ) = _getUstAndUnderlyingPrices();
+        return
+            (underlyingAmount * underlyingPrice * _ustDecimalsMultiplier) /
+            (ustPrice * _underlyingDecimalsMultiplier);
     }
 }

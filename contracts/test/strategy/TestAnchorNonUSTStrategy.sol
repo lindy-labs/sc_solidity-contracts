@@ -144,4 +144,27 @@ contract TestAnchorNonUSTStrategy is AnchorNonUSTStrategy {
         );
         return amountsOut[1];
     }
+
+    /**
+     * @return UST value of underlying amount
+     *
+     * @notice This uses spot price on Uniswap V2, and this could lead an attack,
+     * however, since this is for testnet version, it is fine.
+     */
+    function _estimateUnderlyingAmountInUst(uint256 underlyingAmount)
+        internal
+        view
+        override
+        returns (uint256)
+    {
+        address[] memory path = new address[](2);
+        path[0] = address(underlying);
+        path[1] = address(ustToken);
+
+        uint256[] memory amountsOut = uniV2Router.getAmountsOut(
+            underlyingAmount,
+            path
+        );
+        return amountsOut[1];
+    }
 }

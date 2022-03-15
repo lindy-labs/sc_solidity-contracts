@@ -29,6 +29,8 @@ contract MockStrategy is AnchorBaseStrategy {
         onlyManager
     {}
 
+    function withdrawToVault(uint256 amount) external override onlyManager {}
+
     function finishRedeemStable(uint256 idx) external {
         _finishRedeemStable(idx);
     }

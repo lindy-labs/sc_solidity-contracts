@@ -360,22 +360,38 @@ contract Vault is
         return maxInvestableAssets - alreadyInvested;
     }
 
+    function investState()
+        public
+        view
+        returns (uint256 maxInvestableAmount, uint256 alreadyInvested)
+    {
+        maxInvestableAmount = totalUnderlying().percOf(investPerc);
+        alreadyInvested = strategy.investedAssets();
+    }
+
     /// See {IVault}
-    function updateInvested(bytes calldata data)
+    function updateInvested(bool invest, bytes calldata data)
         external
         onlyRole(INVESTOR_ROLE)
     {
         require(address(strategy) != address(0), "Vault: strategy is not set");
 
-        uint256 _investable = investableAmount();
+        (uint256 maxInvestableAmount, uint256 alreadyInvested) = investState();
+        if (alreadyInvested < maxInvestableAmount) {
+            require(invest, "Vault: no need to disinvest");
 
-        require(_investable != 0, "Vault: nothing to invest");
+            uint256 investAmount = maxInvestableAmount - alreadyInvested;
+            underlying.safeTransfer(address(strategy), investAmount);
+            strategy.invest(data);
 
-        underlying.safeTransfer(address(strategy), _investable);
+            emit Invested(investAmount);
+        } else if (alreadyInvested > maxInvestableAmount) {
+            require(!invest, "Vault: nothing to invest");
 
-        emit Invested(_investable);
-
-        strategy.invest(data);
+            uint256 _disinvestAmount = alreadyInvested - maxInvestableAmount;
+            strategy.withdrawToVault(_disinvestAmount);
+        }
+        revert("Vault: no need to update invest state");
     }
 
     //
