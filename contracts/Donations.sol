@@ -8,6 +8,8 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Counters} from "@openzeppelin/contracts/utils/Counters.sol";
 
+import "hardhat/console.sol";
+
 /**
  * A contract to store donations before they are transferred to the charities.
  */
@@ -110,18 +112,21 @@ contract Donations is ERC721, AccessControl {
 
     /**
      * Mints an NFT for every donation in @param _params.
-     * The @param _groupId is used to uniquely identify this group of donations.
-     * Ideally, @param _groupId is the hash of the transaction where the yield for the donations was claimed to by the treasury.
+     * The @param _txHash and @param _batchNr uniquely identify a group of donations.
      *
-     * @param _groupId Unique identifier for the group of donations in @param _params.
+     * @param _txHash The hash of the transaction where the yield for these donations was claimed.
+     * @param _batchNr When there are too many donations in a claim, we break them into batches to not reach the gas limit.
      * @param _params Donation params.
      */
-    function mint(bytes32 _groupId, DonationParams[] calldata _params)
-        external
-        onlyRole(WORKER_ROLE)
-    {
+    function mint(
+        bytes32 _txHash,
+        uint256 _batchNr,
+        DonationParams[] calldata _params
+    ) external onlyRole(WORKER_ROLE) {
+        bytes32 groupId = keccak256(abi.encodePacked(_txHash, _batchNr));
+
         require(
-            !processedDonationsGroups[_groupId],
+            !processedDonationsGroups[groupId],
             "Donations: already processed"
         );
 
@@ -144,7 +149,7 @@ contract Donations is ERC721, AccessControl {
             emit DonationMinted(
                 _metadataId,
                 _params[i].destinationId,
-                _groupId,
+                groupId,
                 _params[i].token,
                 expiry,
                 _params[i].amount,
@@ -152,7 +157,7 @@ contract Donations is ERC721, AccessControl {
             );
         }
 
-        processedDonationsGroups[_groupId] = true;
+        processedDonationsGroups[groupId] = true;
     }
 
     /**
