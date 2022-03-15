@@ -111,8 +111,8 @@ describe("Donations", () => {
       ]);
 
       // burn donations
-      await donations.connect(alice).burn(0);
       await donations.connect(alice).burn(1);
+      await donations.connect(alice).burn(2);
 
       // donate
       await donations.donate(CHARITY_ID, underlying.address, bob.address);
@@ -137,7 +137,7 @@ describe("Donations", () => {
       ]);
 
       // burn donations
-      await donations.connect(alice).burn(0);
+      await donations.connect(alice).burn(1);
 
       // donate
       await donations.donate(CHARITY_ID, underlying.address, bob.address);
@@ -164,7 +164,7 @@ describe("Donations", () => {
       ]);
 
       // burn donations
-      await donations.connect(alice).burn(0);
+      await donations.connect(alice).burn(1);
 
       const tx = donations.donate(CHARITY_ID, underlying.address, bob.address);
 
@@ -203,7 +203,7 @@ describe("Donations", () => {
         await donations.transferableAmounts(underlying.address, CHARITY_ID)
       ).to.equal(0);
 
-      await donations.connect(alice).burn(0);
+      await donations.connect(alice).burn(1);
 
       expect(
         await donations.transferableAmounts(underlying.address, CHARITY_ID)
@@ -220,7 +220,7 @@ describe("Donations", () => {
         }),
       ]);
 
-      await donations.connect(alice).burn(0);
+      await donations.connect(alice).burn(1);
 
       expect(
         await donations.transferableAmounts(underlying.address, CHARITY_ID)
@@ -242,7 +242,7 @@ describe("Donations", () => {
 
       await moveForwardTwoWeeks();
 
-      await donations.connect(owner).burn(0);
+      await donations.connect(owner).burn(1);
 
       expect(
         await donations.transferableAmounts(underlying.address, CHARITY_ID)
@@ -264,7 +264,7 @@ describe("Donations", () => {
 
       await moveForwardTwoWeeks();
 
-      await expect(donations.connect(owner).burn(0)).to.be.revertedWith(
+      await expect(donations.connect(owner).burn(1)).to.be.revertedWith(
         "Donations: not allowed"
       );
     });
@@ -279,9 +279,9 @@ describe("Donations", () => {
         }),
       ]);
 
-      const tx = donations.connect(alice).burn(0);
+      const tx = donations.connect(alice).burn(1);
 
-      await expect(tx).to.emit(donations, "DonationBurned").withArgs(0);
+      await expect(tx).to.emit(donations, "DonationBurned").withArgs(1);
     });
 
     it("fails if the caller is not the owner nor the admin", async () => {
@@ -294,7 +294,7 @@ describe("Donations", () => {
         }),
       ]);
 
-      await expect(donations.connect(bob).burn(0)).to.be.revertedWith(
+      await expect(donations.connect(bob).burn(1)).to.be.revertedWith(
         "Donations: not allowed"
       );
     });
@@ -309,10 +309,10 @@ describe("Donations", () => {
         donationParams.build(),
       ]);
 
-      expect(await donations.metadata(0)).to.be.ok;
       expect(await donations.metadata(1)).to.be.ok;
       expect(await donations.metadata(2)).to.be.ok;
       expect(await donations.metadata(3)).to.be.ok;
+      expect(await donations.metadata(4)).to.be.ok;
     });
 
     it("mints the correct NFT", async () => {
@@ -325,9 +325,9 @@ describe("Donations", () => {
         }),
       ]);
 
-      expect(await donations.ownerOf(0)).to.equal(owner.address);
+      expect(await donations.ownerOf(1)).to.equal(owner.address);
 
-      const donation = await donations.metadata(0);
+      const donation = await donations.metadata(1);
 
       expect(donation.amount).to.equal(parseUnits("1"));
       expect(donation.destinationId).to.equal(CHARITY_ID);
@@ -369,7 +369,7 @@ describe("Donations", () => {
       await expect(tx)
         .to.emit(donations, "DonationMinted")
         .withArgs(
-          0,
+          1,
           CHARITY_ID,
           groupId,
           underlying.address,
