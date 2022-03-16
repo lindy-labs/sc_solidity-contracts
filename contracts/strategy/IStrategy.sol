@@ -37,13 +37,10 @@ interface IStrategy {
     /**
      * Withdraws a specified amount back to the vault
      *
-     * @notice Unlike `withdrawToVault`, this function only considers the
-     * amount currently not invested, but only what is currently held by the
-     * strategy
-     *
      * @param amount Amount to withdraw
+     * @param data external data to withdraw
      */
-    function withdrawToVault(uint256 amount) external;
+    function withdrawToVault(uint256 amount, bytes calldata data) external;
 
     /**
      * Amount, expressed in the underlying currency, currently in the strategy

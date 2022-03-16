@@ -370,28 +370,42 @@ contract Vault is
     }
 
     /// See {IVault}
-    function updateInvested(bool invest, bytes calldata data)
+    function invest(bytes calldata data)
         external
+        override
         onlyRole(INVESTOR_ROLE)
     {
         require(address(strategy) != address(0), "Vault: strategy is not set");
 
         (uint256 maxInvestableAmount, uint256 alreadyInvested) = investState();
-        if (alreadyInvested < maxInvestableAmount) {
-            require(invest, "Vault: no need to disinvest");
+        require(
+            alreadyInvested < maxInvestableAmount,
+            "Vault: nothing to invest"
+        );
 
-            uint256 investAmount = maxInvestableAmount - alreadyInvested;
-            underlying.safeTransfer(address(strategy), investAmount);
-            strategy.invest(data);
+        uint256 investAmount = maxInvestableAmount - alreadyInvested;
+        underlying.safeTransfer(address(strategy), investAmount);
+        strategy.invest(data);
 
-            emit Invested(investAmount);
-        } else if (alreadyInvested > maxInvestableAmount) {
-            require(!invest, "Vault: nothing to invest");
+        emit Invested(investAmount);
+    }
 
-            uint256 _disinvestAmount = alreadyInvested - maxInvestableAmount;
-            strategy.withdrawToVault(_disinvestAmount);
-        }
-        revert("Vault: no need to update invest state");
+    /// See {IVault}
+    function disinvest(bytes calldata data)
+        external
+        override
+        onlyRole(INVESTOR_ROLE)
+    {
+        require(address(strategy) != address(0), "Vault: strategy is not set");
+
+        (uint256 maxInvestableAmount, uint256 alreadyInvested) = investState();
+        require(
+            alreadyInvested > maxInvestableAmount,
+            "Vault: no need to disinvest"
+        );
+
+        uint256 _disinvestAmount = alreadyInvested - maxInvestableAmount;
+        strategy.withdrawToVault(_disinvestAmount, data);
     }
 
     //

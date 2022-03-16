@@ -62,12 +62,18 @@ interface IVault {
     //
 
     /**
-     * Update the invested amount;
+     * Invest available amount to strategy.
      *
-     * @param invest flag to invest or disinvest
      * @param data exteranl data to invest underlying
      */
-    function updateInvested(bool invest, bytes calldata data) external;
+    function invest(bytes calldata data) external;
+
+    /**
+     * Disinvest required amount from strategy.
+     *
+     * @param data exteranl data to disinvest underlying
+     */
+    function disinvest(bytes calldata data) external;
 
     /**
      * Calculates underlying investable amount.

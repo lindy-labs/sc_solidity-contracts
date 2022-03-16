@@ -67,7 +67,11 @@ contract AnchorUSTStrategy is AnchorBaseStrategy {
      * in the strategy, this function will init redeem stable, and actual withdraw will be done
      * throuw finishRedeemStable function.
      */
-    function withdrawToVault(uint256 amount) external override onlyManager {
+    function withdrawToVault(uint256 amount, bytes calldata)
+        external
+        override
+        onlyManager
+    {
         uint256 _aUstToWithdraw = _estimateUstAmountInAUst(amount);
 
         if (pendingRedeems < _aUstToWithdraw) {
