@@ -348,23 +348,15 @@ contract Vault is
     }
 
     /// See {IVault}
-    function investableAmount() public view returns (uint256) {
-        uint256 maxInvestableAssets = totalUnderlying().percOf(investPerc);
-
-        uint256 alreadyInvested = strategy.investedAssets();
-
-        if (alreadyInvested >= maxInvestableAssets) {
-            return 0;
-        }
-
-        return maxInvestableAssets - alreadyInvested;
-    }
-
     function investState()
         public
         view
+        override
         returns (uint256 maxInvestableAmount, uint256 alreadyInvested)
     {
+        if (address(strategy) == address(0)) {
+            return (0, 0);
+        }
         maxInvestableAmount = totalUnderlying().percOf(investPerc);
         alreadyInvested = strategy.investedAssets();
     }
@@ -406,6 +398,8 @@ contract Vault is
 
         uint256 _disinvestAmount = alreadyInvested - maxInvestableAmount;
         strategy.withdrawToVault(_disinvestAmount, data);
+
+        emit Disinvested(_disinvestAmount);
     }
 
     //

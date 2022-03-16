@@ -120,9 +120,7 @@ describe("AnchorNonUSTStrategy Mainnet fork", () => {
       let exchangeRate = (await mockAUstUstFeed.latestRoundData()).answer;
       console.log("ExchangeRate: ", utils.formatEther(exchangeRate));
 
-      await vault
-        .connect(owner)
-        .updateInvested(getInvestData(BigNumber.from("1000")));
+      await vault.connect(owner).invest(getInvestData(BigNumber.from("1000")));
       console.log(
         `Invest: totalUnderlying - ${utils.formatUnits(
           await vault.totalUnderlying(),
@@ -195,7 +193,7 @@ describe("AnchorNonUSTStrategy Mainnet fork", () => {
       );
       exchangeRate = (await mockAUstUstFeed.latestRoundData()).answer;
       console.log("ExchangeRate: ", utils.formatEther(exchangeRate));
-      await vault.updateInvested(getInvestData(BigNumber.from("1000")));
+      await vault.invest(getInvestData(BigNumber.from("1000")));
 
       exchangeRate = (await mockAUstUstFeed.latestRoundData()).answer;
       console.log("ExchangeRate: ", utils.formatEther(exchangeRate));
@@ -232,7 +230,7 @@ describe("AnchorNonUSTStrategy Mainnet fork", () => {
       );
     });
 
-    it("Revert vault.updateInvested if exchanged rate is lower than minimum exchange rate.", async () => {
+    it("Revert vault.invest if exchanged rate is lower than minimum exchange rate.", async () => {
       let amount = utils.parseUnits("10000", 6);
 
       console.log(`Deposit ${utils.formatUnits(amount, 6)} USDT by alice`);
@@ -251,9 +249,7 @@ describe("AnchorNonUSTStrategy Mainnet fork", () => {
       console.log("ExchangeRate: ", utils.formatEther(exchangeRate));
 
       await expect(
-        vault
-          .connect(owner)
-          .updateInvested(getInvestData(utils.parseUnits("1.1", 30)))
+        vault.connect(owner).invest(getInvestData(utils.parseUnits("1.1", 30)))
       ).to.revertedWith("Too few coins in result");
     });
   });
@@ -331,9 +327,7 @@ describe("AnchorNonUSTStrategy Mainnet fork", () => {
           6
         )} USDT`
       );
-      await vault
-        .connect(owner)
-        .updateInvested(getInvestData(BigNumber.from("1000")));
+      await vault.connect(owner).invest(getInvestData(BigNumber.from("1000")));
       expect(await usdtToken.balanceOf(vault.address)).to.be.equal("0");
       expect(await usdtToken.balanceOf(strategy.address)).to.be.equal("0");
       expect(await strategy.pendingDeposits()).to.be.equal(
@@ -397,7 +391,7 @@ describe("AnchorNonUSTStrategy Mainnet fork", () => {
           await vault.totalUnderlying()
         )} UST`
       );
-      await vault.updateInvested(getInvestData(BigNumber.from("1000")));
+      await vault.invest(getInvestData(BigNumber.from("1000")));
 
       depositOperations = await strategy.depositOperations(0);
       let aUstBalance = expectAUstReceive;
@@ -480,9 +474,7 @@ describe("AnchorNonUSTStrategy Mainnet fork", () => {
         lockDuration: TWO_WEEKS,
       });
 
-      await vault
-        .connect(owner)
-        .updateInvested(getInvestData(BigNumber.from("1000")));
+      await vault.connect(owner).invest(getInvestData(BigNumber.from("1000")));
 
       let depositOperations = await strategy.depositOperations(0);
       let expectAUstReceive = utils.parseEther("7600");

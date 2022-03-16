@@ -47,9 +47,24 @@ describe("AnchorNonUSTStrategy", () => {
     [owner, alice, manager] = await ethers.getSigners();
 
     const MockERC20 = await ethers.getContractFactory("MockERC20");
-    ustToken = await MockERC20.deploy("UST", "UST", 18, utils.parseEther("1000000000"));
-    aUstToken = await MockERC20.deploy("aUST", "aUST", 18, utils.parseEther("1000000000"));
-    underlying = await MockERC20.deploy("DAI", "DAI", 18, utils.parseEther("1000000000"));
+    ustToken = await MockERC20.deploy(
+      "UST",
+      "UST",
+      18,
+      utils.parseEther("1000000000")
+    );
+    aUstToken = await MockERC20.deploy(
+      "aUST",
+      "aUST",
+      18,
+      utils.parseEther("1000000000")
+    );
+    underlying = await MockERC20.deploy(
+      "DAI",
+      "DAI",
+      18,
+      utils.parseEther("1000000000")
+    );
     await underlying.updateDecimals(6);
 
     const MockChainlinkPriceFeedFactory = await ethers.getContractFactory(
@@ -234,7 +249,7 @@ describe("AnchorNonUSTStrategy", () => {
         .mul(CURVE_DECIMALS)
         .div(UNDERLYING_TO_UST_RATE);
 
-      const tx = await vault.updateInvested(
+      const tx = await vault.invest(
         getInvestData(utils.parseEther("1000000000000"))
       );
 
@@ -283,7 +298,7 @@ describe("AnchorNonUSTStrategy", () => {
 
       await vault
         .connect(owner)
-        .updateInvested(getInvestData(utils.parseEther("1000000000000")));
+        .invest(getInvestData(utils.parseEther("1000000000000")));
 
       await notifyDepositReturnAmount(operator0, aUstAmount0);
       await strategy.connect(manager).finishDepositStable(0);
@@ -508,7 +523,7 @@ describe("AnchorNonUSTStrategy", () => {
 
       await vault
         .connect(owner)
-        .updateInvested(getInvestData(utils.parseEther("1000000000000")));
+        .invest(getInvestData(utils.parseEther("1000000000000")));
 
       let remainingInVault = underlyingAmount.sub(investAmount);
 

@@ -281,7 +281,7 @@ describe("Vault", () => {
       ).to.be.revertedWith("Vault: owner cannot be 0x0");
     });
 
-    it("Check initial values", async () => {
+    it("check initial values", async () => {
       expect(
         await vault.hasRole(DEFAULT_ADMIN_ROLE, owner.address)
       ).to.be.equal(true);
@@ -429,17 +429,17 @@ describe("Vault", () => {
     });
   });
 
-  describe("updateInvested", () => {
+  describe("invest", () => {
     it("reverts if msg.sender is not investor", async () => {
-      await expect(
-        vault.connect(alice).updateInvested("0x")
-      ).to.be.revertedWith(getRoleErrorMsg(alice, INVESTOR_ROLE));
+      await expect(vault.connect(alice).invest("0x")).to.be.revertedWith(
+        getRoleErrorMsg(alice, INVESTOR_ROLE)
+      );
     });
 
     it("reverts if strategy is not set", async () => {
-      await expect(
-        vault.connect(owner).updateInvested("0x")
-      ).to.be.revertedWith("Vault: strategy is not set");
+      await expect(vault.connect(owner).invest("0x")).to.be.revertedWith(
+        "Vault: strategy is not set"
+      );
     });
 
     it("reverts if no investable amount", async () => {
@@ -447,9 +447,9 @@ describe("Vault", () => {
       await addYieldToVault("10");
       await underlying.mint(strategy.address, parseUnits("100"));
 
-      await expect(
-        vault.connect(owner).updateInvested("0x")
-      ).to.be.revertedWith("Vault: nothing to invest");
+      await expect(vault.connect(owner).invest("0x")).to.be.revertedWith(
+        "Vault: nothing to invest"
+      );
     });
 
     it("moves the funds to the strategy", async () => {
@@ -457,7 +457,7 @@ describe("Vault", () => {
       await vault.connect(owner).setInvestPerc("8000");
       await addYieldToVault("100");
 
-      await vault.connect(owner).updateInvested("0x");
+      await vault.connect(owner).invest("0x");
 
       expect(await underlying.balanceOf(strategy.address)).to.eq(
         parseUnits("80")
@@ -469,36 +469,109 @@ describe("Vault", () => {
       await vault.connect(owner).setInvestPerc("8000");
       await addYieldToVault("100");
 
-      const tx = await vault.connect(owner).updateInvested("0x");
+      const tx = await vault.connect(owner).invest("0x");
 
       await expect(tx).to.emit(vault, "Invested").withArgs(parseUnits("80"));
     });
+
+    it("forwards data to strategy.invest func", async () => {
+      await vault.connect(owner).setStrategy(strategy.address);
+      await vault.connect(owner).setInvestPerc("8000");
+      await addYieldToVault("100");
+
+      const tx = await vault.connect(owner).invest("0x01");
+
+      // Test with mock event
+      await expect(tx).to.emit(strategy, "InvestedWithData").withArgs("0x01");
+    });
   });
 
-  describe("investableAmount", () => {
-    it("returns the amount available to invest", async () => {
-      await vault.connect(owner).setStrategy(strategy.address);
-      await addYieldToVault("100");
-
-      expect(await vault.investableAmount()).to.equal(parseUnits("90"));
+  describe("disinvest", () => {
+    it("reverts if msg.sender is not investor", async () => {
+      await expect(vault.connect(alice).disinvest("0x")).to.be.revertedWith(
+        getRoleErrorMsg(alice, INVESTOR_ROLE)
+      );
     });
 
-    it("takes into account the invested amount", async () => {
-      await vault.connect(owner).setStrategy(strategy.address);
-      await vault.connect(owner).setInvestPerc("9000");
-      await addYieldToVault("100");
-      await underlying.mint(strategy.address, parseUnits("100"));
-
-      expect(await vault.investableAmount()).to.equal(parseUnits("80"));
+    it("reverts if strategy is not set", async () => {
+      await expect(vault.connect(owner).disinvest("0x")).to.be.revertedWith(
+        "Vault: strategy is not set"
+      );
     });
 
-    it("returns zero if invested funds is greater or equal than available amount", async () => {
+    it("reverts if invested amount is less than maximum investable amount", async () => {
       await vault.connect(owner).setStrategy(strategy.address);
-      await vault.connect(owner).setInvestPerc("9000");
+      await addYieldToVault("100");
+      await underlying.mint(strategy.address, parseUnits("10"));
+
+      await expect(vault.connect(owner).disinvest("0x")).to.be.revertedWith(
+        "Vault: no need to disinvest"
+      );
+    });
+
+    it("call strategy.withdrawToVault with required amount", async () => {
+      await vault.connect(owner).setStrategy(strategy.address);
       await addYieldToVault("10");
+      await underlying.mint(strategy.address, parseUnits("190"));
+
+      await vault.connect(owner).disinvest("0x");
+
+      expect(await underlying.balanceOf(vault.address)).to.eq(parseUnits("20"));
+      expect(await underlying.balanceOf(strategy.address)).to.eq(
+        parseUnits("180")
+      );
+    });
+
+    it("emits an event", async () => {
+      await vault.connect(owner).setStrategy(strategy.address);
+      await addYieldToVault("10");
+      await underlying.mint(strategy.address, parseUnits("190"));
+
+      const tx = await vault.connect(owner).disinvest("0x");
+
+      await expect(tx).to.emit(vault, "Disinvested").withArgs(parseUnits("10"));
+    });
+
+    it("forwards data to strategy.withdrawToVault func", async () => {
+      await vault.connect(owner).setStrategy(strategy.address);
+      await addYieldToVault("10");
+      await underlying.mint(strategy.address, parseUnits("190"));
+
+      const tx = await vault.connect(owner).disinvest("0x01");
+
+      // Test with mock event
+      await expect(tx)
+        .to.emit(strategy, "DisivestedWithData")
+        .withArgs(parseUnits("10"), "0x01");
+    });
+  });
+
+  describe("investState", () => {
+    it("returns (0, 0) if strategy was not set", async () => {
+      await addYieldToVault("100");
+
+      const investState = await vault.investState();
+      expect(investState.maxInvestableAmount).to.equal(0);
+      expect(investState.alreadyInvested).to.equal(0);
+    });
+
+    it("returns maximum investable amount and 0 if nothing invested yet", async () => {
+      await vault.connect(owner).setStrategy(strategy.address);
+      await addYieldToVault("100");
+
+      const investState = await vault.investState();
+      expect(investState.maxInvestableAmount).to.equal(parseUnits("90"));
+      expect(investState.alreadyInvested).to.equal(0);
+    });
+
+    it("returns maximum investable amount and already invested amount", async () => {
+      await vault.connect(owner).setStrategy(strategy.address);
+      await addYieldToVault("100");
       await underlying.mint(strategy.address, parseUnits("100"));
 
-      expect(await vault.investableAmount()).to.equal(0);
+      const investState = await vault.investState();
+      expect(investState.maxInvestableAmount).to.equal(parseUnits("180"));
+      expect(investState.alreadyInvested).to.equal(parseUnits("100"));
     });
   });
 

@@ -41,6 +41,8 @@ interface IVault {
 
     event Invested(uint256 amount);
 
+    event Disinvested(uint256 amount);
+
     event StrategyUpdated(address indexed strategy);
 
     event TreasuryUpdated(address indexed treasury);
@@ -76,11 +78,15 @@ interface IVault {
     function disinvest(bytes calldata data) external;
 
     /**
-     * Calculates underlying investable amount.
+     * Calculate maximum investable amount and already invested amount
      *
-     * @return the investable amount
+     * @return maxInvestableAmount maximum investable amount
+     * @return alreadyInvested already invested amount
      */
-    function investableAmount() external view returns (uint256);
+    function investState()
+        external
+        view
+        returns (uint256 maxInvestableAmount, uint256 alreadyInvested);
 
     /**
      * Update invest percentage
