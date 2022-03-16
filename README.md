@@ -65,7 +65,7 @@ First install [Echidna].
 
 Examples:
 
-`$ echidna-test . --contract Echidna_Deposit_Withdraw --config contracts/echidna/Echidna_Deposit_Withdraw.yml`
+`$ echidna-test . --contract Echidna_Valid_Deposit --config contracts/echidna/Echidna_Deposit_Withdraw.yml`
 
 In order to initialize echidna install [Etheno] and run:
 

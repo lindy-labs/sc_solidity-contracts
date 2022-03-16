@@ -22,18 +22,7 @@ contract Echidna_Valid_Deposit is Helper,ERC721Holder {
         emit Log("balance of this before", balance_this_before);
         emit Log("balance of vault before", balance_vault_before);
 
-        uint16 length = uint16(_params.claims.length);
-        uint16 left = 10000;
-        for (uint16 i = length; i > 1; --i) {
-            _params.claims[i - 1].pct = 1 + (_params.claims[i - 1].pct % (left - i - 1));
-            left -= _params.claims[i - 1].pct;
-            _params.claims[i - 1].beneficiary = bob;
-            emit Log("pct", _params.claims[i - 1].pct);
-        }
-
-        _params.claims[0].pct = left;
-        _params.claims[0].beneficiary = bob;
-        emit Log("pct", _params.claims[0].pct);
+        populate_claims(10000, _params.claims);
 
         deposit_should_succeed(_params);
 

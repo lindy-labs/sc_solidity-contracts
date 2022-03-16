@@ -16,6 +16,20 @@ contract Helper is Addresses {
         return 1 + (random % (type(uint64).max - 1));
     }
 
+    function populate_claims(uint16 pctTotal, IVault.ClaimParams[] memory _claims) internal {
+        uint16 length = uint16(_claims.length);
+        uint16 left = pctTotal;
+        for (uint16 i = length; i > 1; --i) {
+            _claims[i - 1].pct = 1 + (_claims[i - 1].pct % (left - i - 1));
+            left -= _claims[i - 1].pct;
+            _claims[i - 1].beneficiary = bob;
+            emit Log("pct", _claims[i - 1].pct);
+        }
+        _claims[0].pct = left;
+        _claims[0].beneficiary = bob;
+        emit Log("pct", _claims[0].pct);
+    }
+
     function withdraw_should_revert(address recipient, uint256[] memory _ids) internal {
         try vault.withdraw(recipient, _ids) {
             assert(false);
