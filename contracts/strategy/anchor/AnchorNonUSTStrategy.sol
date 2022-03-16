@@ -140,6 +140,7 @@ contract AnchorNonUSTStrategy is AnchorBaseStrategy {
         override
         onlyManager
     {
+        require(amount > 0, "AnchorNonUSTStrategy: amount is zero");
         uint256 _aUstToWithdraw = _estimateUstAmountInAUst(
             _estimateUnderlyingAmountInUst(amount)
         );

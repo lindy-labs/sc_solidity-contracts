@@ -60,12 +60,11 @@ describe("AnchorNonUSTStrategy", () => {
       utils.parseEther("1000000000")
     );
     underlying = await MockERC20.deploy(
-      "DAI",
-      "DAI",
-      18,
+      "USDT",
+      "USDT",
+      6,
       utils.parseEther("1000000000")
     );
-    await underlying.updateDecimals(6);
 
     const MockChainlinkPriceFeedFactory = await ethers.getContractFactory(
       "MockChainlinkPriceFeed"
@@ -532,6 +531,76 @@ describe("AnchorNonUSTStrategy", () => {
       );
       expect(await vault.totalUnderlying()).equal(
         ustAmount.div(utils.parseUnits("1", 12)).add(remainingInVault)
+      );
+    });
+  });
+
+  describe("withdrawToVault", () => {
+    it("reverts if msg.sender is not manager", async () => {
+      await expect(
+        strategy.connect(alice).withdrawToVault(1, "0x")
+      ).to.be.revertedWith("AnchorBaseStrategy: caller is not manager");
+    });
+
+    it("reverts if amount is zero", async () => {
+      await expect(
+        strategy.connect(manager).withdrawToVault(0, "0x")
+      ).to.be.revertedWith("AnchorNonUSTStrategy: amount is zero");
+    });
+
+    it("init redeem stable for required aUST amount", async () => {
+      await aUstToken.mint(strategy.address, utils.parseEther("100"));
+
+      await registerNewTestOperator();
+      await ustFeed.setAnswer(utils.parseUnits("1", 8));
+      await underlyingFeed.setAnswer(utils.parseUnits("1", 8));
+      await setAUstRate(utils.parseEther("1.1"));
+
+      await strategy
+        .connect(manager)
+        .withdrawToVault(utils.parseUnits("33", 6), "0x");
+
+      expect(await strategy.pendingRedeems()).to.be.equal(
+        utils.parseEther("30")
+      );
+    });
+
+    it("deduct pending redeem amount", async () => {
+      await aUstToken.mint(strategy.address, utils.parseEther("100"));
+
+      await registerNewTestOperator();
+      await strategy.connect(manager).initRedeemStable(utils.parseEther("10"));
+      await registerNewTestOperator();
+
+      await ustFeed.setAnswer(utils.parseUnits("1", 8));
+      await underlyingFeed.setAnswer(utils.parseUnits("1", 8));
+      await setAUstRate(utils.parseEther("1.1"));
+
+      await strategy
+        .connect(manager)
+        .withdrawToVault(utils.parseUnits("33", 6), "0x");
+
+      expect(await strategy.pendingRedeems()).to.be.equal(
+        utils.parseEther("30")
+      );
+    });
+
+    it("do nothing if enough aUST amount is in pending redeem", async () => {
+      await aUstToken.mint(strategy.address, utils.parseEther("100"));
+
+      await registerNewTestOperator();
+      await strategy.connect(manager).initRedeemStable(utils.parseEther("40"));
+
+      await ustFeed.setAnswer(utils.parseUnits("1", 8));
+      await underlyingFeed.setAnswer(utils.parseUnits("1", 8));
+      await setAUstRate(utils.parseEther("1.1"));
+
+      await strategy
+        .connect(manager)
+        .withdrawToVault(utils.parseUnits("33", 6), "0x");
+
+      expect(await strategy.pendingRedeems()).to.be.equal(
+        utils.parseEther("40")
       );
     });
   });
