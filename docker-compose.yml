@@ -12,7 +12,7 @@ services:
     depends_on:
       - postgres
       - ipfs
-      - ethereum
+      # - ethereum
     environment:
       postgres_host: postgres
       postgres_user: graph-node
@@ -43,12 +43,12 @@ services:
     ports:
       - "5001:5001"
 
-  ethereum:
-    build:
-      context: .
-      dockerfile: docker/ganache.Dockerfile
-    restart: unless-stopped
-    environment:
-      MNEMONIC: '${MNEMONIC:-"core tornado motion pigeon kiss dish differ asthma much ritual black foil"}'
-    ports:
-      - "8545:8545"
+  # ethereum:
+  #   build:
+  #     context: .
+  #     dockerfile: docker/ganache.Dockerfile
+  #   restart: unless-stopped
+  #   environment:
+  #     MNEMONIC: '${MNEMONIC:-"core tornado motion pigeon kiss dish differ asthma much ritual black foil"}'
+  #   ports:
+  #     - "8545:8545"
