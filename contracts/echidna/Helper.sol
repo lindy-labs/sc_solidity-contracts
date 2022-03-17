@@ -12,7 +12,7 @@ contract Helper is Addresses {
         underlying.approve(address(vault), amount);
     }
 
-    function one_to_max_uint64(uint256 random) internal returns (uint256) {
+    function one_to_max_uint64(uint256 random) internal pure returns (uint256) {
         return 1 + (random % (type(uint64).max - 1));
     }
 
@@ -26,7 +26,7 @@ contract Helper is Addresses {
             emit Log("pct", _claims[i - 1].pct);
         }
         _claims[0].pct = left;
-        _claims[0].beneficiary = bob;
+        _claims[0].beneficiary = address(this);
         emit Log("pct", _claims[0].pct);
     }
 
