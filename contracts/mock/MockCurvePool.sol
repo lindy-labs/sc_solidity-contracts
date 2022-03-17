@@ -12,7 +12,7 @@ contract MockCurvePool is ICurve, Ownable {
     mapping(int128 => IERC20) public tokens;
     mapping(int128 => mapping(int128 => uint256)) public rate;
 
-    function addToken(int128 i, IERC20 token) external {
+    function addToken(int128 i, IERC20 token) external onlyOwner {
         tokens[i] = token;
     }
 
