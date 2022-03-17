@@ -3,25 +3,22 @@ import {
   BigInt,
   ByteArray,
   log,
-  Bytes
+  Bytes,
 } from "@graphprotocol/graph-ts";
 import {
   DepositBurned,
   DepositMinted,
   YieldClaimed,
-  TreasuryUpdated
-} from "../types/templates/Vault/IVault";
-import {
-  Sponsored,
-  Unsponsored
-} from "../types/templates/Vault/IVaultSponsoring";
+  TreasuryUpdated,
+} from "../types/DAI_Vault/IVault";
+import { Sponsored, Unsponsored } from "../types/DAI_Vault/IVaultSponsoring";
 import {
   Sponsor,
   Claimer,
   Deposit,
   Foundation,
   Vault,
-  Donation
+  Donation,
 } from "../types/schema";
 
 export function handleYieldClaimed(event: YieldClaimed): void {

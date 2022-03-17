@@ -2,13 +2,12 @@ specVersion: 0.0.2
 schema:
   file: ./schema.graphql
 dataSources:
-{{#vaults}}
   - name: Vault
     kind: ethereum/contract
     network: mainnet
     source:
       abi: Vault
-      address: "{{vaultAddr}}"
+      address: "0x9f620D84E77DB85A7Cae9F60a2EB60B265518707"
     mapping: &mapping
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -25,7 +24,7 @@ dataSources:
         - name: IVaultSponsoring
           file: ../artifacts/contracts/vault/IVaultSponsoring.sol/IVaultSponsoring.json
       eventHandlers:
-        - event: DepositMinted(indexed uint256,uint256,uint256,uint256,indexed address,indexed address,uint256,uint256,bytes)
+        - event: DepositMinted(indexed uint256,uint256,uint256,uint256,indexed address,indexed address,uint256,uint64,bytes)
           handler: handleDepositMinted
         - event: DepositBurned(indexed uint256,uint256,indexed address)
           handler: handleDepositBurned
@@ -33,31 +32,7 @@ dataSources:
           handler: handleSponsored
         - event: Unsponsored(indexed uint256)
           handler: handleUnsponsored
-        - event: YieldClaimed(uint256,indexed address,uint256,uint256)
+        - event: YieldClaimed(uint256,indexed address,uint256,uint256,uint256)
           handler: handleYieldClaimed
         - event: TreasuryUpdated(indexed address)
           handler: handleTreasuryUpdated
-{{/vaults}}
-{{#claimers}}
-  - name: Claimers
-    kind: ethereum/contract
-    network: mainnet
-    source:
-      abi: IClaimers
-      address: "{{claimersAddr}}"
-    mapping:
-      kind: ethereum/events
-      apiVersion: 0.0.6
-      language: wasm/assemblyscript
-      file: ./src/mappings/claimers.ts
-      entities:
-        - Claimers
-      abis:
-        - name: IClaimers
-          file: ../artifacts/contracts/vault/IClaimers.sol/IClaimers.json
-        - name: IERC721
-          file: ../artifacts/@openzeppelin/contracts/token/ERC721/IERC721.sol/IERC721.json
-      eventHandlers:
-        - event: Transfer(indexed address,indexed address,indexed uint256)
-          handler: handleClaimerTransfer
-{{/claimers}}
