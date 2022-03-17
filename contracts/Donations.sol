@@ -6,7 +6,6 @@ import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Counters} from "@openzeppelin/contracts/utils/Counters.sol";
 
 import "hardhat/console.sol";
 
@@ -15,7 +14,6 @@ import "hardhat/console.sol";
  */
 contract Donations is ERC721, AccessControl {
     using SafeERC20 for IERC20;
-    using Counters for Counters.Counter;
 
     bytes32 public constant WORKER_ROLE = keccak256("WORKER_ROLE");
 
@@ -54,7 +52,7 @@ contract Donations is ERC721, AccessControl {
 
     event TTLUpdated(uint64 ttl);
 
-    Counters.Counter private metadataId;
+    uint256 private metadataId;
     mapping(uint256 => Metadata) public metadata;
 
     /// Duration of the expiration date for new donations.
@@ -136,21 +134,19 @@ contract Donations is ERC721, AccessControl {
         uint256 length = _params.length;
 
         for (uint256 i = 0; i < length; i++) {
-            metadataId.increment();
+            metadataId += 1;
 
-            uint256 _metadataId = metadataId.current();
-
-            metadata[_metadataId] = Metadata({
+            metadata[metadataId] = Metadata({
                 destinationId: _params[i].destinationId,
                 token: _params[i].token,
                 expiry: expiry,
                 amount: _params[i].amount
             });
 
-            _mint(_params[i].owner, _metadataId);
+            _mint(_params[i].owner, metadataId);
 
             emit DonationMinted(
-                _metadataId,
+                metadataId,
                 _params[i].destinationId,
                 groupId,
                 _params[i].token,
