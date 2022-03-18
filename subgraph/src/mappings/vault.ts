@@ -10,8 +10,8 @@ import {
   DepositMinted,
   YieldClaimed,
   TreasuryUpdated,
-} from "../types/DAI_Vault/IVault";
-import { Sponsored, Unsponsored } from "../types/DAI_Vault/IVaultSponsoring";
+} from "../types/Vault/IVault";
+import { Sponsored, Unsponsored } from "../types/Vault/IVaultSponsoring";
 import {
   Sponsor,
   Claimer,
