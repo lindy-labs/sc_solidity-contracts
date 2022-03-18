@@ -36,3 +36,27 @@ dataSources:
           handler: handleYieldClaimed
         - event: TreasuryUpdated(indexed address)
           handler: handleTreasuryUpdated
+        - event: StrategyUpdated(indexed address)
+          handler: handleStrategyUpdated
+
+templates:
+  - name: Strategy
+    kind: ethereum/contract
+    network: mainnet
+    source:
+      abi: AnchorUSTStrategy
+    mapping: &mapping
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      file: ./src/mappings/strategy.ts
+      entities:
+        - Operation
+      abis:
+        - name: AnchorUSTStrategy
+          file: ../artifacts/contracts/strategy/anchor/AnchorUSTStrategy.sol/AnchorUSTStrategy.json
+      eventHandlers:
+        - event: InitDepositStable(indexed address,indexed uint256,uint256,uint256)
+          handler: handleInitDeposit
+        - event: InitRedeemStable(indexed address,uint256)
+          handler: handleInitRedeem
