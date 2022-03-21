@@ -40,6 +40,10 @@ contract Echidna_Invalid_Withdraw is Helper,ERC721Holder {
     // lockduration has passed, else always revert
     function withdraw_all() public {
 
+        if (!init) {
+            return;
+        }
+
         emit Log("amount", amount);
         emit Log("lockDuration", lockDuration);
         emit Log("time", time);
@@ -50,7 +54,7 @@ contract Echidna_Invalid_Withdraw is Helper,ERC721Holder {
         emit Log("balance of this before", balance_this_before);
         emit Log("balance of vault before", balance_vault_before);
 
-        if (init && block.timestamp > time + lockDuration) {
+        if (block.timestamp > time + lockDuration) {
             withdraw_should_succeed(address(this), depositIds);
             init = false;
 
