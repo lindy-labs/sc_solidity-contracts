@@ -6,7 +6,7 @@ contract Helper is Addresses {
 
     event Log(string reason, uint256 amount);
     event LogAddress(string reason, address a);
-    
+
     function mint_helper(address recip, uint256 amount) internal {
         underlying.mint(recip, amount);
         underlying.approve(address(vault), amount);
