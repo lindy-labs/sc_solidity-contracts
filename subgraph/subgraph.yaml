@@ -36,15 +36,13 @@ dataSources:
           handler: handleYieldClaimed
         - event: TreasuryUpdated(indexed address)
           handler: handleTreasuryUpdated
-        - event: StrategyUpdated(indexed address)
-          handler: handleStrategyUpdated
 
-templates:
   - name: Strategy
     kind: ethereum/contract
     network: mainnet
     source:
       abi: AnchorUSTStrategy
+      address: "0x9f620D84E77DB85A7Cae9F60a2EB60B265518707"
     mapping: &mapping
       kind: ethereum/events
       apiVersion: 0.0.6

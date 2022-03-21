@@ -11,7 +11,7 @@
     "all-local": "yarn codegen && yarn create-local && yarn deploy-local --version-label v0.0.1",
     "test": "graph test",
     "prep:hardhat": "mustache ./config/hardhat.json subgraph.template.yaml > subgraph.yaml",
-    "deploy:hardhat": "yarn build && yarn codegen && yarn create-local && yarn deploy-local --version-label v0.0.1"
+    "deploy:hardhat": "yarn codegen && yarn build && yarn create-local && yarn deploy-local --version-label v0.0.1"
   },
   "dependencies": {
     "@graphprotocol/graph-cli": "0.25.1",
