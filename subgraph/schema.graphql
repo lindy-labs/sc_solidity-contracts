@@ -52,8 +52,16 @@ type Sponsor @entity {
   burned: Boolean!
 }
 
-type Operation @entity {
+type InitRedeemOperation @entity {
   id: ID!
-  deposit: Boolean!
-  redemption: Boolean!
+  operator: Bytes!
+  aUstAmount: BigInt!
+}
+
+type InitDepositOperation @entity {
+  id: ID!
+  idx: BigInt!
+  operator: Bytes!
+  underlyingAmount: BigInt!
+  ustAmount: BigInt!
 }
