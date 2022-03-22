@@ -31,15 +31,15 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
       owner,
     ],
   });
+
+  console.log("deployed eth anchor strategy");
 };
 
 func.id = "deploy_ust_anchor_strategy";
 func.tags = ["strategies", "ust"];
 func.dependencies = ["deploy_ust_vault"];
 
-// deploy only to mainnet
-// TODO we need to enable this on other networks as well
-// (e.g. hardhat forking ethanchor, or deploy fake ethanchor router)
-func.skip = async (hre) => hre.network.config.chainId != 1;
+// Skip hardhat in case it is not forked
+func.skip = async (hre) => hre.network.config.chainId === 1337;
 
 export default func;

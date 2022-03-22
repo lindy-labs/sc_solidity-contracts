@@ -81,6 +81,12 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
 
   console.log("The treasury claims");
   await vault.connect(treasury).claimYield(treasury.address);
+
+  const ustAnchorStrategy = await get("AnchorUSTStrategy");
+
+  await vault.setStrategy(ustAnchorStrategy.address);
+
+  await vault.updateInvested("0x");
 };
 
 func.id = "fixtures";
