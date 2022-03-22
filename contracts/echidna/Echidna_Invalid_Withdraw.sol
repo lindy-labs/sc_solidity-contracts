@@ -36,6 +36,21 @@ contract Echidna_Invalid_Withdraw is Helper,ERC721Holder {
         init = true;
     }
 
+    // changes the deposit
+    function add_deposit(IVault.DepositParams memory _params) public {
+
+        _params.lockDuration = 2 weeks + (_params.lockDuration % (22 weeks));
+        emit Log("lockDuration", _params.lockDuration);
+
+        _params.amount = Helper.one_to_max_uint64(_params.amount);
+        emit Log("amount", _params.amount);
+
+        Helper.mint_helper(address(this), _params.amount);
+
+        populate_claims(10000, _params.claims);
+        deposit_should_succeed(_params);
+    }
+
     // withdraw with less than was deposited should always succeed if
     // lockduration has passed, else always revert
     function withdraw_all() public {
