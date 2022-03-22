@@ -8,4 +8,6 @@ interface ICurve {
         uint256 dx,
         uint256 min_dy
     ) external returns (uint256);
+
+    function coins(uint256 i) external view returns (address);
 }

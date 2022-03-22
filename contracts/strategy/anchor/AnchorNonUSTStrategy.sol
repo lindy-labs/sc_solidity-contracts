@@ -5,7 +5,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
-import {ICurve} from "../curve/ICurve.sol";
+import {ICurve} from "../../interfaces/curve/ICurve.sol";
 import {IERC20Detailed} from "../IERC20Detailed.sol";
 import {AnchorBaseStrategy} from "./AnchorBaseStrategy.sol";
 
