@@ -2,13 +2,10 @@
 pragma solidity =0.8.10;
 
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
-import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
-import "hardhat/console.sol";
 
 /**
  * A contract to store donations before they are transferred to the charities.
