@@ -18,7 +18,7 @@ contract Echidna_Valid_Deposit is Helper,ERC721Holder {
         Helper.mint_helper(address(this), _params.amount);
 
         uint256 balance_this_before = underlying.balanceOf(address(this));
-        uint256 balance_vault_before = underlying.balanceOf(address(vault));
+        uint256 balance_vault_before = vault.totalUnderlying();
         emit Log("balance of this before", balance_this_before);
         emit Log("balance of vault before", balance_vault_before);
 
@@ -27,7 +27,7 @@ contract Echidna_Valid_Deposit is Helper,ERC721Holder {
         deposit_should_succeed(_params);
 
         uint256 balance_this_after = underlying.balanceOf(address(this));
-        uint256 balance_vault_after = underlying.balanceOf(address(vault));
+        uint256 balance_vault_after = vault.totalUnderlying();
 
         emit Log("balance of this after", balance_this_after);
         emit Log("balance of vault after", balance_vault_after);
