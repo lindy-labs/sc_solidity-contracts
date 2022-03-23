@@ -50,6 +50,5 @@ services:
     restart: unless-stopped
     environment:
       MNEMONIC: '${MNEMONIC:-"core tornado motion pigeon kiss dish differ asthma much ritual black foil"}'
-      ALCHEMY_API_ENDPOINT: "${ALCHEMY_API_ENDPOINT}"
     ports:
       - "8545:8545"

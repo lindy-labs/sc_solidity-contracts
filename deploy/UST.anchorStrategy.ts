@@ -39,7 +39,6 @@ func.id = "deploy_ust_anchor_strategy";
 func.tags = ["strategies", "ust"];
 func.dependencies = ["deploy_ust_vault"];
 
-// Skip hardhat in case it is not forked
-func.skip = async (hre) => hre.network.config.chainId === 1337;
+func.skip = async (hre) => hre.network.config.chainId != 1;
 
 export default func;
