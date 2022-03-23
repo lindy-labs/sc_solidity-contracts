@@ -42,6 +42,16 @@ describe("Donations", () => {
     DEFAULT_ADMIN_ROLE = await donations.DEFAULT_ADMIN_ROLE();
   });
 
+  describe("supportsInterface", () => {
+    it("supprots the ERC721 interface", async () => {
+      expect(await donations.supportsInterface("0x80ac58cd")).to.eq(true);
+    });
+
+    it("supprots the AccessControl interface", async () => {
+      expect(await donations.supportsInterface("0x7965db0b")).to.eq(true);
+    });
+  });
+
   describe("constructor", () => {
     it("it reverts if owner is address(0)", async () => {
       const Donations = await ethers.getContractFactory("Donations");

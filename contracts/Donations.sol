@@ -2,6 +2,7 @@
 pragma solidity =0.8.10;
 
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {IAccessControl} from "@openzeppelin/contracts/access/IAccessControl.sol";
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -166,13 +167,16 @@ contract Donations is ERC721, AccessControl {
      */
     function burn(uint256 _id) external {
         bool isOwner = ownerOf(_id) == _msgSender();
-        bool expired = metadata[_id].expiry <= _getBlockTimestamp();
+
+        Metadata storage data = metadata[_id];
+
+        bool expired = data.expiry <= _getBlockTimestamp();
 
         require(isOwner || expired, "Donations: not allowed");
 
-        uint256 destinationId = metadata[_id].destinationId;
-        IERC20 token = metadata[_id].token;
-        uint256 amount = metadata[_id].amount;
+        uint256 destinationId = data.destinationId;
+        IERC20 token = data.token;
+        uint256 amount = data.amount;
 
         transferableAmounts[token][destinationId] += amount;
 
