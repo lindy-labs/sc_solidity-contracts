@@ -1,4 +1,4 @@
-FROM node:16
+FROM node:17.7.1-bullseye-slim
 
 RUN npm install --global ganache@beta
 
