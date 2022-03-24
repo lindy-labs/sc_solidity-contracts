@@ -24,6 +24,7 @@ async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
   const underlying = await ethers.getContractAt("MockERC20", mockUST.address);
 
   const mockaUST = await get("aUST");
+  const aUST = await ethers.getContractAt("MockERC20", mockaUST.address);
 
   await deploy("MockEthAnchorRouter", {
     contract: "MockEthAnchorRouter",
@@ -64,12 +65,18 @@ async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
 
   console.log("minting underlying UST tokens");
 
-  await underlying.mint(alice.address, parseUnits("5000", 6));
-  await underlying.mint(bob.address, parseUnits("5000", 6));
+  await underlying.mint(alice.address, parseUnits("5000", 18));
+  await underlying.mint(bob.address, parseUnits("5000", 18));
 
   await Promise.all(
-    [alice, bob, treasury].map((account) =>
-      underlying.connect(account).approve(vault.address, parseUnits("5000", 6))
+    [alice, bob, treasury, owner].map((account) =>
+      underlying.connect(account).approve(vault.address, parseUnits("5000", 18))
+    )
+  );
+
+  await Promise.all(
+    [alice, bob, treasury, owner].map((account) =>
+      aUST.connect(account).approve(vault.address, parseUnits("5000", 18))
     )
   );
 
@@ -84,13 +91,13 @@ async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
 
   console.log("The treasury sponsors 1000 to UST Vault");
   const lockUntil = await vault.MIN_SPONSOR_LOCK_DURATION();
-  await vault.connect(treasury).sponsor(parseUnits("1000", 6), lockUntil);
+  await vault.connect(treasury).sponsor(parseUnits("1000", 18), lockUntil);
 
   console.log(
     "Alice deposits 1000 with 90% yield to Alice and 10% yield for donations to UST vault"
   );
   await vault.connect(alice).deposit({
-    amount: parseUnits("1000", 6),
+    amount: parseUnits("1000", 18),
     lockDuration: 1,
     claims: [
       {
@@ -115,7 +122,7 @@ async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
 
   await vault.setStrategy(ustAnchorStrategy.address);
 
-  await new Promise((resolve) => setTimeout(resolve, 1000));
+  await new Promise((resolve) => setTimeout(resolve, 1000)); // TODO: replace with listener
 
   console.log("strategy updated");
 
@@ -126,7 +133,19 @@ async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
     BigNumber.from((await vault.investableAmount()).toString())
   );
 
-  await vault.updateInvested("0x");
+  // await Promise.all(
+  //   [alice, bob, treasury, owner].map((account) =>
+  //     underlying.connect(account).approve(vault.address, parseUnits("5000", 6))
+  //   )
+  // );
+
+  console.log("setting investment percentage");
+
+  await vault.connect(owner).setInvestPerc("8000");
+
+  console.log("calling updateInvested");
+
+  await vault.connect(owner).updateInvested("0x");
 }
 
 func.id = "devStrategy";

@@ -16,6 +16,8 @@ import {Depositors} from "./vault/Depositors.sol";
 import {Claimers} from "./vault/Claimers.sol";
 import {IStrategy} from "./strategy/IStrategy.sol";
 
+import "hardhat/console.sol";
+
 /**
  * A vault where other accounts can deposit an underlying token
  * currency and set distribution params for their principal and yield
@@ -206,6 +208,8 @@ contract Vault is
             "Vault: strategy has invested funds"
         );
 
+        console.log("Vault.sol setting strategy");
+
         strategy = IStrategy(_strategy);
 
         emit StrategyUpdated(_strategy);
@@ -367,11 +371,17 @@ contract Vault is
     {
         require(address(strategy) != address(0), "Vault: strategy is not set");
 
+        console.log("vault.sol before investableAmount");
+
         uint256 _investable = investableAmount();
 
         require(_investable != 0, "Vault: nothing to invest");
 
+        console.log("vault.sol before updateInvested");
+
         underlying.safeTransfer(address(strategy), _investable);
+
+        console.log("vault.sol after updateInvested");
 
         emit Invested(_investable);
 
