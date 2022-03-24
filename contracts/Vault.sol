@@ -4,7 +4,6 @@ pragma solidity =0.8.10;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
-import {Counters} from "@openzeppelin/contracts/utils/Counters.sol";
 import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
@@ -31,7 +30,6 @@ contract Vault is
     AccessControl,
     ReentrancyGuard
 {
-    using Counters for Counters.Counter;
     using SafeERC20 for IERC20;
     using PercentMath for uint256;
     using PercentMath for uint16;
@@ -72,7 +70,7 @@ contract Vault is
     Claimers public claimers;
 
     /// Unique IDs to correlate donations that belong to the same foundation
-    Counters.Counter private _depositGroupIds;
+    uint256 private _depositGroupIds;
 
     struct Deposit {
         /// amount of the deposit
@@ -286,18 +284,18 @@ contract Vault is
             lockedUntil,
             _params.claims
         );
-        _transferAndCheckUnderlying(_msgSender(), _params.amount);
+        _transferAndCheckUnderlying(msg.sender, _params.amount);
     }
 
     /// See {IVault}
     function claimYield(address _to) external override(IVault) nonReentrant {
         require(_to != address(0), "Vault: destination address is 0x");
 
-        (uint256 yield, uint256 shares, uint256 fee) = yieldFor(_msgSender());
+        (uint256 yield, uint256 shares, uint256 fee) = yieldFor(msg.sender);
 
         if (yield == 0) return;
 
-        uint256 claimerId = claimers.tokenOf(_msgSender());
+        uint256 claimerId = claimers.tokenOf(msg.sender);
 
         accumulatedPerfFee += fee;
 
@@ -394,14 +392,14 @@ contract Vault is
         );
 
         uint256 lockedUntil = _lockDuration + block.timestamp;
-        uint256 tokenId = depositors.mint(_msgSender());
+        uint256 tokenId = depositors.mint(msg.sender);
 
         deposits[tokenId] = Deposit(_amount, 0, lockedUntil, 0);
 
-        emit Sponsored(tokenId, _amount, _msgSender(), lockedUntil);
+        emit Sponsored(tokenId, _amount, msg.sender, lockedUntil);
 
         totalSponsored += _amount;
-        _transferAndCheckUnderlying(_msgSender(), _amount);
+        _transferAndCheckUnderlying(msg.sender, _amount);
     }
 
     /// See {IVaultSponsoring}
@@ -507,19 +505,20 @@ contract Vault is
      * @param _to Address that will receive the funds.
      * @param _ids Array with the ids of the deposits.
      */
-    function _unsponsor(address _to, uint256[] memory _ids) internal {
+    function _unsponsor(address _to, uint256[] calldata _ids) internal {
         uint256 sponsorAmount;
         uint256 idsLen = _ids.length;
 
         for (uint8 i; i < idsLen; ++i) {
             uint256 tokenId = _ids[i];
-
-            uint256 lockedUntil = deposits[tokenId].lockedUntil;
-            uint256 claimerId = deposits[tokenId].claimerId;
+            
+            Deposit memory deposit = deposits[tokenId];
+            uint256 lockedUntil = deposit.lockedUntil;
+            uint256 claimerId = deposit.claimerId;
             address owner = depositors.ownerOf(tokenId);
-            uint256 amount = deposits[tokenId].amount;
+            uint256 amount = deposit.amount;
 
-            require(owner == _msgSender(), "Vault: you are not allowed");
+            require(owner == msg.sender, "Vault: you are not allowed");
             require(lockedUntil <= block.timestamp, "Vault: amount is locked");
             require(claimerId == 0, "Vault: token id is not a sponsor");
 
@@ -579,7 +578,7 @@ contract Vault is
         CreateDepositLocals memory locals = CreateDepositLocals({
             totalShares: totalShares,
             totalUnderlying: totalUnderlyingMinusSponsored(),
-            groupId: _depositGroupIds.current(),
+            groupId: _depositGroupIds,
             accumulatedPct: 0,
             accumulatedAmount: 0,
             claimsLen: claims.length
@@ -613,7 +612,7 @@ contract Vault is
             "Vault: claims don't add up to 100%"
         );
 
-        _depositGroupIds.increment();
+        _depositGroupIds++;
 
         return result;
     }
@@ -640,7 +639,7 @@ contract Vault is
         totalShares += newShares;
         totalPrincipal += _amount;
 
-        uint256 tokenId = depositors.mint(_msgSender());
+        uint256 tokenId = depositors.mint(msg.sender);
 
         deposits[tokenId] = Deposit(
             _amount,
@@ -654,7 +653,7 @@ contract Vault is
             _depositGroupId,
             _amount,
             newShares,
-            _msgSender(),
+            msg.sender,
             _claim.beneficiary,
             claimerId,
             _lockedUntil,
@@ -688,23 +687,26 @@ contract Vault is
         bool _force
     ) internal returns (uint256) {
         require(
-            depositors.ownerOf(_tokenId) == _msgSender(),
+            depositors.ownerOf(_tokenId) == msg.sender,
             "Vault: you are not the owner of a deposit"
         );
 
+        // memoizing saves warm sloads
+        Deposit memory deposit = deposits[_tokenId];
+
         require(
-            deposits[_tokenId].lockedUntil <= block.timestamp,
+            deposit.lockedUntil <= block.timestamp,
             "Vault: deposit is locked"
         );
 
         require(
-            deposits[_tokenId].claimerId != 0,
+            deposit.claimerId != 0,
             "Vault: token id is not a deposit"
         );
 
-        uint256 claimerId = deposits[_tokenId].claimerId;
-        uint256 depositInitialShares = deposits[_tokenId].shares;
-        uint256 depositAmount = deposits[_tokenId].amount;
+        uint256 claimerId = deposit.claimerId;
+        uint256 depositInitialShares = deposit.shares;
+        uint256 depositAmount = deposit.amount;
 
         uint256 claimerShares = claimer[claimerId].totalShares;
         uint256 claimerPrincipal = claimer[claimerId].totalPrincipal;
