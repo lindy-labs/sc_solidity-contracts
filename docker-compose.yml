@@ -12,7 +12,7 @@ services:
     depends_on:
       - postgres
       - ipfs
-      # - ethereum
+      - ethereum
     environment:
       postgres_host: postgres
       postgres_user: graph-node
