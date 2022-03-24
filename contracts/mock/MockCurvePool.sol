@@ -3,15 +3,17 @@ pragma solidity =0.8.10;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+
 import "../interfaces/curve/ICurve.sol";
 
-contract MockCurve is ICurve {
+contract MockCurve is ICurve, Ownable {
     using SafeERC20 for IERC20;
 
     mapping(int128 => IERC20) public tokens;
     mapping(int128 => mapping(int128 => uint256)) public rate;
 
-    function addToken(int128 i, IERC20 token) external {
+    function addToken(int128 i, IERC20 token) external onlyOwner {
         tokens[i] = token;
     }
 
@@ -38,5 +40,9 @@ contract MockCurve is ICurve {
 
     function coins(uint256 i) external view override(ICurve) returns (address) {
         return address(tokens[int128(uint128(i))]);
+    }
+
+    function withdraw(IERC20 token, uint256 amount) external onlyOwner {
+        token.safeTransfer(msg.sender, amount);
     }
 }

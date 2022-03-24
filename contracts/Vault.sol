@@ -86,7 +86,6 @@ contract Vault is
     }
 
     mapping(uint256 => Deposit) public deposits;
-    Counters.Counter private _depositIds;
 
     struct Claimer {
         uint256 totalPrincipal;
@@ -94,7 +93,6 @@ contract Vault is
     }
 
     mapping(uint256 => Claimer) public claimer;
-    Counters.Counter private _claimerIds;
 
     // The total of shares
     uint256 public totalShares;
