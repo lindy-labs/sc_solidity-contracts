@@ -403,7 +403,7 @@ contract Vault is
     }
 
     /// See {IVaultSponsoring}
-    function unsponsor(address _to, uint256[] memory _ids)
+    function unsponsor(address _to, uint256[] calldata _ids)
         external
         nonReentrant
     {
