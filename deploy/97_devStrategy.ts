@@ -110,20 +110,23 @@ async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
 
   console.log("ustAnchorStrategy address", ustAnchorStrategy.address);
 
-  console.log(
-    "setStrategy response",
-    await vault.setStrategy(ustAnchorStrategy.address)
-  );
+  // vault.on("StrategyUpdated", async () => {
+  // });
 
-  console.log("UST vault strategy", await vault.strategy());
+  await vault.setStrategy(ustAnchorStrategy.address);
 
-  await new Promise((resolve) => setTimeout(resolve, 5000));
+  await new Promise((resolve) => setTimeout(resolve, 1000));
 
-  console.log("UST vault strategy", await vault.strategy());
+  console.log("strategy updated");
 
   console.log("Execute UpdateInvested");
 
-  await vault.connect(owner).updateInvested("0x");
+  console.log(
+    "investableAmount",
+    BigNumber.from((await vault.investableAmount()).toString())
+  );
+
+  await vault.updateInvested("0x");
 }
 
 func.id = "devStrategy";
