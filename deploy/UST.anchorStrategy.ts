@@ -31,8 +31,6 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
       owner,
     ],
   });
-
-  console.log("deployed eth anchor strategy");
 };
 
 func.id = "deploy_ust_anchor_strategy";

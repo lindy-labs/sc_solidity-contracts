@@ -11,8 +11,8 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
 
   console.table([alice, bob, treasury]);
 
-  const ust = await get("USDC");
-  const underlying = await ethers.getContractAt("MockERC20", ust.address);
+  const usdc = await get("USDC");
+  const underlying = await ethers.getContractAt("MockERC20", usdc.address);
 
   const vaultAddress = (await get("Vault_USDC")).address;
   const vault = await ethers.getContractAt("Vault", vaultAddress);
@@ -81,12 +81,6 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
 
   console.log("The treasury claims");
   await vault.connect(treasury).claimYield(treasury.address);
-
-  const ustAnchorStrategy = await get("AnchorUSTStrategy");
-
-  await vault.setStrategy(ustAnchorStrategy.address);
-
-  await vault.updateInvested("0x");
 };
 
 func.id = "fixtures";

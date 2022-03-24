@@ -21,6 +21,8 @@ async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
   console.table([alice, bob, treasury]);
 
   const mockUST = await get("UST");
+  const underlying = await ethers.getContractAt("MockERC20", mockUST.address);
+
   const mockaUST = await get("aUST");
 
   await deploy("MockEthAnchorRouter", {
@@ -39,7 +41,8 @@ async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
 
   console.log("deployed UST strategy dependencies");
 
-  const vault = await get("Vault_UST");
+  const vaultDeployment = await get("Vault_UST");
+  const vault = await ethers.getContractAt("Vault", vaultDeployment.address);
   const mockEthAnchorRouter = await get("MockEthAnchorRouter");
   const mockChainlinkPriceFeed = await get("MockChainlinkPriceFeed");
 
@@ -52,14 +55,75 @@ async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
     owner.address,
   ];
 
-  console.log("args", args);
-
   await deploy("AnchorUSTStrategy", {
     contract: "AnchorUSTStrategy",
     from: deployer,
     log: true,
     args,
   });
+
+  console.log("minting underlying UST tokens");
+
+  await underlying.mint(alice.address, parseUnits("5000", 6));
+  await underlying.mint(bob.address, parseUnits("5000", 6));
+
+  await Promise.all(
+    [alice, bob, treasury].map((account) =>
+      underlying.connect(account).approve(vault.address, parseUnits("5000", 6))
+    )
+  );
+
+  const ustAnchorStrategyAddress = (await get("AnchorUSTStrategy")).address;
+  const ustAnchorStrategy = await ethers.getContractAt(
+    "AnchorUSTStrategy",
+    ustAnchorStrategyAddress
+  );
+
+  console.log("Set treasury for UST vault");
+  await vault.connect(owner).setTreasury(treasury.address);
+
+  console.log("The treasury sponsors 1000 to UST Vault");
+  const lockUntil = await vault.MIN_SPONSOR_LOCK_DURATION();
+  await vault.connect(treasury).sponsor(parseUnits("1000", 6), lockUntil);
+
+  console.log(
+    "Alice deposits 1000 with 90% yield to Alice and 10% yield for donations to UST vault"
+  );
+  await vault.connect(alice).deposit({
+    amount: parseUnits("1000", 6),
+    lockDuration: 1,
+    claims: [
+      {
+        beneficiary: alice.address,
+        pct: 9000,
+        data: "0x",
+      },
+      {
+        beneficiary: treasury.address,
+        pct: 1000,
+        data: ethers.utils.hexlify(123124),
+      },
+    ],
+  });
+
+  console.log("setting USTAnchor strategy to UST vault");
+
+  console.log("ustAnchorStrategy address", ustAnchorStrategy.address);
+
+  console.log(
+    "setStrategy response",
+    await vault.setStrategy(ustAnchorStrategy.address)
+  );
+
+  console.log("UST vault strategy", await vault.strategy());
+
+  await new Promise((resolve) => setTimeout(resolve, 5000));
+
+  console.log("UST vault strategy", await vault.strategy());
+
+  console.log("Execute UpdateInvested");
+
+  await vault.connect(owner).updateInvested("0x");
 }
 
 func.id = "devStrategy";
