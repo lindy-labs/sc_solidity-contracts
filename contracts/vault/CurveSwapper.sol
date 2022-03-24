@@ -12,7 +12,7 @@ abstract contract CurveSwapper {
     using SafeERC20 for IERC20;
 
     /// Static 95% slippage (TODO should probably make this configurable)
-    uint256 public constant SLIPPAGE = 95;
+    uint256 public constant SLIPPAGE = 99;
 
     struct Swapper {
         /// Curve pool instance
