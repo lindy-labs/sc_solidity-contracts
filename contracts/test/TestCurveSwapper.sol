@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity =0.8.10;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
 import {CurveSwapper} from "../vault/CurveSwapper.sol";
 import {ICurve} from "../interfaces/curve/ICurve.sol";
 
@@ -18,6 +20,6 @@ contract TestCurveSwapper is CurveSwapper {
     }
 
     function test_swapFromUnderlying(address _token, uint256 _amount) external {
-        _swapIntoUnderlying(_token, _amount);
+        _swapFromUnderlying(_token, _amount);
     }
 }

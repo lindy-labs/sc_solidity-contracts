@@ -12,10 +12,10 @@ import {
 } from "../../typechain";
 import { ForkHelpers } from "../shared";
 
-const { parseUnits } = ethers.utils;
+const { formatUnits, parseUnits } = ethers.utils;
 const { MaxUint256 } = ethers.constants;
 
-const FORK_BLOCK = 14023000;
+const FORK_BLOCK = 14449700;
 const UST_ADDRESS = "0xa47c8bf37f92abed4a126bda807a7b7498661acd";
 const USDT_ADDRESS = "0xdac17f958d2ee523a2206206994597c13d831ec7";
 const USDC_ADDRESS = "0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48";
@@ -66,28 +66,50 @@ describe("CurveSwapper", () => {
       [curveIndexes.ust, curveIndexes.ust, curveIndexes.ust]
     );
 
-    await ForkHelpers.mintToken(ust, swapper, parseUnits("1000"));
-    await ForkHelpers.mintToken(dai, swapper, parseUnits("1000"));
-    await ForkHelpers.mintToken(usdc, swapper, parseUnits("1000"));
-    await ForkHelpers.mintToken(usdt, swapper, parseUnits("1000"));
+    await ForkHelpers.mintToken(ust, swapper, parseUnits("100"));
+    await ForkHelpers.mintToken(dai, swapper, parseUnits("100"));
+    await ForkHelpers.mintToken(usdc, swapper, parseUnits("100"));
+    await ForkHelpers.mintToken(usdt, swapper, parseUnits("100"));
   });
 
   describe("swapToUnderlying", function () {
-    it.only("swaps 100DAI for approximately 100UST", async () => {
+    it("swaps 100DAI for approximately 100UST", async () => {
       const input = parseUnits("100", decimals.dai);
-
       const action = () => swapper.test_swapIntoUnderlying(dai.address, input);
-
       await validateSwap(action, swapper, dai, ust, "100");
     });
-    it("swaps 100USDC for approximately 100UST", async () => {});
-    it("swaps 100USDT for approximately 100UST", async () => {});
+
+    it("swaps 100USDC for approximately 100UST", async () => {
+      const input = parseUnits("100", decimals.usdc);
+      const action = () => swapper.test_swapIntoUnderlying(usdc.address, input);
+      await validateSwap(action, swapper, usdc, ust, "100");
+    });
+
+    it("swaps 100USDT for approximately 100UST", async () => {
+      const input = parseUnits("100", decimals.usdt);
+      const action = () => swapper.test_swapIntoUnderlying(usdt.address, input);
+      await validateSwap(action, swapper, usdt, ust, "100");
+    });
   });
 
   describe("swapFromUnderlying", function () {
-    it("swaps 100UST for approximately 100DAI", async () => {});
-    it("swaps 100UST for approximately 100USDC", async () => {});
-    it("swaps 100UST for approximately 100USDT", async () => {});
+    it("swaps 100UST for approximately 100DAI", async () => {
+      const input = parseUnits("100", decimals.ust);
+      const action = () => swapper.test_swapFromUnderlying(dai.address, input);
+      await validateSwap(action, swapper, ust, dai, "100");
+    });
+
+    it("swaps 100UST for approximately 100USDC", async () => {
+      const input = parseUnits("100", decimals.ust);
+      const action = () => swapper.test_swapFromUnderlying(usdc.address, input);
+      await validateSwap(action, swapper, ust, usdc, "100");
+    });
+
+    it("swaps 100UST for approximately 100USDT", async () => {
+      const input = parseUnits("100", decimals.ust);
+      const action = () => swapper.test_swapFromUnderlying(usdt.address, input);
+      await validateSwap(action, swapper, ust, usdt, "100");
+    });
   });
 
   async function validateSwap(
@@ -103,12 +125,11 @@ describe("CurveSwapper", () => {
     await action();
 
     const fromBalanceAfter = await from.balanceOf(account.address);
-    const toBalanceAfter = await from.balanceOf(account.address);
+    const toBalanceAfter = await to.balanceOf(account.address);
 
     const deltaFrom = parseUnits(amount, await from.decimals());
     const deltaTo = parseUnits(amount, await to.decimals());
-
-    const deltaToMargin = parseUnits("2", await to.decimals());
+    const deltaToMargin = parseUnits("1", await to.decimals());
 
     expect(fromBalanceAfter).to.equal(fromBalanceBefore.sub(deltaFrom));
     expect(toBalanceAfter).to.be.closeTo(

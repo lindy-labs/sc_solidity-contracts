@@ -3,13 +3,14 @@ pragma solidity =0.8.10;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import {ICurve} from "../interfaces/curve/ICurve.sol";
 
-import "hardhat/console.sol";
-
 /// Helper abstract contract to manage curve swaps
 abstract contract CurveSwapper {
+    using SafeERC20 for IERC20;
+
     struct Swapper {
         /// Curve pool instance
         ICurve pool;
@@ -47,7 +48,10 @@ abstract contract CurveSwapper {
             _tokens.length == _underlyingIs.length,
             "invalid _underlyingsIs length"
         );
-        require(_underlying != address(0), "_underlying cannot be 0x0");
+        require(
+            address(_underlying) != address(0),
+            "_underlying cannot be 0x0"
+        );
 
         underlying = _underlying;
 
@@ -84,8 +88,9 @@ abstract contract CurveSwapper {
             _tokenI,
             _underlyingI
         );
-        IERC20(underlying).approve(address(_pool), type(uint256).max);
-        IERC20(_token).approve(address(_pool), type(uint256).max);
+
+        _approveIfNecessary(underlying, address(_pool));
+        _approveIfNecessary(_token, address(_pool));
     }
 
     /// Swaps a given amount of
@@ -102,11 +107,17 @@ abstract contract CurveSwapper {
 
         Swapper storage swapper = swappers[_token];
 
+        uint256 minAmount = _calc_dy(
+            _amount,
+            swapper.tokenDecimals,
+            swapper.underlyingDecimals
+        );
+
         swapper.pool.exchange_underlying(
             swapper.tokenI,
             swapper.underlyingI,
             _amount,
-            _calc_dy(_amount, swapper.tokenDecimals, swapper.underlyingDecimals)
+            minAmount
         );
     }
 
@@ -124,11 +135,17 @@ abstract contract CurveSwapper {
 
         Swapper storage swapper = swappers[_token];
 
+        uint256 minAmount = _calc_dy(
+            _amount,
+            swapper.underlyingDecimals,
+            swapper.tokenDecimals
+        );
+
         swapper.pool.exchange_underlying(
             swapper.underlyingI,
             swapper.tokenI,
             _amount,
-            _calc_dy(_amount, swapper.underlyingDecimals, swapper.tokenDecimals)
+            minAmount
         );
     }
 
@@ -137,8 +154,18 @@ abstract contract CurveSwapper {
         uint8 _fromDecimals,
         uint8 _toDecimals
     ) internal view returns (uint256) {
-        return 1;
         // return (10**_toDecimals * 90) / 100;
-        // return (_amount * 90 * 10**_toDecimals) / (10**_fromDecimals * 100);
+        return (_amount * 90 * 10**_toDecimals) / (10**_fromDecimals * 100);
+    }
+
+    /// This is necessary because some tokens (USDT) force you to approve(0)
+    /// before approving a new amount meaning if we always approved blindly,
+    /// then we could get random failures on the second attempt
+    function _approveIfNecessary(address _token, address _pool) internal {
+        uint256 allowance = IERC20(_token).allowance(address(this), _pool);
+
+        if (allowance == 0) {
+            IERC20(_token).safeApprove(_pool, type(uint256).max);
+        }
     }
 }
