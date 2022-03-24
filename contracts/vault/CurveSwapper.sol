@@ -11,6 +11,9 @@ import {ICurve} from "../interfaces/curve/ICurve.sol";
 abstract contract CurveSwapper {
     using SafeERC20 for IERC20;
 
+    /// Static 95% slippage (TODO should probably make this configurable)
+    uint256 public constant SLIPPAGE = 95;
+
     struct Swapper {
         /// Curve pool instance
         ICurve pool;
@@ -155,7 +158,8 @@ abstract contract CurveSwapper {
         uint8 _toDecimals
     ) internal view returns (uint256) {
         // return (10**_toDecimals * 90) / 100;
-        return (_amount * 90 * 10**_toDecimals) / (10**_fromDecimals * 100);
+        return
+            (_amount * SLIPPAGE * 10**_toDecimals) / (10**_fromDecimals * 100);
     }
 
     /// This is necessary because some tokens (USDT) force you to approve(0)
