@@ -1,6 +1,5 @@
 import { network, getNamedAccounts } from "hardhat";
-
-const ETH_ANCHOR_ROUTER = "0xcEF9E167d3f8806771e9bac1d4a0d568c39a9388";
+import { Address } from "hardhat-deploy/types";
 
 interface Config {
   investPct: number;
@@ -18,7 +17,7 @@ const networkConfigs: Record<number, Config> = {
     perfFeePct: 300, // TODO
     multisig: "0x035F210e5d14054E8AE5A6CFA76d643aA200D56E",
     minLockPeriod: 60 * 60 * 24 * 30, // 30 days
-    ethAnchorRouter: ETH_ANCHOR_ROUTER,
+    ethAnchorRouter: "0xcEF9E167d3f8806771e9bac1d4a0d568c39a9388",
     AUstToUstPriceFeed: "0x7b80a92f7d1e5cEeDDf939d77BF281E7e88f2906",
   },
 
@@ -38,7 +37,7 @@ const networkConfigs: Record<number, Config> = {
     perfFeePct: 100, // 1%
     multisig: "deployer",
     minLockPeriod: 1, // 1 second
-    ethAnchorRouter: ETH_ANCHOR_ROUTER,
+    ethAnchorRouter: "TODO",
     AUstToUstPriceFeed: "TODO",
   },
 
@@ -53,13 +52,14 @@ const networkConfigs: Record<number, Config> = {
   },
 };
 
-const resolveAccount = async (account) => {
+const resolveAccount = async (account: Address) => {
   const accounts = await getNamedAccounts();
 
   return accounts[account] || account;
 };
 
 export const getCurrentNetworkConfig = async () => {
+  console.log("network.config", network.config);
   const config = networkConfigs[network.config.chainId];
 
   config.multisig = await resolveAccount(config.multisig);

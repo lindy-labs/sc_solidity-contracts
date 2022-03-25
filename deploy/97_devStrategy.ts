@@ -102,13 +102,8 @@ async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
     claims: [
       {
         beneficiary: alice.address,
-        pct: 9000,
+        pct: 10000,
         data: "0x",
-      },
-      {
-        beneficiary: treasury.address,
-        pct: 1000,
-        data: ethers.utils.hexlify(123124),
       },
     ],
   });
