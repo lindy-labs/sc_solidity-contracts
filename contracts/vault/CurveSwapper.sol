@@ -108,7 +108,7 @@ abstract contract CurveSwapper {
     {
         if (_token == underlying) {
             // same token, nothing to do
-            return;
+            return _amount;
         }
 
         Swapper storage swapper = swappers[_token];
@@ -140,7 +140,7 @@ abstract contract CurveSwapper {
     {
         if (_token == underlying) {
             // same token, nothing to do
-            return;
+            return _amount;
         }
 
         Swapper storage swapper = swappers[_token];
