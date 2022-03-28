@@ -26,14 +26,12 @@ async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
   await deploy("MockEthAnchorRouter", {
     contract: "MockEthAnchorRouter",
     from: deployer,
-    log: true,
     args: [mockUST.address, mockUST.address],
   });
 
   await deploy("MockChainlinkPriceFeed", {
     contract: "MockChainlinkPriceFeed",
     from: deployer,
-    log: true,
     args: [18],
   });
 
@@ -116,7 +114,7 @@ async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
 
       console.log("Vault investments updated");
 
-      resolve("done");
+      resolve(true);
     });
 
     console.log("setting USTAnchor strategy to UST vault");

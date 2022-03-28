@@ -4,7 +4,7 @@ RUN mkdir /app
 
 WORKDIR /app
 
-ADD docker/ganache.entrypoint.sh /app/entrypoint.sh
+ADD docker/hardhat.entrypoint.sh /app/entrypoint.sh
 ADD docker/hardhat.config.js /app/hardhat.config.js
 
 RUN npm init -y && npm install hardhat @nomiclabs/hardhat-waffle
