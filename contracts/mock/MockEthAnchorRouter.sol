@@ -23,8 +23,6 @@ contract MockEthAnchorRouter is IEthAnchorRouter {
 
         ustToken = _ustToken;
         aUstToken = _aUstToken;
-
-        console.log("deployed mock eth anchor router");
     }
 
     function addPendingOperator(address _operator) external {
