@@ -36,3 +36,23 @@ dataSources:
           handler: handleYieldClaimed
         - event: TreasuryUpdated(indexed address)
           handler: handleTreasuryUpdated
+
+templates:
+  - name: Claimers
+    kind: ethereum/contract
+    network: mainnet
+    source:
+      abi: IERC721
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      file: ./src/mappings/claimers.ts
+      entities:
+        - Claimers
+      abis:
+        - name: IERC721
+          file: ../artifacts/@openzeppelin/contracts/token/ERC721/IERC721.sol/IERC721.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,indexed uint256)
+          handler: handleClaimerTransfer
