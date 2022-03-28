@@ -1,7 +1,5 @@
 import type { HardhatRuntimeEnvironment } from "hardhat/types";
-
 import { ethers } from "hardhat";
-import { BigNumber } from "ethers";
 
 const { parseUnits } = ethers.utils;
 
@@ -24,7 +22,6 @@ async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
   const underlying = await ethers.getContractAt("MockERC20", mockUST.address);
 
   const mockaUST = await get("aUST");
-  // const aUST = await ethers.getContractAt("MockERC20", mockaUST.address);
 
   await deploy("MockEthAnchorRouter", {
     contract: "MockEthAnchorRouter",
@@ -40,7 +37,7 @@ async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
     args: [18],
   });
 
-  console.log("deployed UST strategy dependencies");
+  console.log("Deployed UST strategy dependencies");
 
   const vaultDeployment = await get("Vault_UST");
   const vault = await ethers.getContractAt("Vault", vaultDeployment.address);
@@ -53,23 +50,20 @@ async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
   );
   await mockEthAnchorRouter.addPendingOperator(ethAnchorOperator);
 
-  const args = [
-    vault.address,
-    mockEthAnchorRouterDeployment.address,
-    mockChainlinkPriceFeed.address,
-    mockUST.address,
-    mockaUST.address,
-    owner.address,
-  ];
+  console.log("Deploy AnchorUSTStrategy for development");
 
   await deploy("AnchorUSTStrategy", {
     contract: "AnchorUSTStrategy",
     from: deployer,
-    log: true,
-    args,
+    args: [
+      vault.address,
+      mockEthAnchorRouterDeployment.address,
+      mockChainlinkPriceFeed.address,
+      mockUST.address,
+      mockaUST.address,
+      owner.address,
+    ],
   });
-
-  console.log("minting underlying UST tokens");
 
   await underlying.mint(alice.address, parseUnits("5000", 18));
   await underlying.mint(bob.address, parseUnits("5000", 18));
@@ -106,24 +100,29 @@ async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
     ],
   });
 
-  console.log("setting USTAnchor strategy to UST vault");
+  await new Promise((resolve) => {
+    console.log("setting up promise to wait for event");
 
-  console.log("ustAnchorStrategy address", ustAnchorStrategy.address);
+    vault.on("StrategyUpdated", async () => {
+      console.log("StrategyUpdated Event triggered");
 
-  // vault.on("StrategyUpdated", async () => {
-  // });
+      console.log("Strategy updated");
 
-  await vault.setStrategy(ustAnchorStrategy.address);
+      await vault.connect(owner).setInvestPerc("8000");
 
-  await new Promise((resolve) => setTimeout(resolve, 1000)); // TODO: replace with listener
+      console.log("Calling updateInvested");
 
-  console.log("strategy updated");
+      await vault.connect(owner).updateInvested("0x");
 
-  await vault.connect(owner).setInvestPerc("8000");
+      console.log("Vault investments updated");
 
-  console.log("calling updateInvested");
+      resolve("done");
+    });
 
-  await vault.connect(owner).updateInvested("0x");
+    console.log("setting USTAnchor strategy to UST vault");
+
+    vault.setStrategy(ustAnchorStrategy.address);
+  });
 }
 
 func.id = "devStrategy";
