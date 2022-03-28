@@ -58,7 +58,7 @@ abstract contract CurveSwapper {
 
         underlying = _underlying;
 
-        for (uint256 i; i < _tokens.length; ++i) {
+        for (uint256 i = 0; i < _tokens.length; ++i) {
             addPool(_tokens[i], _pools[i], _tokenIs[i], _underlyingIs[i]);
         }
     }
@@ -102,7 +102,10 @@ abstract contract CurveSwapper {
     /// @param _token The token we want to swap into
     /// @param _amount The amount of underlying we want to swap
     /// TODO missing slippage checks
-    function _swapIntoUnderlying(address _token, uint256 _amount) internal {
+    function _swapIntoUnderlying(address _token, uint256 _amount)
+        internal
+        returns (uint256 amount)
+    {
         if (_token == underlying) {
             // same token, nothing to do
             return;
@@ -116,12 +119,13 @@ abstract contract CurveSwapper {
             swapper.underlyingDecimals
         );
 
-        swapper.pool.exchange_underlying(
-            swapper.tokenI,
-            swapper.underlyingI,
-            _amount,
-            minAmount
-        );
+        return
+            swapper.pool.exchange_underlying(
+                swapper.tokenI,
+                swapper.underlyingI,
+                _amount,
+                minAmount
+            );
     }
 
     /// Swaps a given amount of Underlying into a given token
@@ -130,7 +134,10 @@ abstract contract CurveSwapper {
     /// @param _token The token we want to swap into
     /// @param _amount The amount of underlying we want to swap
     /// TODO missing slippage checks
-    function _swapFromUnderlying(address _token, uint256 _amount) internal {
+    function _swapFromUnderlying(address _token, uint256 _amount)
+        internal
+        returns (uint256 amount)
+    {
         if (_token == underlying) {
             // same token, nothing to do
             return;
@@ -144,12 +151,13 @@ abstract contract CurveSwapper {
             swapper.tokenDecimals
         );
 
-        swapper.pool.exchange_underlying(
-            swapper.underlyingI,
-            swapper.tokenI,
-            _amount,
-            minAmount
-        );
+        return
+            swapper.pool.exchange_underlying(
+                swapper.underlyingI,
+                swapper.tokenI,
+                _amount,
+                minAmount
+            );
     }
 
     function _calcMinDy(
