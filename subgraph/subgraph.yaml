@@ -7,7 +7,7 @@ dataSources:
     network: mainnet
     source:
       abi: Vault
-      address: "0x9f620D84E77DB85A7Cae9F60a2EB60B265518707"
+      address: "0xF0C57819803C04e3b061C64713eCd856AC35B4c4"
     mapping: &mapping
       kind: ethereum/events
       apiVersion: 0.0.6

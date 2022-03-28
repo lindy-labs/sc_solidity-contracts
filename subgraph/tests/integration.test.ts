@@ -3,7 +3,7 @@ import {
   test,
   assert,
   newMockEvent,
-  clearStore
+  clearStore,
 } from "matchstick-as/assembly/index";
 
 import {
@@ -12,27 +12,25 @@ import {
   handleUnsponsored,
   handleDepositBurned,
   handleYieldClaimed,
-  handleTreasuryUpdated
+  handleTreasuryUpdated,
 } from "../src/mappings/vault";
-import {
-  Sponsored,
-  Unsponsored
-} from "../src/types/templates/Vault/IVaultSponsoring";
+import { Sponsored, Unsponsored } from "../src/types/Vault/IVaultSponsoring";
 import {
   DepositBurned,
   DepositMinted,
   TreasuryUpdated,
-  YieldClaimed
-} from "../src/types/templates/Vault/IVault";
+  YieldClaimed,
+} from "../src/types/Vault/IVault";
 import {
   Vault,
   Deposit,
   Sponsor,
   Claimer,
-  Foundation
-} from "../generated/schema";
+  Foundation,
+} from "../src/types/schema";
 
-const MOCK_ADDRESS_1 = "0xC80B3caAd6d2DE80Ac76a41d5F0072E36D2519Cd".toLowerCase();
+const MOCK_ADDRESS_1 =
+  "0xC80B3caAd6d2DE80Ac76a41d5F0072E36D2519Cd".toLowerCase();
 const TREASURY_ADDRESS = "0x4940c6e628da11ac0bdcf7f82be8579b4696fa33";
 
 test("handleTreasuryUpdated updates the treasury", () => {
@@ -260,6 +258,7 @@ test("handleYieldClaimed reduces shares from Deposits and creates Donations", ()
   event.parameters.push(newAddress("to", TREASURY_ADDRESS));
   event.parameters.push(newI32("amount", 150));
   event.parameters.push(newI32("burnedShares", 75));
+  event.parameters.push(newI32("perfFee", 0));
 
   handleYieldClaimed(event);
 
@@ -268,6 +267,61 @@ test("handleYieldClaimed reduces shares from Deposits and creates Donations", ()
 
   assert.fieldEquals("Donation", donationId(mockEvent, "0"), "amount", "50");
   assert.fieldEquals("Donation", donationId(mockEvent, "1"), "amount", "100");
+
+  clearStore();
+});
+
+test("handleYieldClaimed takes the performance fee into account", () => {
+  clearStore();
+
+  let mockEvent = newMockEvent();
+
+  // Create deposits
+  createDeposit("1", 50, false, "1", "1", 1, 50);
+  createDeposit("2", 100, false, "1", "1", 1, 100);
+
+  // Create vault
+  const vault = new Vault(mockEvent.address.toString());
+  vault.treasury = Address.fromString(TREASURY_ADDRESS);
+  vault.save();
+
+  // Create claimer
+  const claimer = new Claimer("1");
+  claimer.vault = mockEvent.address.toString();
+  claimer.depositsIds = ["1", "2"];
+  claimer.save();
+
+  // Create foundation
+  const foundation = new Foundation("1");
+  foundation.vault = mockEvent.address.toString();
+  foundation.save();
+
+  const event = new YieldClaimed(
+    mockEvent.address,
+    mockEvent.logIndex,
+    mockEvent.transactionLogIndex,
+    mockEvent.logType,
+    mockEvent.block,
+    mockEvent.transaction,
+    mockEvent.parameters
+  );
+  event.parameters = new Array();
+
+  event.parameters.push(newI32("claimerId", 1));
+  event.parameters.push(newAddress("to", TREASURY_ADDRESS));
+  event.parameters.push(newI32("amount", 120));
+  event.parameters.push(newI32("burnedShares", 75));
+  event.parameters.push(newI32("perfFee", 30));
+
+  handleYieldClaimed(event);
+
+  assert.fieldEquals("Claimer", "1", "claimed", "120");
+
+  assert.fieldEquals("Deposit", "1", "shares", "25");
+  assert.fieldEquals("Deposit", "2", "shares", "50");
+
+  assert.fieldEquals("Donation", donationId(mockEvent, "0"), "amount", "40");
+  assert.fieldEquals("Donation", donationId(mockEvent, "1"), "amount", "80");
 
   clearStore();
 });
@@ -312,6 +366,7 @@ test("handleYieldClaimed doesn't create donations if the deposits are not to the
   event.parameters.push(newAddress("to", MOCK_ADDRESS_1));
   event.parameters.push(newI32("amount", 150));
   event.parameters.push(newI32("burnedShares", 75));
+  event.parameters.push(newI32("perfFee", 0));
 
   handleYieldClaimed(event);
 
@@ -358,6 +413,7 @@ test("handleYieldClaimed handles scenarios where only one of the deposits genera
   event.parameters.push(newAddress("to", TREASURY_ADDRESS));
   event.parameters.push(newI32("amount", 50));
   event.parameters.push(newI32("burnedShares", 25));
+  event.parameters.push(newI32("perfFee", 0));
 
   handleYieldClaimed(event);
 
@@ -403,6 +459,7 @@ test("handleYieldClaimed handles scenarios where the yield is not proportional t
   event.parameters.push(newAddress("to", TREASURY_ADDRESS));
   event.parameters.push(newI32("amount", 147));
   event.parameters.push(newI32("burnedShares", 49));
+  event.parameters.push(newI32("perfFee", 0));
 
   handleYieldClaimed(event);
 
