@@ -385,7 +385,11 @@ contract Vault is
 
         emit Invested(_investable);
 
+        console.log("vault.sol after emit Invested event");
+
         strategy.invest(data);
+
+        console.log("after investing in strategy");
     }
 
     //

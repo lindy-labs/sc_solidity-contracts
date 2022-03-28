@@ -65,6 +65,7 @@ const config: HardhatUserConfig = {
     alice: 1,
     bob: 2,
     carol: 3,
+    ethAnchorOperator: 4,
   },
   mocha: {
     timeout: 2000000,

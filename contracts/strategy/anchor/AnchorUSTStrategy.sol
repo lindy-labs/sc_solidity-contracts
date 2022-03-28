@@ -8,6 +8,8 @@ import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/Ag
 import {AnchorBaseStrategy} from "./AnchorBaseStrategy.sol";
 import {PercentMath} from "../../lib/PercentMath.sol";
 
+import "hardhat/console.sol";
+
 /**
  * An Eth Anchor strategy that uses UST as the underlying currency
  */
@@ -52,7 +54,11 @@ contract AnchorUSTStrategy is AnchorBaseStrategy {
      * @dev external data is not required
      */
     function invest(bytes calldata) external override onlyManager {
+        console.log("AnchorUSTStrategy init deposit stable");
+
         (address operator, uint256 ustAmount) = _initDepositStable();
+
+        console.log("AnchorUSTStrategy emitting InitDepositStable event");
 
         emit InitDepositStable(
             operator,

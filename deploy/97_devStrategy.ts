@@ -14,7 +14,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 };
 
 async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
-  const { deployer } = await env.getNamedAccounts();
+  const { deployer, ethAnchorOperator } = await env.getNamedAccounts();
   const { deploy, execute, get, read } = env.deployments;
   const [owner, alice, bob, treasury] = await ethers.getSigners();
 
@@ -44,12 +44,18 @@ async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
 
   const vaultDeployment = await get("Vault_UST");
   const vault = await ethers.getContractAt("Vault", vaultDeployment.address);
-  const mockEthAnchorRouter = await get("MockEthAnchorRouter");
+  const mockEthAnchorRouterDeployment = await get("MockEthAnchorRouter");
   const mockChainlinkPriceFeed = await get("MockChainlinkPriceFeed");
+
+  const mockEthAnchorRouter = await ethers.getContractAt(
+    "MockEthAnchorRouter",
+    mockEthAnchorRouterDeployment.address
+  );
+  await mockEthAnchorRouter.addPendingOperator(ethAnchorOperator);
 
   const args = [
     vault.address,
-    mockEthAnchorRouter.address,
+    mockEthAnchorRouterDeployment.address,
     mockChainlinkPriceFeed.address,
     mockUST.address,
     mockaUST.address,
