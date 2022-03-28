@@ -156,8 +156,7 @@ abstract contract CurveSwapper {
         uint256 _amount,
         uint8 _fromDecimals,
         uint8 _toDecimals
-    ) internal view returns (uint256) {
-        // return (10**_toDecimals * 90) / 100;
+    ) internal pure returns (uint256) {
         return
             (_amount * SLIPPAGE * 10**_toDecimals) / (10**_fromDecimals * 100);
     }
