@@ -27,42 +27,29 @@ abstract contract CurveSwapper {
         int128 underlyingI;
     }
 
+    struct SwapPoolParam {
+        address token;
+        address pool;
+        int128 tokenI;
+        int128 underlyingI;
+    }
+
     /// token => curve pool (for trading token/underlying)
     mapping(address => Swapper) public swappers;
 
-    /// @param _tokens initial list of tokens to support
-    /// @param _pools curve pool to use for each token
-    /// @param _tokenIs index of _token within the given curve pool
-    /// @param _underlyingIs index of the vault's underlying token within the curve pool
-    function addPools(
-        address[] memory _tokens,
-        address[] memory _pools,
-        int128[] memory _tokenIs,
-        int128[] memory _underlyingIs
-    ) public {
-        require(_tokens.length == _pools.length, "invalid _pools length");
-        require(_tokens.length == _tokenIs.length, "invalid _tokenIds length");
-        require(
-            _tokens.length == _underlyingIs.length,
-            "invalid _underlyingsIs length"
-        );
-
-        for (uint256 i = 0; i < _tokens.length; ++i) {
-            addPool(_tokens[i], _pools[i], _tokenIs[i], _underlyingIs[i]);
+    /// @param _swapPools configs for each swap pool
+    function addPools(SwapPoolParam[] memory _swapPools) public {
+        for (uint256 i = 0; i < _swapPools.length; ++i) {
+            addPool(_swapPools[i]);
         }
     }
 
     function getUnderlying() public view virtual returns (address);
 
-    function addPool(
-        address _token,
-        address _pool,
-        int128 _tokenI,
-        int128 _underlyingI
-    ) public {
+    function addPool(SwapPoolParam memory _param) public {
         // TODO only allowed role
         require(
-            ICurve(_pool).coins(uint256(uint128(_underlyingI))) ==
+            ICurve(_param.pool).coins(uint256(uint128(_param.underlyingI))) ==
                 getUnderlying(),
             "_underlyingI does not match underlying token"
         );
@@ -73,20 +60,20 @@ abstract contract CurveSwapper {
         //     "_tokenI does not match input token"
         // );
 
-        uint256 tokenDecimals = IERC20Metadata(_token).decimals();
+        uint256 tokenDecimals = IERC20Metadata(_param.token).decimals();
         uint256 underlyingDecimals = IERC20Metadata(getUnderlying()).decimals();
 
         // TODO check if _token and _underlyingIndex match the pool settings
-        swappers[_token] = Swapper(
-            ICurve(_pool),
+        swappers[_param.token] = Swapper(
+            ICurve(_param.pool),
             uint8(tokenDecimals),
             uint8(underlyingDecimals),
-            _tokenI,
-            _underlyingI
+            _param.tokenI,
+            _param.underlyingI
         );
 
-        _approveIfNecessary(getUnderlying(), address(_pool));
-        _approveIfNecessary(_token, address(_pool));
+        _approveIfNecessary(getUnderlying(), address(_param.pool));
+        _approveIfNecessary(_param.token, address(_param.pool));
     }
 
     /// Swaps a given amount of

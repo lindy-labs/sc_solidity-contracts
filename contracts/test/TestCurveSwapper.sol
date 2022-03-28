@@ -9,15 +9,9 @@ import {ICurve} from "../interfaces/curve/ICurve.sol";
 contract TestCurveSwapper is CurveSwapper {
     address private _underlying;
 
-    constructor(
-        address __underlying,
-        address[] memory _tokens,
-        address[] memory _pools,
-        int128[] memory _tokenIs,
-        int128[] memory _underlyingIs
-    ) {
+    constructor(address __underlying, SwapPoolParam[] memory _swapPoolsParams) {
         _underlying = __underlying;
-        addPools(_tokens, _pools, _tokenIs, _underlyingIs);
+        addPools(_swapPoolsParams);
     }
 
     function getUnderlying()

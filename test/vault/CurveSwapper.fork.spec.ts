@@ -58,13 +58,26 @@ describe("CurveSwapper", () => {
       usdt: await usdt.decimals(),
     };
 
-    swapper = await new TestCurveSwapper__factory(owner).deploy(
-      ust.address,
-      [dai.address, usdc.address, usdt.address],
-      [curvePool.address, curvePool.address, curvePool.address],
-      [curveIndexes.dai, curveIndexes.usdc, curveIndexes.usdt],
-      [curveIndexes.ust, curveIndexes.ust, curveIndexes.ust]
-    );
+    swapper = await new TestCurveSwapper__factory(owner).deploy(ust.address, [
+      {
+        token: dai.address,
+        pool: curvePool.address,
+        tokenI: curveIndexes.dai,
+        underlyingI: curveIndexes.ust,
+      },
+      {
+        token: usdc.address,
+        pool: curvePool.address,
+        tokenI: curveIndexes.usdc,
+        underlyingI: curveIndexes.ust,
+      },
+      {
+        token: usdt.address,
+        pool: curvePool.address,
+        tokenI: curveIndexes.usdt,
+        underlyingI: curveIndexes.ust,
+      },
+    ]);
 
     await ForkHelpers.mintToken(ust, swapper, parseUnits("100"));
     await ForkHelpers.mintToken(dai, swapper, parseUnits("100"));

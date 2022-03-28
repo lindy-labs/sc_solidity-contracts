@@ -73,7 +73,8 @@ describe("AnchorUSTStrategy", () => {
       INVEST_PCT,
       TREASURY,
       owner.address,
-      PERFORMANCE_FEE_PCT
+      PERFORMANCE_FEE_PCT,
+      []
     );
 
     const AnchorUSTStrategyFactory = await ethers.getContractFactory(
@@ -159,7 +160,8 @@ describe("AnchorUSTStrategy", () => {
         INVEST_PCT,
         TREASURY,
         owner.address,
-        PERFORMANCE_FEE_PCT
+        PERFORMANCE_FEE_PCT,
+        []
       );
 
       await expect(
@@ -861,6 +863,7 @@ describe("AnchorUSTStrategy", () => {
   const depositVault = async (amount: BigNumber) => {
     await vault.connect(owner).deposit({
       amount,
+      inputToken: underlying.address,
       claims: [
         {
           pct: DENOMINATOR,

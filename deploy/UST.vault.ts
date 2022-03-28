@@ -18,7 +18,15 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
     contract: "Vault",
     from: deployer,
     log: true,
-    args: [ust.address, minLockPeriod, investPct, treasury, owner, perfFeePct],
+    args: [
+      ust.address,
+      minLockPeriod,
+      investPct,
+      treasury,
+      owner,
+      perfFeePct,
+      [], // TODO fill this with actual values
+    ],
   });
 };
 

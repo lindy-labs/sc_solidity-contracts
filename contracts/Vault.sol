@@ -124,10 +124,7 @@ contract Vault is
         address _treasury,
         address _owner,
         uint16 _perfFeePct,
-        address[] memory _curveInputs,
-        address[] memory _curvePools,
-        int128[] memory _curveTokenIs,
-        int128[] memory _curveUnderlyingIs
+        SwapPoolParam[] memory _swapPools
     ) {
         require(
             PercentMath.validPerc(_investPerc),
@@ -160,7 +157,7 @@ contract Vault is
         depositors = new Depositors(this);
         claimers = new Claimers(this);
 
-        addPools(_curveInputs, _curvePools, _curveTokenIs, _curveUnderlyingIs);
+        addPools(_swapPools);
     }
 
     function getUnderlying()
@@ -421,10 +418,7 @@ contract Vault is
         uint256 tokenId = depositors.mint(msg.sender);
 
         _transferAndCheckInputToken(msg.sender, _inputToken, _amount);
-        uint256 underlyingAmount = _swapIntoUnderlying(
-            _params.inputToken,
-            _params.amount
-        );
+        uint256 underlyingAmount = _swapIntoUnderlying(_inputToken, _amount);
 
         deposits[tokenId] = Deposit(underlyingAmount, 0, lockedUntil, 0);
         totalSponsored += underlyingAmount;
