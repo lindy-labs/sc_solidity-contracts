@@ -12,8 +12,6 @@ import {IVault} from "../../vault/IVault.sol";
 import {IStrategy} from "../IStrategy.sol";
 import {IEthAnchorRouter} from "./IEthAnchorRouter.sol";
 
-import "hardhat/console.sol";
-
 /**
  * Base eth anchor strategy that handles UST tokens and invests them via the EthAnchor
  * protocol (https://docs.anchorprotocol.com/ethanchor/ethanchor)
@@ -171,29 +169,19 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
      * We need to increase pendingDeposits to track correct underlying assets.
      */
     function _initDepositStable() internal returns (address, uint256) {
-        console.log("AnchorBaseStrategy getUstBalance");
-
         uint256 ustBalance = _getUstBalance();
         require(ustBalance != 0, "AnchorBaseStrategy: no ust exist");
         pendingDeposits += ustBalance;
 
-        console.log("AnchorBaseStrategy ustToken safeIncreaseAllowance");
-
         ustToken.safeIncreaseAllowance(address(ethAnchorRouter), ustBalance);
 
-        console.log("AnchorBaseStrategy ethAnchorRouter.initDepositStable");
-
         address operator = ethAnchorRouter.initDepositStable(ustBalance);
-
-        console.log("AnchorBaseStrategy depositOperations.push");
 
         depositOperations.push(
             Operation({operator: operator, amount: ustBalance})
         );
 
         _allRedeemed = false;
-
-        console.log("AnchorBaseStrategy returning");
 
         return (operator, ustBalance);
     }
