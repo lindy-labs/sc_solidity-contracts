@@ -15,7 +15,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
 async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
   const { deployer, ethAnchorOperator } = await env.getNamedAccounts();
-  const { deploy, execute, get, read } = env.deployments;
+  const { deploy, get } = env.deployments;
   const [owner, alice, bob, treasury] = await ethers.getSigners();
 
   console.table([alice, bob, treasury]);
@@ -24,7 +24,7 @@ async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
   const underlying = await ethers.getContractAt("MockERC20", mockUST.address);
 
   const mockaUST = await get("aUST");
-  const aUST = await ethers.getContractAt("MockERC20", mockaUST.address);
+  // const aUST = await ethers.getContractAt("MockERC20", mockaUST.address);
 
   await deploy("MockEthAnchorRouter", {
     contract: "MockEthAnchorRouter",
@@ -80,12 +80,6 @@ async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
     )
   );
 
-  await Promise.all(
-    [alice, bob, treasury, owner].map((account) =>
-      aUST.connect(account).approve(vault.address, parseUnits("5000", 18))
-    )
-  );
-
   const ustAnchorStrategyAddress = (await get("AnchorUSTStrategy")).address;
   const ustAnchorStrategy = await ethers.getContractAt(
     "AnchorUSTStrategy",
@@ -99,9 +93,7 @@ async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
   const lockUntil = await vault.MIN_SPONSOR_LOCK_DURATION();
   await vault.connect(treasury).sponsor(parseUnits("1000", 18), lockUntil);
 
-  console.log(
-    "Alice deposits 1000 with 90% yield to Alice and 10% yield for donations to UST vault"
-  );
+  console.log("Alice deposits into UST vault");
   await vault.connect(alice).deposit({
     amount: parseUnits("1000", 18),
     lockDuration: 1,
@@ -126,21 +118,6 @@ async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
   await new Promise((resolve) => setTimeout(resolve, 1000)); // TODO: replace with listener
 
   console.log("strategy updated");
-
-  console.log("Execute UpdateInvested");
-
-  console.log(
-    "investableAmount",
-    BigNumber.from((await vault.investableAmount()).toString())
-  );
-
-  // await Promise.all(
-  //   [alice, bob, treasury, owner].map((account) =>
-  //     underlying.connect(account).approve(vault.address, parseUnits("5000", 6))
-  //   )
-  // );
-
-  console.log("setting investment percentage");
 
   await vault.connect(owner).setInvestPerc("8000");
 

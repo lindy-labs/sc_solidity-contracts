@@ -7,6 +7,4 @@ docker-compose up --detach
 
 npx hardhat deploy --network docker --reset
 
-echo "hardhat deployment done"
-
 cd subgraph && yarn all-local

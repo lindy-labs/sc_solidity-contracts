@@ -50,10 +50,5 @@ services:
     restart: unless-stopped
     environment:
       MNEMONIC: '${MNEMONIC:-"core tornado motion pigeon kiss dish differ asthma much ritual black foil"}'
-    volumes:
-      - ./deploy:/app/deploy/
-      - ./scripts:/app/scripts/
-      - ./contracts:/app/contracts/
-      - ./typechain:/app/typechain/
     ports:
       - "8545:8545"
