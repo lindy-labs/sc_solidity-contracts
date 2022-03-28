@@ -8,7 +8,7 @@ import type {
   Vault,
   AnchorNonUSTStrategy,
   MockEthAnchorRouter,
-  MockCurvePool,
+  MockCurve,
   MockERC20,
   MockChainlinkPriceFeed,
   AnchorNonUSTStrategy__factory,
@@ -23,7 +23,7 @@ describe("AnchorNonUSTStrategy", () => {
   let strategy: AnchorNonUSTStrategy;
   let mockEthAnchorRouter: MockEthAnchorRouter;
   let mockAUstUstFeed: MockChainlinkPriceFeed;
-  let mockCurvePool: MockCurvePool;
+  let mockCurve: MockCurve;
   let ustToken: MockERC20;
   let aUstToken: MockERC20;
   let underlying: MockERC20;
@@ -47,9 +47,24 @@ describe("AnchorNonUSTStrategy", () => {
     [owner, alice, manager] = await ethers.getSigners();
 
     const MockERC20 = await ethers.getContractFactory("MockERC20");
-    ustToken = await MockERC20.deploy("UST", "UST", 18, utils.parseEther("1000000000"));
-    aUstToken = await MockERC20.deploy("aUST", "aUST", 18, utils.parseEther("1000000000"));
-    underlying = await MockERC20.deploy("DAI", "DAI", 18, utils.parseEther("1000000000"));
+    ustToken = await MockERC20.deploy(
+      "UST",
+      "UST",
+      18,
+      utils.parseEther("1000000000")
+    );
+    aUstToken = await MockERC20.deploy(
+      "aUST",
+      "aUST",
+      18,
+      utils.parseEther("1000000000")
+    );
+    underlying = await MockERC20.deploy(
+      "DAI",
+      "DAI",
+      18,
+      utils.parseEther("1000000000")
+    );
     await underlying.updateDecimals(6);
 
     const MockChainlinkPriceFeedFactory = await ethers.getContractFactory(
@@ -59,19 +74,14 @@ describe("AnchorNonUSTStrategy", () => {
     underlyingFeed = await MockChainlinkPriceFeedFactory.deploy(8);
     mockAUstUstFeed = await MockChainlinkPriceFeedFactory.deploy(18);
 
-    const MockCurvePoolFactory = await ethers.getContractFactory(
-      "MockCurvePool"
-    );
-    mockCurvePool = await MockCurvePoolFactory.deploy();
-    await mockCurvePool.addToken(ustI, ustToken.address);
-    await mockCurvePool.addToken(underlyingI, underlying.address);
-    await ustToken.transfer(mockCurvePool.address, utils.parseEther("1000000"));
-    await underlying.transfer(
-      mockCurvePool.address,
-      utils.parseEther("1000000")
-    );
-    await mockCurvePool.updateRate(ustI, underlyingI, UST_TO_UNDERLYING_RATE);
-    await mockCurvePool.updateRate(underlyingI, ustI, UNDERLYING_TO_UST_RATE);
+    const MockCurveFactory = await ethers.getContractFactory("MockCurve");
+    mockCurve = await MockCurveFactory.deploy();
+    await mockCurve.addToken(ustI, ustToken.address);
+    await mockCurve.addToken(underlyingI, underlying.address);
+    await ustToken.transfer(mockCurve.address, utils.parseEther("1000000"));
+    await underlying.transfer(mockCurve.address, utils.parseEther("1000000"));
+    await mockCurve.updateRate(ustI, underlyingI, UST_TO_UNDERLYING_RATE);
+    await mockCurve.updateRate(underlyingI, ustI, UNDERLYING_TO_UST_RATE);
 
     await ustFeed.setAnswer(utils.parseUnits("1", 8));
     await underlyingFeed.setAnswer(utils.parseUnits("1", 8));
@@ -106,7 +116,7 @@ describe("AnchorNonUSTStrategy", () => {
       ustToken.address,
       aUstToken.address,
       owner.address,
-      mockCurvePool.address,
+      mockCurve.address,
       underlyingI,
       ustI,
       ustFeed.address,
@@ -173,7 +183,7 @@ describe("AnchorNonUSTStrategy", () => {
           ustToken.address,
           aUstToken.address,
           owner.address,
-          mockCurvePool.address,
+          mockCurve.address,
           underlyingI,
           ustI,
           ustFeed.address,
@@ -193,7 +203,7 @@ describe("AnchorNonUSTStrategy", () => {
       );
       expect(await strategy.ustToken()).to.be.equal(ustToken.address);
       expect(await strategy.aUstToken()).to.be.equal(aUstToken.address);
-      expect(await strategy.curvePool()).to.be.equal(mockCurvePool.address);
+      expect(await strategy.curvePool()).to.be.equal(mockCurve.address);
       expect(await strategy.underlyingI()).to.be.equal(underlyingI);
       expect(await strategy.ustI()).to.be.equal(ustI);
     });
