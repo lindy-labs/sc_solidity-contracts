@@ -110,7 +110,7 @@ abstract contract CurveSwapper {
 
         Swapper storage swapper = swappers[_token];
 
-        uint256 minAmount = _calc_dy(
+        uint256 minAmount = _calcMinDy(
             _amount,
             swapper.tokenDecimals,
             swapper.underlyingDecimals
@@ -138,7 +138,7 @@ abstract contract CurveSwapper {
 
         Swapper storage swapper = swappers[_token];
 
-        uint256 minAmount = _calc_dy(
+        uint256 minAmount = _calcMinDy(
             _amount,
             swapper.underlyingDecimals,
             swapper.tokenDecimals
@@ -152,7 +152,7 @@ abstract contract CurveSwapper {
         );
     }
 
-    function _calc_dy(
+    function _calcMinDy(
         uint256 _amount,
         uint8 _fromDecimals,
         uint8 _toDecimals
