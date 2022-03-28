@@ -5,8 +5,6 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "../strategy/anchor/IEthAnchorRouter.sol";
 
-import "hardhat/console.sol";
-
 contract MockEthAnchorRouter is IEthAnchorRouter {
     using SafeERC20 for IERC20;
 
@@ -40,25 +38,16 @@ contract MockEthAnchorRouter is IEthAnchorRouter {
         override(IEthAnchorRouter)
         returns (address operator)
     {
-        console.log("check that pendingOperator is not null address");
-
-        require(pendingOperator != address(0));
-
-        console.log("mockEthAnchorRouter safeTransferFrom");
+        require(
+            pendingOperator != address(0),
+            "pendingOperator cannot be null address"
+        );
 
         ustToken.safeTransferFrom(msg.sender, address(this), _amount);
 
-        console.log("mockEthAnchorRouter depositOperations");
-
         depositOperations[pendingOperator] = _amount;
 
-        console.log("mockEthAnchorRouter setting operator");
-
         operator = pendingOperator;
-
-        console.log(
-            "mockEthAnchorRouter setting pendingOperator to null address"
-        );
 
         pendingOperator = address(0);
     }
