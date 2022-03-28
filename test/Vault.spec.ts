@@ -100,7 +100,11 @@ describe("Vault", () => {
       INVEST_PCT,
       TREASURY,
       owner.address,
-      PERFORMANCE_FEE_PCT
+      PERFORMANCE_FEE_PCT,
+      [],
+      [],
+      [],
+      []
     );
 
     underlying.connect(owner).approve(vault.address, MaxUint256);

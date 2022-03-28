@@ -10,6 +10,7 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.
 
 import {IVault} from "./vault/IVault.sol";
 import {IVaultSponsoring} from "./vault/IVaultSponsoring.sol";
+import {CurveSwapper} from "./vault/CurveSwapper.sol";
 import {PercentMath} from "./lib/PercentMath.sol";
 import {Depositors} from "./vault/Depositors.sol";
 import {Claimers} from "./vault/Claimers.sol";
@@ -25,6 +26,7 @@ import {IStrategy} from "./strategy/IStrategy.sol";
 contract Vault is
     IVault,
     IVaultSponsoring,
+    CurveSwapper,
     Context,
     ERC165,
     AccessControl,
@@ -121,7 +123,11 @@ contract Vault is
         uint16 _investPerc,
         address _treasury,
         address _owner,
-        uint16 _perfFeePct
+        uint16 _perfFeePct,
+        address[] memory _curveInputs,
+        address[] memory _curvePools,
+        int128[] memory _curveTokenIs,
+        int128[] memory _curveUnderlyingIs
     ) {
         require(
             PercentMath.validPerc(_investPerc),
@@ -153,6 +159,17 @@ contract Vault is
 
         depositors = new Depositors(this);
         claimers = new Claimers(this);
+
+        addPools(_curveInputs, _curvePools, _curveTokenIs, _curveUnderlyingIs);
+    }
+
+    function getUnderlying()
+        public
+        view
+        override(CurveSwapper)
+        returns (address)
+    {
+        return address(underlying);
     }
 
     //
@@ -277,14 +294,23 @@ contract Vault is
             "Vault: cannot deposit when yield is negative"
         );
 
+        _transferAndCheckInputToken(
+            msg.sender,
+            _params.inputToken,
+            _params.amount
+        );
+        uint256 underlyingAmount = _swapIntoUnderlying(
+            _params.inputToken,
+            _params.amount
+        );
+
         uint64 lockedUntil = _params.lockDuration + _blockTimestamp();
 
         depositIds = _createDeposit(
-            _params.amount,
+            underlyingAmount,
             lockedUntil,
             _params.claims
         );
-        _transferAndCheckUnderlying(msg.sender, _params.amount);
     }
 
     /// See {IVault}
@@ -378,11 +404,11 @@ contract Vault is
     // IVaultSponsoring
 
     /// See {IVaultSponsoring}
-    function sponsor(uint256 _amount, uint256 _lockDuration)
-        external
-        override(IVaultSponsoring)
-        nonReentrant
-    {
+    function sponsor(
+        address _inputToken,
+        uint256 _amount,
+        uint256 _lockDuration
+    ) external override(IVaultSponsoring) nonReentrant {
         require(_amount != 0, "Vault: cannot sponsor 0");
 
         require(
@@ -394,12 +420,16 @@ contract Vault is
         uint256 lockedUntil = _lockDuration + block.timestamp;
         uint256 tokenId = depositors.mint(msg.sender);
 
-        deposits[tokenId] = Deposit(_amount, 0, lockedUntil, 0);
+        _transferAndCheckInputToken(msg.sender, _inputToken, _amount);
+        uint256 underlyingAmount = _swapIntoUnderlying(
+            _params.inputToken,
+            _params.amount
+        );
 
-        emit Sponsored(tokenId, _amount, msg.sender, lockedUntil);
+        deposits[tokenId] = Deposit(underlyingAmount, 0, lockedUntil, 0);
+        totalSponsored += underlyingAmount;
 
-        totalSponsored += _amount;
-        _transferAndCheckUnderlying(msg.sender, _amount);
+        emit Sponsored(tokenId, underlyingAmount, msg.sender, lockedUntil);
     }
 
     /// See {IVaultSponsoring}
@@ -511,7 +541,7 @@ contract Vault is
 
         for (uint8 i; i < idsLen; ++i) {
             uint256 tokenId = _ids[i];
-            
+
             Deposit memory deposit = deposits[tokenId];
             uint256 lockedUntil = deposit.lockedUntil;
             uint256 claimerId = deposit.claimerId;
@@ -699,10 +729,7 @@ contract Vault is
             "Vault: deposit is locked"
         );
 
-        require(
-            deposit.claimerId != 0,
-            "Vault: token id is not a deposit"
-        );
+        require(deposit.claimerId != 0, "Vault: token id is not a deposit");
 
         uint256 claimerId = deposit.claimerId;
         uint256 depositInitialShares = deposit.shares;
@@ -752,12 +779,14 @@ contract Vault is
             );
     }
 
-    function _transferAndCheckUnderlying(address _from, uint256 _amount)
-        internal
-    {
-        uint256 balanceBefore = underlying.balanceOf(address(this));
-        underlying.safeTransferFrom(_from, address(this), _amount);
-        uint256 balanceAfter = underlying.balanceOf(address(this));
+    function _transferAndCheckInputToken(
+        address _from,
+        address _token,
+        uint256 _amount
+    ) internal {
+        uint256 balanceBefore = IERC20(_token).balanceOf(address(this));
+        IERC20(underlying).safeTransferFrom(_from, address(this), _amount);
+        uint256 balanceAfter = IERC20(_token).balanceOf(address(this));
 
         require(
             balanceAfter == balanceBefore + _amount,
