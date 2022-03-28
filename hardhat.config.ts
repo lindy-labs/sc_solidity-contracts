@@ -8,14 +8,12 @@ import "@typechain/hardhat";
 import "hardhat-deploy";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
-import dotenv from "dotenv";
-dotenv.config();
 
 const devMnemonic =
   process.env.MNEMONIC ||
   "core tornado motion pigeon kiss dish differ asthma much ritual black foil";
 
-const config = {
+const config: HardhatUserConfig = {
   solidity: {
     version: "0.8.10",
     settings: {
@@ -32,16 +30,16 @@ const config = {
         accountsBalance: "100000000000000000000000000",
       },
       initialBaseFeePerGas: 0,
+      chainId: 31337,
     },
     docker: {
       url: "http://localhost:8545",
       accounts: {
         mnemonic: devMnemonic,
-        accountsBalance: "100000000000000000000000000",
       },
       initialBaseFeePerGas: 0,
       chainId: 31337,
-      // live: false,
+      live: false,
     },
     mainnet: {
       url: `https://mainnet.infura.io/v3/${

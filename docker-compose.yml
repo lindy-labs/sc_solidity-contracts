@@ -54,5 +54,6 @@ services:
       - ./deploy:/app/deploy/
       - ./scripts:/app/scripts/
       - ./contracts:/app/contracts/
+      - ./typechain:/app/typechain/
     ports:
       - "8545:8545"

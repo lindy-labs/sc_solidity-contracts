@@ -59,7 +59,6 @@ const resolveAccount = async (account: Address) => {
 };
 
 export const getCurrentNetworkConfig = async () => {
-  console.log("network.config", network.config);
   const config = networkConfigs[network.config.chainId];
 
   config.multisig = await resolveAccount(config.multisig);
