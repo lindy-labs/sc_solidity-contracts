@@ -1,17 +1,10 @@
 {
-  "vaults": [
-    {
-      "name": "DAI_Vault",
-      "address": "0x9f620D84E77DB85A7Cae9F60a2EB60B265518707"
-    },
-    {
-      "name": "USDC_Vault",
-      "address": "0xF0C57819803C04e3b061C64713eCd856AC35B4c4"
-    },
-    {
-      "name": "UST_Vault",
-      "address": "0x9119f0F35e7D05Dde778A69A26cEf2330a5e70F9"
-    }
-  ],
-  "claimers": []
+  "vault": {
+    "testnet": "0xa8E0068f7054Bfc4257777865d6C15A256419B84",
+    "local": "0x9119f0F35e7D05Dde778A69A26cEf2330a5e70F9"
+  },
+  "strategy": {
+    "testnet": "0x394480300a35558338d32bBE7263d447BA0d409E",
+    "local": "0xdf3079e3c5384a03aF7aBABDeC7824826C0ED890"
+  }
 }

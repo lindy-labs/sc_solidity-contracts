@@ -54,7 +54,6 @@ type Sponsor @entity {
 
 type RedeemOperation @entity {
   id: ID!
-  operator: Bytes!
   aUstAmount: BigInt!
   finished: Boolean!
 }
@@ -62,7 +61,6 @@ type RedeemOperation @entity {
 type DepositOperation @entity {
   id: ID!
   idx: BigInt!
-  operator: Bytes!
   underlyingAmount: BigInt!
   ustAmount: BigInt!
   finished: Boolean!

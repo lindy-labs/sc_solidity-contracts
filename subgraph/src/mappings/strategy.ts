@@ -11,7 +11,6 @@ export function handleInitDeposit(event: InitDepositStable): void {
   const depositOperation = new DepositOperation(id);
 
   depositOperation.idx = event.params.idx;
-  depositOperation.operator = event.params.operator;
   depositOperation.underlyingAmount = event.params.underlyingAmount;
   depositOperation.ustAmount = event.params.ustAmount;
   depositOperation.finished = false;
@@ -32,7 +31,6 @@ export function handleInitRedeem(event: InitRedeemStable): void {
   const id = event.params.operator.toString();
 
   const redeemOperation = new RedeemOperation(id);
-  redeemOperation.operator = event.params.operator;
   redeemOperation.aUstAmount = event.params.aUstAmount;
   redeemOperation.finished = false;
 
