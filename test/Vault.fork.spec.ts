@@ -91,6 +91,31 @@ describe("Vault (fork tests)", () => {
         },
       ]
     );
+
+    await ForkHelpers.mintToken(
+      dai,
+      alice,
+      parseUnits("1000", await dai.decimals())
+    );
+    await ForkHelpers.mintToken(
+      usdc,
+      alice,
+      parseUnits("1000", await usdc.decimals())
+    );
+    await ForkHelpers.mintToken(
+      usdt,
+      alice,
+      parseUnits("1000", await usdt.decimals())
+    );
+    await ForkHelpers.mintToken(
+      ust,
+      alice,
+      parseUnits("1000", await ust.decimals())
+    );
+    dai.connect(alice).approve(vault.address, MaxUint256);
+    usdt.connect(alice).approve(vault.address, MaxUint256);
+    usdc.connect(alice).approve(vault.address, MaxUint256);
+    ust.connect(alice).approve(vault.address, MaxUint256);
   });
 
   describe("addPool", function () {
@@ -144,16 +169,39 @@ describe("Vault (fork tests)", () => {
   });
 
   describe("deposit with DAI", function () {
-    it("automatically swaps into UST and deposits that", async () => {
-      await vault.connect(alice).deposit(
+    it.only("automatically swaps into UST and deposits that", async () => {
+      console.log(formatUnits(await dai.balanceOf(alice.address)));
+      const action = vault.connect(alice).deposit(
         depositParams.build({
-          amount: parseUnits("1000"),
+          amount: parseUnits("1000", await dai.decimals()),
           inputToken: dai.address,
           claims: arrayFromTo(1, 100).map(() =>
             claimParams.percent(1).to(bob.address).build()
           ),
         })
       );
+
+      await expect(action)
+        .to.emit(vault, "Swap")
+        .withArgs(dai.address, ust.address, parseUnits("1000"));
+    });
+  });
+
+  describe("deposit with USDT", function () {
+    it("fails if USDT is not whitelisted", async () => {
+      const action = vault.connect(alice).deposit(
+        depositParams.build({
+          amount: parseUnits("1000", await usdt.decimals()),
+          inputToken: usdt.address,
+          claims: arrayFromTo(1, 100).map(() =>
+            claimParams.percent(1).to(bob.address).build()
+          ),
+        })
+      );
+
+      await expect(action)
+        .to.emit(vault, "Swap")
+        .withArgs(dai.address, ust.address, parseUnits("1000"));
     });
   });
 });

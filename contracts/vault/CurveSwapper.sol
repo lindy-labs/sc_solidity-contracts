@@ -53,6 +53,14 @@ abstract contract CurveSwapper {
     /// Emitted when a swap pool is removed
     event CurveSwapPoolRemoved(address indexed token);
 
+    /// Emitted after every swap
+    event Swap(
+        address indexed fromToken,
+        address indexed toToken,
+        uint256 fromAmount,
+        uint256 toAmount
+    );
+
     //
     // State
     //
@@ -86,13 +94,14 @@ abstract contract CurveSwapper {
             swapper.underlyingDecimals
         );
 
-        return
-            swapper.pool.exchange_underlying(
-                swapper.tokenI,
-                swapper.underlyingI,
-                _amount,
-                minAmount
-            );
+        amount = swapper.pool.exchange_underlying(
+            swapper.tokenI,
+            swapper.underlyingI,
+            _amount,
+            minAmount
+        );
+
+        emit Swap(_token, getUnderlying(), _amount, amount);
     }
 
     /// Swaps a given amount of Underlying into a given token
@@ -118,13 +127,14 @@ abstract contract CurveSwapper {
             swapper.tokenDecimals
         );
 
-        return
-            swapper.pool.exchange_underlying(
-                swapper.underlyingI,
-                swapper.tokenI,
-                _amount,
-                minAmount
-            );
+        amount = swapper.pool.exchange_underlying(
+            swapper.underlyingI,
+            swapper.tokenI,
+            _amount,
+            minAmount
+        );
+
+        emit Swap(getUnderlying(), _token, _amount, amount);
     }
 
     function _calcMinDy(
