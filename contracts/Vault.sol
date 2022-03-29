@@ -441,7 +441,7 @@ contract Vault is
     // CurveSwapper
     //
 
-    /// @inheritdoc {CurveSwapper}
+    /// @inheritdoc CurveSwapper
     function getUnderlying()
         public
         view
@@ -454,8 +454,21 @@ contract Vault is
     /// Adds a new curve swap pool from an input token to {underlying}
     ///
     /// @param _param Swap pool params
-    function addPool(SwapPoolParam memory _param) public {
+    function addPool(SwapPoolParam memory _param)
+        public
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
         _addPool(_param);
+    }
+
+    /// Removes an existing swap pool, and the ability to deposit the given token as underlying
+    ///
+    /// @param _inputToken the token to remove
+    function removePool(address _inputToken)
+        public
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        _removePool(_inputToken);
     }
 
     //

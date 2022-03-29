@@ -14,6 +14,10 @@ abstract contract CurveSwapper {
     /// Static 95% slippage (TODO should probably make this configurable)
     uint256 public constant SLIPPAGE = 99;
 
+    //
+    // Structs
+    //
+
     struct Swapper {
         /// Curve pool instance
         ICurve pool;
@@ -33,6 +37,25 @@ abstract contract CurveSwapper {
         int128 tokenI;
         int128 underlyingI;
     }
+
+    //
+    // Events
+    //
+
+    /// Emitted when a new swap pool is added
+    event CurveSwapPoolAdded(
+        address indexed token,
+        address indexed pool,
+        int128 tokenI,
+        int128 underlyingI
+    );
+
+    /// Emitted when a swap pool is removed
+    event CurveSwapPoolRemoved(address indexed token);
+
+    //
+    // State
+    //
 
     /// token => curve pool (for trading token/underlying)
     mapping(address => Swapper) public swappers;
@@ -127,11 +150,11 @@ abstract contract CurveSwapper {
     /// @param _swapPools configs for each swap pool
     function _addPools(SwapPoolParam[] memory _swapPools) internal {
         for (uint256 i = 0; i < _swapPools.length; ++i) {
-            addPool(_swapPools[i]);
+            _addPool(_swapPools[i]);
         }
     }
 
-    function _addPool(SwapPoolParam memory _param) _internal {
+    function _addPool(SwapPoolParam memory _param) internal {
         // TODO only allowed role
         require(
             ICurve(_param.pool).coins(uint256(uint128(_param.underlyingI))) ==
@@ -159,5 +182,22 @@ abstract contract CurveSwapper {
 
         _approveIfNecessary(getUnderlying(), address(_param.pool));
         _approveIfNecessary(_param.token, address(_param.pool));
+
+        emit CurveSwapPoolAdded(
+            _param.token,
+            _param.pool,
+            _param.tokenI,
+            _param.underlyingI
+        );
+    }
+
+    function _removePool(address _inputToken) internal {
+        require(
+            address(swappers[_inputToken].pool) != address(0),
+            "pool does not exist"
+        );
+        delete swappers[_inputToken];
+
+        emit CurveSwapPoolRemoved(_inputToken);
     }
 }
