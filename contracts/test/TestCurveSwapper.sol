@@ -11,7 +11,7 @@ contract TestCurveSwapper is CurveSwapper {
 
     constructor(address __underlying, SwapPoolParam[] memory _swapPoolsParams) {
         _underlying = __underlying;
-        addPools(_swapPoolsParams);
+        _addPools(_swapPoolsParams);
     }
 
     function getUnderlying()

@@ -157,16 +157,7 @@ contract Vault is
         depositors = new Depositors(this);
         claimers = new Claimers(this);
 
-        addPools(_swapPools);
-    }
-
-    function getUnderlying()
-        public
-        view
-        override(CurveSwapper)
-        returns (address)
-    {
-        return address(underlying);
+        _addPools(_swapPools);
     }
 
     //
@@ -444,6 +435,27 @@ contract Vault is
 
         emit FeeWithdrawn(_perfFee);
         underlying.safeTransfer(treasury, _perfFee);
+    }
+
+    //
+    // CurveSwapper
+    //
+
+    /// @inheritdoc {CurveSwapper}
+    function getUnderlying()
+        public
+        view
+        override(CurveSwapper)
+        returns (address)
+    {
+        return address(underlying);
+    }
+
+    /// Adds a new curve swap pool from an input token to {underlying}
+    ///
+    /// @param _param Swap pool params
+    function addPool(SwapPoolParam memory _param) public {
+        _addPool(_param);
     }
 
     //

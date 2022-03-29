@@ -37,44 +37,8 @@ abstract contract CurveSwapper {
     /// token => curve pool (for trading token/underlying)
     mapping(address => Swapper) public swappers;
 
-    /// @param _swapPools configs for each swap pool
-    function addPools(SwapPoolParam[] memory _swapPools) public {
-        for (uint256 i = 0; i < _swapPools.length; ++i) {
-            addPool(_swapPools[i]);
-        }
-    }
-
+    /// @return The address of the vault's main underlying token
     function getUnderlying() public view virtual returns (address);
-
-    function addPool(SwapPoolParam memory _param) public {
-        // TODO only allowed role
-        require(
-            ICurve(_param.pool).coins(uint256(uint128(_param.underlyingI))) ==
-                getUnderlying(),
-            "_underlyingI does not match underlying token"
-        );
-
-        // TODO it seems this doesn't actually work for UST-3CRV
-        // require(
-        //     _pool.coins(uint256(uint128(_tokenI))) == _token,
-        //     "_tokenI does not match input token"
-        // );
-
-        uint256 tokenDecimals = IERC20Metadata(_param.token).decimals();
-        uint256 underlyingDecimals = IERC20Metadata(getUnderlying()).decimals();
-
-        // TODO check if _token and _underlyingIndex match the pool settings
-        swappers[_param.token] = Swapper(
-            ICurve(_param.pool),
-            uint8(tokenDecimals),
-            uint8(underlyingDecimals),
-            _param.tokenI,
-            _param.underlyingI
-        );
-
-        _approveIfNecessary(getUnderlying(), address(_param.pool));
-        _approveIfNecessary(_param.token, address(_param.pool));
-    }
 
     /// Swaps a given amount of
     /// Only works if the pool has previously been inserted into the contract
@@ -158,5 +122,42 @@ abstract contract CurveSwapper {
         if (allowance == 0) {
             IERC20(_token).safeApprove(_pool, type(uint256).max);
         }
+    }
+
+    /// @param _swapPools configs for each swap pool
+    function _addPools(SwapPoolParam[] memory _swapPools) internal {
+        for (uint256 i = 0; i < _swapPools.length; ++i) {
+            addPool(_swapPools[i]);
+        }
+    }
+
+    function _addPool(SwapPoolParam memory _param) _internal {
+        // TODO only allowed role
+        require(
+            ICurve(_param.pool).coins(uint256(uint128(_param.underlyingI))) ==
+                getUnderlying(),
+            "_underlyingI does not match underlying token"
+        );
+
+        // TODO it seems this doesn't actually work for UST-3CRV
+        // require(
+        //     _pool.coins(uint256(uint128(_tokenI))) == _token,
+        //     "_tokenI does not match input token"
+        // );
+
+        uint256 tokenDecimals = IERC20Metadata(_param.token).decimals();
+        uint256 underlyingDecimals = IERC20Metadata(getUnderlying()).decimals();
+
+        // TODO check if _token and _underlyingIndex match the pool settings
+        swappers[_param.token] = Swapper(
+            ICurve(_param.pool),
+            uint8(tokenDecimals),
+            uint8(underlyingDecimals),
+            _param.tokenI,
+            _param.underlyingI
+        );
+
+        _approveIfNecessary(getUnderlying(), address(_param.pool));
+        _approveIfNecessary(_param.token, address(_param.pool));
     }
 }
