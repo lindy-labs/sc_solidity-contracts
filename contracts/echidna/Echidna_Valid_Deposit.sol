@@ -22,6 +22,12 @@ contract Echidna_Valid_Deposit is Helper,ERC721Holder {
         emit Log("balance of this before", balance_this_before);
         emit Log("balance of vault before", balance_vault_before);
 
+        uint256 totalshares_vault_before = vault.totalShares();
+        emit Log("totalShares of vault before", totalshares_vault_before);
+
+        uint256 totalprincipal_vault_before = vault.totalPrincipal();
+        emit Log("totalPrincipal of vault before", totalprincipal_vault_before);
+
         populate_claims(10000, _params.claims);
 
         deposit_should_succeed(_params);
@@ -34,5 +40,11 @@ contract Echidna_Valid_Deposit is Helper,ERC721Holder {
 
         assert(balance_vault_after == balance_vault_before + _params.amount);
         assert(balance_this_after == balance_this_before - _params.amount);
+
+        emit Log("totalShares of vault after", vault.totalShares());
+        assert(vault.totalShares() == totalshares_vault_before + (_params.amount * (10**18)));
+
+        emit Log("totalPrincipal of vault after", vault.totalPrincipal());
+        assert(vault.totalPrincipal() == totalprincipal_vault_before + _params.amount);
     }
 }
