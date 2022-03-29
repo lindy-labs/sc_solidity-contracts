@@ -85,4 +85,46 @@ contract Echidna_Invalid_Withdraw is Helper,ERC721Holder {
             withdraw_should_revert(address(this), depositIds);
         }
     }
+
+    function force_withdraw_all() public {
+
+        if (!init) {
+            return;
+        }
+
+        emit Log("amount", amount);
+        emit Log("lockDuration", lockDuration);
+        emit Log("time", time);
+
+        uint256 balance_this_before = underlying.balanceOf(address(this));
+        uint256 balance_vault_before = vault.totalUnderlying();
+
+        emit Log("balance of this before", balance_this_before);
+        emit Log("balance of vault before", balance_vault_before);
+
+        if (block.timestamp > time + lockDuration) {
+            try vault.forceWithdraw(address(this), depositIds) {
+                assert(true);
+            } catch {
+                assert(false);
+            }
+
+            init = false;
+
+            uint256 balance_this_after = underlying.balanceOf(address(this));
+            uint256 balance_vault_after = vault.totalUnderlying();
+
+            emit Log("balance of this after", balance_this_after);
+            emit Log("balance of vault after", balance_vault_after);
+
+            assert(balance_vault_after == balance_vault_before - amount);
+            assert(balance_this_after == balance_this_before + amount);
+        } else {
+            try vault.forceWithdraw(address(this), depositIds) {
+                assert(false);
+            } catch {
+                assert(true);
+            }
+        }
+    }
 }
