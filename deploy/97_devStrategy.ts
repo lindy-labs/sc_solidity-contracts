@@ -61,6 +61,7 @@ async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
       mockaUST.address,
       owner.address,
     ],
+    log: true,
   });
 
   await underlying.mint(alice.address, parseUnits("5000", 18));

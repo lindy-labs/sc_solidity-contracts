@@ -50,5 +50,7 @@ services:
     restart: unless-stopped
     environment:
       MNEMONIC: '${MNEMONIC:-"core tornado motion pigeon kiss dish differ asthma much ritual black foil"}'
+      VAULT_ADDRESS: "${VAULT_ADDRESS}"
+      STRATEGY_ADDRESS: "${STRATEGY_ADDRESS}"
     ports:
       - "8545:8545"

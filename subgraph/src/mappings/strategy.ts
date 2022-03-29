@@ -1,4 +1,5 @@
-import { InitDepositOperation, InitRedeemOperation } from "../types/schema";
+import { DepositOperation, RedeemOperation } from "../types/schema";
+import { log } from "@graphprotocol/graph-ts";
 
 import {
   InitDepositStable,
@@ -8,21 +9,23 @@ import {
 export function handleInitDeposit(event: InitDepositStable): void {
   const id = event.transaction.hash.toHex() + "-" + event.logIndex.toString();
 
-  const initDepositOperation = new InitDepositOperation(id);
-  initDepositOperation.idx = event.params.idx;
-  initDepositOperation.operator = event.params.operator;
-  initDepositOperation.underlyingAmount = event.params.underlyingAmount;
-  initDepositOperation.ustAmount = event.params.ustAmount;
+  const depositOperation = new DepositOperation(id);
 
-  initDepositOperation.save();
+  depositOperation.idx = event.params.idx;
+  depositOperation.operator = event.params.operator;
+  depositOperation.underlyingAmount = event.params.underlyingAmount;
+  depositOperation.ustAmount = event.params.ustAmount;
+  depositOperation.init = true;
+
+  depositOperation.save();
 }
 
 export function handleInitRedeem(event: InitRedeemStable): void {
   const id = event.transaction.hash.toHex() + "-" + event.logIndex.toString();
 
-  const initRedeemOperation = new InitRedeemOperation(id);
-  initRedeemOperation.operator = event.params.operator;
-  initRedeemOperation.aUstAmount = event.params.aUstAmount;
+  const redeemOperation = new RedeemOperation(id);
+  redeemOperation.operator = event.params.operator;
+  redeemOperation.aUstAmount = event.params.aUstAmount;
 
-  initRedeemOperation.save();
+  redeemOperation.save();
 }
