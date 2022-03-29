@@ -30,4 +30,12 @@ contract TestCurveSwapper is CurveSwapper {
     function test_swapFromUnderlying(address _token, uint256 _amount) external {
         _swapFromUnderlying(_token, _amount);
     }
+
+    function test_addPool(SwapPoolParam memory _param) external {
+        _addPool(_param);
+    }
+
+    function test_removePool(address _inputToken) external {
+        _removePool(_inputToken);
+    }
 }

@@ -155,7 +155,6 @@ abstract contract CurveSwapper {
     }
 
     function _addPool(SwapPoolParam memory _param) internal {
-        // TODO only allowed role
         require(
             ICurve(_param.pool).coins(uint256(uint128(_param.underlyingI))) ==
                 getUnderlying(),

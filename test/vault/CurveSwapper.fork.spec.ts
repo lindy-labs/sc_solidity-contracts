@@ -12,8 +12,8 @@ import {
 } from "../../typechain";
 import { ForkHelpers } from "../shared";
 
-const { formatUnits, parseUnits } = ethers.utils;
-const { MaxUint256 } = ethers.constants;
+const { formatUnits, parseUnits, getAddress } = ethers.utils;
+const { MaxUint256, AddressZero } = ethers.constants;
 
 const FORK_BLOCK = 14449700;
 const UST_ADDRESS = "0xa47c8bf37f92abed4a126bda807a7b7498661acd";
@@ -122,6 +122,46 @@ describe("CurveSwapper", () => {
       const input = parseUnits("100", decimals.ust);
       const action = () => swapper.test_swapFromUnderlying(usdt.address, input);
       await validateSwap(action, swapper, ust, usdt, "100");
+    });
+  });
+
+  describe("removePool", function () {
+    it("removes an existing pool", async () => {
+      const action = swapper.test_removePool(usdt.address);
+
+      await expect(action)
+        .to.emit(swapper, "CurveSwapPoolRemoved")
+        .withArgs(getAddress(usdt.address));
+
+      const pool = await swapper.swappers(usdt.address);
+
+      expect(pool[0]).to.equal(AddressZero);
+    });
+  });
+
+  describe("addPool", function () {
+    it("adds a new pool", async () => {
+      await swapper.test_removePool(usdt.address);
+
+      const action = swapper.test_addPool({
+        token: usdt.address,
+        pool: curvePool.address,
+        tokenI: curveIndexes.usdt,
+        underlyingI: curveIndexes.ust,
+      });
+
+      await expect(action)
+        .to.emit(swapper, "CurveSwapPoolAdded")
+        .withArgs(
+          getAddress(usdt.address),
+          getAddress(curvePool.address),
+          curveIndexes.usdt,
+          curveIndexes.ust
+        );
+
+      const pool = await swapper.swappers(usdt.address);
+
+      expect(pool[0]).to.equal(getAddress(usdt.address));
     });
   });
 
