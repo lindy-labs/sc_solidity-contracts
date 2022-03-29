@@ -1,5 +1,4 @@
 import { DepositOperation, RedeemOperation } from "../types/schema";
-import { log } from "@graphprotocol/graph-ts";
 
 import {
   InitDepositStable,
@@ -7,7 +6,7 @@ import {
 } from "../types/Strategy/AnchorUSTStrategy";
 
 export function handleInitDeposit(event: InitDepositStable): void {
-  const id = event.transaction.hash.toHex() + "-" + event.logIndex.toString();
+  const id = event.params.operator.toString();
 
   const depositOperation = new DepositOperation(id);
 
@@ -15,17 +14,36 @@ export function handleInitDeposit(event: InitDepositStable): void {
   depositOperation.operator = event.params.operator;
   depositOperation.underlyingAmount = event.params.underlyingAmount;
   depositOperation.ustAmount = event.params.ustAmount;
-  depositOperation.init = true;
+  depositOperation.finished = false;
+
+  depositOperation.save();
+}
+
+export function handleFinishDeposit(event: InitDepositStable): void {
+  const id = event.params.operator.toString();
+
+  const depositOperation = new DepositOperation(id)!;
+  depositOperation.finished = true;
 
   depositOperation.save();
 }
 
 export function handleInitRedeem(event: InitRedeemStable): void {
-  const id = event.transaction.hash.toHex() + "-" + event.logIndex.toString();
+  const id = event.params.operator.toString();
 
   const redeemOperation = new RedeemOperation(id);
   redeemOperation.operator = event.params.operator;
   redeemOperation.aUstAmount = event.params.aUstAmount;
+  redeemOperation.finished = false;
+
+  redeemOperation.save();
+}
+
+export function handleFinishRedeem(event: InitRedeemStable): void {
+  const id = event.params.operator.toString();
+
+  const redeemOperation = RedeemOperation.load(id)!;
+  redeemOperation.finished = true;
 
   redeemOperation.save();
 }

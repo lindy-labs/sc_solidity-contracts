@@ -56,7 +56,7 @@ type RedeemOperation @entity {
   id: ID!
   operator: Bytes!
   aUstAmount: BigInt!
-  init: Boolean!
+  finished: Boolean!
 }
 
 type DepositOperation @entity {
@@ -65,5 +65,5 @@ type DepositOperation @entity {
   operator: Bytes!
   underlyingAmount: BigInt!
   ustAmount: BigInt!
-  init: Boolean!
+  finished: Boolean!
 }

@@ -58,3 +58,7 @@ dataSources:
           handler: handleInitDeposit
         - event: InitRedeemStable(indexed address,uint256)
           handler: handleInitRedeem
+        - event: FinishDepositStable(indexed address,uint256,uint256)
+          handler: handleFinishDeposit
+        - event: FinishRedeemStable(indexed address,uint256,uint256,uint256)
+          handler: handleFinishRedeem
