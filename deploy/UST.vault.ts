@@ -8,6 +8,10 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   const { deploy, get } = env.deployments;
 
   const ust = await get("UST");
+  const dai = await get("DAI");
+  const usdc = await get("USDC");
+  const usdt = await get("USDT");
+  const curvePool = await get("CurvePool-UST-3CRV");
 
   const { minLockPeriod, investPct, perfFeePct, multisig } =
     await getCurrentNetworkConfig();
@@ -25,7 +29,26 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
       treasury,
       owner,
       perfFeePct,
-      [], // TODO fill this with actual values
+      [
+        {
+          token: dai.address,
+          pool: curvePool.address,
+          tokenI: 1,
+          underlyingI: 0,
+        },
+        {
+          token: usdc.address,
+          pool: curvePool.address,
+          tokenI: 2,
+          underlyingI: 0,
+        },
+        {
+          token: usdt.address,
+          pool: curvePool.address,
+          tokenI: 3,
+          underlyingI: 0,
+        },
+      ],
     ],
   });
 };
