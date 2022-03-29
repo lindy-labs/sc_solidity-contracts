@@ -16,8 +16,6 @@ import {Depositors} from "./vault/Depositors.sol";
 import {Claimers} from "./vault/Claimers.sol";
 import {IStrategy} from "./strategy/IStrategy.sol";
 
-import "hardhat/console.sol";
-
 /**
  * A vault where other accounts can deposit an underlying token
  * currency and set distribution params for their principal and yield
@@ -284,13 +282,11 @@ contract Vault is
             "Vault: cannot deposit when yield is negative"
         );
 
-        console.log("here");
         _transferAndCheckInputToken(
             msg.sender,
             _params.inputToken,
             _params.amount
         );
-        console.log("here");
         uint256 underlyingAmount = _swapIntoUnderlying(
             _params.inputToken,
             _params.amount
@@ -811,8 +807,6 @@ contract Vault is
         IERC20(_token).safeTransferFrom(_from, address(this), _amount);
         uint256 balanceAfter = IERC20(_token).balanceOf(address(this));
 
-        console.log(balanceAfter);
-        console.log(balanceBefore + _amount);
         require(
             balanceAfter == balanceBefore + _amount,
             "Vault: amount received does not match params"

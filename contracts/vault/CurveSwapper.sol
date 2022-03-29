@@ -7,6 +7,8 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 
 import {ICurve} from "../interfaces/curve/ICurve.sol";
 
+import "hardhat/console.sol";
+
 /// Helper abstract contract to manage curve swaps
 abstract contract CurveSwapper {
     using SafeERC20 for IERC20;
@@ -101,6 +103,7 @@ abstract contract CurveSwapper {
             minAmount
         );
 
+        console.log(amount);
         emit Swap(_token, getUnderlying(), _amount, amount);
     }
 
