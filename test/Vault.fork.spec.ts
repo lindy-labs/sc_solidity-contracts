@@ -12,7 +12,8 @@ import {
   ICurve__factory,
   ERC20__factory,
 } from "../typechain";
-import { ForkHelpers, getRoleErrorMsg } from "./shared";
+import { ForkHelpers, getRoleErrorMsg, arrayFromTo } from "./shared";
+import { depositParams, claimParams } from "./shared/factories";
 
 const { formatUnits, parseUnits, keccak256, toUtf8Bytes, getAddress } =
   ethers.utils;
@@ -40,6 +41,7 @@ const curveIndexes = {
 describe("Vault (fork tests)", () => {
   let owner: SignerWithAddress;
   let alice: SignerWithAddress;
+  let bob: SignerWithAddress;
 
   let ust: ERC20;
   let dai: ERC20;
@@ -52,7 +54,7 @@ describe("Vault (fork tests)", () => {
 
   beforeEach(async () => {
     await ForkHelpers.forkToMainnet(FORK_BLOCK);
-    [owner, alice] = await ethers.getSigners();
+    [owner, alice, bob] = await ethers.getSigners();
 
     ust = ERC20__factory.connect(UST_ADDRESS, owner);
     dai = ERC20__factory.connect(DAI_ADDRESS, owner);
@@ -93,7 +95,7 @@ describe("Vault (fork tests)", () => {
 
   describe("addPool", function () {
     it("allows adding new valid pools", async () => {
-      const action = await vault.addPool({
+      const action = vault.addPool({
         token: usdt.address,
         pool: curvePool.address,
         tokenI: curveIndexes.usdt,
@@ -104,11 +106,11 @@ describe("Vault (fork tests)", () => {
 
       const pool = await vault.swappers(usdt.address);
 
-      expect(pool[0]).to.equal(getAddress(usdt.address));
+      expect(pool[0]).to.equal(getAddress(curvePool.address));
     });
 
     it("is not callable by a non-admin", async () => {
-      const action = await vault.connect(alice).addPool({
+      const action = vault.connect(alice).addPool({
         token: usdt.address,
         pool: curvePool.address,
         tokenI: curveIndexes.usdt,
@@ -122,8 +124,8 @@ describe("Vault (fork tests)", () => {
   });
 
   describe("removePool", function () {
-    it("allows adding new valid pools", async () => {
-      const action = await vault.removePool(dai.address);
+    it("allows removing existing pools", async () => {
+      const action = vault.removePool(dai.address);
 
       await expect(action).not.to.be.reverted;
 
@@ -133,7 +135,7 @@ describe("Vault (fork tests)", () => {
     });
 
     it("is not callable by a non-admin", async () => {
-      const action = await vault.connect(alice).removePool(dai.address);
+      const action = vault.connect(alice).removePool(dai.address);
 
       await expect(action).to.be.revertedWith(
         getRoleErrorMsg(alice, DEFAULT_ADMIN_ROLE)
@@ -142,6 +144,16 @@ describe("Vault (fork tests)", () => {
   });
 
   describe("deposit with DAI", function () {
-    it("automatically swaps into UST and deposits that", async () => {});
+    it("automatically swaps into UST and deposits that", async () => {
+      await vault.connect(alice).deposit(
+        depositParams.build({
+          amount: parseUnits("1000"),
+          inputToken: dai.address,
+          claims: arrayFromTo(1, 100).map(() =>
+            claimParams.percent(1).to(bob.address).build()
+          ),
+        })
+      );
+    });
   });
 });
