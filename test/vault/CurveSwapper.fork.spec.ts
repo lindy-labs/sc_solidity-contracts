@@ -161,7 +161,18 @@ describe("CurveSwapper", () => {
 
       const pool = await swapper.swappers(usdt.address);
 
-      expect(pool[0]).to.equal(getAddress(usdt.address));
+      expect(pool[0]).to.equal(getAddress(curvePool.address));
+    });
+
+    it("fails to add an already existing token", async () => {
+      const action = swapper.test_addPool({
+        token: usdt.address,
+        pool: curvePool.address,
+        tokenI: curveIndexes.usdt,
+        underlyingI: curveIndexes.ust,
+      });
+
+      await expect(action).to.be.revertedWith("token already has a swap pool");
     });
   });
 

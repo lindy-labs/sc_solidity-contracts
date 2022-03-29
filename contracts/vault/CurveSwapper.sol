@@ -156,16 +156,14 @@ abstract contract CurveSwapper {
 
     function _addPool(SwapPoolParam memory _param) internal {
         require(
+            address(swappers[_param.token].pool) == address(0),
+            "token already has a swap pool"
+        );
+        require(
             ICurve(_param.pool).coins(uint256(uint128(_param.underlyingI))) ==
                 getUnderlying(),
             "_underlyingI does not match underlying token"
         );
-
-        // TODO it seems this doesn't actually work for UST-3CRV
-        // require(
-        //     _pool.coins(uint256(uint128(_tokenI))) == _token,
-        //     "_tokenI does not match input token"
-        // );
 
         uint256 tokenDecimals = IERC20Metadata(_param.token).decimals();
         uint256 underlyingDecimals = IERC20Metadata(getUnderlying()).decimals();
