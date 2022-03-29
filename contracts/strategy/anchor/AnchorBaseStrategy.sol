@@ -174,9 +174,7 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
         pendingDeposits += ustBalance;
 
         ustToken.safeIncreaseAllowance(address(ethAnchorRouter), ustBalance);
-
         address operator = ethAnchorRouter.initDepositStable(ustBalance);
-
         depositOperations.push(
             Operation({operator: operator, amount: ustBalance})
         );

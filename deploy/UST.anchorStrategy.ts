@@ -33,6 +33,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   });
 };
 
+// deploy only to mainnet
 func.id = "deploy_ust_anchor_strategy";
 func.tags = ["strategies", "ust"];
 func.dependencies = ["deploy_ust_vault"];

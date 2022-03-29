@@ -40,13 +40,9 @@ contract MockEthAnchorRouter is IEthAnchorRouter {
             pendingOperator != address(0),
             "pendingOperator cannot be null address"
         );
-
         ustToken.safeTransferFrom(msg.sender, address(this), _amount);
-
         depositOperations[pendingOperator] = _amount;
-
         operator = pendingOperator;
-
         pendingOperator = address(0);
     }
 
