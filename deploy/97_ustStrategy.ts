@@ -1,5 +1,6 @@
 import type { HardhatRuntimeEnvironment } from "hardhat/types";
 import { ethers } from "hardhat";
+import { utils } from "ethers";
 
 const { parseUnits } = ethers.utils;
 
@@ -21,12 +22,16 @@ async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
   const mockUST = await get("UST");
   const underlying = await ethers.getContractAt("MockERC20", mockUST.address);
 
-  const mockaUST = await get("aUST");
+  const mockaUSTDeployment = await get("aUST");
+  const mockaUST = await ethers.getContractAt(
+    "MockERC20",
+    mockaUSTDeployment.address
+  );
 
   await deploy("MockEthAnchorRouter", {
     contract: "MockEthAnchorRouter",
     from: deployer,
-    args: [mockUST.address, mockUST.address],
+    args: [mockUST.address, mockaUST.address],
   });
 
   await deploy("MockChainlinkPriceFeed", {
@@ -58,7 +63,7 @@ async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
       mockEthAnchorRouterDeployment.address,
       mockChainlinkPriceFeed.address,
       mockUST.address,
-      mockaUST.address,
+      mockaUSTDeployment.address,
       owner.address,
     ],
     log: true,
@@ -79,12 +84,20 @@ async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
     ustAnchorStrategyAddress
   );
 
+  await mockaUST.connect(owner).approve(vault.address, parseUnits("5000", 18));
+  await mockaUST
+    .connect(owner)
+    .approve(mockEthAnchorRouter.address, parseUnits("5000", 18));
+  await mockaUST
+    .connect(owner)
+    .approve(ustAnchorStrategy.address, parseUnits("5000", 18));
+
+  console.log("Grant MANAGER_ROLE to owner");
+  const MANAGER_ROLE = utils.keccak256(utils.toUtf8Bytes("MANAGER_ROLE"));
+  await ustAnchorStrategy.connect(owner).grantRole(MANAGER_ROLE, owner.address);
+
   console.log("Set treasury for UST vault");
   await vault.connect(owner).setTreasury(treasury.address);
-
-  console.log("The treasury sponsors 1000 to UST Vault");
-  const lockUntil = await vault.MIN_SPONSOR_LOCK_DURATION();
-  await vault.connect(treasury).sponsor(parseUnits("1000", 18), lockUntil);
 
   console.log("Alice deposits into UST vault");
   await vault.connect(alice).deposit({
@@ -100,26 +113,55 @@ async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
   });
 
   await new Promise((resolve) => {
-    console.log("setting up promise to wait for event");
+    console.log("Setting up promise to wait for StrategyUpdated event");
 
     vault.on("StrategyUpdated", async () => {
-      console.log("StrategyUpdated Event triggered");
+      ustAnchorStrategy.on(
+        "InitDepositStable",
+        async (operator, idx, underlyingAmount, ustAmount) => {
+          console.log(
+            "InitDepositStable event triggered",
+            operator,
+            idx,
+            underlyingAmount,
+            ustAmount
+          );
 
-      console.log("Strategy updated");
+          console.log(
+            "DEBUG mockaUST owner balanceOf",
+            await mockaUST.balanceOf(owner.address)
+          );
+
+          console.log(
+            "DEBUG mockaUST owner allowance",
+            await mockaUST.allowance(
+              owner.address,
+              mockEthAnchorRouter.address
+            ),
+            mockaUST.address
+          );
+
+          console.log("MockEthAnchorRouter notifyDepositResult");
+          await mockEthAnchorRouter.notifyDepositResult(operator, ustAmount);
+
+          console.log("Stable Deposit finished");
+          await ustAnchorStrategy.connect(owner).finishDepositStable(idx);
+
+          resolve(true);
+        }
+      );
+
+      console.log("StrategyUpdated Event triggered");
 
       await vault.connect(owner).setInvestPerc("8000");
 
       console.log("Calling updateInvested");
-
       await vault.connect(owner).updateInvested("0x");
 
       console.log("Vault investments updated");
-
-      resolve(true);
     });
 
-    console.log("setting USTAnchor strategy to UST vault");
-
+    console.log("Setting USTAnchor strategy to UST vault");
     vault.setStrategy(ustAnchorStrategy.address);
   });
 }
