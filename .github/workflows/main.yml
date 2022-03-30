@@ -34,5 +34,6 @@ jobs:
           python-version: '3.x'
 
       - run: yarn install
-      - run: yarn run hardhat compile
+      - run: cd subgraph && yarn install
+      - run: yarn compile
       - run: yarn test
