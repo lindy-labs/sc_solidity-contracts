@@ -2,14 +2,15 @@
   "name": "sandclock-eth-subgraph",
   "license": "UNLICENSED",
   "scripts": {
-    "prep": "mustache ./config/hardhat.json subgraph.template.yaml > subgraph.yaml",
+    "prep:local": "mustache ./config/local.json subgraph.template.yaml > subgraph.yaml",
+    "prep:ropsten": "mustache ./config/ropsten.json subgraph.template.yaml > subgraph.yaml",
     "codegen": "graph codegen --output-dir src/types",
     "build": "graph build",
     "deploy": "graph deploy --node https://api.studio.thegraph.com/deploy/ sandclock-eth",
     "create-local": "graph create --node http://localhost:8020/ sandclock-eth",
     "remove-local": "graph remove --node http://localhost:8020/ sandclock-eth",
     "deploy-local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 sandclock-eth",
-    "all-local": "yarn codegen && yarn build && yarn create-local && yarn deploy-local --version-label v0.0.1",
+    "all-local": "yarn prep:local && yarn codegen && yarn build && yarn create-local && yarn deploy-local --version-label v0.0.1",
     "test": "graph test"
   },
   "dependencies": {

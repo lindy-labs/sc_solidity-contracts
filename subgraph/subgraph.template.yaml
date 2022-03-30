@@ -8,7 +8,7 @@ dataSources:
     source:
       abi: Vault
       {{#vault}}
-        address: {{local}}
+      address: "{{address}}"
       {{/vault}}
     mapping: &mapping
       kind: ethereum/events
@@ -45,7 +45,7 @@ dataSources:
     source:
       abi: AnchorUSTStrategy
       {{#strategy}}
-        address: {{ local }}
+      address: "{{address}}"
       {{/strategy}}
     mapping: &mapping
       kind: ethereum/events
