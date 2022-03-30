@@ -4,7 +4,7 @@ import { ethers } from "hardhat";
 const { parseUnits } = ethers.utils;
 
 const func = async function (env: HardhatRuntimeEnvironment) {
-  if (env.network.live) {
+  if (env.network.config.chainId !== 31337) {
     return;
   }
 
