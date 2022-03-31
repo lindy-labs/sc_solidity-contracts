@@ -21,7 +21,7 @@ export function handleInitDeposit(event: InitDepositStable): void {
 export function handleFinishDeposit(event: InitDepositStable): void {
   const id = event.params.operator.toString();
 
-  const depositOperation = new DepositOperation(id);
+  const depositOperation = DepositOperation.load(id)!;
   depositOperation.finished = true;
 
   depositOperation.save();
