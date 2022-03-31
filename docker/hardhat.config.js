@@ -29,7 +29,6 @@ module.exports = {
         accountsBalance: '100000000000000000000000000',
       },
       initialBaseFeePerGas: 0,
-      // chainId: 31337,
       live: true,
     },
   },

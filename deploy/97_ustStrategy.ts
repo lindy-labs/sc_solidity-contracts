@@ -54,7 +54,6 @@ async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
     "MockEthAnchorRouter",
     mockEthAnchorRouterDeployment.address
   );
-  await mockEthAnchorRouter.addPendingOperator(ethAnchorOperator);
 
   console.log("Deploy AnchorUSTStrategy for development");
 
@@ -79,7 +78,6 @@ async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
   );
 
   await mintAndAllowTokens();
-
   await configureContracts();
 
   console.log("Alice deposits into UST vault");
@@ -116,13 +114,10 @@ async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
           }
 
           console.log("InitDepositStable event triggered, finishing deposit");
-
-          console.log("MockEthAnchorRouter notifyDepositResult");
           await mockEthAnchorRouter.notifyDepositResult(operator, ustAmount);
 
           console.log("Stable Deposit finished");
           await ustAnchorStrategy.finishDepositStable(idx);
-
           firstDeposit = false;
 
           await setChainlinkData(2);
@@ -140,7 +135,6 @@ async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
           });
 
           await mockEthAnchorRouter.addPendingOperator(ethAnchorOperator1);
-
           await vault.connect(owner).updateInvested("0x");
         }
       );
@@ -148,6 +142,7 @@ async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
       await setChainlinkData(1);
 
       console.log("StrategyUpdated Event triggered, calling updateInvested");
+      await mockEthAnchorRouter.addPendingOperator(ethAnchorOperator);
       await vault.connect(owner).updateInvested("0x");
     });
 
@@ -190,16 +185,13 @@ async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
   }
 
   async function configureContracts() {
-    console.log("Grant MANAGER_ROLE to owner");
     const MANAGER_ROLE = utils.keccak256(utils.toUtf8Bytes("MANAGER_ROLE"));
     await ustAnchorStrategy
       .connect(owner)
       .grantRole(MANAGER_ROLE, owner.address);
 
-    console.log("Set treasury for UST vault");
     await vault.connect(owner).setTreasury(treasury.address);
 
-    console.log("Set investment percentage for UST vault");
     await vault.connect(owner).setInvestPerc("8000");
   }
 }
