@@ -5,10 +5,9 @@ import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {Counters} from "@openzeppelin/contracts/utils/Counters.sol";
 
-import {IClaimers} from "./IClaimers.sol";
 import {IVault} from "../vault/IVault.sol";
 
-contract Claimers is ERC721, IClaimers {
+contract Claimers is ERC721 {
     using Counters for Counters.Counter;
 
     Counters.Counter private _tokenIds;
