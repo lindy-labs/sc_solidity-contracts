@@ -45,7 +45,11 @@ async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
   const vaultDeployment = await get("Vault_UST");
   const vault = await ethers.getContractAt("Vault", vaultDeployment.address);
   const mockEthAnchorRouterDeployment = await get("MockEthAnchorRouter");
-  const mockChainlinkPriceFeed = await get("MockChainlinkPriceFeed");
+  const mockChainlinkPriceFeedDeployment = await get("MockChainlinkPriceFeed");
+  const mockChainlinkPriceFeed = await ethers.getContractAt(
+    "MockChainlinkPriceFeed",
+    mockChainlinkPriceFeedDeployment.address
+  );
 
   const mockEthAnchorRouter = await ethers.getContractAt(
     "MockEthAnchorRouter",
@@ -69,19 +73,20 @@ async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
     log: true,
   });
 
+  const ustAnchorStrategyAddress = (await get("AnchorUSTStrategy")).address;
+  const ustAnchorStrategy = await ethers.getContractAt(
+    "AnchorUSTStrategy",
+    ustAnchorStrategyAddress
+  );
+
   await underlying.mint(alice.address, parseUnits("5000", 18));
   await underlying.mint(bob.address, parseUnits("5000", 18));
+  await mockaUST.mint(owner.address, parseUnits("5000", 18));
 
   await Promise.all(
     [alice, bob, treasury, owner].map((account) =>
       underlying.connect(account).approve(vault.address, parseUnits("5000", 18))
     )
-  );
-
-  const ustAnchorStrategyAddress = (await get("AnchorUSTStrategy")).address;
-  const ustAnchorStrategy = await ethers.getContractAt(
-    "AnchorUSTStrategy",
-    ustAnchorStrategyAddress
   );
 
   await mockaUST.connect(owner).approve(vault.address, parseUnits("5000", 18));
@@ -99,9 +104,12 @@ async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
   console.log("Set treasury for UST vault");
   await vault.connect(owner).setTreasury(treasury.address);
 
+  console.log("Set investment percentage for UST vault");
+  await vault.connect(owner).setInvestPerc("8000");
+
   console.log("Alice deposits into UST vault");
   await vault.connect(alice).deposit({
-    amount: parseUnits("1000", 18),
+    amount: parseUnits("2000", 18),
     lockDuration: 1,
     claims: [
       {
@@ -113,52 +121,70 @@ async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
   });
 
   await new Promise((resolve) => {
-    console.log("Setting up promise to wait for StrategyUpdated event");
+    console.log(
+      "Setting up promise to wait for StrategyUpdated & InitDepositStable event"
+    );
+
+    let firstDeposit = true;
 
     vault.on("StrategyUpdated", async () => {
       ustAnchorStrategy.on(
         "InitDepositStable",
         async (operator, idx, underlyingAmount, ustAmount) => {
-          console.log(
-            "InitDepositStable event triggered",
-            operator,
-            idx,
-            underlyingAmount,
-            ustAmount
-          );
+          if (!firstDeposit) {
+            console.log("after second updateInvested");
 
-          console.log(
-            "DEBUG mockaUST owner balanceOf",
-            await mockaUST.balanceOf(owner.address)
-          );
+            resolve(true);
 
-          console.log(
-            "DEBUG mockaUST owner allowance",
-            await mockaUST.allowance(
-              owner.address,
-              mockEthAnchorRouter.address
-            ),
-            mockaUST.address
-          );
+            return;
+          }
+
+          console.log("InitDepositStable event triggered, finishing deposit");
 
           console.log("MockEthAnchorRouter notifyDepositResult");
           await mockEthAnchorRouter.notifyDepositResult(operator, ustAmount);
 
           console.log("Stable Deposit finished");
-          await ustAnchorStrategy.connect(owner).finishDepositStable(idx);
+          await ustAnchorStrategy.finishDepositStable(idx);
 
-          resolve(true);
+          firstDeposit = false;
+
+          await mockChainlinkPriceFeed.setLatestRoundData(
+            2,
+            utils.parseEther("1"),
+            0,
+            2,
+            2
+          );
+
+          await vault.connect(bob).deposit({
+            amount: parseUnits("1500", 18),
+            lockDuration: 1,
+            claims: [
+              {
+                beneficiary: bob.address,
+                pct: 10000,
+                data: "0x",
+              },
+            ],
+          });
+
+          await mockEthAnchorRouter.addPendingOperator(ethAnchorOperator);
+
+          await vault.connect(owner).updateInvested("0x");
         }
       );
 
-      console.log("StrategyUpdated Event triggered");
+      await mockChainlinkPriceFeed.setLatestRoundData(
+        1,
+        ethers.utils.parseEther("1"),
+        0,
+        1,
+        1
+      );
 
-      await vault.connect(owner).setInvestPerc("8000");
-
-      console.log("Calling updateInvested");
+      console.log("StrategyUpdated Event triggered, calling updateInvested");
       await vault.connect(owner).updateInvested("0x");
-
-      console.log("Vault investments updated");
     });
 
     console.log("Setting USTAnchor strategy to UST vault");
