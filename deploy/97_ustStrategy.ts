@@ -13,7 +13,8 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 };
 
 async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
-  const { deployer, ethAnchorOperator } = await env.getNamedAccounts();
+  const { deployer, ethAnchorOperator, ethAnchorOperator1 } =
+    await env.getNamedAccounts();
   const { deploy, get } = env.deployments;
   const [owner, alice, bob, treasury] = await ethers.getSigners();
 
@@ -132,7 +133,7 @@ async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
         "InitDepositStable",
         async (operator, idx, underlyingAmount, ustAmount) => {
           if (!firstDeposit) {
-            console.log("after second updateInvested");
+            console.log("After second updateInvested");
 
             resolve(true);
 
@@ -169,7 +170,7 @@ async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
             ],
           });
 
-          await mockEthAnchorRouter.addPendingOperator(ethAnchorOperator);
+          await mockEthAnchorRouter.addPendingOperator(ethAnchorOperator1);
 
           await vault.connect(owner).updateInvested("0x");
         }
