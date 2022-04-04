@@ -39,6 +39,11 @@ const config: HardhatUserConfig = {
       chainId: 1337,
       live: false,
     },
+    etheno: {
+      url: "http://localhost:8545",
+      chainId: 1337,
+      live: false,
+    },
     mainnet: {
       url: `https://mainnet.infura.io/v3/${
         process.env.INFURA_KEY || "missing-key"
