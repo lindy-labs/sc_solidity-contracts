@@ -135,6 +135,19 @@ describe("Vault (fork tests)", () => {
       expect(pool[0]).to.equal(curvePool.address);
     });
 
+    it("does not allow adding a pool where underlyingI does not match", async () => {
+      const action = vault.addPool({
+        token: usdt.address,
+        pool: curvePool.address,
+        tokenI: curveIndexes.usdt,
+        underlyingI: curveIndexes.dai,
+      });
+
+      await expect(action).to.be.revertedWith(
+        "_underlyingI does not match underlying token"
+      );
+    });
+
     it("is not callable by a non-admin", async () => {
       const action = vault.connect(alice).addPool({
         token: usdt.address,
@@ -170,7 +183,7 @@ describe("Vault (fork tests)", () => {
   });
 
   describe("deposit with DAI", function () {
-    it.only("automatically swaps into UST and deposits that", async () => {
+    it("automatically swaps into UST and deposits that", async () => {
       const action = vault.connect(alice).deposit(
         depositParams.build({
           amount: parseUnits("1000", await dai.decimals()),

@@ -89,7 +89,10 @@ abstract contract CurveSwapper {
         }
 
         Swapper storage swapper = swappers[_token];
-        require(swapper.pool != address(0x0), "non-existing swap pool");
+        require(
+            address(swapper.pool) != address(0x0),
+            "non-existing swap pool"
+        );
 
         uint256 minAmount = _calcMinDy(
             _amount,
@@ -104,7 +107,6 @@ abstract contract CurveSwapper {
             minAmount
         );
 
-        console.log(amount);
         emit Swap(_token, getUnderlying(), _amount, amount);
     }
 
