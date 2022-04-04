@@ -455,7 +455,7 @@ contract Vault is
     ///
     /// @param _param Swap pool params
     function addPool(SwapPoolParam memory _param)
-        public
+        external
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         _addPool(_param);
@@ -465,7 +465,7 @@ contract Vault is
     ///
     /// @param _inputToken the token to remove
     function removePool(address _inputToken)
-        public
+        external
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         _removePool(_inputToken);
