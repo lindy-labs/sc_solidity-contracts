@@ -561,11 +561,12 @@ contract Vault is
         for (uint8 i; i < idsLen; ++i) {
             uint256 tokenId = _ids[i];
 
-            Deposit memory deposit = deposits[tokenId];
-            uint256 lockedUntil = deposit.lockedUntil;
-            uint256 claimerId = deposit.claimerId;
+            Deposit memory _deposit = deposits[tokenId];
+            uint256 lockedUntil = _deposit.lockedUntil;
+            uint256 claimerId = _deposit.claimerId;
+
             address owner = depositors.ownerOf(tokenId);
-            uint256 amount = deposit.amount;
+            uint256 amount = _deposit.amount;
 
             require(owner == msg.sender, "Vault: you are not allowed");
             require(lockedUntil <= block.timestamp, "Vault: amount is locked");
@@ -741,18 +742,30 @@ contract Vault is
         );
 
         // memoizing saves warm sloads
-        Deposit memory deposit = deposits[_tokenId];
+        Deposit memory _deposit = deposits[_tokenId];
 
         require(
-            deposit.lockedUntil <= block.timestamp,
+            _deposit.lockedUntil <= block.timestamp,
             "Vault: deposit is locked"
         );
 
+<<<<<<< HEAD
         require(deposit.claimerId != 0, "Vault: token id is not a deposit");
+||||||| 524f65f
+        require(
+            deposit.claimerId != 0,
+            "Vault: token id is not a deposit"
+        );
+=======
+        require(
+            _deposit.claimerId != 0,
+            "Vault: token id is not a deposit"
+        );
+>>>>>>> main
 
-        uint256 claimerId = deposit.claimerId;
-        uint256 depositInitialShares = deposit.shares;
-        uint256 depositAmount = deposit.amount;
+        uint256 claimerId = _deposit.claimerId;
+        uint256 depositInitialShares = _deposit.shares;
+        uint256 depositAmount = _deposit.amount;
 
         uint256 claimerShares = claimer[claimerId].totalShares;
         uint256 claimerPrincipal = claimer[claimerId].totalPrincipal;
