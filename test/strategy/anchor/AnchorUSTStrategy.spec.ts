@@ -487,7 +487,7 @@ describe("AnchorUSTStrategy", () => {
 
       await expect(tx)
         .to.emit(strategy, "InitRedeemStable")
-        .withArgs(operator, redeemAmount);
+        .withArgs(operator, 0, redeemAmount);
     });
 
     it("Should be able to init redeem several times", async () => {
@@ -708,7 +708,7 @@ describe("AnchorUSTStrategy", () => {
 
       await expect(tx)
         .to.emit(strategy, "InitRedeemStable")
-        .withArgs(operator, aUstAmount0);
+        .withArgs(operator, 0, aUstAmount0);
     });
   });
 
