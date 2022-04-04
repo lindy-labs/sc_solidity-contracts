@@ -32,7 +32,11 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
         uint256 ustAmount,
         uint256 aUstAmount
     );
-    event InitRedeemStable(address indexed operator, uint256 aUstAmount);
+    event InitRedeemStable(
+        address indexed operator,
+        uint256 indexed idx,
+        uint256 aUstAmount
+    );
     event FinishRedeemStable(
         address indexed operator,
         uint256 aUstAmount,
@@ -241,7 +245,7 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
 
         redeemOperations.push(Operation({operator: operator, amount: amount}));
 
-        emit InitRedeemStable(operator, amount);
+        emit InitRedeemStable(operator, redeemOperations.length - 1, amount);
     }
 
     /**
