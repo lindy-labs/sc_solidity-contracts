@@ -24,10 +24,15 @@ interface IVaultSponsoring {
      * there are no claimers and the yield generated is donated to the vault.
      * The amount is locked until the timestamp specified in @param _lockedUntil.
      *
+     * @param _inputToken The input token to deposit.
      * @param _amount Amount to sponsor.
      * @param _lockedUntil When the sponsor can unsponsor the amount.
      */
-    function sponsor(uint256 _amount, uint256 _lockedUntil) external;
+    function sponsor(
+        address _inputToken,
+        uint256 _amount,
+        uint256 _lockedUntil
+    ) external;
 
     /**
      * Withdraws the sponsored amount for the deposits with the ids provided

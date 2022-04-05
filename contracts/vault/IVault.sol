@@ -14,9 +14,10 @@ interface IVault {
     }
 
     struct DepositParams {
+        address inputToken;
+        uint64 lockDuration;
         uint256 amount;
         ClaimParams[] claims;
-        uint64 lockDuration;
     }
 
     //

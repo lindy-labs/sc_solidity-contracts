@@ -6,9 +6,9 @@ import { expect } from "chai";
 
 import {
   Vault,
-  MockDAI__factory,
+  MockUST__factory,
   MockAUST__factory,
-  MockDAI,
+  MockUST,
   MockAUST,
   Depositors,
   Claimers,
@@ -41,7 +41,7 @@ describe("Vault", () => {
   let mockEthAnchorRouter: Contract;
   let mockAUstUstFeed: Contract;
 
-  let underlying: MockDAI;
+  let underlying: MockUST;
   let aUstToken: MockAUST;
   let vault: Vault;
   let depositors: Depositors;
@@ -64,13 +64,13 @@ describe("Vault", () => {
 
     [owner] = await ethers.getSigners();
 
-    const daiDeployment = await deployments.get("DAI");
+    const ustDeployment = await deployments.get("UST");
     const austDeployment = await deployments.get("aUST");
-    const daiVaultDeployment = await deployments.get("Vault_DAI");
+    const ustVaultDeployment = await deployments.get("Vault_UST");
 
     aUstToken = MockAUST__factory.connect(austDeployment.address, owner);
-    underlying = MockDAI__factory.connect(daiDeployment.address, owner);
-    vault = Vault__factory.connect(daiVaultDeployment.address, owner);
+    underlying = MockUST__factory.connect(ustDeployment.address, owner);
+    vault = Vault__factory.connect(ustVaultDeployment.address, owner);
   });
 
   beforeEach(() => fixtures());
@@ -100,7 +100,8 @@ describe("Vault", () => {
       INVEST_PCT,
       TREASURY,
       owner.address,
-      PERFORMANCE_FEE_PCT
+      PERFORMANCE_FEE_PCT,
+      []
     );
 
     underlying.connect(owner).approve(vault.address, MaxUint256);
@@ -126,6 +127,7 @@ describe("Vault", () => {
         await vault.connect(alice).deposit(
           depositParams.build({
             amount: parseUnits("1000"),
+            inputToken: underlying.address,
             claims: arrayFromTo(1, 100).map(() =>
               claimParams.percent(1).to(bob.address).build()
             ),
@@ -170,6 +172,7 @@ describe("Vault", () => {
         await vault.connect(alice).deposit(
           depositParams.build({
             amount: 11,
+            inputToken: underlying.address,
             claims: [
               claimParams.percent(50).to(alice.address).build(),
               claimParams.percent(50).to(bob.address).build(),
@@ -198,7 +201,8 @@ describe("Vault", () => {
           INVEST_PCT,
           TREASURY,
           owner.address,
-          PERFORMANCE_FEE_PCT
+          PERFORMANCE_FEE_PCT,
+          []
         )
       ).to.be.revertedWith("Vault: underlying cannot be 0x0");
     });
@@ -211,7 +215,8 @@ describe("Vault", () => {
           INVEST_PCT,
           TREASURY,
           owner.address,
-          PERFORMANCE_FEE_PCT
+          PERFORMANCE_FEE_PCT,
+          []
         )
       ).to.be.revertedWith("Vault: invalid minLockPeriod");
     });
@@ -224,7 +229,8 @@ describe("Vault", () => {
           INVEST_PCT,
           TREASURY,
           owner.address,
-          PERFORMANCE_FEE_PCT
+          PERFORMANCE_FEE_PCT,
+          []
         )
       ).to.be.revertedWith("Vault: invalid minLockPeriod");
     });
@@ -237,7 +243,8 @@ describe("Vault", () => {
           DENOMINATOR.add(BigNumber.from("1")),
           TREASURY,
           owner.address,
-          PERFORMANCE_FEE_PCT
+          PERFORMANCE_FEE_PCT,
+          []
         )
       ).to.be.revertedWith("Vault: invalid investPerc");
     });
@@ -250,7 +257,8 @@ describe("Vault", () => {
           INVEST_PCT,
           TREASURY,
           owner.address,
-          DENOMINATOR.add(BigNumber.from("1"))
+          DENOMINATOR.add(BigNumber.from("1")),
+          []
         )
       ).to.be.revertedWith("Vault: invalid performance fee");
     });
@@ -263,7 +271,8 @@ describe("Vault", () => {
           INVEST_PCT,
           constants.AddressZero,
           owner.address,
-          PERFORMANCE_FEE_PCT
+          PERFORMANCE_FEE_PCT,
+          []
         )
       ).to.be.revertedWith("Vault: treasury cannot be 0x0");
     });
@@ -276,7 +285,8 @@ describe("Vault", () => {
           INVEST_PCT,
           TREASURY,
           constants.AddressZero,
-          PERFORMANCE_FEE_PCT
+          PERFORMANCE_FEE_PCT,
+          []
         )
       ).to.be.revertedWith("Vault: owner cannot be 0x0");
     });
@@ -396,6 +406,7 @@ describe("Vault", () => {
       const amount = parseUnits("100");
       const params = depositParams.build({
         amount,
+        inputToken: underlying.address,
         claims: [claimParams.percent(100).to(bob.address).build()],
       });
 
@@ -524,7 +535,8 @@ describe("Vault", () => {
         INVEST_PCT,
         TREASURY,
         owner.address,
-        PERFORMANCE_FEE_PCT
+        PERFORMANCE_FEE_PCT,
+        []
       );
 
       await expect(
@@ -599,8 +611,12 @@ describe("Vault", () => {
     it("adds a sponsor to the vault", async () => {
       await addUnderlyingBalance(alice, "1000");
 
-      await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
-      await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
+      await vault
+        .connect(alice)
+        .sponsor(underlying.address, parseUnits("500"), TWO_WEEKS);
+      await vault
+        .connect(alice)
+        .sponsor(underlying.address, parseUnits("500"), TWO_WEEKS);
 
       expect(await vault.totalSponsored()).to.eq(parseUnits("1000"));
     });
@@ -610,7 +626,7 @@ describe("Vault", () => {
 
       const tx = await vault
         .connect(alice)
-        .sponsor(parseUnits("500"), TWO_WEEKS);
+        .sponsor(underlying.address, parseUnits("500"), TWO_WEEKS);
 
       await expect(tx)
         .to.emit(vault, "Sponsored")
@@ -626,7 +642,7 @@ describe("Vault", () => {
       await addUnderlyingBalance(alice, "1000");
 
       await expect(
-        vault.connect(alice).sponsor(parseUnits("500"), 0)
+        vault.connect(alice).sponsor(underlying.address, parseUnits("500"), 0)
       ).to.be.revertedWith("Vault: invalid lock period");
     });
 
@@ -635,7 +651,9 @@ describe("Vault", () => {
       const lockDuration = 1;
 
       await expect(
-        vault.connect(alice).sponsor(parseUnits("500"), lockDuration)
+        vault
+          .connect(alice)
+          .sponsor(underlying.address, parseUnits("500"), lockDuration)
       ).to.be.revertedWith("Vault: invalid lock period");
     });
 
@@ -644,7 +662,9 @@ describe("Vault", () => {
       const lockDuration = BigNumber.from(time.duration.years(100).toNumber());
 
       await expect(
-        vault.connect(alice).sponsor(parseUnits("500"), lockDuration)
+        vault
+          .connect(alice)
+          .sponsor(underlying.address, parseUnits("500"), lockDuration)
       ).to.be.revertedWith("Vault: invalid lock period");
     });
 
@@ -653,14 +673,18 @@ describe("Vault", () => {
       const lockDuration = BigNumber.from(time.duration.days(15).toNumber());
 
       await expect(
-        vault.connect(alice).sponsor(parseUnits("0"), lockDuration)
+        vault
+          .connect(alice)
+          .sponsor(underlying.address, parseUnits("0"), lockDuration)
       ).to.be.revertedWith("Vault: cannot sponsor 0");
     });
 
     it("mints Depositor NFT to sponsor", async () => {
       await addUnderlyingBalance(alice, "1000");
 
-      await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
+      await vault
+        .connect(alice)
+        .sponsor(underlying.address, parseUnits("500"), TWO_WEEKS);
 
       expect(await depositors.ownerOf("1")).to.be.equal(alice.address);
     });
@@ -668,7 +692,9 @@ describe("Vault", () => {
     it("updates deposit info for sponsor", async () => {
       await addUnderlyingBalance(alice, "1000");
 
-      await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
+      await vault
+        .connect(alice)
+        .sponsor(underlying.address, parseUnits("500"), TWO_WEEKS);
 
       const currentTime = await getLastBlockTimestamp();
 
@@ -680,7 +706,9 @@ describe("Vault", () => {
     });
 
     it("transfers underlying from user at sponsor", async () => {
-      await vault.connect(alice).sponsor(parseUnits("400"), TWO_WEEKS);
+      await vault
+        .connect(alice)
+        .sponsor(underlying.address, parseUnits("400"), TWO_WEEKS);
 
       expect(await vault.totalUnderlying()).to.equal(parseUnits("400"));
       expect(await underlying.balanceOf(vault.address)).to.equal(
@@ -694,8 +722,12 @@ describe("Vault", () => {
 
   describe("unsponsor", () => {
     it("removes a sponsor from the vault", async () => {
-      await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
-      await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
+      await vault
+        .connect(alice)
+        .sponsor(underlying.address, parseUnits("500"), TWO_WEEKS);
+      await vault
+        .connect(alice)
+        .sponsor(underlying.address, parseUnits("500"), TWO_WEEKS);
 
       await moveForwardTwoWeeks();
       await vault.connect(alice).unsponsor(newAccount.address, [1]);
@@ -707,7 +739,9 @@ describe("Vault", () => {
     });
 
     it("emits an event", async () => {
-      await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
+      await vault
+        .connect(alice)
+        .sponsor(underlying.address, parseUnits("500"), TWO_WEEKS);
 
       await moveForwardTwoWeeks();
       const tx = await vault.connect(alice).unsponsor(bob.address, [1]);
@@ -716,7 +750,9 @@ describe("Vault", () => {
     });
 
     it("fails if the caller is not the owner", async () => {
-      await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
+      await vault
+        .connect(alice)
+        .sponsor(underlying.address, parseUnits("500"), TWO_WEEKS);
 
       await expect(
         vault.connect(bob).unsponsor(alice.address, [1])
@@ -724,7 +760,9 @@ describe("Vault", () => {
     });
 
     it("fails if the destination address is 0x", async () => {
-      await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
+      await vault
+        .connect(alice)
+        .sponsor(underlying.address, parseUnits("500"), TWO_WEEKS);
 
       await expect(
         vault
@@ -734,7 +772,9 @@ describe("Vault", () => {
     });
 
     it("fails if the amount is still locked", async () => {
-      await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
+      await vault
+        .connect(alice)
+        .sponsor(underlying.address, parseUnits("500"), TWO_WEEKS);
 
       await expect(
         vault.connect(alice).unsponsor(alice.address, [1])
@@ -746,10 +786,13 @@ describe("Vault", () => {
         depositParams.build({
           lockDuration: TWO_WEEKS,
           amount: parseUnits("500"),
+          inputToken: underlying.address,
           claims: [claimParams.percent(100).to(alice.address).build()],
         })
       );
-      await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
+      await vault
+        .connect(alice)
+        .sponsor(underlying.address, parseUnits("500"), TWO_WEEKS);
 
       await moveForwardTwoWeeks();
 
@@ -759,7 +802,9 @@ describe("Vault", () => {
     });
 
     it("fails if there are not enough funds", async () => {
-      await vault.connect(alice).sponsor(parseUnits("1000"), TWO_WEEKS);
+      await vault
+        .connect(alice)
+        .sponsor(underlying.address, parseUnits("1000"), TWO_WEEKS);
       await moveForwardTwoWeeks();
 
       await removeUnderlyingFromVault("500");
@@ -775,6 +820,7 @@ describe("Vault", () => {
       const params = depositParams.build({
         lockDuration: TWO_WEEKS,
         amount: parseUnits("100"),
+        inputToken: underlying.address,
         claims: [
           claimParams.percent(50).to(carol.address).build(),
           claimParams
@@ -820,6 +866,7 @@ describe("Vault", () => {
       const params = depositParams.build({
         lockDuration: TWO_WEEKS,
         amount: parseUnits("100"),
+        inputToken: underlying.address,
         claims: [
           claimParams.percent(50).to(carol.address).build(),
           claimParams.percent(50).to(bob.address).build(),
@@ -861,6 +908,7 @@ describe("Vault", () => {
     it("sets a timelock of at least 2 weeks by default", async () => {
       const params = depositParams.build({
         amount: parseUnits("100"),
+        inputToken: underlying.address,
         claims: [
           claimParams.percent(50).to(carol.address).build(),
           claimParams.percent(50).to(bob.address).build(),
@@ -880,6 +928,7 @@ describe("Vault", () => {
       const params = depositParams.build({
         amount: parseUnits("100"),
         lockDuration: BigNumber.from(time.duration.days(13).toNumber()),
+        inputToken: underlying.address,
         claims: [claimParams.percent(100).to(bob.address).build()],
       });
 
@@ -891,6 +940,7 @@ describe("Vault", () => {
     it("fails if the claim percentage is 0", async () => {
       const params = depositParams.build({
         amount: parseUnits("100"),
+        inputToken: underlying.address,
         claims: [
           claimParams.percent(100).to(bob.address).build(),
           claimParams.percent(0).to(bob.address).build(),
@@ -907,6 +957,7 @@ describe("Vault", () => {
     it("fails if the amount is 0", async () => {
       const params = depositParams.build({
         amount: parseUnits("0"),
+        inputToken: underlying.address,
         claims: [claimParams.percent(100).to(bob.address).build()],
       });
 
@@ -921,6 +972,7 @@ describe("Vault", () => {
       it("emits events", async () => {
         const params = depositParams.build({
           amount: parseUnits("100"),
+          inputToken: underlying.address,
           claims: [
             claimParams.percent(50).to(carol.address).build(),
             claimParams.percent(50).to(bob.address).build(),
@@ -945,6 +997,7 @@ describe("Vault", () => {
       it("withdraws the principal of a deposit", async () => {
         const params = depositParams.build({
           amount: parseUnits("100"),
+          inputToken: underlying.address,
           claims: [
             claimParams.percent(50).to(carol.address).build(),
             claimParams.percent(50).to(bob.address).build(),
@@ -967,6 +1020,7 @@ describe("Vault", () => {
 
       it("withdraws funds to a different address", async () => {
         const params = depositParams.build({
+          inputToken: underlying.address,
           amount: parseUnits("100"),
           claims: [claimParams.percent(100).to(bob.address).build()],
         });
@@ -983,6 +1037,7 @@ describe("Vault", () => {
       it("burns the NFTs of the deposits", async () => {
         const params = depositParams.build({
           amount: parseUnits("100"),
+          inputToken: underlying.address,
           claims: [
             claimParams.percent(50).to(carol.address).build(),
             claimParams.percent(50).to(bob.address).build(),
@@ -1000,6 +1055,7 @@ describe("Vault", () => {
       it("removes the shares from the claimers", async () => {
         const params = depositParams.build({
           amount: parseUnits("100"),
+          inputToken: underlying.address,
           claims: [
             claimParams.percent(50).to(carol.address).build(),
             claimParams.percent(50).to(bob.address).build(),
@@ -1027,6 +1083,7 @@ describe("Vault", () => {
       it("removes the principal from the claimers", async () => {
         const params = depositParams.build({
           amount: parseUnits("100"),
+          inputToken: underlying.address,
           claims: [
             claimParams.percent(50).to(carol.address).build(),
             claimParams.percent(50).to(bob.address).build(),
@@ -1047,6 +1104,7 @@ describe("Vault", () => {
 
       it("fails if the destination address is 0x", async () => {
         const params = depositParams.build({
+          inputToken: underlying.address,
           amount: parseUnits("100"),
           claims: [claimParams.percent(100).to(carol.address).build()],
         });
@@ -1066,6 +1124,7 @@ describe("Vault", () => {
 
       it("fails if the caller doesn't own the deposit", async () => {
         const params = depositParams.build({
+          inputToken: underlying.address,
           amount: parseUnits("100"),
           claims: [claimParams.percent(100).to(carol.address).build()],
         });
@@ -1084,6 +1143,7 @@ describe("Vault", () => {
       it("fails if the deposit is locked", async () => {
         const params = depositParams.build({
           lockDuration: TWO_WEEKS,
+          inputToken: underlying.address,
           amount: parseUnits("100"),
           claims: [claimParams.percent(100).to(bob.address).build()],
         });
@@ -1100,10 +1160,13 @@ describe("Vault", () => {
           depositParams.build({
             lockDuration: TWO_WEEKS,
             amount: parseUnits("500"),
+            inputToken: underlying.address,
             claims: [claimParams.percent(100).to(alice.address).build()],
           })
         );
-        await vault.connect(alice).sponsor(parseUnits("500"), TWO_WEEKS);
+        await vault
+          .connect(alice)
+          .sponsor(underlying.address, parseUnits("500"), TWO_WEEKS);
 
         await moveForwardTwoWeeks();
 
@@ -1118,6 +1181,7 @@ describe("Vault", () => {
     it("works if the vault doesn't have enough funds", async () => {
       const params = depositParams.build({
         amount: parseUnits("1000"),
+        inputToken: underlying.address,
         claims: [claimParams.percent(100).to(carol.address).build()],
       });
 
@@ -1137,6 +1201,7 @@ describe("Vault", () => {
     it("fails if the vault doesn't have enough funds", async () => {
       const params = depositParams.build({
         amount: parseUnits("100"),
+        inputToken: underlying.address,
         claims: [claimParams.percent(100).to(carol.address).build()],
       });
 
@@ -1157,6 +1222,7 @@ describe("Vault", () => {
     it("emits an event", async () => {
       const params = depositParams.build({
         amount: parseUnits("100"),
+        inputToken: underlying.address,
         claims: [
           claimParams.percent(50).to(carol.address).build(),
           claimParams.percent(50).to(bob.address).build(),
@@ -1181,6 +1247,7 @@ describe("Vault", () => {
     it("claims the yield of a user", async () => {
       const params = depositParams.build({
         amount: parseUnits("100"),
+        inputToken: underlying.address,
         claims: [
           claimParams.percent(50).to(carol.address).build(),
           claimParams.percent(50).to(bob.address).build(),
@@ -1209,6 +1276,7 @@ describe("Vault", () => {
     it("accumulate performance fee", async () => {
       const params = depositParams.build({
         amount: parseUnits("100"),
+        inputToken: underlying.address,
         claims: [
           claimParams.percent(50).to(carol.address).build(),
           claimParams.percent(50).to(bob.address).build(),
@@ -1224,6 +1292,7 @@ describe("Vault", () => {
     it("claims the yield to a different address", async () => {
       const params = depositParams.build({
         amount: parseUnits("100"),
+        inputToken: underlying.address,
         claims: [claimParams.percent(100).to(bob.address).build()],
       });
 
@@ -1241,6 +1310,7 @@ describe("Vault", () => {
     it("fails is the destination address is 0x", async () => {
       const params = depositParams.build({
         amount: parseUnits("100"),
+        inputToken: underlying.address,
         claims: [claimParams.percent(100).to(bob.address).build()],
       });
 
@@ -1257,6 +1327,7 @@ describe("Vault", () => {
     it("updates shares after claim", async () => {
       const params = depositParams.build({
         amount: parseUnits("100"),
+        inputToken: underlying.address,
         claims: [
           claimParams.percent(50).to(carol.address).build(),
           claimParams.percent(50).to(bob.address).build(),
@@ -1280,6 +1351,7 @@ describe("Vault", () => {
     it("returns (0, 0, 0) if no yield was generated", async () => {
       const params = depositParams.build({
         amount: parseUnits("100"),
+        inputToken: underlying.address,
         claims: [
           claimParams.percent(50).to(alice.address).build(),
           claimParams.percent(50).to(bob.address).build(),
@@ -1302,6 +1374,7 @@ describe("Vault", () => {
     it("returns the amount of yield claimable by a user, share of yield and performance fee", async () => {
       const params = depositParams.build({
         amount: parseUnits("100"),
+        inputToken: underlying.address,
         claims: [
           claimParams.percent(50).to(alice.address).build(),
           claimParams.percent(50).to(bob.address).build(),
@@ -1329,6 +1402,7 @@ describe("Vault", () => {
     it("fails if amount is 0", async () => {
       const params = depositParams.build({
         amount: parseUnits("0"),
+        inputToken: underlying.address,
       });
 
       await expect(vault.connect(alice).deposit(params)).to.be.revertedWith(
@@ -1339,6 +1413,7 @@ describe("Vault", () => {
     it("fails if lock duration is shorter than minimum", async () => {
       const params = depositParams.build({
         lockDuration: TWO_WEEKS.sub(BigNumber.from("1")),
+        inputToken: underlying.address,
       });
 
       await expect(vault.connect(alice).deposit(params)).to.be.revertedWith(
@@ -1349,6 +1424,7 @@ describe("Vault", () => {
     it("fails if lock duration is longer than maximum", async () => {
       const params = depositParams.build({
         lockDuration: MAX_DEPOSIT_LOCK_DURATION.add(BigNumber.from("1")),
+        inputToken: underlying.address,
       });
 
       await expect(vault.connect(alice).deposit(params)).to.be.revertedWith(
@@ -1359,6 +1435,7 @@ describe("Vault", () => {
     it("fails if the yield is negative", async () => {
       const params = depositParams.build({
         amount: parseUnits("1000"),
+        inputToken: underlying.address,
       });
 
       await vault.connect(alice).deposit(params);
@@ -1375,6 +1452,7 @@ describe("Vault", () => {
 
       const params = depositParams.build({
         amount: parseUnits("500"),
+        inputToken: underlying.address,
       });
 
       await vault.connect(alice).deposit(params);
@@ -1385,13 +1463,16 @@ describe("Vault", () => {
     });
 
     it("works with valid parameters", async () => {
-      const params = depositParams.build();
+      const params = depositParams.build({
+        inputToken: underlying.address,
+      });
 
       await vault.connect(alice).deposit(params);
     });
 
     it("works with multiple claims", async () => {
       const params = depositParams.build({
+        inputToken: underlying.address,
         claims: [
           claimParams.percent(50).build(),
           claimParams.percent(50).build(),
@@ -1403,7 +1484,10 @@ describe("Vault", () => {
 
     it("calculates correct number of shares for first deposit", async () => {
       const amount = parseUnits("1");
-      const params = depositParams.build({ amount });
+      const params = depositParams.build({
+        amount,
+        inputToken: underlying.address,
+      });
 
       await vault.connect(alice).deposit(params);
 
@@ -1412,7 +1496,10 @@ describe("Vault", () => {
 
     it("calculates correct number of shares for second deposit of equal size", async () => {
       const amount = parseUnits("1");
-      const params = depositParams.build({ amount });
+      const params = depositParams.build({
+        amount,
+        inputToken: underlying.address,
+      });
 
       // deposit 1 unit
       await vault.connect(alice).deposit(params);
@@ -1430,11 +1517,17 @@ describe("Vault", () => {
       const amount = parseUnits("1");
 
       // deposit 1 unit
-      const params1 = depositParams.build({ amount });
+      const params1 = depositParams.build({
+        amount,
+        inputToken: underlying.address,
+      });
       await vault.connect(alice).deposit(params1);
 
       // deposit 2 unit
-      const params2 = depositParams.build({ amount: amount.mul(2) });
+      const params2 = depositParams.build({
+        amount: amount.mul(2),
+        inputToken: underlying.address,
+      });
       await vault.connect(bob).deposit(params2);
 
       // total shares must be 3 units
@@ -1445,6 +1538,7 @@ describe("Vault", () => {
 
     it("fails if pct does not add up to 100%", async () => {
       const params = depositParams.build({
+        inputToken: underlying.address,
         claims: [
           claimParams.percent(49).build(),
           claimParams.percent(50).build(),
@@ -1461,7 +1555,9 @@ describe("Vault", () => {
     it("transfers underlying from user at deposit", async () => {
       const balanceBefore = await underlying.balanceOf(alice.address);
 
-      const params = depositParams.build();
+      const params = depositParams.build({
+        inputToken: underlying.address,
+      });
 
       await vault.connect(alice).deposit(params);
 
@@ -1474,6 +1570,7 @@ describe("Vault", () => {
 
     it("updates claimers info for first deposit", async () => {
       const params = depositParams.build({
+        inputToken: underlying.address,
         claims: [
           claimParams.percent(40).build({
             beneficiary: bob.address,
@@ -1501,6 +1598,7 @@ describe("Vault", () => {
 
     it("updates claimers info for second deposit", async () => {
       const params1 = depositParams.build({
+        inputToken: underlying.address,
         claims: [
           claimParams.percent(40).build({
             beneficiary: bob.address,
@@ -1512,6 +1610,7 @@ describe("Vault", () => {
       });
 
       const params2 = depositParams.build({
+        inputToken: underlying.address,
         amount: parseUnits("10"),
         claims: [
           claimParams.build({
@@ -1539,6 +1638,7 @@ describe("Vault", () => {
 
     it("updates deposits info at deposit", async () => {
       const params = depositParams.build({
+        inputToken: underlying.address,
         claims: [
           claimParams.percent(40).build({
             beneficiary: bob.address,
@@ -1576,6 +1676,7 @@ describe("Vault", () => {
 
     it("mints Depositors and Claimers NFTs", async () => {
       const params = depositParams.build({
+        inputToken: underlying.address,
         claims: [
           claimParams.percent(40).build({
             beneficiary: bob.address,

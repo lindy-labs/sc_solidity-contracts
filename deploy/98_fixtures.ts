@@ -30,14 +30,17 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   await vault.connect(owner).setTreasury(treasury.address);
 
   console.log("The treasury sponsors 1000");
-  const lockUntil = await vault.MIN_SPONSOR_LOCK_DURATION();
-  await vault.connect(treasury).sponsor(parseUnits("1000", 6), lockUntil);
+  const lockDuration = await vault.MIN_SPONSOR_LOCK_DURATION();
+  await vault
+    .connect(treasury)
+    .sponsor(ust.address, parseUnits("1000", 6), lockDuration);
 
   console.log(
     "Alice deposits 1000 with 90% yield to Alice and 10% yield for donations"
   );
   await vault.connect(alice).deposit({
     amount: parseUnits("1000", 6),
+    inputToken: ust.address,
     lockDuration: 1,
     claims: [
       {
@@ -58,6 +61,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   );
   await vault.connect(bob).deposit({
     amount: parseUnits("1000", 6),
+    inputToken: ust.address,
     lockDuration: 1,
     claims: [
       {
