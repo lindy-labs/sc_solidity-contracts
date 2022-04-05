@@ -14,6 +14,12 @@ import {
   handleYieldClaimed,
   handleTreasuryUpdated,
 } from "../src/mappings/vault";
+import {
+  handleInitDeposit,
+  handleInitRedeem,
+  handleFinishDeposit,
+  handleFinishRedeem,
+} from "../src/mappings/strategy";
 import { Sponsored, Unsponsored } from "../src/types/Vault/IVaultSponsoring";
 import {
   DepositBurned,
@@ -27,11 +33,140 @@ import {
   Sponsor,
   Claimer,
   Foundation,
+  DepositOperation,
+  RedeemOperation,
 } from "../src/types/schema";
+import {
+  FinishDepositStable,
+  FinishRedeemStable,
+  InitDepositStable,
+  InitRedeemStable,
+} from "../src/types/Strategy/AnchorUSTStrategy";
 
 const MOCK_ADDRESS_1 =
   "0xC80B3caAd6d2DE80Ac76a41d5F0072E36D2519Cd".toLowerCase();
 const TREASURY_ADDRESS = "0x4940c6e628da11ac0bdcf7f82be8579b4696fa33";
+
+test("handleInitDeposit creates a DepositOperation", () => {
+  clearStore();
+
+  let mockEvent = newMockEvent();
+  const event = new InitDepositStable(
+    mockEvent.address,
+    mockEvent.logIndex,
+    mockEvent.transactionLogIndex,
+    mockEvent.logType,
+    mockEvent.block,
+    mockEvent.transaction,
+    mockEvent.parameters
+  );
+  event.parameters = new Array();
+
+  const operator = newAddress("operator", MOCK_ADDRESS_1);
+  const idx = newI32("idx", 1);
+  const underlyingAmount = newI32("underlyingAmount", 1);
+  const ustAmount = newI32("ustAmount", 1);
+
+  event.parameters.push(operator);
+  event.parameters.push(idx);
+  event.parameters.push(ustAmount);
+  event.parameters.push(underlyingAmount);
+
+  handleInitDeposit(event);
+
+  assert.fieldEquals("DepositOperation", MOCK_ADDRESS_1, "idx", "1");
+  assert.fieldEquals(
+    "DepositOperation",
+    MOCK_ADDRESS_1,
+    "underlyingAmount",
+    "1"
+  );
+  assert.fieldEquals("DepositOperation", MOCK_ADDRESS_1, "ustAmount", "1");
+  assert.fieldEquals("DepositOperation", MOCK_ADDRESS_1, "finished", "false");
+});
+
+test("handleFinishDeposit updates the DepositOperation", () => {
+  clearStore();
+
+  const depositOperation = new DepositOperation(MOCK_ADDRESS_1);
+  depositOperation.finished = false;
+  depositOperation.save();
+
+  let mockEvent = newMockEvent();
+  const event = new FinishDepositStable(
+    mockEvent.address,
+    mockEvent.logIndex,
+    mockEvent.transactionLogIndex,
+    mockEvent.logType,
+    mockEvent.block,
+    mockEvent.transaction,
+    mockEvent.parameters
+  );
+  event.parameters = new Array();
+
+  const operator = newAddress("operator", MOCK_ADDRESS_1);
+
+  event.parameters.push(operator);
+
+  handleFinishDeposit(event);
+
+  assert.fieldEquals("DepositOperation", MOCK_ADDRESS_1, "finished", "true");
+});
+
+test("handleInitRedeem creates a RedeemOperation", () => {
+  clearStore();
+
+  let mockEvent = newMockEvent();
+  const event = new InitRedeemStable(
+    mockEvent.address,
+    mockEvent.logIndex,
+    mockEvent.transactionLogIndex,
+    mockEvent.logType,
+    mockEvent.block,
+    mockEvent.transaction,
+    mockEvent.parameters
+  );
+  event.parameters = new Array();
+
+  const operator = newAddress("operator", MOCK_ADDRESS_1);
+  const aUstAmount = newI32("aUstAmount", 1);
+
+  event.parameters.push(operator);
+  event.parameters.push(aUstAmount);
+
+  handleInitRedeem(event);
+
+  assert.fieldEquals("RedeemOperation", MOCK_ADDRESS_1, "aUstAmount", "1");
+  assert.fieldEquals("RedeemOperation", MOCK_ADDRESS_1, "finished", "false");
+});
+
+test("handleFinishRedeem updates the RedeemOperation", () => {
+  clearStore();
+
+  const depositOperation = new RedeemOperation(MOCK_ADDRESS_1);
+  depositOperation.finished = false;
+  depositOperation.save();
+
+  let mockEvent = newMockEvent();
+  const event = new FinishRedeemStable(
+    mockEvent.address,
+    mockEvent.logIndex,
+    mockEvent.transactionLogIndex,
+    mockEvent.logType,
+    mockEvent.block,
+    mockEvent.transaction,
+    mockEvent.parameters
+  );
+  event.parameters = new Array();
+
+  const operator = newAddress("operator", MOCK_ADDRESS_1);
+
+  event.parameters.push(operator);
+
+  handleFinishRedeem(event);
+
+  assert.fieldEquals("RedeemOperation", MOCK_ADDRESS_1, "finished", "true");
+});
 
 test("handleTreasuryUpdated updates the treasury", () => {
   clearStore();

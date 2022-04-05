@@ -1,5 +1,7 @@
 import { DepositOperation, RedeemOperation } from "../types/schema";
 import {
+  FinishDepositStable,
+  FinishRedeemStable,
   InitDepositStable,
   InitRedeemStable,
 } from "../types/Strategy/AnchorUSTStrategy";
@@ -17,7 +19,7 @@ export function handleInitDeposit(event: InitDepositStable): void {
   depositOperation.save();
 }
 
-export function handleFinishDeposit(event: InitDepositStable): void {
+export function handleFinishDeposit(event: FinishDepositStable): void {
   const id = event.params.operator.toHexString();
 
   const depositOperation = DepositOperation.load(id)!;
@@ -36,7 +38,7 @@ export function handleInitRedeem(event: InitRedeemStable): void {
   redeemOperation.save();
 }
 
-export function handleFinishRedeem(event: InitRedeemStable): void {
+export function handleFinishRedeem(event: FinishRedeemStable): void {
   const id = event.params.operator.toHexString();
 
   const redeemOperation = RedeemOperation.load(id)!;
