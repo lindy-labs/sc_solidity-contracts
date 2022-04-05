@@ -64,7 +64,8 @@ describe("AnchorUSTStrategy Mainnet fork", () => {
         INVEST_PCT,
         TREASURY,
         owner.address,
-        PERFORMANCE_FEE_PCT
+        PERFORMANCE_FEE_PCT,
+        []
       );
 
       const AnchorUSTStrategyFactory = await ethers.getContractFactory(
@@ -96,6 +97,7 @@ describe("AnchorUSTStrategy Mainnet fork", () => {
       console.log(`Deposit ${utils.formatEther(amount)} UST by alice`);
       await vault.connect(alice).deposit({
         amount,
+        inputToken: ustToken.address,
         claims: [
           {
             pct: 10000,
@@ -148,6 +150,7 @@ describe("AnchorUSTStrategy Mainnet fork", () => {
       console.log(`Deposit ${utils.formatEther(amount)} UST by bob`);
       await vault.connect(bob).deposit({
         amount,
+        inputToken: ustToken.address,
         claims: [
           {
             pct: 10000,
@@ -215,7 +218,8 @@ describe("AnchorUSTStrategy Mainnet fork", () => {
         INVEST_PCT,
         TREASURY,
         owner.address,
-        PERFORMANCE_FEE_PCT
+        PERFORMANCE_FEE_PCT,
+        []
       );
 
       const AnchorUSTStrategyFactory = await ethers.getContractFactory(
@@ -247,6 +251,7 @@ describe("AnchorUSTStrategy Mainnet fork", () => {
       console.log(`Deposit ${utils.formatEther(amount)} UST by alice`);
       await vault.connect(alice).deposit({
         amount,
+        inputToken: ustToken.address,
         claims: [
           {
             pct: 10000,
@@ -299,6 +304,7 @@ describe("AnchorUSTStrategy Mainnet fork", () => {
       console.log(`Deposit ${utils.formatEther(amount)} UST by bob`);
       await vault.connect(bob).deposit({
         amount,
+        inputToken: ustToken.address,
         claims: [
           {
             pct: 10000,
