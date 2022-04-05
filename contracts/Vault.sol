@@ -749,19 +749,7 @@ contract Vault is
             "Vault: deposit is locked"
         );
 
-<<<<<<< HEAD
-        require(deposit.claimerId != 0, "Vault: token id is not a deposit");
-||||||| 524f65f
-        require(
-            deposit.claimerId != 0,
-            "Vault: token id is not a deposit"
-        );
-=======
-        require(
-            _deposit.claimerId != 0,
-            "Vault: token id is not a deposit"
-        );
->>>>>>> main
+        require(_deposit.claimerId != 0, "Vault: token id is not a deposit");
 
         uint256 claimerId = _deposit.claimerId;
         uint256 depositInitialShares = _deposit.shares;
