@@ -6,9 +6,9 @@ import { expect } from "chai";
 
 import {
   Vault,
-  MockDAI__factory,
+  MockUST__factory,
   MockAUST__factory,
-  MockDAI,
+  MockUST,
   MockAUST,
   Depositors,
   Claimers,
@@ -41,7 +41,7 @@ describe("Vault", () => {
   let mockEthAnchorRouter: Contract;
   let mockAUstUstFeed: Contract;
 
-  let underlying: MockDAI;
+  let underlying: MockUST;
   let aUstToken: MockAUST;
   let vault: Vault;
   let depositors: Depositors;
@@ -64,13 +64,13 @@ describe("Vault", () => {
 
     [owner] = await ethers.getSigners();
 
-    const daiDeployment = await deployments.get("DAI");
+    const ustDeployment = await deployments.get("UST");
     const austDeployment = await deployments.get("aUST");
-    const daiVaultDeployment = await deployments.get("Vault_DAI");
+    const ustVaultDeployment = await deployments.get("Vault_UST");
 
     aUstToken = MockAUST__factory.connect(austDeployment.address, owner);
-    underlying = MockDAI__factory.connect(daiDeployment.address, owner);
-    vault = Vault__factory.connect(daiVaultDeployment.address, owner);
+    underlying = MockUST__factory.connect(ustDeployment.address, owner);
+    vault = Vault__factory.connect(ustVaultDeployment.address, owner);
   });
 
   beforeEach(() => fixtures());
