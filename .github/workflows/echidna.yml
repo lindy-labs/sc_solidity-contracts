@@ -13,7 +13,6 @@ jobs:
       fail-fast: false
       matrix:
         test:
-          - Echidna_Deposit_Withdraw
 
     steps:
     - uses: actions/checkout@v2

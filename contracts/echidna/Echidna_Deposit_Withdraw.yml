@@ -1,5 +1,5 @@
 initialize: contracts/echidna/init.json
-coverage: true
+filterFunctions: ['Echidna_Valid_Deposit.onERC721Received(address,address,uint256,bytes)','Echidna_Invalid_Deposit.onERC721Received(address,address,uint256,bytes)', 'Echidna_Invalid_Withdraw.onERC721Received(address,address,uint256,bytes)']
 testMode: assertion
 testLimit: 30000
 corpusDir: 'corpus'
