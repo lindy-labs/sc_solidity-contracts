@@ -20,7 +20,6 @@ const { MaxUint256, HashZero, AddressZero } = ethers.constants;
 
 const FORK_BLOCK = 14449700;
 const UST_ADDRESS = getAddress("0xa47c8bf37f92abed4a126bda807a7b7498661acd");
-const USDT_ADDRESS = getAddress("0xdac17f958d2ee523a2206206994597c13d831ec7");
 const USDC_ADDRESS = getAddress("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48");
 const DAI_ADDRESS = getAddress("0x6b175474e89094c44da98b954eedeac495271d0f");
 const CURVE_UST_3CRV_POOL = getAddress(
@@ -36,7 +35,6 @@ const curveIndexes = {
   ust: 0,
   dai: 1,
   usdc: 2,
-  usdt: 3,
 };
 
 describe("Vault (fork tests)", () => {
@@ -47,7 +45,6 @@ describe("Vault (fork tests)", () => {
   let ust: ERC20;
   let dai: ERC20;
   let usdc: ERC20;
-  let usdt: ERC20;
   let curvePool: ICurve;
   let vault: Vault;
 
@@ -60,14 +57,12 @@ describe("Vault (fork tests)", () => {
     ust = ERC20__factory.connect(UST_ADDRESS, owner);
     dai = ERC20__factory.connect(DAI_ADDRESS, owner);
     usdc = ERC20__factory.connect(USDC_ADDRESS, owner);
-    usdt = ERC20__factory.connect(USDT_ADDRESS, owner);
     curvePool = ICurve__factory.connect(CURVE_UST_3CRV_POOL, owner);
 
     decimals = {
       ust: await ust.decimals(),
       dai: await dai.decimals(),
       usdc: await usdc.decimals(),
-      usdt: await usdt.decimals(),
     };
 
     vault = await new Vault__factory(owner).deploy(
@@ -84,12 +79,6 @@ describe("Vault (fork tests)", () => {
           tokenI: curveIndexes.dai,
           underlyingI: curveIndexes.ust,
         },
-        {
-          token: usdc.address,
-          pool: curvePool.address,
-          tokenI: curveIndexes.usdc,
-          underlyingI: curveIndexes.ust,
-        },
       ]
     );
 
@@ -104,17 +93,11 @@ describe("Vault (fork tests)", () => {
       parseUnits("1000", await usdc.decimals())
     );
     await ForkHelpers.mintToken(
-      usdt,
-      alice,
-      parseUnits("1000", await usdt.decimals())
-    );
-    await ForkHelpers.mintToken(
       ust,
       alice,
       parseUnits("1000", await ust.decimals())
     );
     dai.connect(alice).approve(vault.address, MaxUint256);
-    usdt.connect(alice).approve(vault.address, MaxUint256);
     usdc.connect(alice).approve(vault.address, MaxUint256);
     ust.connect(alice).approve(vault.address, MaxUint256);
   });
@@ -122,24 +105,24 @@ describe("Vault (fork tests)", () => {
   describe("addPool", function () {
     it("allows adding new valid pools", async () => {
       const action = vault.addPool({
-        token: usdt.address,
+        token: usdc.address,
         pool: curvePool.address,
-        tokenI: curveIndexes.usdt,
+        tokenI: curveIndexes.usdc,
         underlyingI: curveIndexes.ust,
       });
 
       await expect(action).not.to.be.reverted;
 
-      const pool = await vault.swappers(usdt.address);
+      const pool = await vault.swappers(usdc.address);
 
       expect(pool[0]).to.equal(curvePool.address);
     });
 
     it("does not allow adding a pool where underlyingI does not match", async () => {
       const action = vault.addPool({
-        token: usdt.address,
+        token: usdc.address,
         pool: curvePool.address,
-        tokenI: curveIndexes.usdt,
+        tokenI: curveIndexes.usdc,
         underlyingI: curveIndexes.dai,
       });
 
@@ -150,9 +133,9 @@ describe("Vault (fork tests)", () => {
 
     it("is not callable by a non-admin", async () => {
       const action = vault.connect(alice).addPool({
-        token: usdt.address,
+        token: usdc.address,
         pool: curvePool.address,
-        tokenI: curveIndexes.usdt,
+        tokenI: curveIndexes.usdc,
         underlyingI: curveIndexes.ust,
       });
 
