@@ -1,3 +1,4 @@
+import { store } from "@graphprotocol/graph-ts";
 import { DepositOperation, RedeemOperation } from "../types/schema";
 import {
   FinishDepositStable,
@@ -14,7 +15,6 @@ export function handleInitDeposit(event: InitDepositStable): void {
   depositOperation.idx = event.params.idx;
   depositOperation.underlyingAmount = event.params.underlyingAmount;
   depositOperation.ustAmount = event.params.ustAmount;
-  depositOperation.finished = false;
 
   depositOperation.save();
 }
@@ -22,10 +22,7 @@ export function handleInitDeposit(event: InitDepositStable): void {
 export function handleFinishDeposit(event: FinishDepositStable): void {
   const id = event.params.operator.toHexString();
 
-  const depositOperation = DepositOperation.load(id)!;
-  depositOperation.finished = true;
-
-  depositOperation.save();
+  store.remove("DepositOperation", id);
 }
 
 export function handleInitRedeem(event: InitRedeemStable): void {
@@ -33,7 +30,6 @@ export function handleInitRedeem(event: InitRedeemStable): void {
 
   const redeemOperation = new RedeemOperation(id);
   redeemOperation.aUstAmount = event.params.aUstAmount;
-  redeemOperation.finished = false;
 
   redeemOperation.save();
 }
@@ -41,8 +37,5 @@ export function handleInitRedeem(event: InitRedeemStable): void {
 export function handleFinishRedeem(event: FinishRedeemStable): void {
   const id = event.params.operator.toHexString();
 
-  const redeemOperation = RedeemOperation.load(id)!;
-  redeemOperation.finished = true;
-
-  redeemOperation.save();
+  store.remove("RedeemOperation", id);
 }

@@ -55,7 +55,6 @@ type Sponsor @entity {
 type RedeemOperation @entity {
   id: ID!
   aUstAmount: BigInt!
-  finished: Boolean!
 }
 
 type DepositOperation @entity {
@@ -63,5 +62,4 @@ type DepositOperation @entity {
   idx: BigInt!
   underlyingAmount: BigInt!
   ustAmount: BigInt!
-  finished: Boolean!
 }
