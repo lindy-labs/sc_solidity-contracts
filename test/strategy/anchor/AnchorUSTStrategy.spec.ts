@@ -433,6 +433,35 @@ describe("AnchorUSTStrategy", () => {
       expect(operation0.operator).equal(operator1);
       expect(operation0.amount).equal(investAmount1);
     });
+
+    it("Should rearrange deposit operations when not finalizing last in array", async () => {
+      let aUstRate = utils.parseEther("1.1");
+      await setAUstRate(aUstRate);
+
+      await notifyDepositReturnAmount(operator0, aUstAmount0);
+
+      const underlyingAmount1 = utils.parseUnits("100", 18);
+      const aUstAmount1 = utils.parseUnits("80", 18);
+
+      const operator1 = await registerNewTestOperator();
+
+      await depositVault(underlyingAmount1);
+      await vault.connect(owner).updateInvested("0x");
+
+      await notifyDepositReturnAmount(operator1, aUstAmount1);
+
+      const tx = await strategy.connect(manager).finishDepositStable(0);
+
+      expect(await strategy.depositOperationLength()).equal(1);
+
+      await expect(tx)
+        .to.emit(strategy, "RearrangeDepositOperation")
+        .withArgs(1, 0);
+
+      await expect(tx)
+        .to.emit(strategy, "FinishDepositStable")
+        .withArgs(operator0, investAmount0, aUstAmount0);
+    });
   });
 
   describe("#initRedeemStable function", () => {
@@ -487,7 +516,7 @@ describe("AnchorUSTStrategy", () => {
 
       await expect(tx)
         .to.emit(strategy, "InitRedeemStable")
-        .withArgs(operator, redeemAmount);
+        .withArgs(operator, 0, redeemAmount);
     });
 
     it("Should be able to init redeem several times", async () => {
@@ -667,6 +696,46 @@ describe("AnchorUSTStrategy", () => {
 
       expect(await strategy.redeemOperationLength()).equal(0);
     });
+
+    it("Should rearrange redeem operations when not finalizing last in array", async () => {
+      let aUstRate = utils.parseEther("1.1");
+      await setAUstRate(aUstRate);
+
+      let redeemedUSTAmount0 = utils.parseUnits("55", 18);
+      await notifyRedeemReturnAmount(operator0, redeemedUSTAmount0);
+
+      const underlyingAmount1 = utils.parseUnits("100", 18);
+      const aUstAmount1 = utils.parseUnits("80", 18);
+      const operator1 = await registerNewTestOperator();
+      await depositVault(underlyingAmount1);
+      await vault.connect(owner).updateInvested("0x");
+
+      await notifyDepositReturnAmount(operator1, aUstAmount1);
+      await strategy.connect(manager).finishDepositStable(0);
+
+      const operator2 = await registerNewTestOperator();
+
+      await strategy.connect(manager).initRedeemStable(redeemAmount0);
+
+      await notifyRedeemReturnAmount(operator2, redeemedUSTAmount0);
+
+      const tx = await strategy.connect(manager).finishRedeemStable(0);
+
+      expect(await strategy.redeemOperationLength()).equal(1);
+
+      await expect(tx)
+        .to.emit(strategy, "RearrangeRedeemOperation")
+        .withArgs(1, 0);
+
+      await expect(tx)
+        .to.emit(strategy, "FinishRedeemStable")
+        .withArgs(
+          operator0,
+          redeemAmount0,
+          redeemedUSTAmount0,
+          redeemedUSTAmount0
+        );
+    });
   });
 
   describe("#withdrawAllToVault function", () => {
@@ -708,7 +777,7 @@ describe("AnchorUSTStrategy", () => {
 
       await expect(tx)
         .to.emit(strategy, "InitRedeemStable")
-        .withArgs(operator, aUstAmount0);
+        .withArgs(operator, 0, aUstAmount0);
     });
   });
 
