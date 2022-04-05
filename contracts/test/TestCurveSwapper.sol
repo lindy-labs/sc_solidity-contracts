@@ -7,13 +7,21 @@ import {CurveSwapper} from "../vault/CurveSwapper.sol";
 import {ICurve} from "../interfaces/curve/ICurve.sol";
 
 contract TestCurveSwapper is CurveSwapper {
-    constructor(
-        address _underlying,
-        address[] memory _tokens,
-        ICurve[] memory _pools,
-        int128[] memory _tokenIs,
-        int128[] memory _underlyingIs
-    ) CurveSwapper(_underlying, _tokens, _pools, _tokenIs, _underlyingIs) {}
+    address private _underlying;
+
+    constructor(address __underlying, SwapPoolParam[] memory _swapPoolsParams) {
+        _underlying = __underlying;
+        _addPools(_swapPoolsParams);
+    }
+
+    function getUnderlying()
+        public
+        view
+        override(CurveSwapper)
+        returns (address)
+    {
+        return _underlying;
+    }
 
     function test_swapIntoUnderlying(address _token, uint256 _amount) external {
         _swapIntoUnderlying(_token, _amount);
@@ -21,5 +29,13 @@ contract TestCurveSwapper is CurveSwapper {
 
     function test_swapFromUnderlying(address _token, uint256 _amount) external {
         _swapFromUnderlying(_token, _amount);
+    }
+
+    function test_addPool(SwapPoolParam memory _param) external {
+        _addPool(_param);
+    }
+
+    function test_removePool(address _inputToken) external {
+        _removePool(_inputToken);
     }
 }
