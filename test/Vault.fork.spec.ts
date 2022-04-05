@@ -229,7 +229,7 @@ describe("Vault (fork tests)", () => {
           usdc.address,
           ust.address,
           parseUnits("1000", await usdc.decimals()),
-          "998542041164816008004"
+          "998096860985047176646"
         );
     });
   });
