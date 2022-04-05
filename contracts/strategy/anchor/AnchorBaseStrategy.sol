@@ -32,6 +32,7 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
         uint256 ustAmount,
         uint256 aUstAmount
     );
+    event RearrangeDepositOperation(uint256 indexed from, uint256 indexed to);
     event InitRedeemStable(
         address indexed operator,
         uint256 indexed idx,
@@ -43,6 +44,7 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
         uint256 ustAmount,
         uint256 underlyingAmount
     );
+    event RearrangeRedeemOperation(uint256 indexed from, uint256 indexed to);
 
     struct Operation {
         address operator;
@@ -222,6 +224,8 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
             operation.amount = lastOperation.amount;
         }
 
+        emit RearrangeDepositOperation(depositOperations.length - 1, idx);
+
         depositOperations.pop();
     }
 
@@ -342,6 +346,9 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
             operation.operator = lastOperation.operator;
             operation.amount = lastOperation.amount;
         }
+
+        emit RearrangeRedeemOperation(redeemOperations.length - 1, idx);
+
         redeemOperations.pop();
 
         return (operator, operationAmount, redeemedAmount);
