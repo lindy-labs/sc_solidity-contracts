@@ -31,7 +31,7 @@ contract Echidna_Sponsor is Helper,ERC721Holder {
         uint256 totalunderlying_vault_before = vault.totalUnderlying();
         emit Log("totalUnderlying of vault before", totalunderlying_vault_before);
 
-        try vault.sponsor(_amount, _lockDuration) {
+        try vault.sponsor(address(underlying), _amount, _lockDuration) {
             assert(true);
         } catch {
             assert(false);
@@ -90,7 +90,7 @@ contract Echidna_Sponsor is Helper,ERC721Holder {
     }
 
     function sponsor_should_revert(uint256 _amount, uint256 _lockDuration) internal {
-        try vault.sponsor(_amount, _lockDuration) {
+        try vault.sponsor(address(underlying), _amount, _lockDuration) {
             assert(false);
         } catch {
             assert(true);

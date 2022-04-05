@@ -15,6 +15,8 @@ contract Echidna_Valid_Deposit is Helper,ERC721Holder {
         _params.amount = Helper.one_to_max_uint64(_params.amount); 
         emit Log("amount", _params.amount);
 
+        _params.inputToken = address(underlying);
+
         Helper.mint_helper(address(this), _params.amount);
 
         uint256 balance_this_before = underlying.balanceOf(address(this));
