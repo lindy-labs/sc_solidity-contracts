@@ -406,6 +406,7 @@ describe("Vault", () => {
       const amount = parseUnits("100");
       const params = depositParams.build({
         amount,
+        inputToken: underlying.address,
         claims: [claimParams.percent(100).to(bob.address).build()],
       });
 
@@ -785,6 +786,7 @@ describe("Vault", () => {
         depositParams.build({
           lockDuration: TWO_WEEKS,
           amount: parseUnits("500"),
+          inputToken: underlying.address,
           claims: [claimParams.percent(100).to(alice.address).build()],
         })
       );
@@ -818,6 +820,7 @@ describe("Vault", () => {
       const params = depositParams.build({
         lockDuration: TWO_WEEKS,
         amount: parseUnits("100"),
+        inputToken: underlying.address,
         claims: [
           claimParams.percent(50).to(carol.address).build(),
           claimParams
@@ -863,6 +866,7 @@ describe("Vault", () => {
       const params = depositParams.build({
         lockDuration: TWO_WEEKS,
         amount: parseUnits("100"),
+        inputToken: underlying.address,
         claims: [
           claimParams.percent(50).to(carol.address).build(),
           claimParams.percent(50).to(bob.address).build(),
@@ -904,6 +908,7 @@ describe("Vault", () => {
     it("sets a timelock of at least 2 weeks by default", async () => {
       const params = depositParams.build({
         amount: parseUnits("100"),
+        inputToken: underlying.address,
         claims: [
           claimParams.percent(50).to(carol.address).build(),
           claimParams.percent(50).to(bob.address).build(),
@@ -923,6 +928,7 @@ describe("Vault", () => {
       const params = depositParams.build({
         amount: parseUnits("100"),
         lockDuration: BigNumber.from(time.duration.days(13).toNumber()),
+        inputToken: underlying.address,
         claims: [claimParams.percent(100).to(bob.address).build()],
       });
 
@@ -934,6 +940,7 @@ describe("Vault", () => {
     it("fails if the claim percentage is 0", async () => {
       const params = depositParams.build({
         amount: parseUnits("100"),
+        inputToken: underlying.address,
         claims: [
           claimParams.percent(100).to(bob.address).build(),
           claimParams.percent(0).to(bob.address).build(),
@@ -950,6 +957,7 @@ describe("Vault", () => {
     it("fails if the amount is 0", async () => {
       const params = depositParams.build({
         amount: parseUnits("0"),
+        inputToken: underlying.address,
         claims: [claimParams.percent(100).to(bob.address).build()],
       });
 
@@ -964,6 +972,7 @@ describe("Vault", () => {
       it("emits events", async () => {
         const params = depositParams.build({
           amount: parseUnits("100"),
+          inputToken: underlying.address,
           claims: [
             claimParams.percent(50).to(carol.address).build(),
             claimParams.percent(50).to(bob.address).build(),
@@ -988,6 +997,7 @@ describe("Vault", () => {
       it("withdraws the principal of a deposit", async () => {
         const params = depositParams.build({
           amount: parseUnits("100"),
+          inputToken: underlying.address,
           claims: [
             claimParams.percent(50).to(carol.address).build(),
             claimParams.percent(50).to(bob.address).build(),
@@ -1010,6 +1020,7 @@ describe("Vault", () => {
 
       it("withdraws funds to a different address", async () => {
         const params = depositParams.build({
+          inputToken: underlying.address,
           amount: parseUnits("100"),
           claims: [claimParams.percent(100).to(bob.address).build()],
         });
@@ -1026,6 +1037,7 @@ describe("Vault", () => {
       it("burns the NFTs of the deposits", async () => {
         const params = depositParams.build({
           amount: parseUnits("100"),
+          inputToken: underlying.address,
           claims: [
             claimParams.percent(50).to(carol.address).build(),
             claimParams.percent(50).to(bob.address).build(),
@@ -1043,6 +1055,7 @@ describe("Vault", () => {
       it("removes the shares from the claimers", async () => {
         const params = depositParams.build({
           amount: parseUnits("100"),
+          inputToken: underlying.address,
           claims: [
             claimParams.percent(50).to(carol.address).build(),
             claimParams.percent(50).to(bob.address).build(),
@@ -1070,6 +1083,7 @@ describe("Vault", () => {
       it("removes the principal from the claimers", async () => {
         const params = depositParams.build({
           amount: parseUnits("100"),
+          inputToken: underlying.address,
           claims: [
             claimParams.percent(50).to(carol.address).build(),
             claimParams.percent(50).to(bob.address).build(),
@@ -1090,6 +1104,7 @@ describe("Vault", () => {
 
       it("fails if the destination address is 0x", async () => {
         const params = depositParams.build({
+          inputToken: underlying.address,
           amount: parseUnits("100"),
           claims: [claimParams.percent(100).to(carol.address).build()],
         });
@@ -1109,6 +1124,7 @@ describe("Vault", () => {
 
       it("fails if the caller doesn't own the deposit", async () => {
         const params = depositParams.build({
+          inputToken: underlying.address,
           amount: parseUnits("100"),
           claims: [claimParams.percent(100).to(carol.address).build()],
         });
@@ -1127,6 +1143,7 @@ describe("Vault", () => {
       it("fails if the deposit is locked", async () => {
         const params = depositParams.build({
           lockDuration: TWO_WEEKS,
+          inputToken: underlying.address,
           amount: parseUnits("100"),
           claims: [claimParams.percent(100).to(bob.address).build()],
         });
@@ -1143,6 +1160,7 @@ describe("Vault", () => {
           depositParams.build({
             lockDuration: TWO_WEEKS,
             amount: parseUnits("500"),
+            inputToken: underlying.address,
             claims: [claimParams.percent(100).to(alice.address).build()],
           })
         );
@@ -1163,6 +1181,7 @@ describe("Vault", () => {
     it("works if the vault doesn't have enough funds", async () => {
       const params = depositParams.build({
         amount: parseUnits("1000"),
+        inputToken: underlying.address,
         claims: [claimParams.percent(100).to(carol.address).build()],
       });
 
@@ -1182,6 +1201,7 @@ describe("Vault", () => {
     it("fails if the vault doesn't have enough funds", async () => {
       const params = depositParams.build({
         amount: parseUnits("100"),
+        inputToken: underlying.address,
         claims: [claimParams.percent(100).to(carol.address).build()],
       });
 
@@ -1202,6 +1222,7 @@ describe("Vault", () => {
     it("emits an event", async () => {
       const params = depositParams.build({
         amount: parseUnits("100"),
+        inputToken: underlying.address,
         claims: [
           claimParams.percent(50).to(carol.address).build(),
           claimParams.percent(50).to(bob.address).build(),
@@ -1226,6 +1247,7 @@ describe("Vault", () => {
     it("claims the yield of a user", async () => {
       const params = depositParams.build({
         amount: parseUnits("100"),
+        inputToken: underlying.address,
         claims: [
           claimParams.percent(50).to(carol.address).build(),
           claimParams.percent(50).to(bob.address).build(),
@@ -1254,6 +1276,7 @@ describe("Vault", () => {
     it("accumulate performance fee", async () => {
       const params = depositParams.build({
         amount: parseUnits("100"),
+        inputToken: underlying.address,
         claims: [
           claimParams.percent(50).to(carol.address).build(),
           claimParams.percent(50).to(bob.address).build(),
@@ -1269,6 +1292,7 @@ describe("Vault", () => {
     it("claims the yield to a different address", async () => {
       const params = depositParams.build({
         amount: parseUnits("100"),
+        inputToken: underlying.address,
         claims: [claimParams.percent(100).to(bob.address).build()],
       });
 
@@ -1286,6 +1310,7 @@ describe("Vault", () => {
     it("fails is the destination address is 0x", async () => {
       const params = depositParams.build({
         amount: parseUnits("100"),
+        inputToken: underlying.address,
         claims: [claimParams.percent(100).to(bob.address).build()],
       });
 
@@ -1302,6 +1327,7 @@ describe("Vault", () => {
     it("updates shares after claim", async () => {
       const params = depositParams.build({
         amount: parseUnits("100"),
+        inputToken: underlying.address,
         claims: [
           claimParams.percent(50).to(carol.address).build(),
           claimParams.percent(50).to(bob.address).build(),
@@ -1325,6 +1351,7 @@ describe("Vault", () => {
     it("returns (0, 0, 0) if no yield was generated", async () => {
       const params = depositParams.build({
         amount: parseUnits("100"),
+        inputToken: underlying.address,
         claims: [
           claimParams.percent(50).to(alice.address).build(),
           claimParams.percent(50).to(bob.address).build(),
@@ -1347,6 +1374,7 @@ describe("Vault", () => {
     it("returns the amount of yield claimable by a user, share of yield and performance fee", async () => {
       const params = depositParams.build({
         amount: parseUnits("100"),
+        inputToken: underlying.address,
         claims: [
           claimParams.percent(50).to(alice.address).build(),
           claimParams.percent(50).to(bob.address).build(),
@@ -1374,6 +1402,7 @@ describe("Vault", () => {
     it("fails if amount is 0", async () => {
       const params = depositParams.build({
         amount: parseUnits("0"),
+        inputToken: underlying.address,
       });
 
       await expect(vault.connect(alice).deposit(params)).to.be.revertedWith(
@@ -1384,6 +1413,7 @@ describe("Vault", () => {
     it("fails if lock duration is shorter than minimum", async () => {
       const params = depositParams.build({
         lockDuration: TWO_WEEKS.sub(BigNumber.from("1")),
+        inputToken: underlying.address,
       });
 
       await expect(vault.connect(alice).deposit(params)).to.be.revertedWith(
@@ -1394,6 +1424,7 @@ describe("Vault", () => {
     it("fails if lock duration is longer than maximum", async () => {
       const params = depositParams.build({
         lockDuration: MAX_DEPOSIT_LOCK_DURATION.add(BigNumber.from("1")),
+        inputToken: underlying.address,
       });
 
       await expect(vault.connect(alice).deposit(params)).to.be.revertedWith(
@@ -1404,6 +1435,7 @@ describe("Vault", () => {
     it("fails if the yield is negative", async () => {
       const params = depositParams.build({
         amount: parseUnits("1000"),
+        inputToken: underlying.address,
       });
 
       await vault.connect(alice).deposit(params);
@@ -1420,6 +1452,7 @@ describe("Vault", () => {
 
       const params = depositParams.build({
         amount: parseUnits("500"),
+        inputToken: underlying.address,
       });
 
       await vault.connect(alice).deposit(params);
@@ -1430,13 +1463,16 @@ describe("Vault", () => {
     });
 
     it("works with valid parameters", async () => {
-      const params = depositParams.build();
+      const params = depositParams.build({
+        inputToken: underlying.address,
+      });
 
       await vault.connect(alice).deposit(params);
     });
 
     it("works with multiple claims", async () => {
       const params = depositParams.build({
+        inputToken: underlying.address,
         claims: [
           claimParams.percent(50).build(),
           claimParams.percent(50).build(),
@@ -1448,7 +1484,10 @@ describe("Vault", () => {
 
     it("calculates correct number of shares for first deposit", async () => {
       const amount = parseUnits("1");
-      const params = depositParams.build({ amount });
+      const params = depositParams.build({
+        amount,
+        inputToken: underlying.address,
+      });
 
       await vault.connect(alice).deposit(params);
 
@@ -1457,7 +1496,10 @@ describe("Vault", () => {
 
     it("calculates correct number of shares for second deposit of equal size", async () => {
       const amount = parseUnits("1");
-      const params = depositParams.build({ amount });
+      const params = depositParams.build({
+        amount,
+        inputToken: underlying.address,
+      });
 
       // deposit 1 unit
       await vault.connect(alice).deposit(params);
@@ -1475,11 +1517,17 @@ describe("Vault", () => {
       const amount = parseUnits("1");
 
       // deposit 1 unit
-      const params1 = depositParams.build({ amount });
+      const params1 = depositParams.build({
+        amount,
+        inputToken: underlying.address,
+      });
       await vault.connect(alice).deposit(params1);
 
       // deposit 2 unit
-      const params2 = depositParams.build({ amount: amount.mul(2) });
+      const params2 = depositParams.build({
+        amount: amount.mul(2),
+        inputToken: underlying.address,
+      });
       await vault.connect(bob).deposit(params2);
 
       // total shares must be 3 units
@@ -1490,6 +1538,7 @@ describe("Vault", () => {
 
     it("fails if pct does not add up to 100%", async () => {
       const params = depositParams.build({
+        inputToken: underlying.address,
         claims: [
           claimParams.percent(49).build(),
           claimParams.percent(50).build(),
@@ -1506,7 +1555,9 @@ describe("Vault", () => {
     it("transfers underlying from user at deposit", async () => {
       const balanceBefore = await underlying.balanceOf(alice.address);
 
-      const params = depositParams.build();
+      const params = depositParams.build({
+        inputToken: underlying.address,
+      });
 
       await vault.connect(alice).deposit(params);
 
@@ -1519,6 +1570,7 @@ describe("Vault", () => {
 
     it("updates claimers info for first deposit", async () => {
       const params = depositParams.build({
+        inputToken: underlying.address,
         claims: [
           claimParams.percent(40).build({
             beneficiary: bob.address,
@@ -1546,6 +1598,7 @@ describe("Vault", () => {
 
     it("updates claimers info for second deposit", async () => {
       const params1 = depositParams.build({
+        inputToken: underlying.address,
         claims: [
           claimParams.percent(40).build({
             beneficiary: bob.address,
@@ -1557,6 +1610,7 @@ describe("Vault", () => {
       });
 
       const params2 = depositParams.build({
+        inputToken: underlying.address,
         amount: parseUnits("10"),
         claims: [
           claimParams.build({
@@ -1584,6 +1638,7 @@ describe("Vault", () => {
 
     it("updates deposits info at deposit", async () => {
       const params = depositParams.build({
+        inputToken: underlying.address,
         claims: [
           claimParams.percent(40).build({
             beneficiary: bob.address,

@@ -277,8 +277,9 @@ contract Vault is
             "Vault: invalid lock period"
         );
         uint256 principalMinusStrategyFee = _applyInvestmentFee(totalPrincipal);
+        uint256 previousTotalUnderlying = totalUnderlyingMinusSponsored();
         require(
-            principalMinusStrategyFee <= totalUnderlyingMinusSponsored(),
+            principalMinusStrategyFee <= previousTotalUnderlying,
             "Vault: cannot deposit when yield is negative"
         );
 
@@ -287,7 +288,7 @@ contract Vault is
             _params.inputToken,
             _params.amount
         );
-        uint256 underlyingAmount = _swapIntoUnderlying(
+        uint256 newUnderlyingAmount = _swapIntoUnderlying(
             _params.inputToken,
             _params.amount
         );
@@ -295,7 +296,8 @@ contract Vault is
         uint64 lockedUntil = _params.lockDuration + _blockTimestamp();
 
         depositIds = _createDeposit(
-            underlyingAmount,
+            previousTotalUnderlying,
+            newUnderlyingAmount,
             lockedUntil,
             _params.claims
         );
@@ -621,13 +623,14 @@ contract Vault is
      * params.
      */
     function _createDeposit(
+        uint256 _previousTotalUnderlying,
         uint256 _amount,
         uint64 _lockedUntil,
         ClaimParams[] calldata claims
     ) internal returns (uint256[] memory) {
         CreateDepositLocals memory locals = CreateDepositLocals({
             totalShares: totalShares,
-            totalUnderlying: totalUnderlyingMinusSponsored(),
+            totalUnderlying: _previousTotalUnderlying,
             groupId: _depositGroupIds,
             accumulatedPct: 0,
             accumulatedAmount: 0,
