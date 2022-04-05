@@ -222,9 +222,9 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
             ];
             operation.operator = lastOperation.operator;
             operation.amount = lastOperation.amount;
-        }
 
-        emit RearrangeDepositOperation(depositOperations.length - 1, idx);
+            emit RearrangeDepositOperation(depositOperations.length - 1, idx);
+        }
 
         depositOperations.pop();
     }
@@ -345,9 +345,9 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
             ];
             operation.operator = lastOperation.operator;
             operation.amount = lastOperation.amount;
-        }
 
-        emit RearrangeRedeemOperation(redeemOperations.length - 1, idx);
+            emit RearrangeRedeemOperation(redeemOperations.length - 1, idx);
+        }
 
         redeemOperations.pop();
 
