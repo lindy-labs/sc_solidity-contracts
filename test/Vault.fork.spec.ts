@@ -192,12 +192,12 @@ describe("Vault (fork tests)", () => {
     });
   });
 
-  describe("deposit with USDT", function () {
+  describe("deposit with DAI", function () {
     it("fails if USDT is not whitelisted", async () => {
       const action = vault.connect(alice).deposit(
         depositParams.build({
-          amount: parseUnits("1000", await usdt.decimals()),
-          inputToken: usdt.address,
+          amount: parseUnits("1000", await usdc.decimals()),
+          inputToken: usdc.address,
           claims: [claimParams.percent(100).to(bob.address).build()],
         })
       );
@@ -205,18 +205,18 @@ describe("Vault (fork tests)", () => {
       await expect(action).to.be.reverted;
     });
 
-    it("works after whitelisting USDT", async () => {
+    it("works after whitelisting USDC", async () => {
       await vault.addPool({
-        token: usdt.address,
+        token: usdc.address,
         pool: curvePool.address,
-        tokenI: curveIndexes.usdt,
+        tokenI: curveIndexes.usdc,
         underlyingI: curveIndexes.ust,
       });
 
       const action = vault.connect(alice).deposit(
         depositParams.build({
-          amount: parseUnits("1000", await usdt.decimals()),
-          inputToken: usdt.address,
+          amount: parseUnits("1000", await usdc.decimals()),
+          inputToken: usdc.address,
           claims: arrayFromTo(1, 100).map(() =>
             claimParams.percent(1).to(bob.address).build()
           ),
@@ -226,9 +226,9 @@ describe("Vault (fork tests)", () => {
       await expect(action)
         .to.emit(vault, "Swap")
         .withArgs(
-          usdt.address,
+          usdc.address,
           ust.address,
-          parseUnits("1000", await usdt.decimals()),
+          parseUnits("1000", await usdc.decimals()),
           "998542041164816008004"
         );
     });
