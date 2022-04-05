@@ -54,6 +54,7 @@ type Sponsor @entity {
 
 type RedeemOperation @entity {
   id: ID!
+  idx: BigInt!
   aUstAmount: BigInt!
 }
 

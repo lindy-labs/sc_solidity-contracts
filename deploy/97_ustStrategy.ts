@@ -91,6 +91,7 @@ async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
         data: "0x",
       },
     ],
+    inputToken: mockUST.address,
   });
 
   await new Promise((resolve) => {
@@ -132,6 +133,7 @@ async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
                 data: "0x",
               },
             ],
+            inputToken: mockUST.address,
           });
 
           await mockEthAnchorRouter.addPendingOperator(ethAnchorOperator1);

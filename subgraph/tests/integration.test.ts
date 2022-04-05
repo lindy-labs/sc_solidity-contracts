@@ -82,14 +82,12 @@ test("handleInitDeposit creates a DepositOperation", () => {
     "1"
   );
   assert.fieldEquals("DepositOperation", MOCK_ADDRESS_1, "ustAmount", "1");
-  assert.fieldEquals("DepositOperation", MOCK_ADDRESS_1, "finished", "false");
 });
 
-test("handleFinishDeposit updates the DepositOperation", () => {
+test("handleFinishDeposit deletes the DepositOperation", () => {
   clearStore();
 
   const depositOperation = new DepositOperation(MOCK_ADDRESS_1);
-  depositOperation.finished = false;
   depositOperation.save();
 
   let mockEvent = newMockEvent();
@@ -110,7 +108,7 @@ test("handleFinishDeposit updates the DepositOperation", () => {
 
   handleFinishDeposit(event);
 
-  assert.fieldEquals("DepositOperation", MOCK_ADDRESS_1, "finished", "true");
+  assert.notInStore("DepositOperation", MOCK_ADDRESS_1);
 });
 
 test("handleInitRedeem creates a RedeemOperation", () => {
@@ -130,21 +128,21 @@ test("handleInitRedeem creates a RedeemOperation", () => {
 
   const operator = newAddress("operator", MOCK_ADDRESS_1);
   const aUstAmount = newI32("aUstAmount", 1);
+  const idx = newI32("idx", 1);
 
   event.parameters.push(operator);
   event.parameters.push(aUstAmount);
+  event.parameters.push(idx);
 
   handleInitRedeem(event);
 
   assert.fieldEquals("RedeemOperation", MOCK_ADDRESS_1, "aUstAmount", "1");
-  assert.fieldEquals("RedeemOperation", MOCK_ADDRESS_1, "finished", "false");
 });
 
 test("handleFinishRedeem updates the RedeemOperation", () => {
   clearStore();
 
   const depositOperation = new RedeemOperation(MOCK_ADDRESS_1);
-  depositOperation.finished = false;
   depositOperation.save();
 
   let mockEvent = newMockEvent();
@@ -165,7 +163,7 @@ test("handleFinishRedeem updates the RedeemOperation", () => {
 
   handleFinishRedeem(event);
 
-  assert.fieldEquals("RedeemOperation", MOCK_ADDRESS_1, "finished", "true");
+  assert.notInStore("RedeemOperation", MOCK_ADDRESS_1);
 });
 
 test("handleTreasuryUpdated updates the treasury", () => {
