@@ -458,7 +458,7 @@ describe("AnchorUSTStrategy", () => {
 
       await expect(tx)
         .to.emit(strategy, "RearrangeDepositOperation")
-        .withArgs(1, 0);
+        .withArgs(operator1, operator0, 0);
 
       await expect(tx)
         .to.emit(strategy, "FinishDepositStable")
@@ -727,7 +727,7 @@ describe("AnchorUSTStrategy", () => {
 
       await expect(tx)
         .to.emit(strategy, "RearrangeRedeemOperation")
-        .withArgs(1, 0);
+        .withArgs(operator2, operator0, 0);
 
       await expect(tx)
         .to.emit(strategy, "FinishRedeemStable")
