@@ -155,15 +155,31 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
 
         _aUstToUstFeedMultiplier = 10**_aUstToUstFeed.decimals();
         _allRedeemed = true;
+
+        require(
+            underlying == _ustToken,
+            "AnchorUSTStrategy: invalid underlying"
+        );
     }
 
     /**
      * Invest underlying assets to EthAnchor contract.
      *
-     * @notice We only deposit UST to EthAnchor. so if underlying is UST, we deposit directly,
-     * however, if underlying is not UST token, then we swap underlying to UST, then deposit to ethAnchor.
+     * @notice since EthAnchor uses an asynchronous model, this function
+     * only starts the deposit process, but does not finish it.
+     *
+     * @dev external data is not required
      */
-    function invest(bytes calldata data) external virtual;
+    function invest(bytes calldata) external override onlyManager {
+        (address operator, uint256 ustAmount) = _initDepositStable();
+
+        emit InitDepositStable(
+            operator,
+            depositOperations.length - 1,
+            ustAmount,
+            ustAmount
+        );
+    }
 
     /**
      * Initiates available UST to EthAnchor
@@ -253,6 +269,25 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
     }
 
     /**
+     * Calls EthAnchor with a pending redeem ID, and attempts to finish it.
+     *
+     * @notice Must be called some time after `initRedeemStable()`. Will only work if
+     * the EthAnchor bridge has finished processing the deposit.
+     *
+     * @param idx Id of the pending redeem operation
+     */
+    function finishRedeemStable(uint256 idx) external onlyManager {
+        (
+            address operator,
+            uint256 aUstAmount,
+            uint256 ustAmount
+        ) = _finishRedeemStable(idx);
+        emit FinishRedeemStable(operator, aUstAmount, ustAmount, ustAmount);
+
+        underlying.safeTransfer(vault, _getUnderlyingBalance());
+    }
+
+    /**
      * Request withdrawal from EthAnchor
      *
      * @notice since EthAnchor uses an asynchronous model, we can only request withdrawal for whole aUST
@@ -295,12 +330,9 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
      *
      * @return The total amount of underlying
      */
-    function investedAssets()
-        external
-        view
-        virtual
-        override(IStrategy)
-        returns (uint256);
+    function investedAssets() external view override returns (uint256) {
+        return pendingDeposits + _estimateAUstBalanceInUst();
+    }
 
     /**
      * Calls EthAnchor with a pending redeem ID, and attempts to finish it.
