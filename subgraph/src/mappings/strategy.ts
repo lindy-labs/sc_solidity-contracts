@@ -44,6 +44,7 @@ export function handleInitRedeem(event: InitRedeemStable): void {
 
   const redeemOperation = new RedeemOperation(id);
   redeemOperation.aUstAmount = event.params.aUstAmount;
+  redeemOperation.idx = event.params.idx;
 
   redeemOperation.save();
 }

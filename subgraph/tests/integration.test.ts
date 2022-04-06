@@ -19,6 +19,8 @@ import {
   handleInitRedeem,
   handleFinishDeposit,
   handleFinishRedeem,
+  handleRearrangeDeposit,
+  handleRearrangeRedeem,
 } from "../src/mappings/strategy";
 import { Sponsored, Unsponsored } from "../src/types/Vault/IVaultSponsoring";
 import {
@@ -41,10 +43,14 @@ import {
   FinishRedeemStable,
   InitDepositStable,
   InitRedeemStable,
+  RearrangeDepositOperation,
+  RearrangeRedeemOperation,
 } from "../src/types/Strategy/AnchorUSTStrategy";
 
 const MOCK_ADDRESS_1 =
   "0xC80B3caAd6d2DE80Ac76a41d5F0072E36D2519Cd".toLowerCase();
+const MOCK_ADDRESS_2 =
+  "0xE80B3caAd6d2DE80Ac76a41d5F0072E36D2519Ce".toLowerCase();
 const TREASURY_ADDRESS = "0x4940c6e628da11ac0bdcf7f82be8579b4696fa33";
 
 test("handleInitDeposit creates a DepositOperation", () => {
@@ -82,6 +88,84 @@ test("handleInitDeposit creates a DepositOperation", () => {
     "1"
   );
   assert.fieldEquals("DepositOperation", MOCK_ADDRESS_1, "ustAmount", "1");
+});
+
+test("RearrangeDepositOperation updates the DepositOperation idx", () => {
+  clearStore();
+
+  let mockDepositEvent = newMockEvent();
+  const depositEvent = new InitDepositStable(
+    mockDepositEvent.address,
+    mockDepositEvent.logIndex,
+    mockDepositEvent.transactionLogIndex,
+    mockDepositEvent.logType,
+    mockDepositEvent.block,
+    mockDepositEvent.transaction,
+    mockDepositEvent.parameters
+  );
+  depositEvent.parameters = new Array();
+
+  let operator = newAddress("operator", MOCK_ADDRESS_1);
+  let idx = newI32("idx", 1);
+  let underlyingAmount = newI32("underlyingAmount", 1);
+  let ustAmount = newI32("ustAmount", 1);
+
+  depositEvent.parameters.push(operator);
+  depositEvent.parameters.push(idx);
+  depositEvent.parameters.push(ustAmount);
+  depositEvent.parameters.push(underlyingAmount);
+
+  handleInitDeposit(depositEvent);
+
+  let mockDepositEvent1 = newMockEvent();
+  const depositEvent1 = new InitDepositStable(
+    mockDepositEvent1.address,
+    mockDepositEvent1.logIndex,
+    mockDepositEvent1.transactionLogIndex,
+    mockDepositEvent1.logType,
+    mockDepositEvent1.block,
+    mockDepositEvent1.transaction,
+    mockDepositEvent1.parameters
+  );
+  depositEvent1.parameters = new Array();
+
+  operator = newAddress("operator", MOCK_ADDRESS_2);
+  idx = newI32("idx", 2);
+
+  depositEvent1.parameters.push(operator);
+  depositEvent1.parameters.push(idx);
+  depositEvent1.parameters.push(ustAmount);
+  depositEvent1.parameters.push(underlyingAmount);
+
+  handleInitDeposit(depositEvent1);
+
+  let mockEvent = newMockEvent();
+  const event = new RearrangeDepositOperation(
+    mockEvent.address,
+    mockEvent.logIndex,
+    mockEvent.transactionLogIndex,
+    mockEvent.logType,
+    mockEvent.block,
+    mockEvent.transaction,
+    mockEvent.parameters
+  );
+  event.parameters = new Array();
+
+  const operatorFrom = newAddress("operatorFrom", MOCK_ADDRESS_2);
+  const operatorTo = newAddress("operatorTo", MOCK_ADDRESS_1);
+  idx = newI32("idx", 1);
+
+  event.parameters.push(operatorFrom);
+  event.parameters.push(operatorTo);
+  event.parameters.push(idx);
+
+  assert.fieldEquals("DepositOperation", MOCK_ADDRESS_2, "idx", "2");
+  assert.fieldEquals("DepositOperation", MOCK_ADDRESS_1, "idx", "1");
+
+  handleRearrangeDeposit(event);
+
+  assert.fieldEquals("DepositOperation", MOCK_ADDRESS_2, "idx", "1");
+  assert.fieldEquals("DepositOperation", MOCK_ADDRESS_1, "idx", "1");
 });
 
 test("handleFinishDeposit deletes the DepositOperation", () => {
@@ -127,16 +211,91 @@ test("handleInitRedeem creates a RedeemOperation", () => {
   event.parameters = new Array();
 
   const operator = newAddress("operator", MOCK_ADDRESS_1);
-  const aUstAmount = newI32("aUstAmount", 1);
   const idx = newI32("idx", 1);
+  const aUstAmount = newI32("aUstAmount", 1);
 
   event.parameters.push(operator);
-  event.parameters.push(aUstAmount);
   event.parameters.push(idx);
+  event.parameters.push(aUstAmount);
 
   handleInitRedeem(event);
 
   assert.fieldEquals("RedeemOperation", MOCK_ADDRESS_1, "aUstAmount", "1");
+});
+
+test("RearrangeRedeemOperation updates the RedeemOperation idx", () => {
+  clearStore();
+
+  let mockRedeemEvent = newMockEvent();
+  const redeemEvent = new InitRedeemStable(
+    mockRedeemEvent.address,
+    mockRedeemEvent.logIndex,
+    mockRedeemEvent.transactionLogIndex,
+    mockRedeemEvent.logType,
+    mockRedeemEvent.block,
+    mockRedeemEvent.transaction,
+    mockRedeemEvent.parameters
+  );
+  redeemEvent.parameters = new Array();
+
+  let operator = newAddress("operator", MOCK_ADDRESS_1);
+  let aUstAmount = newI32("aUstAmount", 1);
+  let idx = newI32("idx", 1);
+
+  redeemEvent.parameters.push(operator);
+  redeemEvent.parameters.push(idx);
+  redeemEvent.parameters.push(aUstAmount);
+
+  handleInitRedeem(redeemEvent);
+
+  let mockRedeemEvent1 = newMockEvent();
+  const redeemEvent1 = new InitRedeemStable(
+    mockRedeemEvent1.address,
+    mockRedeemEvent1.logIndex,
+    mockRedeemEvent1.transactionLogIndex,
+    mockRedeemEvent1.logType,
+    mockRedeemEvent1.block,
+    mockRedeemEvent1.transaction,
+    mockRedeemEvent1.parameters
+  );
+  redeemEvent1.parameters = new Array();
+
+  operator = newAddress("operator", MOCK_ADDRESS_2);
+  idx = newI32("idx", 2);
+
+  redeemEvent1.parameters.push(operator);
+  redeemEvent1.parameters.push(idx);
+  redeemEvent1.parameters.push(aUstAmount);
+
+  handleInitRedeem(redeemEvent1);
+
+  const mockEvent = newMockEvent();
+  const event = new RearrangeRedeemOperation(
+    mockEvent.address,
+    mockEvent.logIndex,
+    mockEvent.transactionLogIndex,
+    mockEvent.logType,
+    mockEvent.block,
+    mockEvent.transaction,
+    mockEvent.parameters
+  );
+  event.parameters = new Array();
+
+  const operatorFrom = newAddress("operatorFrom", MOCK_ADDRESS_2);
+  const operatorTo = newAddress("operatorTo", MOCK_ADDRESS_1);
+  idx = newI32("idx", 1);
+
+  event.parameters.push(operatorFrom);
+  event.parameters.push(operatorTo);
+  event.parameters.push(idx);
+
+  assert.fieldEquals("RedeemOperation", MOCK_ADDRESS_2, "idx", "2");
+  assert.fieldEquals("RedeemOperation", MOCK_ADDRESS_1, "idx", "1");
+
+  handleRearrangeRedeem(event);
+
+  assert.fieldEquals("RedeemOperation", MOCK_ADDRESS_2, "idx", "1");
+  assert.fieldEquals("RedeemOperation", MOCK_ADDRESS_1, "idx", "1");
 });
 
 test("handleFinishRedeem updates the RedeemOperation", () => {
