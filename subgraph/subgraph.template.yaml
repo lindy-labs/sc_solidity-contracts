@@ -66,3 +66,7 @@ dataSources:
           handler: handleFinishDeposit
         - event: FinishRedeemStable(indexed address,uint256,uint256,uint256)
           handler: handleFinishRedeem
+        - event: RearrangeDepositOperation(indexed uint256,indexed uint256)
+          handler: handleRearrangeDeposit
+        - event: RearrangeRedeemOperation(indexed uint256,indexed uint256)
+          handler: handleRearrangeRedeem

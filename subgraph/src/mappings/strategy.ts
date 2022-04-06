@@ -5,6 +5,8 @@ import {
   FinishRedeemStable,
   InitDepositStable,
   InitRedeemStable,
+  RearrangeDepositOperation,
+  RearrangeRedeemOperation,
 } from "../types/Strategy/AnchorUSTStrategy";
 
 export function handleInitDeposit(event: InitDepositStable): void {
@@ -25,6 +27,10 @@ export function handleFinishDeposit(event: FinishDepositStable): void {
   store.remove("DepositOperation", id);
 }
 
+export function handleRearrangeDeposit(
+  event: RearrangeDepositOperation
+): void {}
+
 export function handleInitRedeem(event: InitRedeemStable): void {
   const id = event.params.operator.toHexString();
 
@@ -39,3 +45,5 @@ export function handleFinishRedeem(event: FinishRedeemStable): void {
 
   store.remove("RedeemOperation", id);
 }
+
+export function handleRearrangeRedeem(event: RearrangeRedeemOperation): void {}
