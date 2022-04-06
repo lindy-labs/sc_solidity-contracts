@@ -1,0 +1,5 @@
+filterFunctions: ['Echidna_Donation.onERC721Received(address,address,uint256,bytes)']
+testMode: assertion
+testLimit: 100000
+#corpusDir: 'corpus'
+codeSize: 0xfffffffffff
