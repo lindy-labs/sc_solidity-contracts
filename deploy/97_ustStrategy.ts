@@ -5,14 +5,6 @@ import { utils } from "ethers";
 const { parseUnits } = ethers.utils;
 
 const func = async function (env: HardhatRuntimeEnvironment) {
-  if (env.network.config.chainId !== 31337) {
-    return;
-  }
-
-  await deployUSTStrategyDependencies(env);
-};
-
-async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
   const { deployer, ethAnchorOperator, ethAnchorOperator1 } =
     await env.getNamedAccounts();
   const { deploy, get } = env.deployments;
@@ -196,10 +188,14 @@ async function deployUSTStrategyDependencies(env: HardhatRuntimeEnvironment) {
 
     await vault.connect(owner).setInvestPerc("8000");
   }
-}
+};
 
 func.id = "devStrategy";
 func.tags = ["devStrategies"];
 func.dependencies = ["vaults", "strategies"];
+
+// Deploy only to hardhat
+func.skip = async (hre: HardhatRuntimeEnvironment) =>
+  hre.network.config.chainId != 31337;
 
 export default func;
