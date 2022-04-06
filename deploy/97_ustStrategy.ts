@@ -95,7 +95,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   console.log("StrategyUpdated Event triggered, calling updateInvested");
   await mockEthAnchorRouter.addPendingOperator(ethAnchorOperator);
   const updateInvestedTx = await vault.connect(owner).updateInvested("0x");
-  const updateInvestedResponse = await updateInvestedTx.wait();
+  await updateInvestedTx.wait();
 
   await mockEthAnchorRouter.notifyDepositResult(
     ethAnchorOperator,
