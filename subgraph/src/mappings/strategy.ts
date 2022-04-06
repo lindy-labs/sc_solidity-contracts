@@ -27,9 +27,17 @@ export function handleFinishDeposit(event: FinishDepositStable): void {
   store.remove("DepositOperation", id);
 }
 
-export function handleRearrangeDeposit(
-  event: RearrangeDepositOperation
-): void {}
+export function handleRearrangeDeposit(event: RearrangeDepositOperation): void {
+  const fromId = event.params.operatorFrom.toHexString();
+  const fromDeposit = DepositOperation.load(fromId)!;
+
+  const toId = event.params.operatorTo.toHexString();
+  const toDeposit = DepositOperation.load(toId)!;
+
+  fromDeposit.idx = toDeposit.idx;
+
+  fromDeposit.save();
+}
 
 export function handleInitRedeem(event: InitRedeemStable): void {
   const id = event.params.operator.toHexString();
@@ -46,4 +54,14 @@ export function handleFinishRedeem(event: FinishRedeemStable): void {
   store.remove("RedeemOperation", id);
 }
 
-export function handleRearrangeRedeem(event: RearrangeRedeemOperation): void {}
+export function handleRearrangeRedeem(event: RearrangeRedeemOperation): void {
+  const fromId = event.params.operatorFrom.toHexString();
+  const fromRedeem = RedeemOperation.load(fromId)!;
+
+  const toId = event.params.operatorTo.toHexString();
+  const toRedeem = RedeemOperation.load(toId)!;
+
+  fromRedeem.idx = toRedeem.idx;
+
+  fromRedeem.save();
+}
