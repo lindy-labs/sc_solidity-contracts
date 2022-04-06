@@ -32,7 +32,11 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
         uint256 ustAmount,
         uint256 aUstAmount
     );
-    event RearrangeDepositOperation(uint256 indexed from, uint256 indexed to);
+    event RearrangeDepositOperation(
+        address indexed operatorFrom,
+        address indexed operatorTo,
+        uint256 indexed newIdx
+    );
     event InitRedeemStable(
         address indexed operator,
         uint256 indexed idx,
@@ -44,7 +48,11 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
         uint256 ustAmount,
         uint256 underlyingAmount
     );
-    event RearrangeRedeemOperation(uint256 indexed from, uint256 indexed to);
+    event RearrangeRedeemOperation(
+        address indexed operatorFrom,
+        address indexed operatorTo,
+        uint256 indexed newIdx
+    );
 
     struct Operation {
         address operator;
@@ -220,10 +228,15 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
             Operation memory lastOperation = depositOperations[
                 depositOperations.length - 1
             ];
+
+            emit RearrangeDepositOperation(
+                lastOperation.operator,
+                operation.operator,
+                idx
+            );
+
             operation.operator = lastOperation.operator;
             operation.amount = lastOperation.amount;
-
-            emit RearrangeDepositOperation(depositOperations.length - 1, idx);
         }
 
         depositOperations.pop();
@@ -343,10 +356,15 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
             Operation memory lastOperation = redeemOperations[
                 redeemOperations.length - 1
             ];
+
+            emit RearrangeRedeemOperation(
+                lastOperation.operator,
+                operation.operator,
+                idx
+            );
+
             operation.operator = lastOperation.operator;
             operation.amount = lastOperation.amount;
-
-            emit RearrangeRedeemOperation(redeemOperations.length - 1, idx);
         }
 
         redeemOperations.pop();
