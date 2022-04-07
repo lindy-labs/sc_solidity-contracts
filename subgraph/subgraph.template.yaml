@@ -4,12 +4,13 @@ schema:
 dataSources:
   - name: Vault
     kind: ethereum/contract
-    network: mainnet
+    network: {{network}}
     source:
       abi: Vault
       {{#vault}}
       address: "{{address}}"
       {{/vault}}
+      startBlock: {{startBlock}}
     mapping: &mapping
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -41,12 +42,13 @@ dataSources:
 
   - name: Strategy
     kind: ethereum/contract
-    network: mainnet
+    network: {{network}}
     source:
       abi: AnchorUSTStrategy
       {{#strategy}}
       address: "{{address}}"
       {{/strategy}}
+      startBlock: {{startBlock}}
     mapping: &mapping
       kind: ethereum/events
       apiVersion: 0.0.6

@@ -1,4 +1,6 @@
 {
+  "network": "mainnet",
+  "startBlock": 12151396,
   "vault": {
     "address": "0x1c8967Af415b1516c96c08880aA0E87e82161b9a"
   },

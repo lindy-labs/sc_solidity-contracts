@@ -21,8 +21,8 @@ const networkConfigs: Record<number, Config> = {
     AUstToUstPriceFeed: "0x7b80a92f7d1e5cEeDDf939d77BF281E7e88f2906",
   },
 
-  // rinkeby
-  4: {
+  // ropsten
+  3: {
     investPct: 9000, // 90%
     perfFeePct: 100, // 1%
     multisig: "deployer",

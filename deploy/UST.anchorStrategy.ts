@@ -11,11 +11,17 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   const aust = await get("aUST");
   const vault = await get("Vault_UST");
 
-  const { multisig, ethAnchorRouter, perfFeePct } =
-    await getCurrentNetworkConfig();
+  const { multisig, ethAnchorRouter } = await getCurrentNetworkConfig();
 
   const treasury = env.network.config.chainId == 1 ? multisig : deployer;
   const owner = env.network.config.chainId == 1 ? multisig : deployer;
+
+  const MockChainlinkPriceFeedFactory = await deploy("MockChainlinkPriceFeed", {
+    contract: "MockChainlinkPriceFeed",
+    from: deployer,
+    log: true,
+    args: [18],
+  });
 
   await deploy("Vault_UST_AnchorStrategy", {
     contract: "AnchorUSTStrategy",
@@ -23,11 +29,10 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
     log: true,
     args: [
       vault.address,
-      treasury,
       ethAnchorRouter,
+      MockChainlinkPriceFeedFactory.address,
       ust.address,
       aust.address,
-      perfFeePct,
       owner,
     ],
   });
@@ -37,7 +42,8 @@ func.id = "deploy_ust_anchor_strategy";
 func.tags = ["strategies", "ust"];
 func.dependencies = ["deploy_ust_vault"];
 
-// deploy only to mainnet
-func.skip = async (hre) => hre.network.config.chainId != 1;
+// don't deploy to local networks
+func.skip = async (hre) =>
+  hre.network.config.chainId != 1 && hre.network.config.chainId != 3;
 
 export default func;

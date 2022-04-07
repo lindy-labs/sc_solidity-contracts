@@ -85,15 +85,4 @@ Then Ctrl-C in the first terminal (twice) to save.
 
 ## Deployed contracts
 
-### Ropsten Testnet
-
-| Name         | Contract                 | Address                                                                                                                       |
-| ------------ | ------------------------ | ----------------------------------------------------------------------------------------------------------------------------- |
-| USTVault     | Vault                    | [0xa8E0068f7054Bfc4257777865d6C15A256419B84](https://ropsten.etherscan.io/address/0xa8E0068f7054Bfc4257777865d6C15A256419B84) |
-| USTStrategy  | TestAnchorUSTStrategy    | [0x394480300a35558338d32bBE7263d447BA0d409E](https://ropsten.etherscan.io/address/0x394480300a35558338d32bBE7263d447BA0d409E) |
-| USDTVault    | Vault                    | [0x02CBBDEe9fB4DBBa46802Dff1669a2D416a8e835](https://ropsten.etherscan.io/address/0x02CBBDEe9fB4DBBa46802Dff1669a2D416a8e835) |
-| USDTStrategy | TestAnchorNonUSTStrategy | [0x7cb05951DeeC3056641Aef24B480c09e7F488CAB](https://ropsten.etherscan.io/address/0x7cb05951DeeC3056641Aef24B480c09e7F488CAB) |
-| USDCVault    | Vault                    | [0x509FeA92502d559CE6D50CD7a5e91EF0EE6c7074](https://ropsten.etherscan.io/address/0x509FeA92502d559CE6D50CD7a5e91EF0EE6c7074) |
-| USDCStrategy | TestAnchorNonUSTStrategy | [0x1A2C932AE7f9A7ad0CB3A9896AbF4E59460B0e76](https://ropsten.etherscan.io/address/0x1A2C932AE7f9A7ad0CB3A9896AbF4E59460B0e76) |
-| DAIVault     | Vault                    | [0x2CcC7Ee614212a944e1F034E96A406764EDb675A](https://ropsten.etherscan.io/address/0x2CcC7Ee614212a944e1F034E96A406764EDb675A) |
-| DAIStrategy  | TestAnchorNonUSTStrategy | [0xd953964D803c1a522a819Ac07045EfD9B3fAeb12](https://ropsten.etherscan.io/address/0xd953964D803c1a522a819Ac07045EfD9B3fAeb12) |
+Check the [deployments folder](./deployments)
