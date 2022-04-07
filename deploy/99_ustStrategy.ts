@@ -35,8 +35,6 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     mockEthAnchorRouterDeployment.address
   );
 
-  console.log("Deploy AnchorUSTStrategy for development");
-
   const ustAnchorStrategyDeployment = await get("AnchorUSTStrategy");
   const ustAnchorStrategy = await ethers.getContractAt(
     "AnchorUSTStrategy",
@@ -82,8 +80,6 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   await mockEthAnchorRouter.addPendingOperator(ethAnchorOperator1);
   await vault.connect(owner).updateInvested("0x");
 
-  // End of fixture logic
-
   async function setChainlinkData(round: number) {
     await mockChainlinkPriceFeed.setLatestRoundData(
       round,
@@ -109,13 +105,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
     await mockaUST
       .connect(owner)
-      .approve(vault.address, parseUnits("5000", 18));
-    await mockaUST
-      .connect(owner)
       .approve(mockEthAnchorRouter.address, parseUnits("5000", 18));
-    await mockaUST
-      .connect(owner)
-      .approve(ustAnchorStrategy.address, parseUnits("5000", 18));
   }
 };
 
