@@ -5,9 +5,9 @@ import { utils } from "ethers";
 const { parseUnits } = ethers.utils;
 
 const func = async function (env: HardhatRuntimeEnvironment) {
-  const { deployer, ethAnchorOperator, ethAnchorOperator1 } =
+  const { ethAnchorOperator, ethAnchorOperator1 } =
     await env.getNamedAccounts();
-  const { deploy, get } = env.deployments;
+  const { get } = env.deployments;
   const [owner, alice, bob, treasury] = await ethers.getSigners();
 
   const mockUST = await get("UST");
@@ -18,18 +18,6 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     "MockERC20",
     mockaUSTDeployment.address
   );
-
-  await deploy("MockEthAnchorRouter", {
-    contract: "MockEthAnchorRouter",
-    from: deployer,
-    args: [mockUST.address, mockaUST.address],
-  });
-
-  await deploy("MockChainlinkPriceFeed", {
-    contract: "MockChainlinkPriceFeed",
-    from: deployer,
-    args: [18],
-  });
 
   console.log("Deployed UST strategy dependencies");
 
@@ -48,20 +36,6 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   );
 
   console.log("Deploy AnchorUSTStrategy for development");
-
-  await deploy("AnchorUSTStrategy", {
-    contract: "AnchorUSTStrategy",
-    from: deployer,
-    args: [
-      vault.address,
-      mockEthAnchorRouterDeployment.address,
-      mockChainlinkPriceFeed.address,
-      mockUST.address,
-      mockaUSTDeployment.address,
-      owner.address,
-    ],
-    log: true,
-  });
 
   const ustAnchorStrategyDeployment = await get("AnchorUSTStrategy");
   const ustAnchorStrategy = await ethers.getContractAt(
@@ -171,9 +145,9 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   }
 };
 
-func.id = "devStrategy";
-func.tags = ["devStrategies"];
-func.dependencies = ["vaults", "strategies"];
+func.id = "dev_strategies";
+func.tags = ["dev_strategies"];
+func.dependencies = ["vaults", "fixtures", "fixture_deployments"];
 
 // Deploy only to hardhat
 func.skip = async (hre: HardhatRuntimeEnvironment) =>

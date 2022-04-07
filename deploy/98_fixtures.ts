@@ -88,6 +88,6 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
 
 func.id = "fixtures";
 func.tags = ["fixtures"];
-func.dependencies = ["vaults", "devStrategies"];
+func.dependencies = ["vaults"];
 
 export default func;
