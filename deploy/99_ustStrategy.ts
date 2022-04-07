@@ -44,7 +44,6 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   );
 
   await mintAndAllowTokens();
-  await configureContracts();
 
   console.log("Setting USTAnchor strategy to UST vault");
   const setStrategyTx = await vault.setStrategy(ustAnchorStrategy.address);
@@ -117,17 +116,6 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     await mockaUST
       .connect(owner)
       .approve(ustAnchorStrategy.address, parseUnits("5000", 18));
-  }
-
-  async function configureContracts() {
-    const MANAGER_ROLE = utils.keccak256(utils.toUtf8Bytes("MANAGER_ROLE"));
-    await ustAnchorStrategy
-      .connect(owner)
-      .grantRole(MANAGER_ROLE, owner.address);
-
-    await vault.connect(owner).setTreasury(treasury.address);
-
-    await vault.connect(owner).setInvestPerc("8000");
   }
 };
 

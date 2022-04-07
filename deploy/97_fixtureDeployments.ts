@@ -1,11 +1,12 @@
 import type { HardhatRuntimeEnvironment } from "hardhat/types";
 
 import { ethers } from "hardhat";
+import { utils } from "ethers";
 
 const func = async function (env: HardhatRuntimeEnvironment) {
   const { deployer } = await env.getNamedAccounts();
   const { deploy, get } = env.deployments;
-  const [owner] = await ethers.getSigners();
+  const [owner, _alice, _bob, treasury] = await ethers.getSigners();
 
   const mockUST = await get("UST");
 
@@ -33,7 +34,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     }
   );
 
-  await deploy("AnchorUSTStrategy", {
+  const ustAnchorStrategyDeployment = await deploy("AnchorUSTStrategy", {
     contract: "AnchorUSTStrategy",
     from: deployer,
     args: [
@@ -46,6 +47,19 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     ],
     log: true,
   });
+
+  const ustAnchorStrategy = await ethers.getContractAt(
+    "AnchorUSTStrategy",
+    ustAnchorStrategyDeployment.address
+  );
+
+  // Configure contract roles
+  const MANAGER_ROLE = utils.keccak256(utils.toUtf8Bytes("MANAGER_ROLE"));
+  await ustAnchorStrategy.connect(owner).grantRole(MANAGER_ROLE, owner.address);
+
+  await vault.connect(owner).setTreasury(treasury.address);
+
+  await vault.connect(owner).setInvestPerc("8000");
 };
 
 func.id = "fixture_deployments";
