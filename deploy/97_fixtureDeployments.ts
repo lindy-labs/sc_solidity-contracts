@@ -3,10 +3,6 @@ import type { HardhatRuntimeEnvironment } from "hardhat/types";
 import { ethers } from "hardhat";
 
 const func = async function (env: HardhatRuntimeEnvironment) {
-  if (env.network.live) {
-    return;
-  }
-
   const { deployer } = await env.getNamedAccounts();
   const { deploy, get } = env.deployments;
   const [owner] = await ethers.getSigners();
