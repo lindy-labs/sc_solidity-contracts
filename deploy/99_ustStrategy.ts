@@ -46,20 +46,6 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   await mintAndAllowTokens();
   await configureContracts();
 
-  console.log("Alice deposits into UST vault");
-  await vault.connect(alice).deposit({
-    amount: parseUnits("2000", 18),
-    lockDuration: 1,
-    claims: [
-      {
-        beneficiary: alice.address,
-        pct: 10000,
-        data: "0x",
-      },
-    ],
-    inputToken: mockUST.address,
-  });
-
   console.log("Setting USTAnchor strategy to UST vault");
   const setStrategyTx = await vault.setStrategy(ustAnchorStrategy.address);
   await setStrategyTx.wait();
