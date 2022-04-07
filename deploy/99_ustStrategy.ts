@@ -1,6 +1,5 @@
 import type { HardhatRuntimeEnvironment } from "hardhat/types";
 import { ethers } from "hardhat";
-import { utils } from "ethers";
 
 const { parseUnits } = ethers.utils;
 
@@ -41,7 +40,18 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     ustAnchorStrategyDeployment.address
   );
 
-  await mintAndAllowTokens();
+  await underlying.mint(bob.address, parseUnits("5000", 18));
+  await mockaUST.mint(owner.address, parseUnits("5000", 18));
+
+  await Promise.all(
+    [alice, bob, treasury, owner].map((account) =>
+      underlying.connect(account).approve(vault.address, parseUnits("5000", 18))
+    )
+  );
+
+  await mockaUST
+    .connect(owner)
+    .approve(mockEthAnchorRouter.address, parseUnits("5000", 18));
 
   console.log("Setting USTAnchor strategy to UST vault");
   const setStrategyTx = await vault.setStrategy(ustAnchorStrategy.address);
@@ -88,24 +98,6 @@ const func = async function (env: HardhatRuntimeEnvironment) {
       round,
       round
     );
-  }
-
-  async function mintAndAllowTokens() {
-    await underlying.mint(alice.address, parseUnits("5000", 18));
-    await underlying.mint(bob.address, parseUnits("5000", 18));
-    await mockaUST.mint(owner.address, parseUnits("5000", 18));
-
-    await Promise.all(
-      [alice, bob, treasury, owner].map((account) =>
-        underlying
-          .connect(account)
-          .approve(vault.address, parseUnits("5000", 18))
-      )
-    );
-
-    await mockaUST
-      .connect(owner)
-      .approve(mockEthAnchorRouter.address, parseUnits("5000", 18));
   }
 };
 
