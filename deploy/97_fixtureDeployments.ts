@@ -56,4 +56,8 @@ func.id = "fixture_deployments";
 func.tags = ["fixture_deployments"];
 func.dependencies = ["vaults"];
 
+// Deploy only to hardhat
+func.skip = async (hre: HardhatRuntimeEnvironment) =>
+  hre.network.config.chainId != 31337;
+
 export default func;
