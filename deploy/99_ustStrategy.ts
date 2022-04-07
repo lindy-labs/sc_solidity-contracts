@@ -53,10 +53,6 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     .connect(owner)
     .approve(mockEthAnchorRouter.address, parseUnits("5000", 18));
 
-  console.log("Setting USTAnchor strategy to UST vault");
-  const setStrategyTx = await vault.setStrategy(ustAnchorStrategy.address);
-  await setStrategyTx.wait();
-
   await setChainlinkData(1);
 
   console.log("StrategyUpdated Event triggered, calling updateInvested");

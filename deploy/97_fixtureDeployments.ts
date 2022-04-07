@@ -54,12 +54,15 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   );
 
   // Configure contract roles
+  console.log("Configuring strategy contract role");
   const MANAGER_ROLE = utils.keccak256(utils.toUtf8Bytes("MANAGER_ROLE"));
   await ustAnchorStrategy.connect(owner).grantRole(MANAGER_ROLE, owner.address);
 
+  console.log("Configuring vault strategy, treasury and investPerc");
   await vault.connect(owner).setTreasury(treasury.address);
-
   await vault.connect(owner).setInvestPerc("8000");
+  const setStrategyTx = await vault.setStrategy(ustAnchorStrategy.address);
+  await setStrategyTx.wait();
 };
 
 func.id = "fixture_deployments";
