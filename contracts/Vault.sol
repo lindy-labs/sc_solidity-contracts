@@ -643,7 +643,7 @@ contract Vault is
             ClaimParams memory data = claims[i];
             require(data.pct != 0, "Vault: claim percentage cannot be 0");
             // if it's the last claim, just grab all remaining amount, instead
-            // of relying on percentrages
+            // of relying on percentages
             uint256 localAmount = i == locals.claimsLen - 1
                 ? _amount - locals.accumulatedAmount
                 : _amount.percOf(data.pct);

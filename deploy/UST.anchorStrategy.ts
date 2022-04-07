@@ -38,8 +38,6 @@ func.tags = ["strategies", "ust"];
 func.dependencies = ["deploy_ust_vault"];
 
 // deploy only to mainnet
-// TODO we need to enable this on other networks as well
-// (e.g. hardhat forking ethanchor, or deploy fake ethanchor router)
 func.skip = async (hre) => hre.network.config.chainId != 1;
 
 export default func;

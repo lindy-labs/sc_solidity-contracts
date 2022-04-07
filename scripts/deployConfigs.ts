@@ -1,4 +1,5 @@
 import { network, getNamedAccounts } from "hardhat";
+import { Address } from "hardhat-deploy/types";
 
 interface Config {
   investPct: number;
@@ -51,7 +52,7 @@ const networkConfigs: Record<number, Config> = {
   },
 };
 
-const resolveAccount = async (account) => {
+const resolveAccount = async (account: Address) => {
   const accounts = await getNamedAccounts();
 
   return accounts[account] || account;

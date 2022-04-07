@@ -51,3 +51,16 @@ type Sponsor @entity {
   lockedUntil: BigInt!
   burned: Boolean!
 }
+
+type RedeemOperation @entity {
+  id: ID!
+  idx: BigInt!
+  aUstAmount: BigInt!
+}
+
+type DepositOperation @entity {
+  id: ID!
+  idx: BigInt!
+  underlyingAmount: BigInt!
+  ustAmount: BigInt!
+}

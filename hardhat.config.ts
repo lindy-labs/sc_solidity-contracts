@@ -30,13 +30,15 @@ const config: HardhatUserConfig = {
         accountsBalance: "100000000000000000000000000",
       },
       initialBaseFeePerGas: 0,
+      chainId: 31337,
     },
     docker: {
       url: "http://localhost:8545",
       accounts: {
         mnemonic: devMnemonic,
       },
-      chainId: 1337,
+      initialBaseFeePerGas: 0,
+      chainId: 31337,
       live: false,
     },
     etheno: {
@@ -68,6 +70,8 @@ const config: HardhatUserConfig = {
     alice: 1,
     bob: 2,
     carol: 3,
+    ethAnchorOperator: 4,
+    ethAnchorOperator1: 5,
   },
   mocha: {
     timeout: 2000000,
