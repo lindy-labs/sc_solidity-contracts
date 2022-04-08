@@ -19,8 +19,8 @@ contract Echidna_Donation is Helper, ERC721Holder {
         dai = new MockDAI(0);
     }
 
-    // donate with valid params should never revert
-    function donate_should_succeed(Donations.DonationParams[] memory _params) public {
+    // mint with valid params should never revert
+    function mint_should_succeed(Donations.DonationParams[] memory _params) public {
 
         uint16 length = uint16(_params.length);
         require(length > 0);
