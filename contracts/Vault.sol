@@ -156,7 +156,7 @@ contract Vault is
         treasury = _treasury;
         minLockPeriod = _minLockPeriod;
         perfFeePct = _perfFeePct;
-        investmentFeePct = _investmentFeePct;
+        investmentFeeEstimatePct = _investmentFeeEstimatPct;
 
         depositors = new Depositors(this);
         claimers = new Claimers(this);
