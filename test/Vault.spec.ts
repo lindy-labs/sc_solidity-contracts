@@ -402,16 +402,18 @@ describe("Vault", () => {
       ).to.be.revertedWith("Vault: invalid investment fee");
     });
 
-    it("change investPerc and emit InvestPercentageUpdated event", async () => {
-      const newInvestPct = 200;
+    it("change investmentFeeEstimatePct and emit InvestPercentageUpdated event", async () => {
+      const newInvestmentFeeEstimatePct = 200;
       const tx = await vault
         .connect(owner)
-        .setInvestmentFeeEstimatePct(newInvestPct);
+        .setInvestmentFeeEstimatePct(newInvestmentFeeEstimatePct);
 
       await expect(tx)
         .emit(vault, "InvestmentFeeEstimatePctUpdated")
-        .withArgs(newInvestPct);
-      expect(await vault.investPerc()).to.be.equal(newInvestPct);
+        .withArgs(newInvestmentFeeEstimatePct);
+      expect(await vault.investmentFeeEstimatePct()).to.be.equal(
+        newInvestmentFeeEstimatePct
+      );
     });
   });
 

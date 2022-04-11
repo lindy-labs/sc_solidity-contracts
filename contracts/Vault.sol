@@ -107,7 +107,7 @@ contract Vault is
     uint16 public perfFeePct;
 
     /// Investment fee pct
-    uint16 investmentFeeEstimatePct;
+    uint16 public investmentFeeEstimatePct;
 
     // Current accumulated performance fee;
     uint256 public accumulatedPerfFee;
