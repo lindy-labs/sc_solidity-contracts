@@ -97,7 +97,7 @@ contract AnchorStrategy is IStrategy, AccessControl {
     modifier onlyManager() {
         require(
             hasRole(MANAGER_ROLE, msg.sender),
-            "AnchorBaseStrategy: caller is not manager"
+            "AnchorStrategy: caller is not manager"
         );
         _;
     }
@@ -105,7 +105,7 @@ contract AnchorStrategy is IStrategy, AccessControl {
     modifier onlyAdmin() {
         require(
             hasRole(DEFAULT_ADMIN_ROLE, msg.sender),
-            "AnchorBaseStrategy: caller is not admin"
+            "AnchorStrategy: caller is not admin"
         );
         _;
     }
@@ -130,22 +130,22 @@ contract AnchorStrategy is IStrategy, AccessControl {
         IERC20 _aUstToken,
         address _owner
     ) {
-        require(_owner != address(0), "AnchorBaseStrategy: owner is 0x");
+        require(_owner != address(0), "AnchorStrategy: owner is 0x");
         require(
             _ethAnchorRouter != address(0),
-            "AnchorBaseStrategy: router is 0x"
+            "AnchorStrategy: router is 0x"
         );
         require(
             address(_ustToken) != address(0),
-            "AnchorBaseStrategy: ust is 0x"
+            "AnchorStrategy: ust is 0x"
         );
         require(
             address(_aUstToken) != address(0),
-            "AnchorBaseStrategy: aUST is 0x"
+            "AnchorStrategy: aUST is 0x"
         );
         require(
             _vault.doesContractImplementInterface(type(IVault).interfaceId),
-            "AnchorBaseStrategy: not an IVault"
+            "AnchorStrategy: not an IVault"
         );
 
         _setupRole(DEFAULT_ADMIN_ROLE, _owner);
@@ -193,7 +193,7 @@ contract AnchorStrategy is IStrategy, AccessControl {
      */
     function _initDepositStable() internal returns (address, uint256) {
         uint256 ustBalance = _getUstBalance();
-        require(ustBalance != 0, "AnchorBaseStrategy: no ust exist");
+        require(ustBalance != 0, "AnchorStrategy: no ust exist");
         pendingDeposits += ustBalance;
 
         ustToken.safeIncreaseAllowance(address(ethAnchorRouter), ustBalance);
@@ -218,7 +218,7 @@ contract AnchorStrategy is IStrategy, AccessControl {
     function finishDepositStable(uint256 idx) external onlyManager {
         require(
             depositOperations.length > idx,
-            "AnchorBaseStrategy: not running"
+            "AnchorStrategy: not running"
         );
         Operation storage operation = depositOperations[idx];
         address operator = operation.operator;
@@ -226,7 +226,7 @@ contract AnchorStrategy is IStrategy, AccessControl {
 
         ethAnchorRouter.finishDepositStable(operator);
         uint256 newAUst = _getAUstBalance() - aUstBalanceBefore;
-        require(newAUst > 0, "AnchorBaseStrategy: no aUST returned");
+        require(newAUst > 0, "AnchorStrategy: no aUST returned");
 
         uint256 ustAmount = operation.amount;
         pendingDeposits -= ustAmount;
@@ -260,7 +260,7 @@ contract AnchorStrategy is IStrategy, AccessControl {
      * @param amount Amount of aUST to redeem
      */
     function initRedeemStable(uint256 amount) public onlyManager {
-        require(amount != 0, "AnchorBaseStrategy: amount 0");
+        require(amount != 0, "AnchorStrategy: amount 0");
         if (pendingDeposits == 0 && _getAUstBalance() == amount) {
             _allRedeemed = true;
         }
@@ -369,7 +369,7 @@ contract AnchorStrategy is IStrategy, AccessControl {
     {
         require(
             redeemOperations.length > idx,
-            "AnchorBaseStrategy: not running"
+            "AnchorStrategy: not running"
         );
         Operation storage operation = redeemOperations[idx];
 
@@ -379,7 +379,7 @@ contract AnchorStrategy is IStrategy, AccessControl {
         ethAnchorRouter.finishRedeemStable(operator);
 
         uint256 redeemedAmount = _getUstBalance();
-        require(redeemedAmount > 0, "AnchorBaseStrategy: nothing redeemed");
+        require(redeemedAmount > 0, "AnchorStrategy: nothing redeemed");
 
         pendingRedeems -= operationAmount;
 
@@ -472,7 +472,7 @@ contract AnchorStrategy is IStrategy, AccessControl {
 
         require(
             price > 0 && updateTime != 0 && answeredInRound >= roundID,
-            "AnchorBaseStrategy: invalid aUST rate"
+            "AnchorStrategy: invalid aUST rate"
         );
 
         return uint256(price);
