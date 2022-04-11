@@ -147,6 +147,7 @@ contract Vault is
 
         _setupRole(DEFAULT_ADMIN_ROLE, _owner);
         _setupRole(INVESTOR_ROLE, _owner);
+        _setupRole(SETTINGS_ROLE, _owner)
 
         investPerc = _investPerc;
         underlying = _underlying;
