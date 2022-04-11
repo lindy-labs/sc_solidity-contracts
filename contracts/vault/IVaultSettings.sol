@@ -6,6 +6,7 @@ interface IVaultSettings {
     // Events
     //
 
+    event InvestPctUpdated(uint256 percentage);
     event TreasuryUpdated(address indexed treasury);
     event PerfFeePctUpdated(uint16 pct);
     event StrategyUpdated(address indexed strategy);
@@ -15,7 +16,7 @@ interface IVaultSettings {
      *
      * @param _investPct The new investment fee %
      */
-    function setInvestPerc(uint16 _investPerc) external;
+    function setInvestPerc(uint16 _investPct) external;
 
     /**
      * Changes the treasury used by the vault.

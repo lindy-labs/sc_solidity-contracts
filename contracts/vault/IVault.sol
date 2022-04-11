@@ -55,8 +55,6 @@ interface IVault {
 
     event DepositBurned(uint256 indexed id, uint256 shares, address indexed to);
 
-    event InvestPercentageUpdated(uint256 percentage);
-
     event Invested(uint256 amount);
 
     event YieldClaimed(

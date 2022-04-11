@@ -416,19 +416,16 @@ contract Vault is
     //
 
     /// @inheritdoc IVaultSettings
-    function setInvestPerc(uint16 _investPerc)
+    function setInvestPerc(uint16 _investPct)
         external
         override(IVaultSettings)
         onlyRole(SETTINGS_ROLE)
     {
-        require(
-            PercentMath.validPerc(_investPerc),
-            "Vault: invalid investPerc"
-        );
+        require(PercentMath.validPerc(_investPct), "Vault: invalid investPerc");
 
-        emit InvestPercentageUpdated(_investPerc);
+        emit InvestPctUpdated(_investPct);
 
-        investPerc = _investPerc;
+        investPerc = _investPct;
     }
 
     /// @inheritdoc IVaultSettings
