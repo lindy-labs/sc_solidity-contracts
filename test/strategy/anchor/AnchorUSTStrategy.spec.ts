@@ -6,19 +6,19 @@ import { BigNumber, utils, constants, ContractFactory } from "ethers";
 import {
   MockChainlinkPriceFeed,
   Vault,
-  AnchorStrategy,
+  AnchorUSTStrategy,
   MockEthAnchorRouter,
   MockERC20,
-  AnchorStrategy__factory,
+  AnchorUSTStrategy__factory,
 } from "../../../typechain";
 import { generateNewAddress } from "../../shared/";
 
-describe("AnchorStrategy", () => {
+describe("AnchorUSTStrategy", () => {
   let owner: SignerWithAddress;
   let alice: SignerWithAddress;
   let manager: SignerWithAddress;
   let vault: Vault;
-  let strategy: AnchorStrategy;
+  let strategy: AnchorUSTStrategy;
   let mockEthAnchorRouter: MockEthAnchorRouter;
   let mockAUstUstFeed: MockChainlinkPriceFeed;
   let ustToken: MockERC20;
@@ -30,6 +30,7 @@ describe("AnchorStrategy", () => {
   const TWO_WEEKS = time.duration.days(14).toNumber();
   const PERFORMANCE_FEE_PCT = BigNumber.from("200");
   const INVEST_PCT = BigNumber.from("9000");
+  const INVEST_FEE_PCT = BigNumber.from(200);
   const DENOMINATOR = BigNumber.from("10000");
 
   const DEFAULT_ADMIN_ROLE = constants.HashZero;
@@ -74,14 +75,15 @@ describe("AnchorStrategy", () => {
       TREASURY,
       owner.address,
       PERFORMANCE_FEE_PCT,
+      INVEST_FEE_PCT,
       []
     );
 
-    const AnchorStrategyFactory = await ethers.getContractFactory(
-      "AnchorStrategy"
+    const AnchorUSTStrategyFactory = await ethers.getContractFactory(
+      "AnchorUSTStrategy"
     );
 
-    strategy = await AnchorStrategyFactory.deploy(
+    strategy = await AnchorUSTStrategyFactory.deploy(
       vault.address,
       mockEthAnchorRouter.address,
       mockAUstUstFeed.address,
@@ -105,15 +107,17 @@ describe("AnchorStrategy", () => {
   });
 
   describe("constructor", () => {
-    let AnchorStrategyFactory: AnchorStrategy__factory;
+    let AnchorUSTStrategyFactory: AnchorUSTStrategy__factory;
 
     beforeEach(async () => {
-      AnchorStrategyFactory = await ethers.getContractFactory("AnchorStrategy");
+      AnchorUSTStrategyFactory = await ethers.getContractFactory(
+        "AnchorUSTStrategy"
+      );
     });
 
     it("Revert if owner is address(0)", async () => {
       await expect(
-        AnchorStrategyFactory.deploy(
+        AnchorUSTStrategyFactory.deploy(
           vault.address,
           mockEthAnchorRouter.address,
           mockAUstUstFeed.address,
@@ -126,7 +130,7 @@ describe("AnchorStrategy", () => {
 
     it("Revert if ethAnchorRouter is address(0)", async () => {
       await expect(
-        AnchorStrategyFactory.deploy(
+        AnchorUSTStrategyFactory.deploy(
           vault.address,
           constants.AddressZero,
           mockAUstUstFeed.address,
@@ -139,7 +143,7 @@ describe("AnchorStrategy", () => {
 
     it("Revert if vault does not have IVault interface", async () => {
       await expect(
-        AnchorStrategyFactory.deploy(
+        AnchorUSTStrategyFactory.deploy(
           TREASURY,
           mockEthAnchorRouter.address,
           mockAUstUstFeed.address,
@@ -150,6 +154,31 @@ describe("AnchorStrategy", () => {
       ).to.be.revertedWith("AnchorStrategy: not an IVault");
     });
 
+    it("Revert if underlying is not ustToken", async () => {
+      const VaultFactory = await ethers.getContractFactory("Vault");
+      vault = await VaultFactory.deploy(
+        aUstToken.address,
+        1,
+        INVEST_PCT,
+        TREASURY,
+        owner.address,
+        PERFORMANCE_FEE_PCT,
+        INVEST_FEE_PCT,
+        []
+      );
+
+      await expect(
+        AnchorUSTStrategyFactory.deploy(
+          vault.address,
+          mockEthAnchorRouter.address,
+          mockAUstUstFeed.address,
+          ustToken.address,
+          aUstToken.address,
+          owner.address
+        )
+      ).to.be.revertedWith("AnchorUSTStrategy: invalid underlying");
+    });
+
     it("Check initial values", async () => {
       expect(
         await strategy.hasRole(DEFAULT_ADMIN_ROLE, owner.address)
@@ -158,6 +187,7 @@ describe("AnchorStrategy", () => {
         true
       );
       expect(await strategy.vault()).to.be.equal(vault.address);
+      expect(await strategy.underlying()).to.be.equal(underlying.address);
       expect(await strategy.ethAnchorRouter()).to.be.equal(
         mockEthAnchorRouter.address
       );
