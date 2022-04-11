@@ -27,6 +27,7 @@ describe("AnchorUSTStrategy Mainnet fork", () => {
   let mockAUstUstFeed: MockChainlinkPriceFeed;
   const TWO_WEEKS = time.duration.days(14).toNumber();
   const INVEST_PCT = 10000; // set 100% for test
+  const INVESTMENT_FEE_PCT = 10000; // set 100% for test
   const TREASURY = generateNewAddress();
   const PERFORMANCE_FEE_PCT = BigNumber.from("200");
   const FORK_BLOCK = 14023000;
@@ -65,6 +66,7 @@ describe("AnchorUSTStrategy Mainnet fork", () => {
         TREASURY,
         owner.address,
         PERFORMANCE_FEE_PCT,
+        INVESTMENT_FEE_PCT,
         []
       );
 
@@ -219,6 +221,7 @@ describe("AnchorUSTStrategy Mainnet fork", () => {
         TREASURY,
         owner.address,
         PERFORMANCE_FEE_PCT,
+        INVESTMENT_FEE_PCT,
         []
       );
 
