@@ -12,9 +12,11 @@ interface IVaultSettings {
     event StrategyUpdated(address indexed strategy);
 
     /**
-     * Changes the performance fee
+     * Update invest percentage
      *
-     * @param _investPct The new investment fee %
+     * Emits {InvestPercentageUpdated} event
+     *
+     * @param _investPct the new invest percentage
      */
     function setInvestPerc(uint16 _investPct) external;
 

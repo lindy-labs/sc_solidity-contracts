@@ -86,15 +86,6 @@ interface IVault {
     function investableAmount() external view returns (uint256);
 
     /**
-     * Update invest percentage
-     *
-     * Emits {InvestPercentageUpdated} event
-     *
-     * @param _investPct the new invest percentage
-     */
-    function setInvestPerc(uint16 _investPct) external;
-
-    /**
      * Percentage of the total underlying to invest in the strategy
      */
     function investPerc() external view returns (uint16);
