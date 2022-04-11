@@ -399,7 +399,7 @@ describe("Vault", () => {
         vault
           .connect(owner)
           .setInvestmentFeeEstimatePct(DENOMINATOR.add(BigNumber.from("1")))
-      ).to.be.revertedWith("Vault: invalid investPerc");
+      ).to.be.revertedWith("Vault: invalid investment fee");
     });
 
     it("change investPerc and emit InvestPercentageUpdated event", async () => {
@@ -409,7 +409,7 @@ describe("Vault", () => {
         .setInvestmentFeeEstimatePct(newInvestPct);
 
       await expect(tx)
-        .emit(vault, "InvestmentFePctUpdated")
+        .emit(vault, "InvestmentFeePctUpdated")
         .withArgs(newInvestPct);
       expect(await vault.investPerc()).to.be.equal(newInvestPct);
     });
