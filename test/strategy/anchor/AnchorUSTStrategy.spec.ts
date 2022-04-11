@@ -215,9 +215,9 @@ describe("AnchorStrategy", () => {
         100,
         1
       );
-      await expect(
-        vault.connect(owner).updateInvested("0x")
-      ).to.be.revertedWith("AnchorStrategy: invalid aUST rate");
+      await expect(vault.connect(owner).updateInvested()).to.be.revertedWith(
+        "AnchorStrategy: invalid aUST rate"
+      );
 
       // when updated time is zero
       await mockAUstUstFeed.setLatestRoundData(
@@ -227,9 +227,9 @@ describe("AnchorStrategy", () => {
         0,
         1
       );
-      await expect(
-        vault.connect(owner).updateInvested("0x")
-      ).to.be.revertedWith("AnchorStrategy: invalid aUST rate");
+      await expect(vault.connect(owner).updateInvested()).to.be.revertedWith(
+        "AnchorStrategy: invalid aUST rate"
+      );
     });
 
     it("Should init deposit stable with all underlying", async () => {
@@ -242,7 +242,7 @@ describe("AnchorStrategy", () => {
 
       expect(await vault.totalUnderlying()).equal(underlyingAmount);
 
-      const tx = await vault.connect(owner).updateInvested("0x");
+      const tx = await vault.connect(owner).updateInvested();
 
       expect(await underlying.balanceOf(strategy.address)).equal(0);
       expect(await strategy.pendingDeposits()).equal(investAmount);
@@ -266,7 +266,7 @@ describe("AnchorStrategy", () => {
 
       let investAmount0 = underlyingBalance0.mul(INVEST_PCT).div(DENOMINATOR);
 
-      await vault.connect(owner).updateInvested("0x");
+      await vault.connect(owner).updateInvested();
 
       const operator1 = await registerNewTestOperator();
       let underlyingBalance1 = utils.parseUnits("50", 18);
@@ -278,7 +278,7 @@ describe("AnchorStrategy", () => {
         .div(DENOMINATOR)
         .sub(investAmount0);
 
-      await vault.connect(owner).updateInvested("0x");
+      await vault.connect(owner).updateInvested();
 
       expect(await underlying.balanceOf(strategy.address)).equal(0);
       expect(await strategy.pendingDeposits()).equal(
@@ -313,7 +313,7 @@ describe("AnchorStrategy", () => {
       underlyingAmount0 = utils.parseUnits("100", 18);
       aUstAmount0 = utils.parseUnits("80", 18);
       await depositVault(underlyingAmount0);
-      await vault.connect(owner).updateInvested("0x");
+      await vault.connect(owner).updateInvested();
       investAmount0 = underlyingAmount0.mul(INVEST_PCT).div(DENOMINATOR);
     });
 
@@ -367,7 +367,7 @@ describe("AnchorStrategy", () => {
 
       const underlyingAmount1 = utils.parseUnits("50", 18);
       await depositVault(underlyingAmount1);
-      await vault.connect(owner).updateInvested("0x");
+      await vault.connect(owner).updateInvested();
 
       let investAmount1 = underlyingAmount1
         .add(underlyingAmount0)
@@ -421,7 +421,7 @@ describe("AnchorStrategy", () => {
       const operator1 = await registerNewTestOperator();
 
       await depositVault(underlyingAmount1);
-      await vault.connect(owner).updateInvested("0x");
+      await vault.connect(owner).updateInvested();
 
       await notifyDepositReturnAmount(operator1, aUstAmount1);
 
@@ -449,7 +449,7 @@ describe("AnchorStrategy", () => {
       underlyingAmount0 = utils.parseUnits("100", 18);
       aUstAmount0 = utils.parseUnits("80", 18);
       await depositVault(underlyingAmount0);
-      await vault.connect(owner).updateInvested("0x");
+      await vault.connect(owner).updateInvested();
 
       await notifyDepositReturnAmount(operator, aUstAmount0);
       await strategy.connect(manager).finishDepositStable(0);
@@ -541,7 +541,7 @@ describe("AnchorStrategy", () => {
       investAmount0 = underlyingAmount0.mul(INVEST_PCT).div(DENOMINATOR);
       aUstAmount0 = utils.parseUnits("80", 18);
       await depositVault(underlyingAmount0);
-      await vault.connect(owner).updateInvested("0x");
+      await vault.connect(owner).updateInvested();
 
       await notifyDepositReturnAmount(operator0, aUstAmount0);
       await strategy.connect(manager).finishDepositStable(0);
@@ -683,7 +683,7 @@ describe("AnchorStrategy", () => {
       const aUstAmount1 = utils.parseUnits("80", 18);
       const operator1 = await registerNewTestOperator();
       await depositVault(underlyingAmount1);
-      await vault.connect(owner).updateInvested("0x");
+      await vault.connect(owner).updateInvested();
 
       await notifyDepositReturnAmount(operator1, aUstAmount1);
       await strategy.connect(manager).finishDepositStable(0);
@@ -721,7 +721,7 @@ describe("AnchorStrategy", () => {
       const operator0 = await registerNewTestOperator();
 
       await depositVault(underlyingAmount0);
-      await vault.connect(owner).updateInvested("0x");
+      await vault.connect(owner).updateInvested();
 
       await notifyDepositReturnAmount(operator0, aUstAmount0);
       await strategy.connect(manager).finishDepositStable(0);
@@ -769,7 +769,7 @@ describe("AnchorStrategy", () => {
     it("Include pending deposits", async () => {
       await depositVault(underlyingAmount);
       await registerNewTestOperator();
-      await vault.updateInvested("0x");
+      await vault.updateInvested();
 
       expect(await strategy.investedAssets()).to.be.equal(
         underlyingAmount.mul(INVEST_PCT).div(DENOMINATOR)
@@ -810,7 +810,7 @@ describe("AnchorStrategy", () => {
     it("Return true if there is pendingDeposits", async () => {
       await depositVault(utils.parseEther("100"));
       await registerNewTestOperator();
-      await vault.updateInvested("0x");
+      await vault.updateInvested();
 
       expect(await strategy.hasAssets()).to.be.equal(true);
     });
@@ -818,7 +818,7 @@ describe("AnchorStrategy", () => {
     it("Return true if partical redeemed", async () => {
       await depositVault(utils.parseEther("100"));
       let operator = await registerNewTestOperator();
-      await vault.updateInvested("0x");
+      await vault.updateInvested();
 
       await notifyDepositReturnAmount(operator, utils.parseEther("90"));
       await strategy.connect(manager).finishDepositStable(0);
@@ -837,7 +837,7 @@ describe("AnchorStrategy", () => {
     it("Return true if pendingRedeem exist after all redeem initialized", async () => {
       await depositVault(utils.parseEther("100"));
       const operator = await registerNewTestOperator();
-      await vault.updateInvested("0x");
+      await vault.updateInvested();
 
       await notifyDepositReturnAmount(operator, utils.parseEther("90"));
       await strategy.connect(manager).finishDepositStable(0);
@@ -852,7 +852,7 @@ describe("AnchorStrategy", () => {
     it("Return false after all aUST redeemed", async () => {
       await depositVault(utils.parseEther("100"));
       let operator = await registerNewTestOperator();
-      await vault.updateInvested("0x");
+      await vault.updateInvested();
 
       await notifyDepositReturnAmount(operator, utils.parseEther("90"));
       await strategy.connect(manager).finishDepositStable(0);
@@ -872,7 +872,7 @@ describe("AnchorStrategy", () => {
     it("Return true if all aUST redeem finished after new init deposit stable", async () => {
       await depositVault(utils.parseEther("100"));
       let operator = await registerNewTestOperator();
-      await vault.updateInvested("0x");
+      await vault.updateInvested();
 
       await notifyDepositReturnAmount(operator, utils.parseEther("90"));
       await strategy.connect(manager).finishDepositStable(0);
@@ -887,7 +887,7 @@ describe("AnchorStrategy", () => {
       await setAUstRate(utils.parseEther("1.1"));
       await depositVault(utils.parseEther("50"));
       await registerNewTestOperator();
-      await vault.updateInvested("0x");
+      await vault.updateInvested();
 
       await strategy.connect(manager).finishRedeemStable(0);
 
@@ -941,7 +941,7 @@ describe("AnchorStrategy", () => {
   ): Promise<BigNumber> => {
     const operator = await registerNewTestOperator();
     await depositVault(underlyingAmount);
-    await vault.updateInvested("0x");
+    await vault.updateInvested();
 
     await notifyDepositReturnAmount(operator, aUstAmount);
     await strategy.connect(manager).finishDepositStable(0);
