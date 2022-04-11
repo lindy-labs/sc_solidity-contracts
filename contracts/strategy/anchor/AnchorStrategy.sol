@@ -16,7 +16,7 @@ import {IEthAnchorRouter} from "./IEthAnchorRouter.sol";
  * Base eth anchor strategy that handles UST tokens and invests them via the EthAnchor
  * protocol (https://docs.anchorprotocol.com/ethanchor/ethanchor)
  */
-abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
+contract AnchorStrategy is IStrategy, AccessControl {
     using SafeERC20 for IERC20;
     using PercentMath for uint256;
     using ERC165Query for address;
@@ -61,9 +61,6 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
 
     bytes32 public constant MANAGER_ROLE =
         0x241ecf16d79d0f8dbfb92cbc07fe17840425976cf0667f022fe9877caa831b08; // keccak256("MANAGER_ROLE");
-
-    // Underlying token address
-    IERC20 public immutable override(IStrategy) underlying;
 
     // Vault address
     address public immutable override(IStrategy) vault;
@@ -155,7 +152,6 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
         _setupRole(MANAGER_ROLE, _vault);
 
         vault = _vault;
-        underlying = IVault(_vault).underlying();
         ethAnchorRouter = IEthAnchorRouter(_ethAnchorRouter);
         aUstToUstFeed = _aUstToUstFeed;
         ustToken = _ustToken;
@@ -166,12 +162,25 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
     }
 
     /**
-     * Invest underlying assets to EthAnchor contract.
+     * Initiates a deposit of all the currently held UST into EthAnchor
      *
-     * @notice We only deposit UST to EthAnchor. so if underlying is UST, we deposit directly,
-     * however, if underlying is not UST token, then we swap underlying to UST, then deposit to ethAnchor.
+     * @notice since EthAnchor uses an asynchronous model, this function
+     * only starts the deposit process, but does not finish it.
+     *
+     * @dev external data is not required
      */
-    function invest(bytes calldata data) external virtual;
+    function invest(
+        bytes calldata /* data */
+    ) external virtual onlyManager {
+        (address operator, uint256 ustAmount) = _initDepositStable();
+
+        emit InitDepositStable(
+            operator,
+            depositOperations.length - 1,
+            ustAmount,
+            ustAmount
+        );
+    }
 
     /**
      * Initiates available UST to EthAnchor
@@ -266,6 +275,25 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
     }
 
     /**
+     * Calls EthAnchor with a pending redeem ID, and attempts to finish it.
+     *
+     * @notice Must be called some time after `initRedeemStable()`. Will only work if
+     * the EthAnchor bridge has finished processing the deposit.
+     *
+     * @param idx Id of the pending redeem operation
+     */
+    function finishRedeemStable(uint256 idx) external virtual onlyManager {
+        (
+            address operator,
+            uint256 aUstAmount,
+            uint256 ustAmount
+        ) = _finishRedeemStable(idx);
+        emit FinishRedeemStable(operator, aUstAmount, ustAmount, ustAmount);
+
+        ustToken.safeTransfer(vault, _getUnderlyingBalance());
+    }
+
+    /**
      * Request withdrawal from EthAnchor
      *
      * @notice since EthAnchor uses an asynchronous model, we can only request withdrawal for whole aUST
@@ -313,7 +341,10 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
         view
         virtual
         override(IStrategy)
-        returns (uint256);
+        returns (uint256)
+    {
+        return pendingDeposits + _estimateAUstBalanceInUst();
+    }
 
     /**
      * Calls EthAnchor with a pending redeem ID, and attempts to finish it.
@@ -381,7 +412,7 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
      * @return underlying balance of strategy
      */
     function _getUnderlyingBalance() internal view returns (uint256) {
-        return underlying.balanceOf(address(this));
+        return ustToken.balanceOf(address(this));
     }
 
     /**
