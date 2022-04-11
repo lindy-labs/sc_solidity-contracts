@@ -150,30 +150,6 @@ describe("AnchorStrategy", () => {
       ).to.be.revertedWith("AnchorStrategy: not an IVault");
     });
 
-    it("Revert if underlying is not ustToken", async () => {
-      const VaultFactory = await ethers.getContractFactory("Vault");
-      vault = await VaultFactory.deploy(
-        aUstToken.address,
-        1,
-        INVEST_PCT,
-        TREASURY,
-        owner.address,
-        PERFORMANCE_FEE_PCT,
-        []
-      );
-
-      await expect(
-        AnchorStrategyFactory.deploy(
-          vault.address,
-          mockEthAnchorRouter.address,
-          mockAUstUstFeed.address,
-          ustToken.address,
-          aUstToken.address,
-          owner.address
-        )
-      ).to.be.revertedWith("AnchorStrategy: invalid underlying");
-    });
-
     it("Check initial values", async () => {
       expect(
         await strategy.hasRole(DEFAULT_ADMIN_ROLE, owner.address)
