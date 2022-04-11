@@ -172,13 +172,13 @@ describe("AnchorStrategy", () => {
 
   describe("#invest function", () => {
     it("Revert if msg.sender is not manager", async () => {
-      await expect(strategy.connect(alice).invest("0x")).to.be.revertedWith(
+      await expect(strategy.connect(alice).invest()).to.be.revertedWith(
         "AnchorStrategy: caller is not manager"
       );
     });
 
     it("Revert if underlying balance is zero", async () => {
-      await expect(strategy.connect(manager).invest("0x")).to.be.revertedWith(
+      await expect(strategy.connect(manager).invest()).to.be.revertedWith(
         "AnchorStrategy: no ust exist"
       );
     });
@@ -190,7 +190,7 @@ describe("AnchorStrategy", () => {
       const amount0 = utils.parseUnits("100", 18);
       const aUstAmount0 = utils.parseUnits("90", 18);
       await underlying.connect(owner).transfer(vault.address, amount0);
-      await vault.connect(owner).updateInvested("0x");
+      await vault.connect(owner).updateInvested();
 
       let exchangeRate = amount0.mul(utils.parseEther("1")).div(aUstAmount0);
       await mockAUstUstFeed.setAnswer(exchangeRate);
@@ -203,9 +203,9 @@ describe("AnchorStrategy", () => {
 
       // when price is not positive
       await mockAUstUstFeed.setLatestRoundData(1, 0, 100, 100, 1);
-      await expect(
-        vault.connect(owner).updateInvested("0x")
-      ).to.be.revertedWith("AnchorStrategy: invalid aUST rate");
+      await expect(vault.connect(owner).updateInvested()).to.be.revertedWith(
+        "AnchorStrategy: invalid aUST rate"
+      );
 
       // when round id is invalid
       await mockAUstUstFeed.setLatestRoundData(
