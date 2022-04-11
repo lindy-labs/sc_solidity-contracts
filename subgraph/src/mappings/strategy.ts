@@ -7,7 +7,7 @@ import {
   InitRedeemStable,
   RearrangeDepositOperation,
   RearrangeRedeemOperation,
-} from "../types/Strategy/AnchorUSTStrategy";
+} from "../types/Strategy/AnchorStrategy";
 
 export function handleInitDeposit(event: InitDepositStable): void {
   const id = event.params.operator.toHexString();

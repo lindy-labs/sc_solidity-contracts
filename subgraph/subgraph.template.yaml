@@ -43,7 +43,7 @@ dataSources:
     kind: ethereum/contract
     network: mainnet
     source:
-      abi: AnchorUSTStrategy
+      abi: AnchorStrategy
       {{#strategy}}
       address: "{{address}}"
       {{/strategy}}
@@ -55,8 +55,8 @@ dataSources:
       entities:
         - Operation
       abis:
-        - name: AnchorUSTStrategy
-          file: ../artifacts/contracts/strategy/anchor/AnchorUSTStrategy.sol/AnchorUSTStrategy.json
+        - name: AnchorStrategy
+          file: ../artifacts/contracts/strategy/anchor/AnchorStrategy.sol/AnchorStrategy.json
       eventHandlers:
         - event: InitDepositStable(indexed address,indexed uint256,uint256,uint256)
           handler: handleInitDeposit

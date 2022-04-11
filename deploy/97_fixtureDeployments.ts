@@ -34,8 +34,8 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     }
   );
 
-  const ustAnchorStrategyDeployment = await deploy("AnchorUSTStrategy", {
-    contract: "AnchorUSTStrategy",
+  const anchorStrategyDeployment = await deploy("AnchorStrategy", {
+    contract: "AnchorStrategy",
     from: deployer,
     args: [
       vault.address,
@@ -48,20 +48,20 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     log: true,
   });
 
-  const ustAnchorStrategy = await ethers.getContractAt(
-    "AnchorUSTStrategy",
-    ustAnchorStrategyDeployment.address
+  const anchorStrategy = await ethers.getContractAt(
+    "AnchorStrategy",
+    anchorStrategyDeployment.address
   );
 
   // Configure contract roles
   console.log("Configuring strategy contract role");
   const MANAGER_ROLE = utils.keccak256(utils.toUtf8Bytes("MANAGER_ROLE"));
-  await ustAnchorStrategy.connect(owner).grantRole(MANAGER_ROLE, owner.address);
+  await anchorStrategy.connect(owner).grantRole(MANAGER_ROLE, owner.address);
 
   console.log("Configuring vault strategy, treasury and investPerc");
   await vault.connect(owner).setTreasury(treasury.address);
   await vault.connect(owner).setInvestPerc("8000");
-  const setStrategyTx = await vault.setStrategy(ustAnchorStrategy.address);
+  const setStrategyTx = await vault.setStrategy(anchorStrategy.address);
   await setStrategyTx.wait();
 };
 
