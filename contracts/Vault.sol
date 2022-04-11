@@ -107,10 +107,10 @@ contract Vault is
     uint16 public perfFeePct;
 
     /// Investment fee pct
-    uint16 investmentFeePct;
+    uint16 investmentFeeEstimatePct;
 
     // Current accumulated performance fee;
-    uint256 public accumulatedPerfEstimateFee;
+    uint256 public accumulatedPerf;
 
     /**
      * @param _underlying Underlying ERC20 token to use.
