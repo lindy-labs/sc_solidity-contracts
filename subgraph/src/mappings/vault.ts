@@ -103,8 +103,14 @@ export function handleDepositMinted(event: DepositMinted): void {
     claimer.depositsIds = [];
   }
 
-  const foundation = new Foundation(foundationId);
-  foundation.vault = vaultId;
+  let foundation = Foundation.load(foundationId);
+  if (foundation == null) {
+    foundation = new Foundation(foundationId);
+
+    foundation.vault = vaultId;
+    foundation.owner = event.params.depositor;
+    foundation.createdAt = event.block.timestamp;
+  }
 
   claimer.principal = claimer.principal.plus(event.params.amount);
   claimer.shares = claimer.shares.plus(event.params.shares);
