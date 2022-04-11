@@ -378,6 +378,32 @@ describe("Vault", () => {
     });
   });
 
+  describe("setInvestmentFeePct", () => {
+    it("reverts if msg.sender is not admin", async () => {
+      await expect(
+        vault.connect(alice).setInvestmentFeePct(100)
+      ).to.be.revertedWith(getRoleErrorMsg(alice, DEFAULT_ADMIN_ROLE));
+    });
+
+    it("reverts if invest percentage is greater than 100%", async () => {
+      await expect(
+        vault
+          .connect(owner)
+          .setInvestmentFeePct(DENOMINATOR.add(BigNumber.from("1")))
+      ).to.be.revertedWith("Vault: invalid investPerc");
+    });
+
+    it("change investPerc and emit InvestPercentageUpdated event", async () => {
+      const newInvestPct = 200;
+      const tx = await vault.connect(owner).setInvestmentFeePct(newInvestPct);
+
+      await expect(tx)
+        .emit(vault, "InvestmentFePctUpdated")
+        .withArgs(newInvestPct);
+      expect(await vault.investPerc()).to.be.equal(newInvestPct);
+    });
+  });
+
   describe("totalUnderlying", () => {
     it("returns underlying balance if strategy is not set", async () => {
       expect(await vault.totalUnderlying()).to.be.equal(0);

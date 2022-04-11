@@ -103,8 +103,11 @@ contract Vault is
     // Treasury address to collect performance fee
     address public treasury;
 
-    // Performance fee percentage
+    /// Performance fee percentage
     uint16 public perfFeePct;
+
+    /// Investment fee pct
+    uint16 investmentFeePct;
 
     // Current accumulated performance fee;
     uint256 public accumulatedPerfFee;
@@ -124,6 +127,7 @@ contract Vault is
         address _treasury,
         address _owner,
         uint16 _perfFeePct,
+        uint16 _investmentFeePct,
         SwapPoolParam[] memory _swapPools
     ) {
         require(
@@ -133,6 +137,10 @@ contract Vault is
         require(
             PercentMath.validPerc(_perfFeePct),
             "Vault: invalid performance fee"
+        );
+        require(
+            PercentMath.validPerc(_investmentFeePct),
+            "Vault: invalid investment fee"
         );
         require(
             address(_underlying) != address(0x0),
@@ -153,6 +161,7 @@ contract Vault is
         treasury = _treasury;
         minLockPeriod = _minLockPeriod;
         perfFeePct = _perfFeePct;
+        investmentFeePct = _investmentFeePct;
 
         depositors = new Depositors(this);
         claimers = new Claimers(this);
@@ -189,6 +198,19 @@ contract Vault is
         );
         perfFeePct = _perfFeePct;
         emit PerfFeePctUpdated(_perfFeePct);
+    }
+
+    function setInvestmentFeePct(uint16 _investmentFeePct)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        require(
+            PercentMath.validPerc(_investmentFeePct),
+            "Vault: invalid investment fee"
+        );
+
+        investmentFeePct = _investmentFeePct;
+        emit InvestmentFeePctUpdated(_investmentFeePct);
     }
 
     /// See {IVault}
@@ -873,10 +895,7 @@ contract Vault is
      * Applies an estimated fee to the given @param _amount.
      *
      * This function should be used to estimate how much underlying will be
-     * left after the strategy invests. For instance, the fees taken by Anchor
-     * and Curve.
-     *
-     * @notice Returns @param _amount when a strategy is not set.
+     * left after the strategy invests. For instance, the fees taken by Anchor.
      *
      * @param _amount Amount to apply the fees to.
      *
@@ -887,9 +906,7 @@ contract Vault is
         view
         returns (uint256)
     {
-        if (address(strategy) == address(0)) return _amount;
-
-        return strategy.applyInvestmentFee(_amount);
+        return _amount - _amount.percOf(investmentFeePct);
     }
 
     function sharesOf(uint256 claimerId) external view returns (uint256) {
