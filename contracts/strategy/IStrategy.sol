@@ -12,13 +12,6 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  */
 interface IStrategy {
     /**
-     * The underlying ERC20 token stored by the vault
-     *
-     * @return The ERC20 token address
-     */
-    function underlying() external view returns (IERC20);
-
-    /**
      * The vault linked to this stragegy
      *
      * @return The vault's address
