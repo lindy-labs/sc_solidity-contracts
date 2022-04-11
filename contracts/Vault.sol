@@ -26,6 +26,7 @@ import {IStrategy} from "./strategy/IStrategy.sol";
 contract Vault is
     IVault,
     IVaultSponsoring,
+    IVaultSettings,
     CurveSwapper,
     Context,
     ERC165,
@@ -71,7 +72,7 @@ contract Vault is
     /// @inheritdoc IVault
     uint64 public immutable override(IVault) minLockPeriod;
 
-    /// @inheritdic IVaultSponsoring
+    /// @inheritdoc IVaultSponsoring
     uint256 public override(IVaultSponsoring) totalSponsored;
 
     /// @inheritdoc IVault
@@ -114,7 +115,7 @@ contract Vault is
      * @param _treasury Treasury address to collect performance fee
      * @param _owner Vault admin address
      * @param _perfFeePct Performance fee percentage
-     * @param _swapPools Swap pools used to automatically convert tokens to underlying 
+     * @param _swapPools Swap pools used to automatically convert tokens to underlying
      */
     constructor(
         IERC20 _underlying,
