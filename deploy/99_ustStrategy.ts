@@ -34,10 +34,10 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     mockEthAnchorRouterDeployment.address
   );
 
-  const ustAnchorStrategyDeployment = await get("AnchorUSTStrategy");
-  const ustAnchorStrategy = await ethers.getContractAt(
-    "AnchorUSTStrategy",
-    ustAnchorStrategyDeployment.address
+  const anchorStrategyDeployment = await get("AnchorStrategy");
+  const anchorStrategy = await ethers.getContractAt(
+    "AnchorStrategy",
+    anchorStrategyDeployment.address
   );
 
   await underlying.mint(bob.address, parseUnits("5000", 18));
@@ -66,7 +66,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   );
 
   console.log("Stable Deposit finished");
-  await ustAnchorStrategy.finishDepositStable("0");
+  await anchorStrategy.finishDepositStable("0");
 
   await setChainlinkData(2);
 
