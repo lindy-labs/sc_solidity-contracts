@@ -110,7 +110,7 @@ contract Vault is
     uint16 investmentFeeEstimatePct;
 
     // Current accumulated performance fee;
-    uint256 public accumulatedPerf;
+    uint256 public accumulatedPerfFee;
 
     /**
      * @param _underlying Underlying ERC20 token to use.
@@ -156,7 +156,7 @@ contract Vault is
         treasury = _treasury;
         minLockPeriod = _minLockPeriod;
         perfFeePct = _perfFeePct;
-        investmentFeeEstimatePct = _investmentFeeEstimatPct;
+        investmentFeeEstimatePct = _investmentFeeEstimatePct;
 
         depositors = new Depositors(this);
         claimers = new Claimers(this);
@@ -287,7 +287,9 @@ contract Vault is
                 _params.lockDuration <= MAX_DEPOSIT_LOCK_DURATION,
             "Vault: invalid lock period"
         );
-        uint256 principalMinusStrategyFee = _applyInvestmentFee(totalPrincipal);
+        uint256 principalMinusStrategyFee = _applyInvestmentFeeEstimate(
+            totalPrincipal
+        );
         uint256 previousTotalUnderlying = totalUnderlyingMinusSponsored();
         require(
             principalMinusStrategyFee <= previousTotalUnderlying,
