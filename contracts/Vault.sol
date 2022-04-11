@@ -312,6 +312,7 @@ contract Vault is
     /// @inheritdoc IVault
     function updateInvested(bytes calldata data)
         external
+        override(IVault)
         onlyRole(INVESTOR_ROLE)
     {
         require(address(strategy) != address(0), "Vault: strategy is not set");
@@ -328,7 +329,11 @@ contract Vault is
     }
 
     /// @inheritdoc IVault
-    function withdrawPerformanceFee() external onlyRole(INVESTOR_ROLE) {
+    function withdrawPerformanceFee()
+        external
+        override(IVault)
+        onlyRole(INVESTOR_ROLE)
+    {
         uint256 _perfFee = accumulatedPerfFee;
         require(_perfFee != 0, "Vault: no performance fee");
 
