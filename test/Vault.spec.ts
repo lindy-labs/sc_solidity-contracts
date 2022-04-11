@@ -58,6 +58,7 @@ describe("Vault", () => {
 
   const DEFAULT_ADMIN_ROLE = constants.HashZero;
   const INVESTOR_ROLE = utils.keccak256(utils.toUtf8Bytes("INVESTOR_ROLE"));
+  const SETTINGS_ROLE = utils.keccak256(utils.toUtf8Bytes("SETTINGS_ROLE"));
 
   const fixtures = deployments.createFixture(async ({ deployments }) => {
     await deployments.fixture(["vaults"]);
@@ -314,7 +315,7 @@ describe("Vault", () => {
     it("reverts if msg.sender is not admin", async () => {
       await expect(
         vault.connect(alice).setTreasury(TREASURY)
-      ).to.be.revertedWith(getRoleErrorMsg(alice, DEFAULT_ADMIN_ROLE));
+      ).to.be.revertedWith(getRoleErrorMsg(alice, SETTINGS_ROLE));
     });
 
     it("reverts if treasury is address(0)", async () => {
@@ -335,7 +336,7 @@ describe("Vault", () => {
   describe("setPerfFeePct", () => {
     it("reverts if msg.sender is not admin", async () => {
       await expect(vault.connect(alice).setPerfFeePct(100)).to.be.revertedWith(
-        getRoleErrorMsg(alice, DEFAULT_ADMIN_ROLE)
+        getRoleErrorMsg(alice, SETTINGS_ROLE)
       );
     });
 
@@ -357,7 +358,7 @@ describe("Vault", () => {
   describe("setInvestPerc", () => {
     it("reverts if msg.sender is not admin", async () => {
       await expect(vault.connect(alice).setInvestPerc(100)).to.be.revertedWith(
-        getRoleErrorMsg(alice, DEFAULT_ADMIN_ROLE)
+        getRoleErrorMsg(alice, SETTINGS_ROLE)
       );
     });
 
@@ -371,9 +372,7 @@ describe("Vault", () => {
       const newInvestPct = 8000;
       const tx = await vault.connect(owner).setInvestPerc(newInvestPct);
 
-      await expect(tx)
-        .emit(vault, "InvestPercentageUpdated")
-        .withArgs(newInvestPct);
+      await expect(tx).emit(vault, "InvestPctUpdated").withArgs(newInvestPct);
       expect(await vault.investPerc()).to.be.equal(newInvestPct);
     });
   });
