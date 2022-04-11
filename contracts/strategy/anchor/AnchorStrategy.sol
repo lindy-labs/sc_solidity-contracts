@@ -16,7 +16,7 @@ import {IEthAnchorRouter} from "./IEthAnchorRouter.sol";
  * Base eth anchor strategy that handles UST tokens and invests them via the EthAnchor
  * protocol (https://docs.anchorprotocol.com/ethanchor/ethanchor)
  */
-abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
+contract AnchorStrategy is IStrategy, AccessControl {
     using SafeERC20 for IERC20;
     using PercentMath for uint256;
     using ERC165Query for address;
@@ -62,9 +62,6 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
     bytes32 public constant MANAGER_ROLE =
         0x241ecf16d79d0f8dbfb92cbc07fe17840425976cf0667f022fe9877caa831b08; // keccak256("MANAGER_ROLE");
 
-    // Underlying token address
-    IERC20 public immutable override(IStrategy) underlying;
-
     // Vault address
     address public immutable override(IStrategy) vault;
 
@@ -100,7 +97,7 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
     modifier onlyManager() {
         require(
             hasRole(MANAGER_ROLE, msg.sender),
-            "AnchorBaseStrategy: caller is not manager"
+            "AnchorStrategy: caller is not manager"
         );
         _;
     }
@@ -108,7 +105,7 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
     modifier onlyAdmin() {
         require(
             hasRole(DEFAULT_ADMIN_ROLE, msg.sender),
-            "AnchorBaseStrategy: caller is not admin"
+            "AnchorStrategy: caller is not admin"
         );
         _;
     }
@@ -133,29 +130,28 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
         IERC20 _aUstToken,
         address _owner
     ) {
-        require(_owner != address(0), "AnchorBaseStrategy: owner is 0x");
+        require(_owner != address(0), "AnchorStrategy: owner is 0x");
         require(
             _ethAnchorRouter != address(0),
-            "AnchorBaseStrategy: router is 0x"
+            "AnchorStrategy: router is 0x"
         );
         require(
             address(_ustToken) != address(0),
-            "AnchorBaseStrategy: ust is 0x"
+            "AnchorStrategy: ust is 0x"
         );
         require(
             address(_aUstToken) != address(0),
-            "AnchorBaseStrategy: aUST is 0x"
+            "AnchorStrategy: aUST is 0x"
         );
         require(
             _vault.doesContractImplementInterface(type(IVault).interfaceId),
-            "AnchorBaseStrategy: not an IVault"
+            "AnchorStrategy: not an IVault"
         );
 
         _setupRole(DEFAULT_ADMIN_ROLE, _owner);
         _setupRole(MANAGER_ROLE, _vault);
 
         vault = _vault;
-        underlying = IVault(_vault).underlying();
         ethAnchorRouter = IEthAnchorRouter(_ethAnchorRouter);
         aUstToUstFeed = _aUstToUstFeed;
         ustToken = _ustToken;
@@ -166,12 +162,25 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
     }
 
     /**
-     * Invest underlying assets to EthAnchor contract.
+     * Initiates a deposit of all the currently held UST into EthAnchor
      *
-     * @notice We only deposit UST to EthAnchor. so if underlying is UST, we deposit directly,
-     * however, if underlying is not UST token, then we swap underlying to UST, then deposit to ethAnchor.
+     * @notice since EthAnchor uses an asynchronous model, this function
+     * only starts the deposit process, but does not finish it.
+     *
+     * @dev external data is not required
      */
-    function invest(bytes calldata data) external virtual;
+    function invest(
+        bytes calldata /* data */
+    ) external virtual onlyManager {
+        (address operator, uint256 ustAmount) = _initDepositStable();
+
+        emit InitDepositStable(
+            operator,
+            depositOperations.length - 1,
+            ustAmount,
+            ustAmount
+        );
+    }
 
     /**
      * Initiates available UST to EthAnchor
@@ -184,7 +193,7 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
      */
     function _initDepositStable() internal returns (address, uint256) {
         uint256 ustBalance = _getUstBalance();
-        require(ustBalance != 0, "AnchorBaseStrategy: no ust exist");
+        require(ustBalance != 0, "AnchorStrategy: no ust exist");
         pendingDeposits += ustBalance;
 
         ustToken.safeIncreaseAllowance(address(ethAnchorRouter), ustBalance);
@@ -209,7 +218,7 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
     function finishDepositStable(uint256 idx) external onlyManager {
         require(
             depositOperations.length > idx,
-            "AnchorBaseStrategy: not running"
+            "AnchorStrategy: not running"
         );
         Operation storage operation = depositOperations[idx];
         address operator = operation.operator;
@@ -217,7 +226,7 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
 
         ethAnchorRouter.finishDepositStable(operator);
         uint256 newAUst = _getAUstBalance() - aUstBalanceBefore;
-        require(newAUst > 0, "AnchorBaseStrategy: no aUST returned");
+        require(newAUst > 0, "AnchorStrategy: no aUST returned");
 
         uint256 ustAmount = operation.amount;
         pendingDeposits -= ustAmount;
@@ -251,7 +260,7 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
      * @param amount Amount of aUST to redeem
      */
     function initRedeemStable(uint256 amount) public onlyManager {
-        require(amount != 0, "AnchorBaseStrategy: amount 0");
+        require(amount != 0, "AnchorStrategy: amount 0");
         if (pendingDeposits == 0 && _getAUstBalance() == amount) {
             _allRedeemed = true;
         }
@@ -263,6 +272,25 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
         redeemOperations.push(Operation({operator: operator, amount: amount}));
 
         emit InitRedeemStable(operator, redeemOperations.length - 1, amount);
+    }
+
+    /**
+     * Calls EthAnchor with a pending redeem ID, and attempts to finish it.
+     *
+     * @notice Must be called some time after `initRedeemStable()`. Will only work if
+     * the EthAnchor bridge has finished processing the deposit.
+     *
+     * @param idx Id of the pending redeem operation
+     */
+    function finishRedeemStable(uint256 idx) external virtual onlyManager {
+        (
+            address operator,
+            uint256 aUstAmount,
+            uint256 ustAmount
+        ) = _finishRedeemStable(idx);
+        emit FinishRedeemStable(operator, aUstAmount, ustAmount, ustAmount);
+
+        ustToken.safeTransfer(vault, _getUnderlyingBalance());
     }
 
     /**
@@ -313,7 +341,10 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
         view
         virtual
         override(IStrategy)
-        returns (uint256);
+        returns (uint256)
+    {
+        return pendingDeposits + _estimateAUstBalanceInUst();
+    }
 
     /**
      * Calls EthAnchor with a pending redeem ID, and attempts to finish it.
@@ -338,7 +369,7 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
     {
         require(
             redeemOperations.length > idx,
-            "AnchorBaseStrategy: not running"
+            "AnchorStrategy: not running"
         );
         Operation storage operation = redeemOperations[idx];
 
@@ -348,7 +379,7 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
         ethAnchorRouter.finishRedeemStable(operator);
 
         uint256 redeemedAmount = _getUstBalance();
-        require(redeemedAmount > 0, "AnchorBaseStrategy: nothing redeemed");
+        require(redeemedAmount > 0, "AnchorStrategy: nothing redeemed");
 
         pendingRedeems -= operationAmount;
 
@@ -381,7 +412,7 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
      * @return underlying balance of strategy
      */
     function _getUnderlyingBalance() internal view returns (uint256) {
-        return underlying.balanceOf(address(this));
+        return ustToken.balanceOf(address(this));
     }
 
     /**
@@ -441,7 +472,7 @@ abstract contract AnchorBaseStrategy is IStrategy, AccessControl {
 
         require(
             price > 0 && updateTime != 0 && answeredInRound >= roundID,
-            "AnchorBaseStrategy: invalid aUST rate"
+            "AnchorStrategy: invalid aUST rate"
         );
 
         return uint256(price);
