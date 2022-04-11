@@ -409,7 +409,7 @@ describe("Vault", () => {
         .setInvestmentFeeEstimatePct(newInvestPct);
 
       await expect(tx)
-        .emit(vault, "InvestmentFeePctUpdated")
+        .emit(vault, "InvestmentFeeEstimatePctUpdated")
         .withArgs(newInvestPct);
       expect(await vault.investPerc()).to.be.equal(newInvestPct);
     });
