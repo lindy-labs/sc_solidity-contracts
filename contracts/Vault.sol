@@ -110,7 +110,7 @@ contract Vault is
     uint16 investmentFeePct;
 
     // Current accumulated performance fee;
-    uint256 public accumulatedPerfFee;
+    uint256 public accumulatedPerfEstimateFee;
 
     /**
      * @param _underlying Underlying ERC20 token to use.
@@ -119,6 +119,7 @@ contract Vault is
      * @param _treasury Treasury address to collect performance fee
      * @param _owner Vault admin address
      * @param _perfFeePct Performance fee percentage
+     * @param _investmentFeeEstimatePct Estimated fee charged when investing through the strategy
      */
     constructor(
         IERC20 _underlying,
@@ -127,19 +128,13 @@ contract Vault is
         address _treasury,
         address _owner,
         uint16 _perfFeePct,
-        uint16 _investmentFeePct,
+        uint16 _investmentFeeEstimatePct,
         SwapPoolParam[] memory _swapPools
     ) {
+        require(_investPerc.validPerc(), "Vault: invalid investPerc");
+        require(_perfFeePct.validPerc(), "Vault: invalid performance fee");
         require(
-            PercentMath.validPerc(_investPerc),
-            "Vault: invalid investPerc"
-        );
-        require(
-            PercentMath.validPerc(_perfFeePct),
-            "Vault: invalid performance fee"
-        );
-        require(
-            PercentMath.validPerc(_investmentFeePct),
+            _investmentFeeEstimatePct.validPerc(),
             "Vault: invalid investment fee"
         );
         require(
@@ -192,25 +187,19 @@ contract Vault is
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        require(
-            PercentMath.validPerc(_perfFeePct),
-            "Vault: invalid performance fee"
-        );
+        require(_perfFeePct.validPerc(), "Vault: invalid performance fee");
         perfFeePct = _perfFeePct;
         emit PerfFeePctUpdated(_perfFeePct);
     }
 
-    function setInvestmentFeePct(uint16 _investmentFeePct)
+    function setInvestmentFeeEstimatePct(uint16 pct)
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        require(
-            PercentMath.validPerc(_investmentFeePct),
-            "Vault: invalid investment fee"
-        );
+        require(pct.validPerc(), "Vault: invalid investment fee");
 
-        investmentFeePct = _investmentFeePct;
-        emit InvestmentFeePctUpdated(_investmentFeePct);
+        investmentFeeEstimatePct = pct;
+        emit InvestmentFeeEstimatePctUpdated(pct);
     }
 
     /// See {IVault}
@@ -371,10 +360,7 @@ contract Vault is
         external
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
-        require(
-            PercentMath.validPerc(_investPerc),
-            "Vault: invalid investPerc"
-        );
+        require(_investPerc.validPerc(), "Vault: invalid investPerc");
 
         emit InvestPercentageUpdated(_investPerc);
 
@@ -901,12 +887,12 @@ contract Vault is
      *
      * @return Amount with the fees applied.
      */
-    function _applyInvestmentFee(uint256 _amount)
+    function _applyInvestmentFeeEstimate(uint256 _amount)
         internal
         view
         returns (uint256)
     {
-        return _amount - _amount.percOf(investmentFeePct);
+        return _amount - _amount.percOf(investmentFeeEstimatePct);
     }
 
     function sharesOf(uint256 claimerId) external view returns (uint256) {
