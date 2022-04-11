@@ -516,7 +516,7 @@ describe("Vault", () => {
     it("reverts if msg.sender is not admin", async () => {
       await expect(
         vault.connect(alice).setStrategy(strategy.address)
-      ).to.be.revertedWith(getRoleErrorMsg(alice, DEFAULT_ADMIN_ROLE));
+      ).to.be.revertedWith(getRoleErrorMsg(alice, SETTINGS_ROLE));
     });
 
     it("reverts if new strategy is address(0)", async () => {
