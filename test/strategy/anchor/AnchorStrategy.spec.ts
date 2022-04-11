@@ -6,19 +6,19 @@ import { BigNumber, utils, constants, ContractFactory } from "ethers";
 import {
   MockChainlinkPriceFeed,
   Vault,
-  AnchorUSTStrategy,
+  AnchorStrategy,
   MockEthAnchorRouter,
   MockERC20,
-  AnchorUSTStrategy__factory,
+  AnchorStrategy__factory,
 } from "../../../typechain";
 import { generateNewAddress } from "../../shared/";
 
-describe("AnchorUSTStrategy", () => {
+describe("AnchorStrategy", () => {
   let owner: SignerWithAddress;
   let alice: SignerWithAddress;
   let manager: SignerWithAddress;
   let vault: Vault;
-  let strategy: AnchorUSTStrategy;
+  let strategy: AnchorStrategy;
   let mockEthAnchorRouter: MockEthAnchorRouter;
   let mockAUstUstFeed: MockChainlinkPriceFeed;
   let ustToken: MockERC20;
@@ -77,11 +77,11 @@ describe("AnchorUSTStrategy", () => {
       []
     );
 
-    const AnchorUSTStrategyFactory = await ethers.getContractFactory(
-      "AnchorUSTStrategy"
+    const AnchorStrategyFactory = await ethers.getContractFactory(
+      "AnchorStrategy"
     );
 
-    strategy = await AnchorUSTStrategyFactory.deploy(
+    strategy = await AnchorStrategyFactory.deploy(
       vault.address,
       mockEthAnchorRouter.address,
       mockAUstUstFeed.address,
@@ -105,17 +105,15 @@ describe("AnchorUSTStrategy", () => {
   });
 
   describe("constructor", () => {
-    let AnchorUSTStrategyFactory: AnchorUSTStrategy__factory;
+    let AnchorStrategyFactory: AnchorStrategy__factory;
 
     beforeEach(async () => {
-      AnchorUSTStrategyFactory = await ethers.getContractFactory(
-        "AnchorUSTStrategy"
-      );
+      AnchorStrategyFactory = await ethers.getContractFactory("AnchorStrategy");
     });
 
     it("Revert if owner is address(0)", async () => {
       await expect(
-        AnchorUSTStrategyFactory.deploy(
+        AnchorStrategyFactory.deploy(
           vault.address,
           mockEthAnchorRouter.address,
           mockAUstUstFeed.address,
@@ -128,7 +126,7 @@ describe("AnchorUSTStrategy", () => {
 
     it("Revert if ethAnchorRouter is address(0)", async () => {
       await expect(
-        AnchorUSTStrategyFactory.deploy(
+        AnchorStrategyFactory.deploy(
           vault.address,
           constants.AddressZero,
           mockAUstUstFeed.address,
@@ -141,7 +139,7 @@ describe("AnchorUSTStrategy", () => {
 
     it("Revert if vault does not have IVault interface", async () => {
       await expect(
-        AnchorUSTStrategyFactory.deploy(
+        AnchorStrategyFactory.deploy(
           TREASURY,
           mockEthAnchorRouter.address,
           mockAUstUstFeed.address,
@@ -165,7 +163,7 @@ describe("AnchorUSTStrategy", () => {
       );
 
       await expect(
-        AnchorUSTStrategyFactory.deploy(
+        AnchorStrategyFactory.deploy(
           vault.address,
           mockEthAnchorRouter.address,
           mockAUstUstFeed.address,
@@ -173,7 +171,7 @@ describe("AnchorUSTStrategy", () => {
           aUstToken.address,
           owner.address
         )
-      ).to.be.revertedWith("AnchorUSTStrategy: invalid underlying");
+      ).to.be.revertedWith("AnchorStrategy: invalid underlying");
     });
 
     it("Check initial values", async () => {
@@ -184,7 +182,6 @@ describe("AnchorUSTStrategy", () => {
         true
       );
       expect(await strategy.vault()).to.be.equal(vault.address);
-      expect(await strategy.underlying()).to.be.equal(underlying.address);
       expect(await strategy.ethAnchorRouter()).to.be.equal(
         mockEthAnchorRouter.address
       );
