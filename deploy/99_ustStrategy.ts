@@ -84,7 +84,12 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   });
 
   await mockEthAnchorRouter.addPendingOperator(ethAnchorOperator1);
-  await vault.connect(owner).updateInvested("0x");
+  await (await vault.connect(owner).updateInvested("0x")).wait();
+
+  await mockEthAnchorRouter.notifyDepositResult(
+    ethAnchorOperator1,
+    parseUnits("1500", 18)
+  );
 
   async function setChainlinkData(round: number) {
     await mockChainlinkPriceFeed.setLatestRoundData(
