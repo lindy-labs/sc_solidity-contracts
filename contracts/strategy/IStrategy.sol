@@ -74,8 +74,6 @@ interface IStrategy {
 
     /**
      * Initiates the process of investing the underlying currency
-     *
-     * @param data external data to invest underlying
      */
-    function invest(bytes calldata data) external;
+    function invest() external;
 }
