@@ -110,6 +110,7 @@ export function handleDepositMinted(event: DepositMinted): void {
     foundation.vault = vaultId;
     foundation.owner = event.params.depositor;
     foundation.createdAt = event.block.timestamp;
+    foundation.lockedUntil = event.params.lockedUntil;
   }
 
   claimer.principal = claimer.principal.plus(event.params.amount);

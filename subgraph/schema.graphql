@@ -12,7 +12,8 @@ type Foundation @entity {
   vault: Vault!
   deposits: [Deposit!]! @derivedFrom(field: "foundation")
   owner: Bytes!
-  createdAt: BigInt
+  createdAt: BigInt!
+  lockedUntil: BigInt!
 }
 
 type Deposit @entity {
