@@ -11,6 +11,13 @@ interface IVaultSettings {
     event StrategyUpdated(address indexed strategy);
 
     /**
+     * Changes the performance fee
+     *
+     * @param _investPct The new investment fee %
+     */
+    function setInvestPerc(uint16 _investPerc) external;
+
+    /**
      * Changes the treasury used by the vault.
      *
      * @param _treasury the new strategy's address.

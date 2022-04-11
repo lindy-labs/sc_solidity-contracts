@@ -415,13 +415,10 @@ contract Vault is
     // Admin functions
     //
 
-    /**
-     * Changes the performance fee
-     *
-     * @param _perfFeePct The new performance fee %
-     */
+    /// @inheritdoc IVaultSettings
     function setInvestPerc(uint16 _investPerc)
         external
+        override(IVaultSettings)
         onlyRole(SETTINGS_ROLE)
     {
         require(

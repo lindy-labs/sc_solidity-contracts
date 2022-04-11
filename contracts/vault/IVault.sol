@@ -167,7 +167,7 @@ interface IVault {
     function withdraw(address _to, uint256[] calldata _ids) external;
 
     /**
-     * Withdraws the principal from the deposits with the ids prov ided in @param _ids and sends it to @param _to.
+     * Withdraws the principal from the deposits with the ids provided in @param _ids and sends it to @param _to.
      *
      * When the vault is underperforming it withdraws the funds with a loss.
      *
