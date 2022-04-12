@@ -97,7 +97,7 @@ export function handleDepositMinted(event: DepositMinted): void {
   log.debug("mint, adding shares {}", [event.params.shares.toString()]);
 
   let claimer = Claimer.load(claimerId);
-  
+
   if (!claimer) {
     claimer = new Claimer(claimerId);
     claimer.owner = event.params.claimer;
@@ -122,7 +122,9 @@ export function handleDepositMinted(event: DepositMinted): void {
     foundation.name = event.params.name;
   }
 
-  foundation.amountDeposited = foundation.amountDeposited.plus(event.params.amount);
+  foundation.amountDeposited = foundation.amountDeposited.plus(
+    event.params.amount
+  );
 
   const deposit = new Deposit(depositId);
 

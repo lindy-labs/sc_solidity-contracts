@@ -693,7 +693,11 @@ contract Vault is
         string calldata _name
     ) internal returns (uint256) {
         CreateClaimLocals memory locals = CreateClaimLocals({
-            newShares: _computeShares(_amount, _localTotalShares, _localTotalPrincipal),
+            newShares: _computeShares(
+                _amount,
+                _localTotalShares,
+                _localTotalPrincipal
+            ),
             claimerId: claimers.mint(_claim.beneficiary),
             tokenId: depositors.mint(msg.sender)
         });
