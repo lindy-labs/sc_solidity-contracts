@@ -390,7 +390,7 @@ describe("Vault", () => {
     it("reverts if msg.sender is not admin", async () => {
       await expect(
         vault.connect(alice).setInvestmentFeeEstimatePct(100)
-      ).to.be.revertedWith(getRoleErrorMsg(alice, DEFAULT_ADMIN_ROLE));
+      ).to.be.revertedWith(getRoleErrorMsg(alice, SETTINGS_ROLE));
     });
 
     it("reverts if invest percentage is greater than 100%", async () => {
