@@ -50,6 +50,8 @@ interface IVault {
 
     event PerfFeePctUpdated(uint16 pct);
 
+    event InvestmentFeeEstimatePctUpdated(uint16 pct);
+
     event YieldClaimed(
         uint256 claimerId,
         address indexed to,

@@ -317,17 +317,6 @@ contract AnchorStrategy is IStrategy, AccessControl {
         onlyManager
     {}
 
-    /// See {IStrategy}
-    function applyInvestmentFee(uint256 _amount)
-        external
-        view
-        virtual
-        override(IStrategy)
-        returns (uint256)
-    {
-        return _amount.percOf(9800);
-    }
-
     /**
      * Amount, expressed in the underlying currency, currently in the strategy
      *
