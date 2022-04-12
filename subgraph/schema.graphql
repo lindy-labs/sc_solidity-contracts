@@ -14,6 +14,7 @@ type Foundation @entity {
   owner: Bytes!
   createdAt: BigInt!
   lockedUntil: BigInt!
+  amountDeposited: BigInt!
 }
 
 type Deposit @entity {

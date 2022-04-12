@@ -93,15 +93,22 @@ export function handleDepositMinted(event: DepositMinted): void {
 
   createVault(vaultId);
   const vault = Vault.load(vaultId)!;
-  let claimer = Claimer.load(claimerId);
+  vault.totalShares = vault.totalShares.plus(event.params.shares);
+  log.debug("mint, adding shares {}", [event.params.shares.toString()]);
 
+  let claimer = Claimer.load(claimerId);
+  
   if (!claimer) {
     claimer = new Claimer(claimerId);
-
     claimer.owner = event.params.claimer;
     claimer.claimed = BigInt.fromString("0");
     claimer.depositsIds = [];
   }
+
+  claimer.principal = claimer.principal.plus(event.params.amount);
+  claimer.shares = claimer.shares.plus(event.params.shares);
+  claimer.vault = vaultId;
+  claimer.depositsIds = claimer.depositsIds.concat([depositId]);
 
   let foundation = Foundation.load(foundationId);
   if (foundation == null) {
@@ -111,14 +118,10 @@ export function handleDepositMinted(event: DepositMinted): void {
     foundation.owner = event.params.depositor;
     foundation.createdAt = event.block.timestamp;
     foundation.lockedUntil = event.params.lockedUntil;
+    foundation.amountDeposited = BigInt.fromString("0");
   }
 
-  claimer.principal = claimer.principal.plus(event.params.amount);
-  claimer.shares = claimer.shares.plus(event.params.shares);
-  claimer.vault = vaultId;
-  claimer.depositsIds = claimer.depositsIds.concat([depositId]);
-  vault.totalShares = vault.totalShares.plus(event.params.shares);
-  log.debug("mint, adding shares {}", [event.params.shares.toString()]);
+  foundation.amountDeposited = foundation.amountDeposited.plus(event.params.amount);
 
   const deposit = new Deposit(depositId);
 
@@ -168,6 +171,8 @@ export function handleDepositBurned(event: DepositBurned): void {
   deposit.burned = true;
   vault.totalShares = vault.totalShares.minus(event.params.shares);
   log.debug("burn, subbing shares {}", [event.params.shares.toString()]);
+
+  foundation.amountDeposited = foundation.amountDeposited.minus(deposit.amount);
 
   claimer.save();
   deposit.save();
