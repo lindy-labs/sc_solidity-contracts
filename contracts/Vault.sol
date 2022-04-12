@@ -108,6 +108,9 @@ contract Vault is
     /// Current accumulated performance fee;
     uint256 public accumulatedPerfFee;
 
+    /// Investment fee pct
+    uint16 public investmentFeeEstimatePct;
+
     /**
      * @param _underlying Underlying ERC20 token to use.
      * @param _minLockPeriod Minimum lock period to deposit
@@ -115,6 +118,7 @@ contract Vault is
      * @param _treasury Treasury address to collect performance fee
      * @param _owner Vault admin address
      * @param _perfFeePct Performance fee percentage
+     * @param _investmentFeeEstimatePct Estimated fee charged when investing through the strategy
      * @param _swapPools Swap pools used to automatically convert tokens to underlying
      */
     constructor(
@@ -124,15 +128,14 @@ contract Vault is
         address _treasury,
         address _owner,
         uint16 _perfFeePct,
+        uint16 _investmentFeeEstimatePct,
         SwapPoolParam[] memory _swapPools
     ) {
+        require(_investPerc.validPerc(), "Vault: invalid investPerc");
+        require(_perfFeePct.validPerc(), "Vault: invalid performance fee");
         require(
-            PercentMath.validPerc(_investPerc),
-            "Vault: invalid investPerc"
-        );
-        require(
-            PercentMath.validPerc(_perfFeePct),
-            "Vault: invalid performance fee"
+            _investmentFeeEstimatePct.validPerc(),
+            "Vault: invalid investment fee"
         );
         require(
             address(_underlying) != address(0x0),
@@ -154,6 +157,7 @@ contract Vault is
         treasury = _treasury;
         minLockPeriod = _minLockPeriod;
         perfFeePct = _perfFeePct;
+        investmentFeeEstimatePct = _investmentFeeEstimatePct;
 
         depositors = new Depositors(this);
         claimers = new Claimers(this);
@@ -229,7 +233,9 @@ contract Vault is
                 _params.lockDuration <= MAX_DEPOSIT_LOCK_DURATION,
             "Vault: invalid lock period"
         );
-        uint256 principalMinusStrategyFee = _applyInvestmentFee(totalPrincipal);
+        uint256 principalMinusStrategyFee = _applyInvestmentFeeEstimate(
+            totalPrincipal
+        );
         uint256 previousTotalUnderlying = totalUnderlyingMinusSponsored();
         require(
             principalMinusStrategyFee <= previousTotalUnderlying,
@@ -297,7 +303,6 @@ contract Vault is
         _withdraw(_to, _ids, true);
     }
 
-    /// @inheritdoc IVault
     function investableAmount() public view returns (uint256) {
         uint256 maxInvestableAssets = totalUnderlying().percOf(investPerc);
 
@@ -346,6 +351,7 @@ contract Vault is
 
     //
     // IVaultSponsoring
+    //
 
     /// @inheritdoc IVaultSponsoring
     function sponsor(
@@ -481,6 +487,18 @@ contract Vault is
         strategy = IStrategy(_strategy);
 
         emit StrategyUpdated(_strategy);
+    }
+
+    /// @inheritdoc IVaultSettings
+    function setInvestmentFeeEstimatePct(uint16 pct)
+        external
+        override(IVaultSettings)
+        onlyRole(SETTINGS_ROLE)
+    {
+        require(pct.validPerc(), "Vault: invalid investment fee");
+
+        investmentFeeEstimatePct = pct;
+        emit InvestmentFeeEstimatePctUpdated(pct);
     }
 
     //
@@ -883,23 +901,18 @@ contract Vault is
      * Applies an estimated fee to the given @param _amount.
      *
      * This function should be used to estimate how much underlying will be
-     * left after the strategy invests. For instance, the fees taken by Anchor
-     * and Curve.
-     *
-     * @notice Returns @param _amount when a strategy is not set.
+     * left after the strategy invests. For instance, the fees taken by Anchor.
      *
      * @param _amount Amount to apply the fees to.
      *
      * @return Amount with the fees applied.
      */
-    function _applyInvestmentFee(uint256 _amount)
+    function _applyInvestmentFeeEstimate(uint256 _amount)
         internal
         view
         returns (uint256)
     {
-        if (address(strategy) == address(0)) return _amount;
-
-        return strategy.applyInvestmentFee(_amount);
+        return _amount - _amount.percOf(investmentFeeEstimatePct);
     }
 
     function sharesOf(uint256 claimerId) external view returns (uint256) {

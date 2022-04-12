@@ -10,6 +10,7 @@ interface IVaultSettings {
     event TreasuryUpdated(address indexed treasury);
     event PerfFeePctUpdated(uint16 pct);
     event StrategyUpdated(address indexed strategy);
+    event InvestmentFeeEstimatePctUpdated(uint16 pct);
 
     /**
      * Update invest percentage
@@ -41,4 +42,11 @@ interface IVaultSettings {
      * @param _strategy the new strategy's address.
      */
     function setStrategy(address _strategy) external;
+
+    /**
+     * Changes the estimated investment fee used by the strategy.
+     *
+     * @param _pct the new investment fee estimated percentage.
+     */
+    function setInvestmentFeeEstimatePct(uint16 _pct) external;
 }
