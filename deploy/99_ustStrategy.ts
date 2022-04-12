@@ -81,6 +81,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
       },
     ],
     inputToken: mockUST.address,
+    name: "Bob's Foundation - 2",
   });
 
   await mockEthAnchorRouter.addPendingOperator(ethAnchorOperator1);

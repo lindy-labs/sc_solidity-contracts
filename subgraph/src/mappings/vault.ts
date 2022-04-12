@@ -119,6 +119,7 @@ export function handleDepositMinted(event: DepositMinted): void {
     foundation.createdAt = event.block.timestamp;
     foundation.lockedUntil = event.params.lockedUntil;
     foundation.amountDeposited = BigInt.fromString("0");
+    foundation.name = event.params.name;
   }
 
   foundation.amountDeposited = foundation.amountDeposited.plus(event.params.amount);

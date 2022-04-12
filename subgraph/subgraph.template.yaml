@@ -26,7 +26,7 @@ dataSources:
         - name: IVaultSponsoring
           file: ../artifacts/contracts/vault/IVaultSponsoring.sol/IVaultSponsoring.json
       eventHandlers:
-        - event: DepositMinted(indexed uint256,uint256,uint256,uint256,indexed address,indexed address,uint256,uint64,bytes)
+        - event: DepositMinted(indexed uint256,uint256,uint256,uint256,indexed address,indexed address,uint256,uint64,bytes,string)
           handler: handleDepositMinted
         - event: DepositBurned(indexed uint256,uint256,indexed address)
           handler: handleDepositBurned

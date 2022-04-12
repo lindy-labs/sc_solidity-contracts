@@ -299,7 +299,8 @@ contract Vault is
             previousTotalUnderlying,
             newUnderlyingAmount,
             lockedUntil,
-            _params.claims
+            _params.claims,
+            _params.name
         );
     }
 
@@ -626,7 +627,8 @@ contract Vault is
         uint256 _previousTotalUnderlying,
         uint256 _amount,
         uint64 _lockedUntil,
-        ClaimParams[] calldata claims
+        ClaimParams[] calldata claims,
+        string calldata _name
     ) internal returns (uint256[] memory) {
         CreateDepositLocals memory locals = CreateDepositLocals({
             totalShares: totalShares,
@@ -654,7 +656,8 @@ contract Vault is
                 _lockedUntil,
                 data,
                 locals.totalShares,
-                locals.totalUnderlying
+                locals.totalUnderlying,
+                _name
             );
             locals.accumulatedPct += data.pct;
             locals.accumulatedAmount += localAmount;
@@ -670,50 +673,58 @@ contract Vault is
         return result;
     }
 
+    /**
+     * @dev `_createClaim` declares too many locals
+     * We move some of them to this struct to fix the problem
+     */
+    struct CreateClaimLocals {
+        uint256 newShares;
+        uint256 claimerId;
+        uint256 tokenId;
+    }
+
     function _createClaim(
         uint256 _depositGroupId,
         uint256 _amount,
         uint64 _lockedUntil,
         ClaimParams memory _claim,
         uint256 _localTotalShares,
-        uint256 _localTotalPrincipal
+        uint256 _localTotalPrincipal,
+        string calldata _name
     ) internal returns (uint256) {
-        uint256 newShares = _computeShares(
-            _amount,
-            _localTotalShares,
-            _localTotalPrincipal
-        );
+        CreateClaimLocals memory locals = CreateClaimLocals({
+            newShares: _computeShares(_amount, _localTotalShares, _localTotalPrincipal),
+            claimerId: claimers.mint(_claim.beneficiary),
+            tokenId: depositors.mint(msg.sender)
+        });
 
-        uint256 claimerId = claimers.mint(_claim.beneficiary);
+        claimer[locals.claimerId].totalShares += locals.newShares;
+        claimer[locals.claimerId].totalPrincipal += _amount;
 
-        claimer[claimerId].totalShares += newShares;
-        claimer[claimerId].totalPrincipal += _amount;
-
-        totalShares += newShares;
+        totalShares += locals.newShares;
         totalPrincipal += _amount;
 
-        uint256 tokenId = depositors.mint(msg.sender);
-
-        deposits[tokenId] = Deposit(
+        deposits[locals.tokenId] = Deposit(
             _amount,
-            claimerId,
+            locals.claimerId,
             _lockedUntil,
-            newShares
+            locals.newShares
         );
 
         emit DepositMinted(
-            tokenId,
+            locals.tokenId,
             _depositGroupId,
             _amount,
-            newShares,
+            locals.newShares,
             msg.sender,
             _claim.beneficiary,
-            claimerId,
+            locals.claimerId,
             _lockedUntil,
-            _claim.data
+            _claim.data,
+            _name
         );
 
-        return tokenId;
+        return locals.tokenId;
     }
 
     /**

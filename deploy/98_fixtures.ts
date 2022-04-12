@@ -53,6 +53,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
         data: ethers.utils.hexlify(123124),
       },
     ],
+    name: "Alice's Foundation 1",
   });
 
   console.log(
@@ -74,6 +75,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
         data: ethers.utils.hexlify(123123),
       },
     ],
+    name: "Bob's Foundation 1",
   });
 
   console.log("2000 yield is generated");

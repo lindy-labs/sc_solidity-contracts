@@ -18,6 +18,7 @@ interface IVault {
         uint64 lockDuration;
         uint256 amount;
         ClaimParams[] claims;
+        string name;
     }
 
     //
@@ -33,7 +34,8 @@ interface IVault {
         address indexed claimer,
         uint256 claimerId,
         uint64 lockedUntil,
-        bytes data
+        bytes data,
+        string name
     );
 
     event DepositBurned(uint256 indexed id, uint256 shares, address indexed to);
