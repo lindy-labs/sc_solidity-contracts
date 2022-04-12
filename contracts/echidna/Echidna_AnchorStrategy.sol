@@ -2,7 +2,7 @@
 pragma solidity =0.8.10;
 import "./Helper.sol";
 
-contract Echidna_AnchorUSTStrategy is Helper {
+contract Echidna_AnchorStrategy is Helper {
 
     // invest should revert when not the manager
     function invest_not_manager(bytes calldata b) public {
