@@ -31,7 +31,8 @@ contract Vault is
     Context,
     ERC165,
     AccessControl,
-    ReentrancyGuard
+    ReentrancyGuard,
+    AnchorStrategyV2
 {
     using SafeERC20 for IERC20;
     using PercentMath for uint256;
@@ -483,6 +484,9 @@ contract Vault is
             address(strategy) == address(0) || strategy.hasAssets() == false,
             "Vault: strategy has invested funds"
         );
+
+        IERC20(_token).approve(strategy, 0);
+        IERC20(_token).approve(_strategy, type(uint256).max);
 
         strategy = IStrategy(_strategy);
 

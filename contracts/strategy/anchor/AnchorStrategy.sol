@@ -162,6 +162,12 @@ contract AnchorStrategy is IStrategy, AccessControl {
      * only starts the deposit process, but does not finish it.
      */
     function invest() external virtual onlyManager {
+        uint256 investable = IVault(vault).investableAmount();
+        require(investable > 0, "AnchorStrategy: nothing to invest");
+
+        // pull investable tokens to strategy
+        ustToken.safeTransferFrom(vault, address(this), investable);
+
         (address operator, uint256 ustAmount) = _initDepositStable();
 
         emit InitDepositStable(
@@ -246,7 +252,7 @@ contract AnchorStrategy is IStrategy, AccessControl {
      *
      * @param amount Amount of aUST to redeem
      */
-    function initRedeemStable(uint256 amount) public onlyManager {
+    function withdrawStart(uint256 amount) public onlyManager {
         require(amount != 0, "AnchorStrategy: amount 0");
         if (pendingDeposits == 0 && _getAUstBalance() == amount) {
             _allRedeemed = true;
@@ -262,6 +268,17 @@ contract AnchorStrategy is IStrategy, AccessControl {
     }
 
     /**
+     * Request withdrawal from EthAnchor
+     *
+     * @notice since EthAnchor uses an asynchronous model, we can only request withdrawal for whole aUST
+     */
+    function withdrawAllStart() public onlyManager {
+        uint256 aUstBalance = _getAUstBalance();
+
+        withdrawStart(aUstBalance);
+    }
+
+    /**
      * Calls EthAnchor with a pending redeem ID, and attempts to finish it.
      *
      * @notice Must be called some time after `initRedeemStable()`. Will only work if
@@ -269,7 +286,7 @@ contract AnchorStrategy is IStrategy, AccessControl {
      *
      * @param idx Id of the pending redeem operation
      */
-    function finishRedeemStable(uint256 idx) external virtual onlyManager {
+    function withdrawFinish(uint256 idx) external virtual onlyManager {
         (
             address operator,
             uint256 aUstAmount,
@@ -279,30 +296,6 @@ contract AnchorStrategy is IStrategy, AccessControl {
 
         ustToken.safeTransfer(vault, _getUnderlyingBalance());
     }
-
-    /**
-     * Request withdrawal from EthAnchor
-     *
-     * @notice since EthAnchor uses an asynchronous model, we can only request withdrawal for whole aUST
-     */
-    function withdrawAllToVault() external override(IStrategy) onlyManager {
-        uint256 aUstBalance = _getAUstBalance();
-        if (aUstBalance != 0) {
-            initRedeemStable(aUstBalance);
-        }
-    }
-
-    /**
-     * Withdraws a specified amount back to the vault
-     *
-     * @notice since EthAnchor uses an asynchronous model, and there is no underlying amount
-     * in the strategy, this function do nothing at all, However override interface of IStrategy.
-     */
-    function withdrawToVault(uint256 amount)
-        external
-        override(IStrategy)
-        onlyManager
-    {}
 
     /**
      * Amount, expressed in the underlying currency, currently in the strategy
