@@ -446,6 +446,7 @@ test("handleDepositMinted creates a Deposit", () => {
   const claimerId = newI32("claimerId", 1);
   const lockedUntil = newI32("lockedUntil", 1);
   const data = newBytes("data", Bytes.empty());
+  const name = newString("name", "Foundation");
 
   event.parameters.push(idParam);
   event.parameters.push(groupId);
@@ -456,6 +457,7 @@ test("handleDepositMinted creates a Deposit", () => {
   event.parameters.push(claimerId);
   event.parameters.push(lockedUntil);
   event.parameters.push(data);
+  event.parameters.push(name);
 
   handleDepositMinted(event);
 
@@ -464,6 +466,19 @@ test("handleDepositMinted creates a Deposit", () => {
   assert.fieldEquals("Deposit", "1", "claimer", "1");
   assert.fieldEquals("Claimer", "1", "principal", "1");
   assert.fieldEquals("Claimer", "1", "depositsIds", "[1]");
+
+  const foundationId = `${vault.id}-1`;
+  assert.fieldEquals("Foundation", foundationId, "name", "Foundation");
+  assert.fieldEquals("Foundation", foundationId, "owner", MOCK_ADDRESS_1);
+  assert.fieldEquals("Foundation", foundationId, "vault", vault.id);
+  assert.fieldEquals("Foundation", foundationId, "amountDeposited", "1");
+  assert.fieldEquals("Foundation", foundationId, "lockedUntil", "1");
+  assert.fieldEquals(
+    "Foundation",
+    foundationId,
+    "createdAt",
+    event.block.timestamp.toString()
+  );
 });
 
 test("handleDepositBurned removes a Deposit by marking as burned", () => {
@@ -779,6 +794,10 @@ function newAddress(name: string, value: string): ethereum.EventParam {
     name,
     ethereum.Value.fromAddress(Address.fromString(value))
   );
+}
+
+function newString(name: string, value: string): ethereum.EventParam {
+  return new ethereum.EventParam(name, ethereum.Value.fromString(value));
 }
 
 function donationId(event: ethereum.Event, id: string): string {
