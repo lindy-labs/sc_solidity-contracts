@@ -9,8 +9,8 @@ import {
   DepositBurned,
   DepositMinted,
   YieldClaimed,
-  TreasuryUpdated,
 } from "../types/Vault/IVault";
+import { TreasuryUpdated } from "../types/Vault/IVaultSettings";
 import { Sponsored, Unsponsored } from "../types/Vault/IVaultSponsoring";
 import {
   Sponsor,
