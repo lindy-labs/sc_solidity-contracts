@@ -316,7 +316,7 @@ contract Vault is
     }
 
     /// @inheritdoc IVault
-    function updateInvested(bytes calldata data)
+    function updateInvested()
         external
         override(IVault)
         onlyRole(INVESTOR_ROLE)
