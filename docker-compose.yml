@@ -46,7 +46,7 @@ services:
   ethereum:
     build:
       context: .
-      dockerfile: docker/ganache.Dockerfile
+      dockerfile: docker/hardhat.Dockerfile
     restart: unless-stopped
     environment:
       MNEMONIC: '${MNEMONIC:-"core tornado motion pigeon kiss dish differ asthma much ritual black foil"}'

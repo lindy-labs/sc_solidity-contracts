@@ -11,6 +11,8 @@ type Foundation @entity {
   id: ID!
   vault: Vault!
   deposits: [Deposit!]! @derivedFrom(field: "foundation")
+  owner: Bytes!
+  createdAt: BigInt
 }
 
 type Deposit @entity {
@@ -50,4 +52,17 @@ type Sponsor @entity {
   amount: BigInt!
   lockedUntil: BigInt!
   burned: Boolean!
+}
+
+type RedeemOperation @entity {
+  id: ID!
+  idx: BigInt!
+  aUstAmount: BigInt!
+}
+
+type DepositOperation @entity {
+  id: ID!
+  idx: BigInt!
+  underlyingAmount: BigInt!
+  ustAmount: BigInt!
 }

@@ -12,13 +12,6 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  */
 interface IStrategy {
     /**
-     * The underlying ERC20 token stored by the vault
-     *
-     * @return The ERC20 token address
-     */
-    function underlying() external view returns (IERC20);
-
-    /**
      * The vault linked to this stragegy
      *
      * @return The vault's address
@@ -62,22 +55,6 @@ interface IStrategy {
      * @return true if assets invested, false if nothing invested.
      */
     function hasAssets() external view returns (bool);
-
-    /**
-     * Applies an estimated fee to the given @param _amount.
-     *
-     * This function should be used to estimate how much underlying will be
-     * left after the strategy invests. For instance, the fees taken by Anchor
-     * and Curve.
-     *
-     * @param _amount Amount to apply the fees to.
-     *
-     * @return Amount with the fees applied.
-     */
-    function applyInvestmentFee(uint256 _amount)
-        external
-        view
-        returns (uint256);
 
     /**
      * Initiates the process of investing the underlying currency

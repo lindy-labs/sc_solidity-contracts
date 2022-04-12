@@ -5,7 +5,7 @@ import { expect } from "chai";
 import { BigNumber, utils, constants } from "ethers";
 import {
   Vault,
-  AnchorUSTStrategy,
+  AnchorStrategy,
   IERC20,
   MockChainlinkPriceFeed,
   MockChainlinkPriceFeed__factory,
@@ -14,19 +14,20 @@ import {
 import { generateNewAddress, ForkHelpers } from "../../../shared";
 import config from "./config.json";
 
-describe("AnchorUSTStrategy Mainnet fork", () => {
+describe("AnchorStrategy Mainnet fork", () => {
   let owner: SignerWithAddress;
   let alice: SignerWithAddress;
   let bob: SignerWithAddress;
 
   let vault: Vault;
-  let strategy: AnchorUSTStrategy;
+  let strategy: AnchorStrategy;
   let ustToken: IERC20;
   let aUstToken: IERC20;
   // MockChainlinkPriceFeed has same interface as Mainnet, so we can use it for test
   let mockAUstUstFeed: MockChainlinkPriceFeed;
   const TWO_WEEKS = time.duration.days(14).toNumber();
   const INVEST_PCT = 10000; // set 100% for test
+  const INVESTMENT_FEE_PCT = 10000; // set 100% for test
   const TREASURY = generateNewAddress();
   const PERFORMANCE_FEE_PCT = BigNumber.from("200");
   const FORK_BLOCK = 14023000;
@@ -65,14 +66,15 @@ describe("AnchorUSTStrategy Mainnet fork", () => {
         TREASURY,
         owner.address,
         PERFORMANCE_FEE_PCT,
+        INVESTMENT_FEE_PCT,
         []
       );
 
-      const AnchorUSTStrategyFactory = await ethers.getContractFactory(
-        "AnchorUSTStrategy"
+      const AnchorStrategyFactory = await ethers.getContractFactory(
+        "AnchorStrategy"
       );
 
-      strategy = await AnchorUSTStrategyFactory.deploy(
+      strategy = await AnchorStrategyFactory.deploy(
         vault.address,
         config.ethAnchorRouter,
         config.aUstUstFeed,
@@ -219,14 +221,15 @@ describe("AnchorUSTStrategy Mainnet fork", () => {
         TREASURY,
         owner.address,
         PERFORMANCE_FEE_PCT,
+        INVESTMENT_FEE_PCT,
         []
       );
 
-      const AnchorUSTStrategyFactory = await ethers.getContractFactory(
-        "AnchorUSTStrategy"
+      const AnchorStrategyFactory = await ethers.getContractFactory(
+        "AnchorStrategy"
       );
 
-      strategy = await AnchorUSTStrategyFactory.deploy(
+      strategy = await AnchorStrategyFactory.deploy(
         vault.address,
         config.ethAnchorRouter,
         mockAUstUstFeed.address,

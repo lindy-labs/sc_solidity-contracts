@@ -36,7 +36,10 @@ contract MockEthAnchorRouter is IEthAnchorRouter {
         override(IEthAnchorRouter)
         returns (address operator)
     {
-        require(pendingOperator != address(0));
+        require(
+            pendingOperator != address(0),
+            "pendingOperator cannot be null address"
+        );
         ustToken.safeTransferFrom(msg.sender, address(this), _amount);
         depositOperations[pendingOperator] = _amount;
         operator = pendingOperator;
