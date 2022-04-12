@@ -383,10 +383,7 @@ contract Vault is
     }
 
     /// See {IVault}
-    function updateInvested(bytes calldata data)
-        external
-        onlyRole(INVESTOR_ROLE)
-    {
+    function updateInvested() external onlyRole(INVESTOR_ROLE) {
         require(address(strategy) != address(0), "Vault: strategy is not set");
 
         uint256 _investable = investableAmount();
@@ -397,7 +394,7 @@ contract Vault is
 
         emit Invested(_investable);
 
-        strategy.invest(data);
+        strategy.invest();
     }
 
     //
