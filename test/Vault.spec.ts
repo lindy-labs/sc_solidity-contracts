@@ -53,6 +53,7 @@ describe("Vault", () => {
   );
   const TREASURY = generateNewAddress();
   const PERFORMANCE_FEE_PCT = BigNumber.from("200");
+  const INVESTMENT_FEE_PCT = BigNumber.from("200");
   const INVEST_PCT = BigNumber.from("9000");
   const DENOMINATOR = BigNumber.from("10000");
 
@@ -101,6 +102,7 @@ describe("Vault", () => {
       TREASURY,
       owner.address,
       PERFORMANCE_FEE_PCT,
+      INVESTMENT_FEE_PCT,
       []
     );
 
@@ -202,6 +204,7 @@ describe("Vault", () => {
           TREASURY,
           owner.address,
           PERFORMANCE_FEE_PCT,
+          INVESTMENT_FEE_PCT,
           []
         )
       ).to.be.revertedWith("Vault: underlying cannot be 0x0");
@@ -216,6 +219,7 @@ describe("Vault", () => {
           TREASURY,
           owner.address,
           PERFORMANCE_FEE_PCT,
+          INVESTMENT_FEE_PCT,
           []
         )
       ).to.be.revertedWith("Vault: invalid minLockPeriod");
@@ -230,6 +234,7 @@ describe("Vault", () => {
           TREASURY,
           owner.address,
           PERFORMANCE_FEE_PCT,
+          INVESTMENT_FEE_PCT,
           []
         )
       ).to.be.revertedWith("Vault: invalid minLockPeriod");
@@ -244,6 +249,7 @@ describe("Vault", () => {
           TREASURY,
           owner.address,
           PERFORMANCE_FEE_PCT,
+          INVESTMENT_FEE_PCT,
           []
         )
       ).to.be.revertedWith("Vault: invalid investPerc");
@@ -258,6 +264,7 @@ describe("Vault", () => {
           TREASURY,
           owner.address,
           DENOMINATOR.add(BigNumber.from("1")),
+          INVESTMENT_FEE_PCT,
           []
         )
       ).to.be.revertedWith("Vault: invalid performance fee");
@@ -272,6 +279,7 @@ describe("Vault", () => {
           constants.AddressZero,
           owner.address,
           PERFORMANCE_FEE_PCT,
+          INVESTMENT_FEE_PCT,
           []
         )
       ).to.be.revertedWith("Vault: treasury cannot be 0x0");
@@ -286,6 +294,7 @@ describe("Vault", () => {
           TREASURY,
           constants.AddressZero,
           PERFORMANCE_FEE_PCT,
+          INVESTMENT_FEE_PCT,
           []
         )
       ).to.be.revertedWith("Vault: owner cannot be 0x0");
@@ -375,6 +384,36 @@ describe("Vault", () => {
         .emit(vault, "InvestPercentageUpdated")
         .withArgs(newInvestPct);
       expect(await vault.investPerc()).to.be.equal(newInvestPct);
+    });
+  });
+
+  describe("setInvestmentFeeEstimatePct", () => {
+    it("reverts if msg.sender is not admin", async () => {
+      await expect(
+        vault.connect(alice).setInvestmentFeeEstimatePct(100)
+      ).to.be.revertedWith(getRoleErrorMsg(alice, DEFAULT_ADMIN_ROLE));
+    });
+
+    it("reverts if invest percentage is greater than 100%", async () => {
+      await expect(
+        vault
+          .connect(owner)
+          .setInvestmentFeeEstimatePct(DENOMINATOR.add(BigNumber.from("1")))
+      ).to.be.revertedWith("Vault: invalid investment fee");
+    });
+
+    it("change investmentFeeEstimatePct and emit InvestPercentageUpdated event", async () => {
+      const newInvestmentFeeEstimatePct = 200;
+      const tx = await vault
+        .connect(owner)
+        .setInvestmentFeeEstimatePct(newInvestmentFeeEstimatePct);
+
+      await expect(tx)
+        .emit(vault, "InvestmentFeeEstimatePctUpdated")
+        .withArgs(newInvestmentFeeEstimatePct);
+      expect(await vault.investmentFeeEstimatePct()).to.be.equal(
+        newInvestmentFeeEstimatePct
+      );
     });
   });
 
@@ -536,6 +575,7 @@ describe("Vault", () => {
         TREASURY,
         owner.address,
         PERFORMANCE_FEE_PCT,
+        INVESTMENT_FEE_PCT,
         []
       );
 

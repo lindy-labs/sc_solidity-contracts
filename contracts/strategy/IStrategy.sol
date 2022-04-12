@@ -57,22 +57,6 @@ interface IStrategy {
     function hasAssets() external view returns (bool);
 
     /**
-     * Applies an estimated fee to the given @param _amount.
-     *
-     * This function should be used to estimate how much underlying will be
-     * left after the strategy invests. For instance, the fees taken by Anchor
-     * and Curve.
-     *
-     * @param _amount Amount to apply the fees to.
-     *
-     * @return Amount with the fees applied.
-     */
-    function applyInvestmentFee(uint256 _amount)
-        external
-        view
-        returns (uint256);
-
-    /**
      * Initiates the process of investing the underlying currency
      */
     function invest() external;
