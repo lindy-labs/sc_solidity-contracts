@@ -10,6 +10,7 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.
 
 import {IVault} from "./vault/IVault.sol";
 import {IVaultSponsoring} from "./vault/IVaultSponsoring.sol";
+import {IVaultSettings} from "./vault/IVaultSettings.sol";
 import {CurveSwapper} from "./vault/CurveSwapper.sol";
 import {PercentMath} from "./lib/PercentMath.sol";
 import {Depositors} from "./vault/Depositors.sol";
@@ -20,12 +21,12 @@ import {IStrategy} from "./strategy/IStrategy.sol";
  * A vault where other accounts can deposit an underlying token
  * currency and set distribution params for their principal and yield
  *
- * @dev Yield generation strategies not yet implemented
+ * @notice The underlying token can be automatically swapped from any configured ERC20 token via {CurveSwapper}
  */
-
 contract Vault is
     IVault,
     IVaultSponsoring,
+    IVaultSettings,
     CurveSwapper,
     Context,
     ERC165,
@@ -40,30 +41,45 @@ contract Vault is
     // Constants
     //
 
+    /// Role allowed to invest/desinvest from strategy
     bytes32 public constant INVESTOR_ROLE = keccak256("INVESTOR_ROLE");
+
+    /// Role allowed to change settings such as performance fee and investment fee
+    bytes32 public constant SETTINGS_ROLE = keccak256("SETTINGS_ROLE");
+
+    /// Minimum lock for each sponsor
     uint64 public constant MIN_SPONSOR_LOCK_DURATION = 2 weeks;
+
+    /// Maximum lock for each sponsor
     uint64 public constant MAX_SPONSOR_LOCK_DURATION = 24 weeks;
+
+    /// Maximum lock for each deposit
     uint64 public constant MAX_DEPOSIT_LOCK_DURATION = 24 weeks;
+
+    /// Helper constant for computing shares without losing precision
     uint256 public constant SHARES_MULTIPLIER = 10**18;
 
     //
     // State
     //
 
-    /// See {IVault}
+    /// @inheritdoc IVault
     IERC20 public override(IVault) underlying;
 
-    /// See {IVault}
-    IStrategy public strategy;
-
-    /// See {IVault}
+    /// @inheritdoc IVault
     uint16 public override(IVault) investPerc;
 
-    /// See {IVault}
+    /// @inheritdoc IVault
     uint64 public immutable override(IVault) minLockPeriod;
 
-    /// See {IVaultSponsoring}
+    /// @inheritdoc IVaultSponsoring
     uint256 public override(IVaultSponsoring) totalSponsored;
+
+    /// @inheritdoc IVault
+    uint256 public override(IVault) totalShares;
+
+    /// The investment strategy
+    IStrategy public strategy;
 
     /// Depositors, represented as an NFT per deposit
     Depositors public depositors;
@@ -74,43 +90,26 @@ contract Vault is
     /// Unique IDs to correlate donations that belong to the same foundation
     uint256 private _depositGroupIds;
 
-    struct Deposit {
-        /// amount of the deposit
-        uint256 amount;
-        /// wallet of the claimer
-        uint256 claimerId;
-        /// when can the deposit be withdrawn
-        uint256 lockedUntil;
-        /// the number of shares issued for this deposit
-        uint256 shares;
-    }
-
+    /// deposit NFT ID => deposit data
     mapping(uint256 => Deposit) public deposits;
 
-    struct Claimer {
-        uint256 totalPrincipal;
-        uint256 totalShares;
-    }
-
+    /// claimer NFT ID => claimer data
     mapping(uint256 => Claimer) public claimer;
 
-    // The total of shares
-    uint256 public totalShares;
-
-    // The total of principal deposited
+    /// The total of principal deposited
     uint256 public totalPrincipal;
 
-    // Treasury address to collect performance fee
+    /// Treasury address to collect performance fee
     address public treasury;
 
     /// Performance fee percentage
     uint16 public perfFeePct;
 
+    /// Current accumulated performance fee;
+    uint256 public accumulatedPerfFee;
+
     /// Investment fee pct
     uint16 public investmentFeeEstimatePct;
-
-    // Current accumulated performance fee;
-    uint256 public accumulatedPerfFee;
 
     /**
      * @param _underlying Underlying ERC20 token to use.
@@ -120,6 +119,7 @@ contract Vault is
      * @param _owner Vault admin address
      * @param _perfFeePct Performance fee percentage
      * @param _investmentFeeEstimatePct Estimated fee charged when investing through the strategy
+     * @param _swapPools Swap pools used to automatically convert tokens to underlying
      */
     constructor(
         IERC20 _underlying,
@@ -150,6 +150,7 @@ contract Vault is
 
         _setupRole(DEFAULT_ADMIN_ROLE, _owner);
         _setupRole(INVESTOR_ROLE, _owner);
+        _setupRole(SETTINGS_ROLE, _owner);
 
         investPerc = _investPerc;
         underlying = _underlying;
@@ -168,62 +169,7 @@ contract Vault is
     // IVault
     //
 
-    /// See {IVault}
-    function setTreasury(address _treasury)
-        external
-        override(IVault)
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        require(
-            address(_treasury) != address(0x0),
-            "Vault: treasury cannot be 0x0"
-        );
-        treasury = _treasury;
-        emit TreasuryUpdated(_treasury);
-    }
-
-    /// See {IVault}
-    function setPerfFeePct(uint16 _perfFeePct)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        require(_perfFeePct.validPerc(), "Vault: invalid performance fee");
-        perfFeePct = _perfFeePct;
-        emit PerfFeePctUpdated(_perfFeePct);
-    }
-
-    function setInvestmentFeeEstimatePct(uint16 pct)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        require(pct.validPerc(), "Vault: invalid investment fee");
-
-        investmentFeeEstimatePct = pct;
-        emit InvestmentFeeEstimatePctUpdated(pct);
-    }
-
-    /// See {IVault}
-    function setStrategy(address _strategy)
-        external
-        override(IVault)
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        require(_strategy != address(0), "Vault: strategy 0x");
-        require(
-            IStrategy(_strategy).vault() == address(this),
-            "Vault: invalid vault"
-        );
-        require(
-            address(strategy) == address(0) || strategy.hasAssets() == false,
-            "Vault: strategy has invested funds"
-        );
-
-        strategy = IStrategy(_strategy);
-
-        emit StrategyUpdated(_strategy);
-    }
-
-    /// See {IVault}
+    /// @inheritdoc IVault
     function totalUnderlying() public view override(IVault) returns (uint256) {
         if (address(strategy) != address(0)) {
             return
@@ -233,7 +179,7 @@ contract Vault is
         return underlying.balanceOf(address(this));
     }
 
-    /// See {IVault}
+    /// @inheritdoc IVault
     function yieldFor(address _to)
         public
         view
@@ -275,7 +221,7 @@ contract Vault is
         claimableYield = sharesAmount - perfFee;
     }
 
-    /// See {IVault}
+    /// @inheritdoc IVault
     function deposit(DepositParams calldata _params)
         external
         nonReentrant
@@ -316,7 +262,7 @@ contract Vault is
         );
     }
 
-    /// See {IVault}
+    /// @inheritdoc IVault
     function claimYield(address _to) external override(IVault) nonReentrant {
         require(_to != address(0), "Vault: destination address is 0x");
 
@@ -336,7 +282,7 @@ contract Vault is
         emit YieldClaimed(claimerId, _to, yield, shares, fee);
     }
 
-    /// See {IVault}
+    /// @inheritdoc IVault
     function withdraw(address _to, uint256[] calldata _ids)
         external
         override(IVault)
@@ -347,7 +293,7 @@ contract Vault is
         _withdraw(_to, _ids, false);
     }
 
-    /// See {IVault}
+    /// @inheritdoc IVault
     function forceWithdraw(address _to, uint256[] calldata _ids)
         external
         nonReentrant
@@ -357,19 +303,6 @@ contract Vault is
         _withdraw(_to, _ids, true);
     }
 
-    /// See {IVault}
-    function setInvestPerc(uint16 _investPerc)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        require(_investPerc.validPerc(), "Vault: invalid investPerc");
-
-        emit InvestPercentageUpdated(_investPerc);
-
-        investPerc = _investPerc;
-    }
-
-    /// See {IVault}
     function investableAmount() public view returns (uint256) {
         uint256 maxInvestableAssets = totalUnderlying().percOf(investPerc);
 
@@ -382,8 +315,12 @@ contract Vault is
         return maxInvestableAssets - alreadyInvested;
     }
 
-    /// See {IVault}
-    function updateInvested() external onlyRole(INVESTOR_ROLE) {
+    /// @inheritdoc IVault
+    function updateInvested()
+        external
+        override(IVault)
+        onlyRole(INVESTOR_ROLE)
+    {
         require(address(strategy) != address(0), "Vault: strategy is not set");
 
         uint256 _investable = investableAmount();
@@ -397,10 +334,26 @@ contract Vault is
         strategy.invest();
     }
 
+    /// @inheritdoc IVault
+    function withdrawPerformanceFee()
+        external
+        override(IVault)
+        onlyRole(INVESTOR_ROLE)
+    {
+        uint256 _perfFee = accumulatedPerfFee;
+        require(_perfFee != 0, "Vault: no performance fee");
+
+        accumulatedPerfFee = 0;
+
+        emit FeeWithdrawn(_perfFee);
+        underlying.safeTransfer(treasury, _perfFee);
+    }
+
     //
     // IVaultSponsoring
+    //
 
-    /// See {IVaultSponsoring}
+    /// @inheritdoc IVaultSponsoring
     function sponsor(
         address _inputToken,
         uint256 _amount,
@@ -426,7 +379,7 @@ contract Vault is
         emit Sponsored(tokenId, underlyingAmount, msg.sender, lockedUntil);
     }
 
-    /// See {IVaultSponsoring}
+    /// @inheritdoc IVaultSponsoring
     function unsponsor(address _to, uint256[] calldata _ids)
         external
         nonReentrant
@@ -434,16 +387,6 @@ contract Vault is
         require(_to != address(0), "Vault: destination address is 0x");
 
         _unsponsor(_to, _ids);
-    }
-
-    function withdrawPerformanceFee() external onlyRole(INVESTOR_ROLE) {
-        uint256 _perfFee = accumulatedPerfFee;
-        require(_perfFee != 0, "Vault: no performance fee");
-
-        accumulatedPerfFee = 0;
-
-        emit FeeWithdrawn(_perfFee);
-        underlying.safeTransfer(treasury, _perfFee);
     }
 
     //
@@ -478,6 +421,84 @@ contract Vault is
         onlyRole(DEFAULT_ADMIN_ROLE)
     {
         _removePool(_inputToken);
+    }
+
+    //
+    // Admin functions
+    //
+
+    /// @inheritdoc IVaultSettings
+    function setInvestPerc(uint16 _investPct)
+        external
+        override(IVaultSettings)
+        onlyRole(SETTINGS_ROLE)
+    {
+        require(PercentMath.validPerc(_investPct), "Vault: invalid investPerc");
+
+        emit InvestPctUpdated(_investPct);
+
+        investPerc = _investPct;
+    }
+
+    /// @inheritdoc IVaultSettings
+    function setTreasury(address _treasury)
+        external
+        override(IVaultSettings)
+        onlyRole(SETTINGS_ROLE)
+    {
+        require(
+            address(_treasury) != address(0x0),
+            "Vault: treasury cannot be 0x0"
+        );
+        treasury = _treasury;
+        emit TreasuryUpdated(_treasury);
+    }
+
+    /// @inheritdoc IVaultSettings
+    function setPerfFeePct(uint16 _perfFeePct)
+        external
+        override(IVaultSettings)
+        onlyRole(SETTINGS_ROLE)
+    {
+        require(
+            PercentMath.validPerc(_perfFeePct),
+            "Vault: invalid performance fee"
+        );
+        perfFeePct = _perfFeePct;
+        emit PerfFeePctUpdated(_perfFeePct);
+    }
+
+    /// @inheritdoc IVaultSettings
+    function setStrategy(address _strategy)
+        external
+        override(IVaultSettings)
+        onlyRole(SETTINGS_ROLE)
+    {
+        require(_strategy != address(0), "Vault: strategy 0x");
+        require(
+            IStrategy(_strategy).vault() == address(this),
+            "Vault: invalid vault"
+        );
+        require(
+            address(strategy) == address(0) || strategy.hasAssets() == false,
+            "Vault: strategy has invested funds"
+        );
+
+        strategy = IStrategy(_strategy);
+
+        emit StrategyUpdated(_strategy);
+    }
+
+    /// @inheritdoc IVaultSettings
+    function setInvestmentFeeEstimatePct(uint16 pct)
+        external
+        override(IVaultSettings)
+        onlyRole(SETTINGS_ROLE)
+    {
+        require(pct.validPerc(), "Vault: invalid investment fee");
+
+        investmentFeeEstimatePct = pct;
+        emit InvestmentFeeEstimatePctUpdated(pct);
     }
 
     //

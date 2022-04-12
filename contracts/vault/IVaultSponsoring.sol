@@ -2,6 +2,10 @@
 pragma solidity =0.8.10;
 
 interface IVaultSponsoring {
+    //
+    // Events
+    //
+
     /// Emitted when a new sponsor deposit is created
     event Sponsored(
         uint256 indexed id,
