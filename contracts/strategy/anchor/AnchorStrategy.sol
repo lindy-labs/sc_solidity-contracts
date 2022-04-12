@@ -131,14 +131,8 @@ contract AnchorStrategy is IStrategy, AccessControl {
         address _owner
     ) {
         require(_owner != address(0), "AnchorStrategy: owner is 0x");
-        require(
-            _ethAnchorRouter != address(0),
-            "AnchorStrategy: router is 0x"
-        );
-        require(
-            address(_ustToken) != address(0),
-            "AnchorStrategy: ust is 0x"
-        );
+        require(_ethAnchorRouter != address(0), "AnchorStrategy: router is 0x");
+        require(address(_ustToken) != address(0), "AnchorStrategy: ust is 0x");
         require(
             address(_aUstToken) != address(0),
             "AnchorStrategy: aUST is 0x"
@@ -166,12 +160,8 @@ contract AnchorStrategy is IStrategy, AccessControl {
      *
      * @notice since EthAnchor uses an asynchronous model, this function
      * only starts the deposit process, but does not finish it.
-     *
-     * @dev external data is not required
      */
-    function invest(
-        bytes calldata /* data */
-    ) external virtual onlyManager {
+    function invest() external virtual onlyManager {
         (address operator, uint256 ustAmount) = _initDepositStable();
 
         emit InitDepositStable(
@@ -216,10 +206,7 @@ contract AnchorStrategy is IStrategy, AccessControl {
      * @param idx Id of the pending deposit operation
      */
     function finishDepositStable(uint256 idx) external onlyManager {
-        require(
-            depositOperations.length > idx,
-            "AnchorStrategy: not running"
-        );
+        require(depositOperations.length > idx, "AnchorStrategy: not running");
         Operation storage operation = depositOperations[idx];
         address operator = operation.operator;
         uint256 aUstBalanceBefore = _getAUstBalance();
@@ -356,10 +343,7 @@ contract AnchorStrategy is IStrategy, AccessControl {
             uint256
         )
     {
-        require(
-            redeemOperations.length > idx,
-            "AnchorStrategy: not running"
-        );
+        require(redeemOperations.length > idx, "AnchorStrategy: not running");
         Operation storage operation = redeemOperations[idx];
 
         uint256 operationAmount = operation.amount;
