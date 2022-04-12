@@ -481,15 +481,15 @@ describe("Vault", () => {
 
   describe("updateInvested", () => {
     it("reverts if msg.sender is not investor", async () => {
-      await expect(
-        vault.connect(alice).updateInvested("0x")
-      ).to.be.revertedWith(getRoleErrorMsg(alice, INVESTOR_ROLE));
+      await expect(vault.connect(alice).updateInvested()).to.be.revertedWith(
+        getRoleErrorMsg(alice, INVESTOR_ROLE)
+      );
     });
 
     it("reverts if strategy is not set", async () => {
-      await expect(
-        vault.connect(owner).updateInvested("0x")
-      ).to.be.revertedWith("Vault: strategy is not set");
+      await expect(vault.connect(owner).updateInvested()).to.be.revertedWith(
+        "Vault: strategy is not set"
+      );
     });
 
     it("reverts if no investable amount", async () => {
@@ -497,9 +497,9 @@ describe("Vault", () => {
       await addYieldToVault("10");
       await underlying.mint(strategy.address, parseUnits("100"));
 
-      await expect(
-        vault.connect(owner).updateInvested("0x")
-      ).to.be.revertedWith("Vault: nothing to invest");
+      await expect(vault.connect(owner).updateInvested()).to.be.revertedWith(
+        "Vault: nothing to invest"
+      );
     });
 
     it("moves the funds to the strategy", async () => {
@@ -507,7 +507,7 @@ describe("Vault", () => {
       await vault.connect(owner).setInvestPerc("8000");
       await addYieldToVault("100");
 
-      await vault.connect(owner).updateInvested("0x");
+      await vault.connect(owner).updateInvested();
 
       expect(await underlying.balanceOf(strategy.address)).to.eq(
         parseUnits("80")
@@ -519,7 +519,7 @@ describe("Vault", () => {
       await vault.connect(owner).setInvestPerc("8000");
       await addYieldToVault("100");
 
-      const tx = await vault.connect(owner).updateInvested("0x");
+      const tx = await vault.connect(owner).updateInvested();
 
       await expect(tx).to.emit(vault, "Invested").withArgs(parseUnits("80"));
     });
