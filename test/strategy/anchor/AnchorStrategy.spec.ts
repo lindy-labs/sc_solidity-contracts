@@ -205,9 +205,9 @@ describe("AnchorStrategy", () => {
 
       // when price is not positive
       await mockAUstUstFeed.setLatestRoundData(1, 0, 100, 100, 1);
-      await expect(
-        vault.connect(owner).updateInvested()
-      ).to.be.revertedWith("AnchorStrategy: invalid aUST rate");
+      await expect(vault.connect(owner).updateInvested()).to.be.revertedWith(
+        "AnchorStrategy: invalid aUST rate"
+      );
 
       // when round id is invalid
       await mockAUstUstFeed.setLatestRoundData(
@@ -217,9 +217,9 @@ describe("AnchorStrategy", () => {
         100,
         1
       );
-      await expect(
-        vault.connect(owner).updateInvested()
-      ).to.be.revertedWith("AnchorStrategy: invalid aUST rate");
+      await expect(vault.connect(owner).updateInvested()).to.be.revertedWith(
+        "AnchorStrategy: invalid aUST rate"
+      );
 
       // when updated time is zero
       await mockAUstUstFeed.setLatestRoundData(
@@ -229,9 +229,9 @@ describe("AnchorStrategy", () => {
         0,
         1
       );
-      await expect(
-        vault.connect(owner).updateInvested()
-      ).to.be.revertedWith("AnchorStrategy: invalid aUST rate");
+      await expect(vault.connect(owner).updateInvested()).to.be.revertedWith(
+        "AnchorStrategy: invalid aUST rate"
+      );
     });
 
     it("Should init deposit stable with all underlying", async () => {
@@ -912,7 +912,7 @@ describe("AnchorStrategy", () => {
         {
           pct: DENOMINATOR,
           beneficiary: owner.address,
-          data: ,
+          data: "0x",
         },
       ],
       lockDuration: TWO_WEEKS,
