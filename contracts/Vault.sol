@@ -331,7 +331,7 @@ contract Vault is
 
         emit Invested(_investable);
 
-        strategy.invest(data);
+        strategy.invest();
     }
 
     /// @inheritdoc IVault
