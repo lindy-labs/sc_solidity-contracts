@@ -30,4 +30,23 @@ contract Echidna_AnchorStrategy is Helper {
             assert(true);
         }
     }
+
+    // updateInvested should succeed if there is funds available to
+    // invest and revert otherwise
+    function updateInvested_zero_investable() public {
+
+        if (vault.investableAmount() == 0) {
+            try vault.updateInvested("0x") {
+                assert(false);
+            } catch {
+                assert(true);
+            }
+        } else {
+            try vault.updateInvested("0x") {
+                assert(true);
+            } catch {
+                assert(false);
+            }
+        }
+    }
 }
