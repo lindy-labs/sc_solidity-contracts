@@ -21,48 +21,10 @@ contract AnchorStrategy is IStrategy, AccessControl {
     using PercentMath for uint256;
     using ERC165Query for address;
 
-    event InitDepositStable(
-        address indexed operator,
-        uint256 indexed idx,
-        uint256 underlyingAmount,
-        uint256 ustAmount
-    );
-    event FinishDepositStable(
-        address indexed operator,
-        uint256 ustAmount,
-        uint256 aUstAmount
-    );
-    event RearrangeDepositOperation(
-        address indexed operatorFrom,
-        address indexed operatorTo,
-        uint256 indexed newIdx
-    );
-    event InitRedeemStable(
-        address indexed operator,
-        uint256 indexed idx,
-        uint256 aUstAmount
-    );
-    event FinishRedeemStable(
-        address indexed operator,
-        uint256 aUstAmount,
-        uint256 ustAmount,
-        uint256 underlyingAmount
-    );
-    event RearrangeRedeemOperation(
-        address indexed operatorFrom,
-        address indexed operatorTo,
-        uint256 indexed newIdx
-    );
-
-    struct Operation {
-        address operator;
-        uint256 amount;
-    }
-
     bytes32 public constant MANAGER_ROLE =
         0x241ecf16d79d0f8dbfb92cbc07fe17840425976cf0667f022fe9877caa831b08; // keccak256("MANAGER_ROLE");
 
-    // Vault address
+    /// @inheritdoc IStrategy
     address public immutable override(IStrategy) vault;
 
     // UST token address
@@ -93,22 +55,6 @@ contract AnchorStrategy is IStrategy, AccessControl {
     uint256 internal _aUstToUstFeedMultiplier;
 
     bool internal _allRedeemed;
-
-    modifier onlyManager() {
-        require(
-            hasRole(MANAGER_ROLE, msg.sender),
-            "AnchorStrategy: caller is not manager"
-        );
-        _;
-    }
-
-    modifier onlyAdmin() {
-        require(
-            hasRole(DEFAULT_ADMIN_ROLE, msg.sender),
-            "AnchorStrategy: caller is not admin"
-        );
-        _;
-    }
 
     /**
      * Constructor of Base Strategy - Initialize required addresses and params
@@ -155,33 +101,82 @@ contract AnchorStrategy is IStrategy, AccessControl {
         _allRedeemed = true;
     }
 
-    /**
-     * Initiates a deposit of all the currently held UST into EthAnchor
-     *
-     * @notice since EthAnchor uses an asynchronous model, this function
-     * only starts the deposit process, but does not finish it.
-     */
-    function invest() external virtual onlyManager {
-        (address operator, uint256 ustAmount) = _initDepositStable();
+    //
+    // Modifiers
+    //
 
-        emit InitDepositStable(
-            operator,
-            depositOperations.length - 1,
-            ustAmount,
-            ustAmount
+    modifier onlyManager() {
+        require(
+            hasRole(MANAGER_ROLE, msg.sender),
+            "AnchorStrategy: caller is not manager"
         );
+        _;
+    }
+
+    modifier onlyAdmin() {
+        require(
+            hasRole(DEFAULT_ADMIN_ROLE, msg.sender),
+            "AnchorStrategy: caller is not admin"
+        );
+        _;
+    }
+
+    //
+    // IStrategy
+    //
+
+    /**
+     * Request withdrawal from EthAnchor
+     *
+     * @notice since EthAnchor uses an asynchronous model, we can only request withdrawal for whole aUST
+     */
+    function withdrawAllToVault() external override(IStrategy) onlyManager {
+        uint256 aUstBalance = _getAUstBalance();
+        if (aUstBalance != 0) {
+            initRedeemStable(aUstBalance);
+        }
     }
 
     /**
-     * Initiates available UST to EthAnchor
+     * Withdraws a specified amount back to the vault
      *
-     * @notice since EthAnchor uses an asynchronous model, this function
-     * only starts the deposit process, but does not finish it.
-     * Each EthAnchor deposits are handled by different operator, so we store
-     * operator address to finish later.
-     * We need to increase pendingDeposits to track correct underlying assets.
+     * @notice since EthAnchor uses an asynchronous model, and there is no underlying amount
+     * in the strategy, this function do nothing at all, However override interface of IStrategy.
      */
-    function _initDepositStable() internal returns (address, uint256) {
+    function withdrawToVault(uint256 amount)
+        external
+        override(IStrategy)
+        onlyManager
+    {}
+
+    /**
+     * Amount, expressed in the underlying currency, currently in the strategy
+     *
+     * @notice both held and invested amounts are included here, using the
+     * latest known exchange rates to the underlying currency.
+     *
+     * @return The total amount of underlying
+     */
+    function investedAssets()
+        external
+        view
+        virtual
+        override(IStrategy)
+        returns (uint256)
+    {
+        return pendingDeposits + _estimateAUstBalanceInUst();
+    }
+
+    /// @inheritdoc IStrategy
+    ///
+    /// Initiates available UST to EthAnchor
+    ///
+    /// @notice since EthAnchor uses an asynchronous model, this function
+    /// only starts the deposit process, but does not finish it.
+    /// Each EthAnchor deposits are handled by different operator, so we store
+    /// operator address to finish later.
+    /// We need to increase pendingDeposits to track correct underlying assets.
+    function invest() external virtual override(IStrategy) onlyManager {
         uint256 ustBalance = _getUstBalance();
         require(ustBalance != 0, "AnchorStrategy: no ust exist");
         pendingDeposits += ustBalance;
@@ -194,7 +189,12 @@ contract AnchorStrategy is IStrategy, AccessControl {
 
         _allRedeemed = false;
 
-        return (operator, ustBalance);
+        emit InitDepositStable(
+            operator,
+            depositOperations.length - 1,
+            ustBalance,
+            ustBalance
+        );
     }
 
     /**
@@ -261,6 +261,10 @@ contract AnchorStrategy is IStrategy, AccessControl {
         emit InitRedeemStable(operator, redeemOperations.length - 1, amount);
     }
 
+    //
+    // Internal API
+    //
+
     /**
      * Calls EthAnchor with a pending redeem ID, and attempts to finish it.
      *
@@ -278,48 +282,6 @@ contract AnchorStrategy is IStrategy, AccessControl {
         emit FinishRedeemStable(operator, aUstAmount, ustAmount, ustAmount);
 
         ustToken.safeTransfer(vault, _getUnderlyingBalance());
-    }
-
-    /**
-     * Request withdrawal from EthAnchor
-     *
-     * @notice since EthAnchor uses an asynchronous model, we can only request withdrawal for whole aUST
-     */
-    function withdrawAllToVault() external override(IStrategy) onlyManager {
-        uint256 aUstBalance = _getAUstBalance();
-        if (aUstBalance != 0) {
-            initRedeemStable(aUstBalance);
-        }
-    }
-
-    /**
-     * Withdraws a specified amount back to the vault
-     *
-     * @notice since EthAnchor uses an asynchronous model, and there is no underlying amount
-     * in the strategy, this function do nothing at all, However override interface of IStrategy.
-     */
-    function withdrawToVault(uint256 amount)
-        external
-        override(IStrategy)
-        onlyManager
-    {}
-
-    /**
-     * Amount, expressed in the underlying currency, currently in the strategy
-     *
-     * @notice both held and invested amounts are included here, using the
-     * latest known exchange rates to the underlying currency.
-     *
-     * @return The total amount of underlying
-     */
-    function investedAssets()
-        external
-        view
-        virtual
-        override(IStrategy)
-        returns (uint256)
-    {
-        return pendingDeposits + _estimateAUstBalanceInUst();
     }
 
     /**
