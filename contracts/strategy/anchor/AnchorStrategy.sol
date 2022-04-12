@@ -168,14 +168,6 @@ contract AnchorStrategy is IStrategy, AccessControl {
     }
 
     /// @inheritdoc IStrategy
-    ///
-    /// Initiates available UST to EthAnchor
-    ///
-    /// @notice since EthAnchor uses an asynchronous model, this function
-    /// only starts the deposit process, but does not finish it.
-    /// Each EthAnchor deposits are handled by different operator, so we store
-    /// operator address to finish later.
-    /// We need to increase pendingDeposits to track correct underlying assets.
     function invest() external virtual override(IStrategy) onlyManager {
         uint256 ustBalance = _getUstBalance();
         require(ustBalance != 0, "AnchorStrategy: no ust exist");
@@ -218,8 +210,6 @@ contract AnchorStrategy is IStrategy, AccessControl {
         uint256 ustAmount = operation.amount;
         pendingDeposits -= ustAmount;
 
-        emit FinishDepositStable(operator, ustAmount, newAUst);
-
         if (idx < depositOperations.length - 1) {
             Operation memory lastOperation = depositOperations[
                 depositOperations.length - 1
@@ -236,6 +226,8 @@ contract AnchorStrategy is IStrategy, AccessControl {
         }
 
         depositOperations.pop();
+
+        emit FinishDepositStable(operator, ustAmount, newAUst);
     }
 
     /**
@@ -261,29 +253,6 @@ contract AnchorStrategy is IStrategy, AccessControl {
         emit InitRedeemStable(operator, redeemOperations.length - 1, amount);
     }
 
-    //
-    // Internal API
-    //
-
-    /**
-     * Calls EthAnchor with a pending redeem ID, and attempts to finish it.
-     *
-     * @notice Must be called some time after `initRedeemStable()`. Will only work if
-     * the EthAnchor bridge has finished processing the deposit.
-     *
-     * @param idx Id of the pending redeem operation
-     */
-    function finishRedeemStable(uint256 idx) external virtual onlyManager {
-        (
-            address operator,
-            uint256 aUstAmount,
-            uint256 ustAmount
-        ) = _finishRedeemStable(idx);
-        emit FinishRedeemStable(operator, aUstAmount, ustAmount, ustAmount);
-
-        ustToken.safeTransfer(vault, _getUnderlyingBalance());
-    }
-
     /**
      * Calls EthAnchor with a pending redeem ID, and attempts to finish it.
      *
@@ -294,29 +263,20 @@ contract AnchorStrategy is IStrategy, AccessControl {
      *   (https://github.com/code-423n4/2022-01-sandclock-findings/issues/95)
      *
      * @param idx Id of the pending redeem operation
-     *
-     * @return operator address, redeemed aUST and received UST amount
      */
-    function _finishRedeemStable(uint256 idx)
-        internal
-        returns (
-            address,
-            uint256,
-            uint256
-        )
-    {
+    function finishRedeemStable(uint256 idx) external virtual onlyManager {
         require(redeemOperations.length > idx, "AnchorStrategy: not running");
         Operation storage operation = redeemOperations[idx];
 
-        uint256 operationAmount = operation.amount;
+        uint256 aUstAmount = operation.amount;
         address operator = operation.operator;
 
         ethAnchorRouter.finishRedeemStable(operator);
 
-        uint256 redeemedAmount = _getUstBalance();
-        require(redeemedAmount > 0, "AnchorStrategy: nothing redeemed");
+        uint256 ustAmount = _getUstBalance();
+        require(ustAmount > 0, "AnchorStrategy: nothing redeemed");
 
-        pendingRedeems -= operationAmount;
+        pendingRedeems -= aUstAmount;
 
         if (idx < redeemOperations.length - 1) {
             Operation memory lastOperation = redeemOperations[
@@ -335,13 +295,19 @@ contract AnchorStrategy is IStrategy, AccessControl {
 
         redeemOperations.pop();
 
-        return (operator, operationAmount, redeemedAmount);
+        ustToken.safeTransfer(vault, _getUnderlyingBalance());
+
+        emit FinishRedeemStable(operator, aUstAmount, ustAmount, ustAmount);
     }
 
-    /// See {IStrategy}
+    /// @inheritdoc IStrategy
     function hasAssets() external view override returns (bool) {
         return _allRedeemed == false || pendingRedeems != 0;
     }
+
+    //
+    // Internal API
+    //
 
     /**
      * @return underlying balance of strategy
