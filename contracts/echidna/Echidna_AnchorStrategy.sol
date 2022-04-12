@@ -5,8 +5,8 @@ import "./Helper.sol";
 contract Echidna_AnchorStrategy is Helper {
 
     // invest should revert when not the manager
-    function invest_not_manager(bytes calldata b) public {
-        try strategy.invest(b) {
+    function invest_not_manager() public {
+        try strategy.invest() {
             assert(false);
         } catch {
             assert(true);
@@ -36,13 +36,13 @@ contract Echidna_AnchorStrategy is Helper {
     function updateInvested_zero_investable() public {
 
         if (vault.investableAmount() == 0) {
-            try vault.updateInvested("0x") {
+            try vault.updateInvested() {
                 assert(false);
             } catch {
                 assert(true);
             }
         } else {
-            try vault.updateInvested("0x") {
+            try vault.updateInvested() {
                 assert(true);
             } catch {
                 assert(false);
