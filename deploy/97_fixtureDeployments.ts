@@ -58,9 +58,9 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   const MANAGER_ROLE = utils.keccak256(utils.toUtf8Bytes("MANAGER_ROLE"));
   await anchorStrategy.connect(owner).grantRole(MANAGER_ROLE, owner.address);
 
-  console.log("Configuring vault strategy, treasury and investPerc");
+  console.log("Configuring vault strategy, treasury and investPct");
   await vault.connect(owner).setTreasury(treasury.address);
-  await vault.connect(owner).setInvestPerc("8000");
+  await vault.connect(owner).setInvestPct("8000");
   const setStrategyTx = await vault.setStrategy(anchorStrategy.address);
   await setStrategyTx.wait();
 };

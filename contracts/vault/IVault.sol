@@ -86,7 +86,7 @@ interface IVault {
     /**
      * Percentage of the total underlying to invest in the strategy
      */
-    function investPerc() external view returns (uint16);
+    function investPct() external view returns (uint16);
 
     /**
      * Underlying ERC20 token accepted by the vault
