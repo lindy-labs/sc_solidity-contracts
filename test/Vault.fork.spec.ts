@@ -28,6 +28,7 @@ const CURVE_UST_3CRV_POOL = getAddress(
 const TWO_WEEKS = BigNumber.from(time.duration.weeks(2).toNumber());
 const PERFORMANCE_FEE_PCT = BigNumber.from("200");
 const INVEST_PCT = BigNumber.from("9000");
+const INVESTMENT_FEE_PCT = BigNumber.from("200");
 const DENOMINATOR = BigNumber.from("10000");
 const DEFAULT_ADMIN_ROLE = HashZero;
 
@@ -72,6 +73,7 @@ describe("Vault (fork tests)", () => {
       owner.address,
       owner.address,
       PERFORMANCE_FEE_PCT,
+      INVESTMENT_FEE_PCT,
       [
         {
           token: dai.address,

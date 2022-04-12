@@ -30,6 +30,7 @@ describe("AnchorStrategy", () => {
   const TWO_WEEKS = time.duration.days(14).toNumber();
   const PERFORMANCE_FEE_PCT = BigNumber.from("200");
   const INVEST_PCT = BigNumber.from("9000");
+  const INVESTMENT_FEE_PCT = BigNumber.from("200");
   const DENOMINATOR = BigNumber.from("10000");
 
   const DEFAULT_ADMIN_ROLE = constants.HashZero;
@@ -74,6 +75,7 @@ describe("AnchorStrategy", () => {
       TREASURY,
       owner.address,
       PERFORMANCE_FEE_PCT,
+      INVESTMENT_FEE_PCT,
       []
     );
 
