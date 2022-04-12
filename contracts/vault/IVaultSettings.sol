@@ -19,7 +19,7 @@ interface IVaultSettings {
      *
      * @param _investPct the new invest percentage
      */
-    function setInvestPerc(uint16 _investPct) external;
+    function setInvestPct(uint16 _investPct) external;
 
     /**
      * Changes the treasury used by the vault.

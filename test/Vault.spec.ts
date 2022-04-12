@@ -253,7 +253,7 @@ describe("Vault", () => {
           INVESTMENT_FEE_PCT,
           []
         )
-      ).to.be.revertedWith("Vault: invalid investPerc");
+      ).to.be.revertedWith("Vault: invalid investPct");
     });
 
     it("reverts if performance fee percentage is greater than 100%", async () => {
@@ -311,7 +311,7 @@ describe("Vault", () => {
 
       expect(await vault.underlying()).to.be.equal(underlying.address);
       expect(await vault.minLockPeriod()).to.be.equal(TWO_WEEKS);
-      expect(await vault.investPerc()).to.be.equal(INVEST_PCT);
+      expect(await vault.investPct()).to.be.equal(INVEST_PCT);
       expect(await vault.treasury()).to.be.equal(TREASURY);
       expect(await vault.perfFeePct()).to.be.equal(PERFORMANCE_FEE_PCT);
 
@@ -364,25 +364,25 @@ describe("Vault", () => {
     });
   });
 
-  describe("setInvestPerc", () => {
+  describe("setInvestPct", () => {
     it("reverts if msg.sender is not admin", async () => {
-      await expect(vault.connect(alice).setInvestPerc(100)).to.be.revertedWith(
+      await expect(vault.connect(alice).setInvestPct(100)).to.be.revertedWith(
         getRoleErrorMsg(alice, SETTINGS_ROLE)
       );
     });
 
     it("reverts if invest percentage is greater than 100%", async () => {
       await expect(
-        vault.connect(owner).setInvestPerc(DENOMINATOR.add(BigNumber.from("1")))
-      ).to.be.revertedWith("Vault: invalid investPerc");
+        vault.connect(owner).setInvestPct(DENOMINATOR.add(BigNumber.from("1")))
+      ).to.be.revertedWith("Vault: invalid investPct");
     });
 
-    it("change investPerc and emit InvestPercentageUpdated event", async () => {
+    it("change investPct and emit InvestPercentageUpdated event", async () => {
       const newInvestPct = 8000;
-      const tx = await vault.connect(owner).setInvestPerc(newInvestPct);
+      const tx = await vault.connect(owner).setInvestPct(newInvestPct);
 
       await expect(tx).emit(vault, "InvestPctUpdated").withArgs(newInvestPct);
-      expect(await vault.investPerc()).to.be.equal(newInvestPct);
+      expect(await vault.investPct()).to.be.equal(newInvestPct);
     });
   });
 
@@ -503,7 +503,7 @@ describe("Vault", () => {
 
     it("moves the funds to the strategy", async () => {
       await vault.connect(owner).setStrategy(strategy.address);
-      await vault.connect(owner).setInvestPerc("8000");
+      await vault.connect(owner).setInvestPct("8000");
       await addYieldToVault("100");
 
       await vault.connect(owner).updateInvested();
@@ -515,7 +515,7 @@ describe("Vault", () => {
 
     it("emits an event", async () => {
       await vault.connect(owner).setStrategy(strategy.address);
-      await vault.connect(owner).setInvestPerc("8000");
+      await vault.connect(owner).setInvestPct("8000");
       await addYieldToVault("100");
 
       const tx = await vault.connect(owner).updateInvested();
@@ -534,7 +534,7 @@ describe("Vault", () => {
 
     it("takes into account the invested amount", async () => {
       await vault.connect(owner).setStrategy(strategy.address);
-      await vault.connect(owner).setInvestPerc("9000");
+      await vault.connect(owner).setInvestPct("9000");
       await addYieldToVault("100");
       await underlying.mint(strategy.address, parseUnits("100"));
 
@@ -543,7 +543,7 @@ describe("Vault", () => {
 
     it("returns zero if invested funds is greater or equal than available amount", async () => {
       await vault.connect(owner).setStrategy(strategy.address);
-      await vault.connect(owner).setInvestPerc("9000");
+      await vault.connect(owner).setInvestPct("9000");
       await addYieldToVault("10");
       await underlying.mint(strategy.address, parseUnits("100"));
 
