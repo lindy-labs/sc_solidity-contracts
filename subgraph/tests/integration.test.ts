@@ -523,6 +523,7 @@ test("handleDepositBurned removes a Deposit by marking as burned", () => {
   handleDepositBurned(event);
 
   assert.fieldEquals("Deposit", "1", "burned", "true");
+  assert.fieldEquals("Foundation", "1", "amountDeposited", "0");
 });
 
 test("handleYieldClaimed reduces shares from Deposits and creates Donations", () => {
