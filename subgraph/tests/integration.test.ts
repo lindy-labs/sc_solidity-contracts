@@ -344,14 +344,14 @@ test("handleTreasuryUpdated updates the treasury", () => {
   event.parameters.push(treasury);
 
   // create vault
-  const vault = new Vault(mockEvent.address.toString());
+  const vault = new Vault(mockEvent.address.toHexString());
   vault.save();
 
   handleTreasuryUpdated(event);
 
   assert.fieldEquals(
     "Vault",
-    mockEvent.address.toString(),
+    mockEvent.address.toHexString(),
     "treasury",
     MOCK_ADDRESS_1
   );
@@ -434,7 +434,7 @@ test("handleDepositMinted creates a Deposit", () => {
   );
   event.parameters = new Array();
 
-  const vault = new Vault(mockEvent.address.toString());
+  const vault = new Vault(mockEvent.address.toHexString());
   vault.save();
 
   const idParam = newI32("id", 1);
@@ -498,11 +498,11 @@ test("handleDepositBurned removes a Deposit by marking as burned", () => {
   deposit.foundation = "1";
   deposit.save();
 
-  const vault = new Vault(mockEvent.address.toString());
+  const vault = new Vault(mockEvent.address.toHexString());
   vault.save();
 
   const foundation = new Foundation("1");
-  foundation.vault = mockEvent.address.toString();
+  foundation.vault = mockEvent.address.toHexString();
   foundation.save();
 
   const event = new DepositBurned(
@@ -536,19 +536,19 @@ test("handleYieldClaimed reduces shares from Deposits and creates Donations", ()
   createDeposit("2", 100, false, "1", "1", 1, 100);
 
   // Create vault
-  const vault = new Vault(mockEvent.address.toString());
+  const vault = new Vault(mockEvent.address.toHexString());
   vault.treasury = Address.fromString(TREASURY_ADDRESS);
   vault.save();
 
   // Create claimer
   const claimer = new Claimer("1");
-  claimer.vault = mockEvent.address.toString();
+  claimer.vault = mockEvent.address.toHexString();
   claimer.depositsIds = ["1", "2"];
   claimer.save();
 
   // Create foundation
   const foundation = new Foundation("1");
-  foundation.vault = mockEvent.address.toString();
+  foundation.vault = mockEvent.address.toHexString();
   foundation.save();
 
   const event = new YieldClaimed(
@@ -589,19 +589,19 @@ test("handleYieldClaimed takes the performance fee into account", () => {
   createDeposit("2", 100, false, "1", "1", 1, 100);
 
   // Create vault
-  const vault = new Vault(mockEvent.address.toString());
+  const vault = new Vault(mockEvent.address.toHexString());
   vault.treasury = Address.fromString(TREASURY_ADDRESS);
   vault.save();
 
   // Create claimer
   const claimer = new Claimer("1");
-  claimer.vault = mockEvent.address.toString();
+  claimer.vault = mockEvent.address.toHexString();
   claimer.depositsIds = ["1", "2"];
   claimer.save();
 
   // Create foundation
   const foundation = new Foundation("1");
-  foundation.vault = mockEvent.address.toString();
+  foundation.vault = mockEvent.address.toHexString();
   foundation.save();
 
   const event = new YieldClaimed(
@@ -644,19 +644,19 @@ test("handleYieldClaimed doesn't create donations if the deposits are not to the
   createDeposit("2", 100, false, "1", "1", 1, 100);
 
   // Create vault
-  const vault = new Vault(mockEvent.address.toString());
+  const vault = new Vault(mockEvent.address.toHexString());
   vault.treasury = Address.fromString(TREASURY_ADDRESS);
   vault.save();
 
   // Create claimer
   const claimer = new Claimer("1");
-  claimer.vault = mockEvent.address.toString();
+  claimer.vault = mockEvent.address.toHexString();
   claimer.depositsIds = ["1", "2"];
   claimer.save();
 
   // Create foundation
   const foundation = new Foundation("1");
-  foundation.vault = mockEvent.address.toString();
+  foundation.vault = mockEvent.address.toHexString();
   foundation.save();
 
   const event = new YieldClaimed(
@@ -693,17 +693,17 @@ test("handleYieldClaimed handles scenarios where only one of the deposits genera
   createDeposit("1", 50, false, "1", "1", 1, 50);
   createDeposit("2", 100, false, "1", "1", 1, 50);
 
-  const vault = new Vault(mockEvent.address.toString());
+  const vault = new Vault(mockEvent.address.toHexString());
   vault.treasury = Address.fromString(TREASURY_ADDRESS);
   vault.save();
 
   const claimer = new Claimer("1");
-  claimer.vault = mockEvent.address.toString();
+  claimer.vault = mockEvent.address.toHexString();
   claimer.depositsIds = ["1", "2"];
   claimer.save();
 
   const foundation = new Foundation("1");
-  foundation.vault = mockEvent.address.toString();
+  foundation.vault = mockEvent.address.toHexString();
   foundation.save();
 
   const event = new YieldClaimed(
@@ -739,17 +739,17 @@ test("handleYieldClaimed handles scenarios where the yield is not proportional t
   createDeposit("1", 50, false, "1", "1", 1, 50);
   createDeposit("2", 100, false, "1", "1", 1, 50);
 
-  const vault = new Vault(mockEvent.address.toString());
+  const vault = new Vault(mockEvent.address.toHexString());
   vault.treasury = Address.fromString(TREASURY_ADDRESS);
   vault.save();
 
   const claimer = new Claimer("1");
-  claimer.vault = mockEvent.address.toString();
+  claimer.vault = mockEvent.address.toHexString();
   claimer.depositsIds = ["1", "2"];
   claimer.save();
 
   const foundation = new Foundation("1");
-  foundation.vault = mockEvent.address.toString();
+  foundation.vault = mockEvent.address.toHexString();
   foundation.save();
 
   const event = new YieldClaimed(
