@@ -92,4 +92,8 @@ func.id = "fixtures";
 func.tags = ["fixtures"];
 func.dependencies = ["vaults", "strategies"];
 
+// don't deploy to live & testnet
+func.skip = async (hre) =>
+  hre.network.config.chainId === 1 || hre.network.config.chainId === 3;
+
 export default func;
