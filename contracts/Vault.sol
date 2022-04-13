@@ -67,7 +67,7 @@ contract Vault is
     IERC20 public override(IVault) underlying;
 
     /// @inheritdoc IVault
-    uint16 public override(IVault) investPerc;
+    uint16 public override(IVault) investPct;
 
     /// @inheritdoc IVault
     uint64 public immutable override(IVault) minLockPeriod;
@@ -114,7 +114,7 @@ contract Vault is
     /**
      * @param _underlying Underlying ERC20 token to use.
      * @param _minLockPeriod Minimum lock period to deposit
-     * @param _investPerc Percentage of the total underlying to invest in the strategy
+     * @param _investPct Percentage of the total underlying to invest in the strategy
      * @param _treasury Treasury address to collect performance fee
      * @param _owner Vault admin address
      * @param _perfFeePct Performance fee percentage
@@ -124,17 +124,17 @@ contract Vault is
     constructor(
         IERC20 _underlying,
         uint64 _minLockPeriod,
-        uint16 _investPerc,
+        uint16 _investPct,
         address _treasury,
         address _owner,
         uint16 _perfFeePct,
         uint16 _investmentFeeEstimatePct,
         SwapPoolParam[] memory _swapPools
     ) {
-        require(_investPerc.validPerc(), "Vault: invalid investPerc");
-        require(_perfFeePct.validPerc(), "Vault: invalid performance fee");
+        require(_investPct.validPct(), "Vault: invalid investPct");
+        require(_perfFeePct.validPct(), "Vault: invalid performance fee");
         require(
-            _investmentFeeEstimatePct.validPerc(),
+            _investmentFeeEstimatePct.validPct(),
             "Vault: invalid investment fee"
         );
         require(
@@ -152,7 +152,7 @@ contract Vault is
         _setupRole(INVESTOR_ROLE, _owner);
         _setupRole(SETTINGS_ROLE, _owner);
 
-        investPerc = _investPerc;
+        investPct = _investPct;
         underlying = _underlying;
         treasury = _treasury;
         minLockPeriod = _minLockPeriod;
@@ -217,7 +217,7 @@ contract Vault is
             totalUnderlyingMinusSponsored()
         );
 
-        perfFee = sharesAmount.percOf(perfFeePct);
+        perfFee = sharesAmount.pctOf(perfFeePct);
         claimableYield = sharesAmount - perfFee;
     }
 
@@ -258,7 +258,8 @@ contract Vault is
             previousTotalUnderlying,
             newUnderlyingAmount,
             lockedUntil,
-            _params.claims
+            _params.claims,
+            _params.name
         );
     }
 
@@ -304,7 +305,7 @@ contract Vault is
     }
 
     function investableAmount() public view returns (uint256) {
-        uint256 maxInvestableAssets = totalUnderlying().percOf(investPerc);
+        uint256 maxInvestableAssets = totalUnderlying().pctOf(investPct);
 
         uint256 alreadyInvested = strategy.investedAssets();
 
@@ -428,16 +429,16 @@ contract Vault is
     //
 
     /// @inheritdoc IVaultSettings
-    function setInvestPerc(uint16 _investPct)
+    function setInvestPct(uint16 _investPct)
         external
         override(IVaultSettings)
         onlyRole(SETTINGS_ROLE)
     {
-        require(PercentMath.validPerc(_investPct), "Vault: invalid investPerc");
+        require(PercentMath.validPct(_investPct), "Vault: invalid investPct");
 
         emit InvestPctUpdated(_investPct);
 
-        investPerc = _investPct;
+        investPct = _investPct;
     }
 
     /// @inheritdoc IVaultSettings
@@ -461,7 +462,7 @@ contract Vault is
         onlyRole(SETTINGS_ROLE)
     {
         require(
-            PercentMath.validPerc(_perfFeePct),
+            PercentMath.validPct(_perfFeePct),
             "Vault: invalid performance fee"
         );
         perfFeePct = _perfFeePct;
@@ -495,7 +496,7 @@ contract Vault is
         override(IVaultSettings)
         onlyRole(SETTINGS_ROLE)
     {
-        require(pct.validPerc(), "Vault: invalid investment fee");
+        require(pct.validPct(), "Vault: invalid investment fee");
 
         investmentFeeEstimatePct = pct;
         emit InvestmentFeeEstimatePctUpdated(pct);
@@ -654,7 +655,8 @@ contract Vault is
         uint256 _previousTotalUnderlying,
         uint256 _amount,
         uint64 _lockedUntil,
-        ClaimParams[] calldata claims
+        ClaimParams[] calldata claims,
+        string calldata _name
     ) internal returns (uint256[] memory) {
         CreateDepositLocals memory locals = CreateDepositLocals({
             totalShares: totalShares,
@@ -674,7 +676,7 @@ contract Vault is
             // of relying on percentages
             uint256 localAmount = i == locals.claimsLen - 1
                 ? _amount - locals.accumulatedAmount
-                : _amount.percOf(data.pct);
+                : _amount.pctOf(data.pct);
 
             result[i] = _createClaim(
                 locals.groupId,
@@ -682,14 +684,15 @@ contract Vault is
                 _lockedUntil,
                 data,
                 locals.totalShares,
-                locals.totalUnderlying
+                locals.totalUnderlying,
+                _name
             );
             locals.accumulatedPct += data.pct;
             locals.accumulatedAmount += localAmount;
         }
 
         require(
-            locals.accumulatedPct.is100Perc(),
+            locals.accumulatedPct.is100Pct(),
             "Vault: claims don't add up to 100%"
         );
 
@@ -698,50 +701,62 @@ contract Vault is
         return result;
     }
 
+    /**
+     * @dev `_createClaim` declares too many locals
+     * We move some of them to this struct to fix the problem
+     */
+    struct CreateClaimLocals {
+        uint256 newShares;
+        uint256 claimerId;
+        uint256 tokenId;
+    }
+
     function _createClaim(
         uint256 _depositGroupId,
         uint256 _amount,
         uint64 _lockedUntil,
         ClaimParams memory _claim,
         uint256 _localTotalShares,
-        uint256 _localTotalPrincipal
+        uint256 _localTotalPrincipal,
+        string calldata _name
     ) internal returns (uint256) {
-        uint256 newShares = _computeShares(
-            _amount,
-            _localTotalShares,
-            _localTotalPrincipal
-        );
+        CreateClaimLocals memory locals = CreateClaimLocals({
+            newShares: _computeShares(
+                _amount,
+                _localTotalShares,
+                _localTotalPrincipal
+            ),
+            claimerId: claimers.mint(_claim.beneficiary),
+            tokenId: depositors.mint(msg.sender)
+        });
 
-        uint256 claimerId = claimers.mint(_claim.beneficiary);
+        claimer[locals.claimerId].totalShares += locals.newShares;
+        claimer[locals.claimerId].totalPrincipal += _amount;
 
-        claimer[claimerId].totalShares += newShares;
-        claimer[claimerId].totalPrincipal += _amount;
-
-        totalShares += newShares;
+        totalShares += locals.newShares;
         totalPrincipal += _amount;
 
-        uint256 tokenId = depositors.mint(msg.sender);
-
-        deposits[tokenId] = Deposit(
+        deposits[locals.tokenId] = Deposit(
             _amount,
-            claimerId,
+            locals.claimerId,
             _lockedUntil,
-            newShares
+            locals.newShares
         );
 
         emit DepositMinted(
-            tokenId,
+            locals.tokenId,
             _depositGroupId,
             _amount,
-            newShares,
+            locals.newShares,
             msg.sender,
             _claim.beneficiary,
-            claimerId,
+            locals.claimerId,
             _lockedUntil,
-            _claim.data
+            _claim.data,
+            _name
         );
 
-        return tokenId;
+        return locals.tokenId;
     }
 
     /**
@@ -912,7 +927,7 @@ contract Vault is
         view
         returns (uint256)
     {
-        return _amount - _amount.percOf(investmentFeeEstimatePct);
+        return _amount - _amount.pctOf(investmentFeeEstimatePct);
     }
 
     function sharesOf(uint256 claimerId) external view returns (uint256) {

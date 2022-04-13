@@ -19,6 +19,7 @@ interface IVault {
         uint64 lockDuration;
         uint256 amount;
         ClaimParams[] claims;
+        string name;
     }
 
     struct Deposit {
@@ -50,7 +51,8 @@ interface IVault {
         address indexed claimer,
         uint256 claimerId,
         uint64 lockedUntil,
-        bytes data
+        bytes data,
+        string name
     );
 
     event DepositBurned(uint256 indexed id, uint256 shares, address indexed to);
@@ -86,7 +88,7 @@ interface IVault {
     /**
      * Percentage of the total underlying to invest in the strategy
      */
-    function investPerc() external view returns (uint16);
+    function investPct() external view returns (uint16);
 
     /**
      * Underlying ERC20 token accepted by the vault

@@ -9,8 +9,8 @@ import {
   DepositBurned,
   DepositMinted,
   YieldClaimed,
-  TreasuryUpdated,
 } from "../types/Vault/IVault";
+import { TreasuryUpdated } from "../types/Vault/IVaultSettings";
 import { Sponsored, Unsponsored } from "../types/Vault/IVaultSponsoring";
 import {
   Sponsor,
@@ -86,22 +86,29 @@ export function handleYieldClaimed(event: YieldClaimed): void {
 }
 
 export function handleDepositMinted(event: DepositMinted): void {
-  const vaultId = event.address.toString();
+  const vaultId = event.address.toHexString();
   const foundationId = vaultId + "-" + event.params.groupId.toString();
   const depositId = event.params.id.toString();
   const claimerId = event.params.claimerId.toString();
 
   createVault(vaultId);
   const vault = Vault.load(vaultId)!;
+  vault.totalShares = vault.totalShares.plus(event.params.shares);
+  log.debug("mint, adding shares {}", [event.params.shares.toString()]);
+
   let claimer = Claimer.load(claimerId);
 
   if (!claimer) {
     claimer = new Claimer(claimerId);
-
     claimer.owner = event.params.claimer;
     claimer.claimed = BigInt.fromString("0");
     claimer.depositsIds = [];
   }
+
+  claimer.principal = claimer.principal.plus(event.params.amount);
+  claimer.shares = claimer.shares.plus(event.params.shares);
+  claimer.vault = vaultId;
+  claimer.depositsIds = claimer.depositsIds.concat([depositId]);
 
   let foundation = Foundation.load(foundationId);
   if (foundation == null) {
@@ -110,14 +117,14 @@ export function handleDepositMinted(event: DepositMinted): void {
     foundation.vault = vaultId;
     foundation.owner = event.params.depositor;
     foundation.createdAt = event.block.timestamp;
+    foundation.lockedUntil = event.params.lockedUntil;
+    foundation.amountDeposited = BigInt.fromString("0");
+    foundation.name = event.params.name;
   }
 
-  claimer.principal = claimer.principal.plus(event.params.amount);
-  claimer.shares = claimer.shares.plus(event.params.shares);
-  claimer.vault = vaultId;
-  claimer.depositsIds = claimer.depositsIds.concat([depositId]);
-  vault.totalShares = vault.totalShares.plus(event.params.shares);
-  log.debug("mint, adding shares {}", [event.params.shares.toString()]);
+  foundation.amountDeposited = foundation.amountDeposited.plus(
+    event.params.amount
+  );
 
   const deposit = new Deposit(depositId);
 
@@ -137,7 +144,7 @@ export function handleDepositMinted(event: DepositMinted): void {
 }
 
 export function handleTreasuryUpdated(event: TreasuryUpdated): void {
-  const vaultId = event.address.toString();
+  const vaultId = event.address.toHexString();
 
   createVault(vaultId);
   const vault = Vault.load(vaultId)!;
@@ -167,6 +174,8 @@ export function handleDepositBurned(event: DepositBurned): void {
   deposit.burned = true;
   vault.totalShares = vault.totalShares.minus(event.params.shares);
   log.debug("burn, subbing shares {}", [event.params.shares.toString()]);
+
+  foundation.amountDeposited = foundation.amountDeposited.minus(deposit.amount);
 
   claimer.save();
   deposit.save();
