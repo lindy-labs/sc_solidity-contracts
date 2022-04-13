@@ -885,7 +885,7 @@ describe("Vault", () => {
           1,
           TWO_WEEKS.add(await getLastBlockTimestamp()),
           "0x00",
-          "Deposit - Emits Events",
+          "Deposit - Emits Events"
         );
 
       await expect(tx)
@@ -900,7 +900,7 @@ describe("Vault", () => {
           2,
           TWO_WEEKS.add(await getLastBlockTimestamp()),
           ethers.utils.hexlify(123),
-          "Deposit - Emits Events",
+          "Deposit - Emits Events"
         );
     });
 
@@ -931,7 +931,7 @@ describe("Vault", () => {
           1,
           TWO_WEEKS.add(await getLastBlockTimestamp()),
           "0x00",
-          "Deposit - Emits Different groupId",
+          "Deposit - Emits Different groupId"
         );
 
       await expect(tx)
@@ -946,7 +946,7 @@ describe("Vault", () => {
           2,
           TWO_WEEKS.add(await getLastBlockTimestamp()),
           "0x00",
-          "Deposit - Emits Different groupId",
+          "Deposit - Emits Different groupId"
         );
     });
 
