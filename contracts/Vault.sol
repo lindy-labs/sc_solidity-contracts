@@ -291,7 +291,17 @@ contract Vault is
     {
         require(_to != address(0), "Vault: destination address is 0x");
 
-        _withdraw(_to, _ids, false);
+        _withdrawAll(_to, _ids, false);
+    }
+
+    function withdrawPartial(
+        address _to,
+        uint256[] calldata _ids,
+        uint256 calldata _amounts
+    ) external nonReentrant {
+        require(_to != address(0), "Vault: destination address is 0x");
+
+        _withdrawPartial(_to, _ids, _amounts);
     }
 
     /// @inheritdoc IVault
@@ -553,7 +563,7 @@ contract Vault is
      * @param _ids Array with the ids of the deposits.
      * @param _force Boolean to specify if the action should be perfomed when there's loss.
      */
-    function _withdraw(
+    function _withdrawAll(
         address _to,
         uint256[] calldata _ids,
         bool _force
@@ -564,16 +574,41 @@ contract Vault is
         uint256 idsLen = _ids.length;
 
         for (uint256 i; i < idsLen; ++i) {
-            amount += _withdrawDeposit(
+            uint256 depositAmount = deposits[_ids[i]].amount;
+
+            amount += _withdrawSingle(
                 _ids[i],
                 localTotalShares,
                 localTotalPrincipal,
                 _to,
-                _force
+                _force,
+                amount
             );
         }
 
         underlying.safeTransfer(_to, amount);
+    }
+
+    function _withdrawPartial(
+        address _to,
+        uint256[] calldata _ids,
+        uint256[] calldata _amounts
+    ) internal {
+        uint256 localTotalShares = totalShares;
+        uint256 localTotalPrincipal = totalUnderlyingMinusSponsored();
+        uint256 amount;
+        uint256 idsLen = _ids.length;
+
+        for (uint256 i; i < idsLen; ++i) {
+            amount += _withdrawSingle(
+                _ids[i],
+                localTotalShares,
+                localTotalPrincipal,
+                _to,
+                false,
+                _amounts[i]
+            );
+        }
     }
 
     /**
@@ -775,12 +810,13 @@ contract Vault is
      *
      * @return the amount to withdraw.
      */
-    function _withdrawDeposit(
+    function _withdrawSingle(
         uint256 _tokenId,
         uint256 _totalShares,
         uint256 _totalUnderlyingMinusSponsored,
         address _to,
-        bool _force
+        bool _force,
+        uint256 _amount
     ) internal returns (uint256) {
         require(
             depositors.ownerOf(_tokenId) == msg.sender,
@@ -804,14 +840,14 @@ contract Vault is
         uint256 claimerShares = claimer[claimerId].totalShares;
         uint256 claimerPrincipal = claimer[claimerId].totalPrincipal;
 
-        uint256 depositShares = _computeShares(
-            depositAmount,
+        uint256 sharesToBurn = _computeShares(
+            _amount
             _totalShares,
             _totalUnderlyingMinusSponsored
         );
 
-        bool lostMoney = depositShares > depositInitialShares ||
-            depositShares > claimerShares;
+        bool lostMoney = sharesToBurn > depositInitialShares ||
+            sharesToBurn > claimerShares;
 
         if (_force && lostMoney) {
             // When there's a loss it means that a deposit is now worth more
@@ -819,7 +855,7 @@ contract Vault is
             // depositor to withdraw all her money. Instead, the depositor gets
             // a number of shares that are equivalent to the percentage of this
             // deposit in the total deposits for this claimer.
-            depositShares = (depositAmount * claimerShares) / claimerPrincipal;
+            sharesToBurn = (_amount * claimerShares) / claimerPrincipal;
         } else {
             require(
                 lostMoney == false,
@@ -827,19 +863,22 @@ contract Vault is
             );
         }
 
-        claimer[claimerId].totalShares -= depositShares;
-        claimer[claimerId].totalPrincipal -= depositAmount;
+        claimer[claimerId].totalShares -= sharesToBurn;
+        claimer[claimerId].totalPrincipal -= _amount;
 
-        totalShares -= depositShares;
+        deposits[_tokenId].shares -= sharesToBurn;
+        deposits[_tokenId].amount -= _amount;
+
+        totalShares -= sharesToBurn;
         totalPrincipal -= depositAmount;
 
         depositors.burn(_tokenId);
 
-        emit DepositBurned(_tokenId, depositShares, _to);
+        emit DepositBurned(_tokenId, sharesToBurn, _to);
 
         return
             _computeAmount(
-                depositShares,
+                sharesToBurn,
                 _totalShares,
                 _totalUnderlyingMinusSponsored
             );
