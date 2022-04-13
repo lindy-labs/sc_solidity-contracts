@@ -26,9 +26,9 @@ import { Sponsored, Unsponsored } from "../src/types/Vault/IVaultSponsoring";
 import {
   DepositBurned,
   DepositMinted,
-  TreasuryUpdated,
   YieldClaimed,
 } from "../src/types/Vault/IVault";
+import { TreasuryUpdated } from "../src/types/Vault/IVaultSettings";
 import {
   Vault,
   Deposit,
@@ -45,7 +45,7 @@ import {
   InitRedeemStable,
   RearrangeDepositOperation,
   RearrangeRedeemOperation,
-} from "../src/types/Strategy/AnchorUSTStrategy";
+} from "../src/types/Strategy/AnchorStrategy";
 
 const MOCK_ADDRESS_1 =
   "0xC80B3caAd6d2DE80Ac76a41d5F0072E36D2519Cd".toLowerCase();
