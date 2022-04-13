@@ -5,7 +5,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
-import {AnchorUSTStrategy} from "../../strategy/anchor/AnchorUSTStrategy.sol";
+import {AnchorStrategy} from "../../strategy/anchor/AnchorStrategy.sol";
 import {IExchangeRateFeeder} from "../../strategy/anchor/IExchangeRateFeeder.sol";
 
 /**
@@ -13,7 +13,7 @@ import {IExchangeRateFeeder} from "../../strategy/anchor/IExchangeRateFeeder.sol
  * Since aUST/UST chainlink does not exist on testnet, we use EthAnchorExchangeRateFeeder
  * to get aUST/UST exchange rate.
  */
-contract TestAnchorUSTStrategy is AnchorUSTStrategy {
+contract TestAnchorUSTStrategy is AnchorStrategy {
     IExchangeRateFeeder public exchangeRateFeeder;
 
     /**
@@ -29,7 +29,7 @@ contract TestAnchorUSTStrategy is AnchorUSTStrategy {
         IERC20 _aUstToken,
         address _owner
     )
-        AnchorUSTStrategy(
+        AnchorStrategy(
             _vault,
             _ethAnchorRouter,
             _aUstToUstFeed,

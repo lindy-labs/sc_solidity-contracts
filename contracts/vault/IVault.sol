@@ -7,6 +7,7 @@ interface IVault {
     //
     // Structs
     //
+
     struct ClaimParams {
         uint16 pct;
         address beneficiary;
@@ -18,6 +19,23 @@ interface IVault {
         uint64 lockDuration;
         uint256 amount;
         ClaimParams[] claims;
+        string name;
+    }
+
+    struct Deposit {
+        /// amount of the deposit
+        uint256 amount;
+        /// wallet of the claimer
+        uint256 claimerId;
+        /// when can the deposit be withdrawn
+        uint256 lockedUntil;
+        /// the number of shares issued for this deposit
+        uint256 shares;
+    }
+
+    struct Claimer {
+        uint256 totalPrincipal;
+        uint256 totalShares;
     }
 
     //
@@ -33,20 +51,13 @@ interface IVault {
         address indexed claimer,
         uint256 claimerId,
         uint64 lockedUntil,
-        bytes data
+        bytes data,
+        string name
     );
 
     event DepositBurned(uint256 indexed id, uint256 shares, address indexed to);
 
-    event InvestPercentageUpdated(uint256 percentage);
-
     event Invested(uint256 amount);
-
-    event StrategyUpdated(address indexed strategy);
-
-    event TreasuryUpdated(address indexed treasury);
-
-    event PerfFeePctUpdated(uint16 pct);
 
     event YieldClaimed(
         uint256 claimerId,
@@ -64,10 +75,8 @@ interface IVault {
 
     /**
      * Update the invested amount;
-     *
-     * @param data exteranl data to invest underlying
      */
-    function updateInvested(bytes calldata data) external;
+    function updateInvested() external;
 
     /**
      * Calculates underlying investable amount.
@@ -77,18 +86,9 @@ interface IVault {
     function investableAmount() external view returns (uint256);
 
     /**
-     * Update invest percentage
-     *
-     * Emits {InvestPercentageUpdated} event
-     *
-     * @param _investPct the new invest percentage
-     */
-    function setInvestPerc(uint16 _investPct) external;
-
-    /**
      * Percentage of the total underlying to invest in the strategy
      */
-    function investPerc() external view returns (uint16);
+    function investPct() external view returns (uint16);
 
     /**
      * Underlying ERC20 token accepted by the vault
@@ -166,24 +166,7 @@ interface IVault {
     function forceWithdraw(address _to, uint256[] calldata _ids) external;
 
     /**
-     * Changes the strategy used by the vault.
-     *
-     * @notice if there is invested funds in previous strategy, it is not allowed to set new strategy.
-     * @param _strategy the new strategy's address.
+     * Withdraws any pending performance fee amount back to the treasury
      */
-    function setStrategy(address _strategy) external;
-
-    /**
-     * Changes the treasury used by the vault.
-     *
-     * @param _treasury the new strategy's address.
-     */
-    function setTreasury(address _treasury) external;
-
-    /**
-     * Changes the performance fee
-     *
-     * @param _perfFeePct The new performance fee %
-     */
-    function setPerfFeePct(uint16 _perfFeePct) external;
+    function withdrawPerformanceFee() external;
 }

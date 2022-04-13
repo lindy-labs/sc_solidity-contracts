@@ -53,11 +53,13 @@ describe("Vault", () => {
   );
   const TREASURY = generateNewAddress();
   const PERFORMANCE_FEE_PCT = BigNumber.from("200");
+  const INVESTMENT_FEE_PCT = BigNumber.from("200");
   const INVEST_PCT = BigNumber.from("9000");
   const DENOMINATOR = BigNumber.from("10000");
 
   const DEFAULT_ADMIN_ROLE = constants.HashZero;
   const INVESTOR_ROLE = utils.keccak256(utils.toUtf8Bytes("INVESTOR_ROLE"));
+  const SETTINGS_ROLE = utils.keccak256(utils.toUtf8Bytes("SETTINGS_ROLE"));
 
   const fixtures = deployments.createFixture(async ({ deployments }) => {
     await deployments.fixture(["vaults"]);
@@ -101,6 +103,7 @@ describe("Vault", () => {
       TREASURY,
       owner.address,
       PERFORMANCE_FEE_PCT,
+      INVESTMENT_FEE_PCT,
       []
     );
 
@@ -202,6 +205,7 @@ describe("Vault", () => {
           TREASURY,
           owner.address,
           PERFORMANCE_FEE_PCT,
+          INVESTMENT_FEE_PCT,
           []
         )
       ).to.be.revertedWith("Vault: underlying cannot be 0x0");
@@ -216,6 +220,7 @@ describe("Vault", () => {
           TREASURY,
           owner.address,
           PERFORMANCE_FEE_PCT,
+          INVESTMENT_FEE_PCT,
           []
         )
       ).to.be.revertedWith("Vault: invalid minLockPeriod");
@@ -230,6 +235,7 @@ describe("Vault", () => {
           TREASURY,
           owner.address,
           PERFORMANCE_FEE_PCT,
+          INVESTMENT_FEE_PCT,
           []
         )
       ).to.be.revertedWith("Vault: invalid minLockPeriod");
@@ -244,9 +250,10 @@ describe("Vault", () => {
           TREASURY,
           owner.address,
           PERFORMANCE_FEE_PCT,
+          INVESTMENT_FEE_PCT,
           []
         )
-      ).to.be.revertedWith("Vault: invalid investPerc");
+      ).to.be.revertedWith("Vault: invalid investPct");
     });
 
     it("reverts if performance fee percentage is greater than 100%", async () => {
@@ -258,6 +265,7 @@ describe("Vault", () => {
           TREASURY,
           owner.address,
           DENOMINATOR.add(BigNumber.from("1")),
+          INVESTMENT_FEE_PCT,
           []
         )
       ).to.be.revertedWith("Vault: invalid performance fee");
@@ -272,6 +280,7 @@ describe("Vault", () => {
           constants.AddressZero,
           owner.address,
           PERFORMANCE_FEE_PCT,
+          INVESTMENT_FEE_PCT,
           []
         )
       ).to.be.revertedWith("Vault: treasury cannot be 0x0");
@@ -286,6 +295,7 @@ describe("Vault", () => {
           TREASURY,
           constants.AddressZero,
           PERFORMANCE_FEE_PCT,
+          INVESTMENT_FEE_PCT,
           []
         )
       ).to.be.revertedWith("Vault: owner cannot be 0x0");
@@ -301,7 +311,7 @@ describe("Vault", () => {
 
       expect(await vault.underlying()).to.be.equal(underlying.address);
       expect(await vault.minLockPeriod()).to.be.equal(TWO_WEEKS);
-      expect(await vault.investPerc()).to.be.equal(INVEST_PCT);
+      expect(await vault.investPct()).to.be.equal(INVEST_PCT);
       expect(await vault.treasury()).to.be.equal(TREASURY);
       expect(await vault.perfFeePct()).to.be.equal(PERFORMANCE_FEE_PCT);
 
@@ -314,7 +324,7 @@ describe("Vault", () => {
     it("reverts if msg.sender is not admin", async () => {
       await expect(
         vault.connect(alice).setTreasury(TREASURY)
-      ).to.be.revertedWith(getRoleErrorMsg(alice, DEFAULT_ADMIN_ROLE));
+      ).to.be.revertedWith(getRoleErrorMsg(alice, SETTINGS_ROLE));
     });
 
     it("reverts if treasury is address(0)", async () => {
@@ -335,7 +345,7 @@ describe("Vault", () => {
   describe("setPerfFeePct", () => {
     it("reverts if msg.sender is not admin", async () => {
       await expect(vault.connect(alice).setPerfFeePct(100)).to.be.revertedWith(
-        getRoleErrorMsg(alice, DEFAULT_ADMIN_ROLE)
+        getRoleErrorMsg(alice, SETTINGS_ROLE)
       );
     });
 
@@ -354,27 +364,55 @@ describe("Vault", () => {
     });
   });
 
-  describe("setInvestPerc", () => {
+  describe("setInvestPct", () => {
     it("reverts if msg.sender is not admin", async () => {
-      await expect(vault.connect(alice).setInvestPerc(100)).to.be.revertedWith(
-        getRoleErrorMsg(alice, DEFAULT_ADMIN_ROLE)
+      await expect(vault.connect(alice).setInvestPct(100)).to.be.revertedWith(
+        getRoleErrorMsg(alice, SETTINGS_ROLE)
       );
     });
 
     it("reverts if invest percentage is greater than 100%", async () => {
       await expect(
-        vault.connect(owner).setInvestPerc(DENOMINATOR.add(BigNumber.from("1")))
-      ).to.be.revertedWith("Vault: invalid investPerc");
+        vault.connect(owner).setInvestPct(DENOMINATOR.add(BigNumber.from("1")))
+      ).to.be.revertedWith("Vault: invalid investPct");
     });
 
-    it("change investPerc and emit InvestPercentageUpdated event", async () => {
+    it("change investPct and emit InvestPercentageUpdated event", async () => {
       const newInvestPct = 8000;
-      const tx = await vault.connect(owner).setInvestPerc(newInvestPct);
+      const tx = await vault.connect(owner).setInvestPct(newInvestPct);
+
+      await expect(tx).emit(vault, "InvestPctUpdated").withArgs(newInvestPct);
+      expect(await vault.investPct()).to.be.equal(newInvestPct);
+    });
+  });
+
+  describe("setInvestmentFeeEstimatePct", () => {
+    it("reverts if msg.sender is not admin", async () => {
+      await expect(
+        vault.connect(alice).setInvestmentFeeEstimatePct(100)
+      ).to.be.revertedWith(getRoleErrorMsg(alice, SETTINGS_ROLE));
+    });
+
+    it("reverts if invest percentage is greater than 100%", async () => {
+      await expect(
+        vault
+          .connect(owner)
+          .setInvestmentFeeEstimatePct(DENOMINATOR.add(BigNumber.from("1")))
+      ).to.be.revertedWith("Vault: invalid investment fee");
+    });
+
+    it("change investmentFeeEstimatePct and emit InvestPercentageUpdated event", async () => {
+      const newInvestmentFeeEstimatePct = 200;
+      const tx = await vault
+        .connect(owner)
+        .setInvestmentFeeEstimatePct(newInvestmentFeeEstimatePct);
 
       await expect(tx)
-        .emit(vault, "InvestPercentageUpdated")
-        .withArgs(newInvestPct);
-      expect(await vault.investPerc()).to.be.equal(newInvestPct);
+        .emit(vault, "InvestmentFeeEstimatePctUpdated")
+        .withArgs(newInvestmentFeeEstimatePct);
+      expect(await vault.investmentFeeEstimatePct()).to.be.equal(
+        newInvestmentFeeEstimatePct
+      );
     });
   });
 
@@ -442,15 +480,15 @@ describe("Vault", () => {
 
   describe("updateInvested", () => {
     it("reverts if msg.sender is not investor", async () => {
-      await expect(
-        vault.connect(alice).updateInvested("0x")
-      ).to.be.revertedWith(getRoleErrorMsg(alice, INVESTOR_ROLE));
+      await expect(vault.connect(alice).updateInvested()).to.be.revertedWith(
+        getRoleErrorMsg(alice, INVESTOR_ROLE)
+      );
     });
 
     it("reverts if strategy is not set", async () => {
-      await expect(
-        vault.connect(owner).updateInvested("0x")
-      ).to.be.revertedWith("Vault: strategy is not set");
+      await expect(vault.connect(owner).updateInvested()).to.be.revertedWith(
+        "Vault: strategy is not set"
+      );
     });
 
     it("reverts if no investable amount", async () => {
@@ -458,17 +496,17 @@ describe("Vault", () => {
       await addYieldToVault("10");
       await underlying.mint(strategy.address, parseUnits("100"));
 
-      await expect(
-        vault.connect(owner).updateInvested("0x")
-      ).to.be.revertedWith("Vault: nothing to invest");
+      await expect(vault.connect(owner).updateInvested()).to.be.revertedWith(
+        "Vault: nothing to invest"
+      );
     });
 
     it("moves the funds to the strategy", async () => {
       await vault.connect(owner).setStrategy(strategy.address);
-      await vault.connect(owner).setInvestPerc("8000");
+      await vault.connect(owner).setInvestPct("8000");
       await addYieldToVault("100");
 
-      await vault.connect(owner).updateInvested("0x");
+      await vault.connect(owner).updateInvested();
 
       expect(await underlying.balanceOf(strategy.address)).to.eq(
         parseUnits("80")
@@ -477,10 +515,10 @@ describe("Vault", () => {
 
     it("emits an event", async () => {
       await vault.connect(owner).setStrategy(strategy.address);
-      await vault.connect(owner).setInvestPerc("8000");
+      await vault.connect(owner).setInvestPct("8000");
       await addYieldToVault("100");
 
-      const tx = await vault.connect(owner).updateInvested("0x");
+      const tx = await vault.connect(owner).updateInvested();
 
       await expect(tx).to.emit(vault, "Invested").withArgs(parseUnits("80"));
     });
@@ -496,7 +534,7 @@ describe("Vault", () => {
 
     it("takes into account the invested amount", async () => {
       await vault.connect(owner).setStrategy(strategy.address);
-      await vault.connect(owner).setInvestPerc("9000");
+      await vault.connect(owner).setInvestPct("9000");
       await addYieldToVault("100");
       await underlying.mint(strategy.address, parseUnits("100"));
 
@@ -505,7 +543,7 @@ describe("Vault", () => {
 
     it("returns zero if invested funds is greater or equal than available amount", async () => {
       await vault.connect(owner).setStrategy(strategy.address);
-      await vault.connect(owner).setInvestPerc("9000");
+      await vault.connect(owner).setInvestPct("9000");
       await addYieldToVault("10");
       await underlying.mint(strategy.address, parseUnits("100"));
 
@@ -517,7 +555,7 @@ describe("Vault", () => {
     it("reverts if msg.sender is not admin", async () => {
       await expect(
         vault.connect(alice).setStrategy(strategy.address)
-      ).to.be.revertedWith(getRoleErrorMsg(alice, DEFAULT_ADMIN_ROLE));
+      ).to.be.revertedWith(getRoleErrorMsg(alice, SETTINGS_ROLE));
     });
 
     it("reverts if new strategy is address(0)", async () => {
@@ -536,6 +574,7 @@ describe("Vault", () => {
         TREASURY,
         owner.address,
         PERFORMANCE_FEE_PCT,
+        INVESTMENT_FEE_PCT,
         []
       );
 
@@ -829,6 +868,7 @@ describe("Vault", () => {
             .to(bob.address)
             .build(),
         ],
+        name: "Deposit - Emits Events",
       });
 
       const tx = await vault.connect(alice).deposit(params);
@@ -844,7 +884,8 @@ describe("Vault", () => {
           carol.address,
           1,
           TWO_WEEKS.add(await getLastBlockTimestamp()),
-          "0x00"
+          "0x00",
+          "Deposit - Emits Events"
         );
 
       await expect(tx)
@@ -858,7 +899,8 @@ describe("Vault", () => {
           bob.address,
           2,
           TWO_WEEKS.add(await getLastBlockTimestamp()),
-          ethers.utils.hexlify(123)
+          ethers.utils.hexlify(123),
+          "Deposit - Emits Events"
         );
     });
 
@@ -871,6 +913,7 @@ describe("Vault", () => {
           claimParams.percent(50).to(carol.address).build(),
           claimParams.percent(50).to(bob.address).build(),
         ],
+        name: "Deposit - Emits Different groupId",
       });
 
       await vault.connect(alice).deposit(params);
@@ -887,7 +930,8 @@ describe("Vault", () => {
           carol.address,
           1,
           TWO_WEEKS.add(await getLastBlockTimestamp()),
-          "0x00"
+          "0x00",
+          "Deposit - Emits Different groupId"
         );
 
       await expect(tx)
@@ -901,7 +945,8 @@ describe("Vault", () => {
           bob.address,
           2,
           TWO_WEEKS.add(await getLastBlockTimestamp()),
-          "0x00"
+          "0x00",
+          "Deposit - Emits Different groupId"
         );
     });
 

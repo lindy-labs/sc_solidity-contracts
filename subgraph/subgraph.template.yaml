@@ -26,8 +26,10 @@ dataSources:
           file: ../artifacts/contracts/vault/IVault.sol/IVault.json
         - name: IVaultSponsoring
           file: ../artifacts/contracts/vault/IVaultSponsoring.sol/IVaultSponsoring.json
+        - name: IVaultSettings
+          file: ../artifacts/contracts/vault/IVaultSettings.sol/IVaultSettings.json
       eventHandlers:
-        - event: DepositMinted(indexed uint256,uint256,uint256,uint256,indexed address,indexed address,uint256,uint64,bytes)
+        - event: DepositMinted(indexed uint256,uint256,uint256,uint256,indexed address,indexed address,uint256,uint64,bytes,string)
           handler: handleDepositMinted
         - event: DepositBurned(indexed uint256,uint256,indexed address)
           handler: handleDepositBurned
@@ -44,7 +46,7 @@ dataSources:
     kind: ethereum/contract
     network: {{network}}
     source:
-      abi: AnchorUSTStrategy
+      abi: AnchorStrategy
       {{#strategy}}
       address: "{{address}}"
       {{/strategy}}
@@ -57,8 +59,8 @@ dataSources:
       entities:
         - Operation
       abis:
-        - name: AnchorUSTStrategy
-          file: ../artifacts/contracts/strategy/anchor/AnchorUSTStrategy.sol/AnchorUSTStrategy.json
+        - name: AnchorStrategy
+          file: ../artifacts/contracts/strategy/anchor/AnchorStrategy.sol/AnchorStrategy.json
       eventHandlers:
         - event: InitDepositStable(indexed address,indexed uint256,uint256,uint256)
           handler: handleInitDeposit
