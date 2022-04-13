@@ -868,6 +868,7 @@ describe("Vault", () => {
             .to(bob.address)
             .build(),
         ],
+        name: "Deposit - Emits Events",
       });
 
       const tx = await vault.connect(alice).deposit(params);
@@ -883,7 +884,8 @@ describe("Vault", () => {
           carol.address,
           1,
           TWO_WEEKS.add(await getLastBlockTimestamp()),
-          "0x00"
+          "0x00",
+          "Deposit - Emits Events",
         );
 
       await expect(tx)
@@ -897,7 +899,8 @@ describe("Vault", () => {
           bob.address,
           2,
           TWO_WEEKS.add(await getLastBlockTimestamp()),
-          ethers.utils.hexlify(123)
+          ethers.utils.hexlify(123),
+          "Deposit - Emits Events",
         );
     });
 
@@ -910,6 +913,7 @@ describe("Vault", () => {
           claimParams.percent(50).to(carol.address).build(),
           claimParams.percent(50).to(bob.address).build(),
         ],
+        name: "Deposit - Emits Different groupId",
       });
 
       await vault.connect(alice).deposit(params);
@@ -926,7 +930,8 @@ describe("Vault", () => {
           carol.address,
           1,
           TWO_WEEKS.add(await getLastBlockTimestamp()),
-          "0x00"
+          "0x00",
+          "Deposit - Emits Different groupId",
         );
 
       await expect(tx)
@@ -940,7 +945,8 @@ describe("Vault", () => {
           bob.address,
           2,
           TWO_WEEKS.add(await getLastBlockTimestamp()),
-          "0x00"
+          "0x00",
+          "Deposit - Emits Different groupId",
         );
     });
 

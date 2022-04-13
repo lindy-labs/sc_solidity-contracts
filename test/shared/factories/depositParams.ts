@@ -12,6 +12,7 @@ interface DepositParams {
   inputToken: string;
   claims: ClaimParams[];
   lockDuration: BigNumberish;
+  name: string;
 }
 
 export const depositParams = Factory.define<DepositParams>(() => {
@@ -20,5 +21,6 @@ export const depositParams = Factory.define<DepositParams>(() => {
     inputToken: "0x0",
     claims: [claimParams.build()],
     lockDuration: ethers.BigNumber.from(time.duration.weeks(2).toNumber()), // 2 weeks
+    name: "Foundation name",
   };
 });
