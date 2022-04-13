@@ -294,16 +294,6 @@ contract Vault is
         _withdrawAll(_to, _ids, false);
     }
 
-    function withdrawPartial(
-        address _to,
-        uint256[] calldata _ids,
-        uint256 calldata _amounts
-    ) external nonReentrant {
-        require(_to != address(0), "Vault: destination address is 0x");
-
-        _withdrawPartial(_to, _ids, _amounts);
-    }
-
     /// @inheritdoc IVault
     function forceWithdraw(address _to, uint256[] calldata _ids)
         external
@@ -311,7 +301,17 @@ contract Vault is
     {
         require(_to != address(0), "Vault: destination address is 0x");
 
-        _withdraw(_to, _ids, true);
+        _withdrawAll(_to, _ids, true);
+    }
+
+    function partialWithdraw(
+        address _to,
+        uint256[] calldata _ids,
+        uint256[] calldata _amounts
+    ) external nonReentrant {
+        require(_to != address(0), "Vault: destination address is 0x");
+
+        _withdrawPartial(_to, _ids, _amounts);
     }
 
     function investableAmount() public view returns (uint256) {
@@ -840,15 +840,28 @@ contract Vault is
         uint256 claimerShares = claimer[claimerId].totalShares;
         uint256 claimerPrincipal = claimer[claimerId].totalPrincipal;
 
+        // how many shares we're actually burning will be equal to `depositShares` if
+        // it's a full withdrawal, but less if it's a partial withdrawal
         uint256 sharesToBurn = _computeShares(
-            _amount
+            _amount,
             _totalShares,
             _totalUnderlyingMinusSponsored
         );
 
-        bool lostMoney = sharesToBurn > depositInitialShares ||
-            sharesToBurn > claimerShares;
+        // total amount of shares this deposit is currently worth
+        // computed only to check if we're currently at a loss
+        uint256 depositShares = _computeShares(
+            depositAmount,
+            _totalShares,
+            _totalUnderlyingMinusSponsored
+        );
 
+        bool lostMoney = depositShares > depositInitialShares ||
+            depositShares > claimerShares;
+
+        // _force is only allowed in full withdrawals, not partials, so this will
+        // implicitly be false essentially preventing "partial withdrawals at a loss"
+        // which would mess up the whole math
         if (_force && lostMoney) {
             // When there's a loss it means that a deposit is now worth more
             // shares than before. In that scenario, we cannot allow the
