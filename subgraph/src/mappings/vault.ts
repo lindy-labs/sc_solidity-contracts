@@ -86,7 +86,7 @@ export function handleYieldClaimed(event: YieldClaimed): void {
 }
 
 export function handleDepositMinted(event: DepositMinted): void {
-  const vaultId = event.address.toString();
+  const vaultId = event.address.toHexString();
   const foundationId = vaultId + "-" + event.params.groupId.toString();
   const depositId = event.params.id.toString();
   const claimerId = event.params.claimerId.toString();
@@ -144,7 +144,7 @@ export function handleDepositMinted(event: DepositMinted): void {
 }
 
 export function handleTreasuryUpdated(event: TreasuryUpdated): void {
-  const vaultId = event.address.toString();
+  const vaultId = event.address.toHexString();
 
   createVault(vaultId);
   const vault = Vault.load(vaultId)!;
