@@ -2,6 +2,7 @@ import type { HardhatRuntimeEnvironment } from "hardhat/types";
 import type { DeployFunction } from "hardhat-deploy/types";
 
 import { getCurrentNetworkConfig } from "../scripts/deployConfigs";
+import { deployMockCurvePool } from "../deploy_helpers";
 
 const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   const { deployer } = await env.getNamedAccounts();
@@ -10,6 +11,15 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   const ust = await get("UST");
   const dai = await get("DAI");
   const usdc = await get("USDC");
+
+  // Deploy mock pool for ropsten only
+  if (env.network.config.chainId === 3) {
+    await deployMockCurvePool(env, "CurvePool-UST-3CRV", "UST", [
+      "DAI",
+      "USDC",
+    ]);
+  }
+
   const curvePool = await get("CurvePool-UST-3CRV");
 
   const {
