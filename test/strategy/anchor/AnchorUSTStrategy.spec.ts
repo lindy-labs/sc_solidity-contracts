@@ -916,6 +916,7 @@ describe("AnchorStrategy", () => {
         },
       ],
       lockDuration: TWO_WEEKS,
+      name: "Foundation name",
     });
   };
 

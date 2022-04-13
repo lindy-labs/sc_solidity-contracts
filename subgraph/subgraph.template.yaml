@@ -28,7 +28,7 @@ dataSources:
         - name: IVaultSettings
           file: ../artifacts/contracts/vault/IVaultSettings.sol/IVaultSettings.json
       eventHandlers:
-        - event: DepositMinted(indexed uint256,uint256,uint256,uint256,indexed address,indexed address,uint256,uint64,bytes)
+        - event: DepositMinted(indexed uint256,uint256,uint256,uint256,indexed address,indexed address,uint256,uint64,bytes,string)
           handler: handleDepositMinted
         - event: DepositBurned(indexed uint256,uint256,indexed address)
           handler: handleDepositBurned
