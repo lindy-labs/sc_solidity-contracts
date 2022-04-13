@@ -24,7 +24,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   });
 
   await deploy("Vault_UST_AnchorStrategy", {
-    contract: "AnchorUSTStrategy",
+    contract: "AnchorStrategy",
     from: deployer,
     log: true,
     args: [
