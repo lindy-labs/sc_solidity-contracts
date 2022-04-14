@@ -25,10 +25,6 @@ contract MockStrategy is AnchorStrategy {
 
     function invest() external override(AnchorStrategy) onlyManager {}
 
-    function finishRedeemStable(uint256 idx) external override(AnchorStrategy) {
-        _finishRedeemStable(idx);
-    }
-
     function investedAssets() external view override returns (uint256) {
         uint256 underlyingBalance = _getUnderlyingBalance() + pendingDeposits;
 
