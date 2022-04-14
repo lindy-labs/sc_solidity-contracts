@@ -834,12 +834,6 @@ contract Vault is
 
         require(_deposit.claimerId != 0, "Vault: token id is not a deposit");
 
-        // WithdrawSingleLocals memory locals = WithdrawSingleLocals({
-        //     claimerId: _deposit.claimerId,
-        //     depositInitialShares: _deposit.shares,
-        //     depositAmount: _deposit.amount;
-        // })
-
         bool isFull = _deposit.amount == _amount;
 
         // total amount of shares this deposit is currently worth
