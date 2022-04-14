@@ -789,6 +789,7 @@ contract Vault is
 
         // memoizing saves warm sloads
         Deposit memory _deposit = deposits[_tokenId];
+        Claimer memory _claim = claimer[_deposit.claimerId];
 
         require(
             _deposit.lockedUntil <= block.timestamp,
@@ -797,21 +798,14 @@ contract Vault is
 
         require(_deposit.claimerId != 0, "Vault: token id is not a deposit");
 
-        uint256 claimerId = _deposit.claimerId;
-        uint256 depositInitialShares = _deposit.shares;
-        uint256 depositAmount = _deposit.amount;
-
-        uint256 claimerShares = claimer[claimerId].totalShares;
-        uint256 claimerPrincipal = claimer[claimerId].totalPrincipal;
-
         uint256 depositShares = _computeShares(
-            depositAmount,
+            _deposit.amount,
             _totalShares,
             _totalUnderlyingMinusSponsored
         );
 
-        bool lostMoney = depositShares > depositInitialShares ||
-            depositShares > claimerShares;
+        bool lostMoney = depositShares > _deposit.shares ||
+            depositShares > _claim.totalShares;
 
         if (_force && lostMoney) {
             // When there's a loss it means that a deposit is now worth more
@@ -819,7 +813,9 @@ contract Vault is
             // depositor to withdraw all her money. Instead, the depositor gets
             // a number of shares that are equivalent to the percentage of this
             // deposit in the total deposits for this claimer.
-            depositShares = (depositAmount * claimerShares) / claimerPrincipal;
+            depositShares =
+                (_deposit.amount * _claim.totalShares) /
+                _claim.totalPrincipal;
         } else {
             require(
                 lostMoney == false,
@@ -827,11 +823,11 @@ contract Vault is
             );
         }
 
-        claimer[claimerId].totalShares -= depositShares;
-        claimer[claimerId].totalPrincipal -= depositAmount;
+        claimer[_deposit.claimerId].totalShares -= depositShares;
+        claimer[_deposit.claimerId].totalPrincipal -= _deposit.amount;
 
         totalShares -= depositShares;
-        totalPrincipal -= depositAmount;
+        totalPrincipal -= _deposit.amount;
 
         depositors.burn(_tokenId);
 
