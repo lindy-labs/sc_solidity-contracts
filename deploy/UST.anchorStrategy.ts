@@ -13,20 +13,14 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
 
   const { multisig, ethAnchorRouter } = await getCurrentNetworkConfig();
 
-  const treasury = env.network.config.chainId == 1 ? multisig : deployer;
   const owner = env.network.config.chainId == 1 ? multisig : deployer;
 
-  const MockChainlinkPriceFeedFactory = await deploy("MockChainlinkPriceFeed", {
-    contract: "MockChainlinkPriceFeed",
-    from: deployer,
-    log: true,
-    args: [18],
-  });
+  const chainLinkPriceFeed = await get("ChainlinkPriceFeed");
 
   const args = [
     vault.address,
     ethAnchorRouter,
-    MockChainlinkPriceFeedFactory.address,
+    chainLinkPriceFeed.address,
     ust.address,
     aust.address,
     owner,
@@ -53,7 +47,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
 
 func.id = "deploy_ust_anchor_strategy";
 func.tags = ["strategies", "ust"];
-func.dependencies = ["deploy_ust_vault"];
+func.dependencies = ["deploy_ust_vault", "mock_price_feed"];
 
 // don't deploy to local networks
 func.skip = async (hre) =>
