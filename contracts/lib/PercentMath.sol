@@ -14,21 +14,7 @@ library PercentMath {
     }
 
     /**
-     * @dev Compute percentage of a value with the percentage represented by a fraction
-     * @param _amount Amount to take the percentage of
-     * @param _fracNum Numerator of fraction representing the percentage
-     * @param _fracDenom Denominator of fraction representing the percentage
-     */
-    function pctOf(
-        uint256 _amount,
-        uint256 _fracNum,
-        uint256 _fracDenom
-    ) internal pure returns (uint256) {
-        return (_amount * pctPoints(_fracNum, _fracDenom)) / PCT_DIVISOR;
-    }
-
-    /**
-     * @dev Compute percentage of a value with the percentage represented by a fraction over PCT_DIVISOR
+     * @dev Compute percentage of a value with the percentage represented by a fraction over PERC_DIVISOR
      * @param _amount Amount to take the percentage of
      * @param _fracNum Numerator of fraction representing the percentage with PCT_DIVISOR as the denominator
      */
@@ -46,18 +32,5 @@ library PercentMath {
      */
     function is100Pct(uint256 _perc) internal pure returns (bool) {
         return _perc == PCT_DIVISOR;
-    }
-
-    /**
-     * @dev Compute percentage representation of a fraction
-     * @param _fracNum Numerator of fraction represeting the percentage
-     * @param _fracDenom Denominator of fraction represeting the percentage
-     */
-    function pctPoints(uint256 _fracNum, uint256 _fracDenom)
-        internal
-        pure
-        returns (uint256)
-    {
-        return (_fracNum * PCT_DIVISOR) / _fracDenom;
     }
 }
