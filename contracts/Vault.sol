@@ -825,6 +825,7 @@ contract Vault is
 
         // memoizing saves warm sloads
         Deposit memory _deposit = deposits[_tokenId];
+        Claimer memory _claimer = claimer[_deposit.claimerId];
 
         require(
             _deposit.lockedUntil <= block.timestamp,
@@ -833,42 +834,47 @@ contract Vault is
 
         require(_deposit.claimerId != 0, "Vault: token id is not a deposit");
 
-        uint256 claimerId = _deposit.claimerId;
-        uint256 depositInitialShares = _deposit.shares;
-        uint256 depositAmount = _deposit.amount;
+        // WithdrawSingleLocals memory locals = WithdrawSingleLocals({
+        //     claimerId: _deposit.claimerId,
+        //     depositInitialShares: _deposit.shares,
+        //     depositAmount: _deposit.amount;
+        // })
 
-        uint256 claimerShares = claimer[claimerId].totalShares;
-        uint256 claimerPrincipal = claimer[claimerId].totalPrincipal;
-
-        // how many shares we're actually burning will be equal to `depositShares` if
-        // it's a full withdrawal, but less if it's a partial withdrawal
-        uint256 sharesToBurn = _computeShares(
-            _amount,
-            _totalShares,
-            _totalUnderlyingMinusSponsored
-        );
+        bool isFull = _deposit.amount == _amount;
 
         // total amount of shares this deposit is currently worth
         // computed only to check if we're currently at a loss
         uint256 depositShares = _computeShares(
-            depositAmount,
+            _deposit.amount,
             _totalShares,
             _totalUnderlyingMinusSponsored
         );
 
-        bool lostMoney = depositShares > depositInitialShares ||
-            depositShares > claimerShares;
+        // for full withdrawals, sharesToBurn is the same as depositShares.
+        // otherwise we compute the partian number of shares to burn
+        uint256 sharesToBurn = isFull
+            ? depositShares
+            : _computeShares(
+                _amount,
+                _totalShares,
+                _totalUnderlyingMinusSponsored
+            );
+
+        bool lostMoney = depositShares > _deposit.shares ||
+            depositShares > _claimer.totalShares;
 
         // _force is only allowed in full withdrawals, not partials, so this will
         // implicitly be false essentially preventing "partial withdrawals at a loss"
         // which would mess up the whole math
-        if (_force && lostMoney) {
+        if (isFull && _force && lostMoney) {
             // When there's a loss it means that a deposit is now worth more
             // shares than before. In that scenario, we cannot allow the
             // depositor to withdraw all her money. Instead, the depositor gets
             // a number of shares that are equivalent to the percentage of this
             // deposit in the total deposits for this claimer.
-            sharesToBurn = (_amount * claimerShares) / claimerPrincipal;
+            sharesToBurn =
+                (_amount * _claimer.totalShares) /
+                _claimer.totalPrincipal;
         } else {
             require(
                 lostMoney == false,
@@ -876,25 +882,29 @@ contract Vault is
             );
         }
 
-        claimer[claimerId].totalShares -= sharesToBurn;
-        claimer[claimerId].totalPrincipal -= _amount;
-
-        deposits[_tokenId].shares -= sharesToBurn;
-        deposits[_tokenId].amount -= _amount;
+        claimer[_deposit.claimerId].totalShares -= sharesToBurn;
+        claimer[_deposit.claimerId].totalPrincipal -= _amount;
 
         totalShares -= sharesToBurn;
-        totalPrincipal -= depositAmount;
+        totalPrincipal -= _deposit.amount;
 
-        depositors.burn(_tokenId);
+        if (isFull) {
+            depositors.burn(_tokenId);
+            delete deposits[_tokenId];
+        } else {
+            deposits[_tokenId].shares -= sharesToBurn;
+            deposits[_tokenId].amount -= _amount;
+        }
 
-        emit DepositBurned(_tokenId, sharesToBurn, _to);
+        uint256 amount = _computeAmount(
+            sharesToBurn,
+            _totalShares,
+            _totalUnderlyingMinusSponsored
+        );
 
-        return
-            _computeAmount(
-                sharesToBurn,
-                _totalShares,
-                _totalUnderlyingMinusSponsored
-            );
+        emit DepositWithdrawn(_tokenId, sharesToBurn, amount, _to, isFull);
+
+        return amount;
     }
 
     function _transferAndCheckInputToken(
