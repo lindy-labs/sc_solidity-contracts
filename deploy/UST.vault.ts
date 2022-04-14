@@ -32,34 +32,47 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   const treasury = multisig;
   const owner = multisig;
 
-  await deploy("Vault_UST", {
+  const args = [
+    ust.address,
+    minLockPeriod,
+    investPct,
+    treasury,
+    owner,
+    perfFeePct,
+    investmentFeeEstimatePct,
+    [
+      {
+        token: dai.address,
+        pool: curvePool.address,
+        tokenI: 1,
+        underlyingI: 0,
+      },
+      {
+        token: usdc.address,
+        pool: curvePool.address,
+        tokenI: 2,
+        underlyingI: 0,
+      },
+    ],
+  ];
+
+  const vaultDeployment = await deploy("Vault_UST", {
     contract: "Vault",
     from: deployer,
     log: true,
-    args: [
-      ust.address,
-      minLockPeriod,
-      investPct,
-      treasury,
-      owner,
-      perfFeePct,
-      investmentFeeEstimatePct,
-      [
-        {
-          token: dai.address,
-          pool: curvePool.address,
-          tokenI: 1,
-          underlyingI: 0,
-        },
-        {
-          token: usdc.address,
-          pool: curvePool.address,
-          tokenI: 2,
-          underlyingI: 0,
-        },
-      ],
-    ],
+    args,
   });
+
+  if (env.network.config.chainId === 1 || env.network.config.chainId === 3) {
+    try {
+      await env.run("verify:verify", {
+        address: vaultDeployment.address,
+        constructorArguments: args,
+      });
+    } catch (e) {
+      console.error((e as Error).message);
+    }
+  }
 };
 
 func.id = "deploy_ust_vault";

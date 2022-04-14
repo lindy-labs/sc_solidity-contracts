@@ -23,19 +23,32 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
     args: [18],
   });
 
-  await deploy("Vault_UST_AnchorStrategy", {
+  const args = [
+    vault.address,
+    ethAnchorRouter,
+    MockChainlinkPriceFeedFactory.address,
+    ust.address,
+    aust.address,
+    owner,
+  ];
+
+  const strategyDeployment = await deploy("Vault_UST_AnchorStrategy", {
     contract: "AnchorStrategy",
     from: deployer,
     log: true,
-    args: [
-      vault.address,
-      ethAnchorRouter,
-      MockChainlinkPriceFeedFactory.address,
-      ust.address,
-      aust.address,
-      owner,
-    ],
+    args,
   });
+
+  if (env.network.config.chainId === 1 || env.network.config.chainId === 3) {
+    try {
+      await env.run("verify:verify", {
+        address: strategyDeployment.address,
+        constructorArguments: args,
+      });
+    } catch (e) {
+      console.error((e as Error).message);
+    }
+  }
 };
 
 func.id = "deploy_ust_anchor_strategy";

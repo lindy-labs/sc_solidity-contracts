@@ -3,6 +3,7 @@ import type { HardhatUserConfig } from "hardhat/config";
 import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-waffle";
 import "@nomiclabs/hardhat-web3";
+import "@nomiclabs/hardhat-etherscan";
 import "@primitivefi/hardhat-dodoc";
 import "@typechain/hardhat";
 import "hardhat-deploy";
@@ -89,6 +90,11 @@ const config: HardhatUserConfig = {
       "IIntegration",
       "PercentMath",
     ],
+  },
+  etherscan: {
+    apiKey: {
+      ropsten: process.env.ETHERSCAN_KEY || "missing-key",
+    },
   },
 };
 
