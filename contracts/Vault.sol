@@ -582,7 +582,7 @@ contract Vault is
                 localTotalPrincipal,
                 _to,
                 _force,
-                amount
+                depositAmount
             );
         }
 
@@ -825,7 +825,7 @@ contract Vault is
 
         // memoizing saves warm sloads
         Deposit memory _deposit = deposits[_tokenId];
-        Claimer memory _claimer = claimer[_deposit.claimerId];
+        Claimer memory _claim = claimer[_deposit.claimerId];
 
         require(
             _deposit.lockedUntil <= block.timestamp,
@@ -855,7 +855,7 @@ contract Vault is
             );
 
         bool lostMoney = depositShares > _deposit.shares ||
-            depositShares > _claimer.totalShares;
+            depositShares > _claim.totalShares;
 
         // _force is only allowed in full withdrawals, not partials, so this will
         // implicitly be false essentially preventing "partial withdrawals at a loss"
@@ -867,8 +867,8 @@ contract Vault is
             // a number of shares that are equivalent to the percentage of this
             // deposit in the total deposits for this claimer.
             sharesToBurn =
-                (_amount * _claimer.totalShares) /
-                _claimer.totalPrincipal;
+                (_amount * _claim.totalShares) /
+                _claim.totalPrincipal;
         } else {
             require(
                 lostMoney == false,
