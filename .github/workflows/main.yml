@@ -22,6 +22,7 @@ jobs:
 
     env:
       ALCHEMY_API_ENDPOINT: ${{ secrets.ALCHEMY_API_ENDPOINT }}
+      CC_SECRET: ${{ secrets.CC_SECRET }}
 
     steps:
       - uses: actions/checkout@v2
@@ -36,3 +37,4 @@ jobs:
       - run: yarn install
       - run: yarn run hardhat compile
       - run: yarn run hardhat test
+      - run: yarn codechecks
