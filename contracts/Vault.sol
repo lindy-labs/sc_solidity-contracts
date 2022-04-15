@@ -600,6 +600,11 @@ contract Vault is
         uint256 idsLen = _ids.length;
 
         for (uint256 i; i < idsLen; ++i) {
+            require(
+                _amounts[i] <= deposits[_ids[i]].amount,
+                "amount too large"
+            );
+
             amount += _withdrawSingle(
                 _ids[i],
                 localTotalShares,
