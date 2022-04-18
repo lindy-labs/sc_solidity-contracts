@@ -1,4 +1,4 @@
-import { log, ethereum, Address, Bytes, BigInt } from "@graphprotocol/graph-ts";
+import { log, ethereum, Address, Bytes, BigInt, ByteArray } from "@graphprotocol/graph-ts";
 import {
   test,
   assert,
@@ -446,7 +446,7 @@ test("handleDepositMinted creates a Deposit", () => {
   const claimerId = newI32("claimerId", 1);
   const lockedUntil = newI32("lockedUntil", 1);
   const data = newBytes("data", Bytes.empty());
-  const name = newString("name", "Foundation");
+  const name = newBytes("name", Bytes.fromByteArray(ByteArray.fromUTF8("Foundation name")));
 
   event.parameters.push(idParam);
   event.parameters.push(groupId);
@@ -468,7 +468,7 @@ test("handleDepositMinted creates a Deposit", () => {
   assert.fieldEquals("Claimer", "1", "depositsIds", "[1]");
 
   const foundationId = `${vault.id}-1`;
-  assert.fieldEquals("Foundation", foundationId, "name", "Foundation");
+  assert.fieldEquals("Foundation", foundationId, "name", ByteArray.fromUTF8("Foundation name").toHex());
   assert.fieldEquals("Foundation", foundationId, "owner", MOCK_ADDRESS_1);
   assert.fieldEquals("Foundation", foundationId, "vault", vault.id);
   assert.fieldEquals("Foundation", foundationId, "amountDeposited", "1");
@@ -795,10 +795,6 @@ function newAddress(name: string, value: string): ethereum.EventParam {
     name,
     ethereum.Value.fromAddress(Address.fromString(value))
   );
-}
-
-function newString(name: string, value: string): ethereum.EventParam {
-  return new ethereum.EventParam(name, ethereum.Value.fromString(value));
 }
 
 function donationId(event: ethereum.Event, id: string): string {
