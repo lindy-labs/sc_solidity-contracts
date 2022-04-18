@@ -656,7 +656,7 @@ contract Vault is
         uint256 _amount,
         uint64 _lockedUntil,
         ClaimParams[] calldata claims,
-        string calldata _name
+        bytes32 _name
     ) internal returns (uint256[] memory) {
         CreateDepositLocals memory locals = CreateDepositLocals({
             totalShares: totalShares,
@@ -718,7 +718,7 @@ contract Vault is
         ClaimParams memory _claim,
         uint256 _localTotalShares,
         uint256 _localTotalPrincipal,
-        string calldata _name
+        bytes32 _name
     ) internal returns (uint256) {
         CreateClaimLocals memory locals = CreateClaimLocals({
             newShares: _computeShares(
