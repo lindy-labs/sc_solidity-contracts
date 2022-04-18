@@ -7,6 +7,7 @@ import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
 
 import {IVault} from "./vault/IVault.sol";
 import {IVaultSponsoring} from "./vault/IVaultSponsoring.sol";
@@ -31,7 +32,8 @@ contract Vault is
     Context,
     ERC165,
     AccessControl,
-    ReentrancyGuard
+    ReentrancyGuard,
+    Pausable
 {
     using SafeERC20 for IERC20;
     using PercentMath for uint256;
@@ -225,6 +227,7 @@ contract Vault is
     function deposit(DepositParams calldata _params)
         external
         nonReentrant
+        whenNotPaused
         returns (uint256[] memory depositIds)
     {
         require(_params.amount != 0, "Vault: cannot deposit 0");
@@ -359,7 +362,7 @@ contract Vault is
         address _inputToken,
         uint256 _amount,
         uint256 _lockDuration
-    ) external override(IVaultSponsoring) nonReentrant {
+    ) external override(IVaultSponsoring) nonReentrant onlyRole(SPONSOR_ROLE) whenNotPaused {
         require(_amount != 0, "Vault: cannot sponsor 0");
 
         require(
@@ -932,5 +935,13 @@ contract Vault is
 
     function principalOf(uint256 claimerId) external view returns (uint256) {
         return claimer[claimerId].totalPrincipal;
+    }
+
+    function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _pause();
+    }
+
+    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _unpause();
     }
 }
