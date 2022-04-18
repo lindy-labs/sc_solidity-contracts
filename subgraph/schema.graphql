@@ -9,7 +9,7 @@ type Vault @entity {
 
 type Foundation @entity {
   id: ID!
-  name: String!
+  name: Bytes!
   owner: Bytes!
   vault: Vault!
   deposits: [Deposit!]! @derivedFrom(field: "foundation")
