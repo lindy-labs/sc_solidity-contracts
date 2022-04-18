@@ -1,7 +1,7 @@
 import type { HardhatRuntimeEnvironment } from "hardhat/types";
 
 import { ethers } from "hardhat";
-import { deployMockCurvePool } from "../deploy_helpers";
+import deployMockCurvePool from "./helpers/mockPool";
 
 const { parseUnits } = ethers.utils;
 

@@ -2,7 +2,7 @@ import type { HardhatRuntimeEnvironment } from "hardhat/types";
 import type { DeployFunction } from "hardhat-deploy/types";
 
 import { getCurrentNetworkConfig } from "../scripts/deployConfigs";
-import { deployMockCurvePool } from "../deploy_helpers";
+import deployMockCurvePool from "./helpers/mockPool";
 
 const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   const { deployer } = await env.getNamedAccounts();

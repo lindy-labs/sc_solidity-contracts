@@ -1,7 +1,7 @@
 import { BigNumber } from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 
-export async function deployMockCurvePool(
+async function deployMockCurvePool(
   env: HardhatRuntimeEnvironment,
   name: string,
   underlying0: string,
@@ -58,3 +58,7 @@ export async function deployMockCurvePool(
     }
   }
 }
+
+deployMockCurvePool.skip = async (hre: HardhatRuntimeEnvironment) => true;
+
+export default deployMockCurvePool;
