@@ -388,7 +388,6 @@ contract Vault is
     function unsponsor(address _to, uint256[] calldata _ids)
         external
         nonReentrant
-        onlyRole(SPONSOR_ROLE)
     {
         require(_to != address(0), "Vault: destination address is 0x");
 

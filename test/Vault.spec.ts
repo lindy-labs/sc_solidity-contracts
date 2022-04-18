@@ -670,6 +670,21 @@ describe("Vault", () => {
       expect(await vault.totalSponsored()).to.eq(parseUnits("1000"));
     });
 
+    it("adds a sponsor to the vault after added sponsor role", async () => {
+      await addUnderlyingBalance(bob, "1000");
+
+      await vault.connect(owner).grantRole(SPONSOR_ROLE, bob.address);
+      await vault
+        .connect(bob)
+        .sponsor(underlying.address, parseUnits("500"), TWO_WEEKS);
+      await vault
+        .connect(bob)
+        .sponsor(underlying.address, parseUnits("500"), TWO_WEEKS);
+      expect(await vault.totalSponsored()).to.eq(parseUnits("1000"));
+
+      await vault.connect(owner).revokeRole(SPONSOR_ROLE, bob.address);
+    });
+
     it("emits an event", async () => {
       await addUnderlyingBalance(owner, "1000");
 
@@ -770,12 +785,6 @@ describe("Vault", () => {
   });
 
   describe("unsponsor", () => {
-    it("reverts if msg.sender is not sponsor", async () => {
-      await expect(vault.connect(alice).unsponsor(newAccount.address, [1]))
-         .to.be.revertedWith(getRoleErrorMsg(alice, SPONSOR_ROLE)
-      );
-    });
-
     it("removes a sponsor from the vault", async () => {
       await vault
         .connect(owner)
