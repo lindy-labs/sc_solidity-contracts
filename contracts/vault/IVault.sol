@@ -19,7 +19,7 @@ interface IVault {
         uint64 lockDuration;
         uint256 amount;
         ClaimParams[] claims;
-        string name;
+        bytes32 name;
     }
 
     struct Deposit {
@@ -52,7 +52,7 @@ interface IVault {
         uint256 claimerId,
         uint64 lockedUntil,
         bytes data,
-        string name
+        bytes32 name
     );
 
     event DepositBurned(uint256 indexed id, uint256 shares, address indexed to);
