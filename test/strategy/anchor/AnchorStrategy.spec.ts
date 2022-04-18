@@ -916,7 +916,7 @@ describe("AnchorStrategy", () => {
         },
       ],
       lockDuration: TWO_WEEKS,
-      name: "Foundation name",
+      name: ethers.utils.formatBytes32String("Foundation name"),
     });
   };
 

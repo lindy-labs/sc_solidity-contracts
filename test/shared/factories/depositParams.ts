@@ -21,6 +21,6 @@ export const depositParams = Factory.define<DepositParams>(() => {
     inputToken: "0x0",
     claims: [claimParams.build()],
     lockDuration: ethers.BigNumber.from(time.duration.weeks(2).toNumber()), // 2 weeks
-    name: "Foundation name",
+    name: ethers.utils.formatBytes32String("Foundation name"),
   };
 });

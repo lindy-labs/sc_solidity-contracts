@@ -108,7 +108,7 @@ describe("AnchorStrategy Mainnet fork", () => {
           },
         ],
         lockDuration: TWO_WEEKS,
-        name: "Foundation name",
+        name: ethers.utils.formatBytes32String("Foundation name"),
       });
       expect(await ustToken.balanceOf(vault.address)).to.be.equal(amount);
       let exchangeRate = (await mockAUstUstFeed.latestRoundData()).answer;
@@ -162,7 +162,7 @@ describe("AnchorStrategy Mainnet fork", () => {
           },
         ],
         lockDuration: TWO_WEEKS,
-        name: "Foundation name",
+        name: ethers.utils.formatBytes32String("Foundation name"),
       });
 
       expect(await vault.totalUnderlying()).to.be.equal(
@@ -265,7 +265,7 @@ describe("AnchorStrategy Mainnet fork", () => {
           },
         ],
         lockDuration: TWO_WEEKS,
-        name: "Foundation name",
+        name: ethers.utils.formatBytes32String("Foundation name"),
       });
       expect(await ustToken.balanceOf(vault.address)).to.be.equal(amount);
       let exchangeRate = utils.parseEther("1.17");
@@ -319,7 +319,7 @@ describe("AnchorStrategy Mainnet fork", () => {
           },
         ],
         lockDuration: TWO_WEEKS,
-        name: "Foundation name",
+        name: ethers.utils.formatBytes32String("Foundation name"),
       });
 
       expect(await vault.totalUnderlying()).to.be.equal(
