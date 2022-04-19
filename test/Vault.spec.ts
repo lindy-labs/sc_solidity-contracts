@@ -1014,7 +1014,7 @@ describe("Vault", () => {
 
   ["withdraw", "forceWithdraw"].map((vaultAction) => {
     describe(vaultAction, () => {
-      it("emits events", async () => {
+      it.only("emits events", async () => {
         const params = depositParams.build({
           amount: parseUnits("100"),
           inputToken: underlying.address,
@@ -1032,11 +1032,23 @@ describe("Vault", () => {
           [vaultAction](alice.address, [1, 2]);
 
         await expect(tx)
-          .to.emit(vault, "DepositBurned")
-          .withArgs(1, parseUnits("50").mul(SHARES_MULTIPLIER), alice.address);
+          .to.emit(vault, "DepositWithdrawn")
+          .withArgs(
+            1,
+            parseUnits("50").mul(SHARES_MULTIPLIER),
+            parseUnits("50"),
+            alice.address,
+            true
+          );
         await expect(tx)
-          .to.emit(vault, "DepositBurned")
-          .withArgs(2, parseUnits("50").mul(SHARES_MULTIPLIER), alice.address);
+          .to.emit(vault, "DepositWithdrawn")
+          .withArgs(
+            2,
+            parseUnits("50").mul(SHARES_MULTIPLIER),
+            parseUnits("50"),
+            alice.address,
+            true
+          );
       });
 
       it("withdraws the principal of a deposit", async () => {
