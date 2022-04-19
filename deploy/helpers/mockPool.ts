@@ -18,44 +18,42 @@ async function deployMockCurvePool(
     "decimals"
   );
 
-  const isDeployed = await getOrNull(name);
+  if (await getOrNull(name)) {
+    return;
+  }
 
-  if (!isDeployed) {
-    await deploy(name, { contract: "MockCurve", from: deployer, args: [] });
+  await deploy(name, { contract: "MockCurve", from: deployer, args: [] });
 
-    await execute(name, { from: deployer }, "addToken", 0, underlying.address);
+  await execute(name, { from: deployer }, "addToken", 0, underlying.address);
 
-    let i = 1;
-    for (let tokenName of otherUnderlyings) {
-      const token = await get(tokenName);
-      const tokenDecimals = await read(
-        tokenName,
-        { from: deployer },
-        "decimals"
-      );
+  let i = 1;
+  for (let tokenName of otherUnderlyings) {
+    const token = await get(tokenName);
+    const tokenDecimals = await read(tokenName, { from: deployer }, "decimals");
 
-      // add token to pool
-      await execute(name, { from: deployer }, "addToken", i, token.address);
+    // add token to pool
+    await execute(name, { from: deployer }, "addToken", i, token.address);
 
-      // add exchange rates from/to underlying
-      await execute(
-        name,
-        { from: deployer },
-        "updateRate",
-        0,
-        i,
-        BigNumber.from(10).pow(18 + underlyingDecimals - tokenDecimals)
-      );
-      await execute(
-        name,
-        { from: deployer },
-        "updateRate",
-        i,
-        0,
-        BigNumber.from(10).pow(18 + tokenDecimals - underlyingDecimals)
-      );
-      i++;
-    }
+    // add exchange rates from/to underlying
+    await execute(
+      name,
+      { from: deployer },
+      "updateRate",
+      0,
+      i,
+      BigNumber.from(10).pow(18 + underlyingDecimals - tokenDecimals)
+    );
+
+    await execute(
+      name,
+      { from: deployer },
+      "updateRate",
+      i,
+      0,
+      BigNumber.from(10).pow(18 + tokenDecimals - underlyingDecimals)
+    );
+
+    i++;
   }
 }
 
