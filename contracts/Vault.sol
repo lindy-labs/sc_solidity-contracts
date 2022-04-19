@@ -362,7 +362,7 @@ contract Vault is
         address _inputToken,
         uint256 _amount,
         uint256 _lockDuration
-    ) external override(IVaultSponsoring) nonReentrant onlyRole(SPONSOR_ROLE) whenNotPaused {
+    ) external override(IVaultSponsoring) nonReentrant whenNotPaused {
         require(_amount != 0, "Vault: cannot sponsor 0");
 
         require(
