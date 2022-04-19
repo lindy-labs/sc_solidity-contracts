@@ -651,6 +651,13 @@ describe("Vault", () => {
   });
 
   describe("sponsor", () => {
+    it("reverts if contract is paused", async () => {
+      await vault.connect(owner).pause();
+      await expect(vault.connect(owner).sponsor(underlying.address, parseUnits("500"), TWO_WEEKS))
+         .to.be.revertedWith("Pausable: paused"
+      );
+      await vault.connect(owner).unpause();
+    });
     it("reverts if msg.sender is not sponsor", async () => {
       await expect(vault.connect(alice).sponsor(underlying.address, parseUnits("500"), TWO_WEEKS))
          .to.be.revertedWith(getRoleErrorMsg(alice, SPONSOR_ROLE)
@@ -883,6 +890,24 @@ describe("Vault", () => {
   });
 
   describe("deposit", () => {
+    it("reverts if contract is paused", async () => {
+      const params = depositParams.build({
+        lockDuration: TWO_WEEKS,
+        amount: parseUnits("100"),
+        inputToken: underlying.address,
+        claims: [
+          claimParams.percent(50).to(carol.address).build(),
+          claimParams.percent(50).to(bob.address).build(),
+        ],
+        name: "Deposit - Emits Different groupId",
+      });
+      await vault.connect(owner).pause();
+      await expect(vault.connect(owner).deposit(params))
+         .to.be.revertedWith("Pausable: paused"
+      );
+      await vault.connect(owner).unpause();
+    });
+
     it("emits events", async () => {
       const params = depositParams.build({
         lockDuration: TWO_WEEKS,
@@ -1766,6 +1791,17 @@ describe("Vault", () => {
       expect(await depositors.ownerOf("1")).to.be.equal(alice.address);
       expect(await claimers.ownerOf("1")).to.be.equal(bob.address);
       expect(await claimers.ownerOf("2")).to.be.equal(carol.address);
+    });
+  });
+
+  describe("pause/unpause", () => {
+    it("reverts(pause) if not DEFAULT_ADMIN_ROLE", async () => {
+      await expect(vault.connect(alice).pause())
+         .to.be.revertedWith(getRoleErrorMsg(alice, DEFAULT_ADMIN_ROLE));
+    });
+    it("reverts(unpause) if not DEFAULT_ADMIN_ROLE", async () => {
+      await expect(vault.connect(alice).unpause())
+         .to.be.revertedWith(getRoleErrorMsg(alice, DEFAULT_ADMIN_ROLE));
     });
   });
 
