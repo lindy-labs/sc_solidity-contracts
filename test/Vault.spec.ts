@@ -65,7 +65,7 @@ describe("Vault", () => {
   const fixtures = deployments.createFixture(async ({ deployments }) => {
     await deployments.fixture(["vaults"]);
 
-    [owner] = await ethers.getSigners();
+    [owner, alice, bob, carol] = await ethers.getSigners();
 
     const ustDeployment = await deployments.get("UST");
     const austDeployment = await deployments.get("aUST");
@@ -74,6 +74,10 @@ describe("Vault", () => {
     aUstToken = MockAUST__factory.connect(austDeployment.address, owner);
     underlying = MockUST__factory.connect(ustDeployment.address, owner);
     vault = Vault__factory.connect(ustVaultDeployment.address, owner);
+
+    await addUnderlyingBalance(alice, "1000");
+    await addUnderlyingBalance(bob, "1000");
+    await addUnderlyingBalance(carol, "1000");
   });
 
   beforeEach(() => fixtures());
