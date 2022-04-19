@@ -43,5 +43,8 @@
     "typechain": "^6.1.0",
     "typescript": "^4.5.4",
     "web3": "^1.6.1"
+  },
+  "dependencies": {
+    "@codechecks/client": "^0.1.12"
   }
 }
