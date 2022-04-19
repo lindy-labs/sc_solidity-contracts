@@ -1,8 +1,6 @@
 import type { HardhatRuntimeEnvironment } from "hardhat/types";
 import type { DeployFunction } from "hardhat-deploy/types";
 
-// import { getCurrentNetworkConfig } from "../scripts/deployConfigs";
-
 const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   const { deployer } = await env.getNamedAccounts();
   const { deploy } = env.deployments;
