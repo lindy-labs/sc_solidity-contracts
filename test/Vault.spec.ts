@@ -647,13 +647,6 @@ describe("Vault", () => {
   });
 
   describe("sponsor", () => {
-
-    it("reverts if msg.sender is not sponsor", async () => {
-      await expect(vault.connect(alice).sponsor(underlying.address, parseUnits("500"), TWO_WEEKS))
-         .to.be.revertedWith(getRoleErrorMsg(alice, SPONSOR_ROLE)
-      );
-    });
-
     it("reverts if contract is paused", async () => {
       await vault.connect(owner).pause();
       await expect(vault.connect(owner).sponsor(underlying.address, parseUnits("500"), TWO_WEEKS))
