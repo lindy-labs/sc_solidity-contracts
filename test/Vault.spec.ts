@@ -1014,7 +1014,7 @@ describe("Vault", () => {
 
   ["withdraw", "forceWithdraw"].map((vaultAction) => {
     describe(vaultAction, () => {
-      it.only("emits events", async () => {
+      it("emits events", async () => {
         const params = depositParams.build({
           amount: parseUnits("100"),
           inputToken: underlying.address,
@@ -1272,6 +1272,89 @@ describe("Vault", () => {
       await expect(action).to.be.revertedWith(
         "Vault: cannot withdraw more than the available amount"
       );
+    });
+  });
+
+  describe("partialWithdraw", () => {
+    it("reduces a deposit's shares and amount", async () => {
+      const params = depositParams.build({
+        amount: parseUnits("100"),
+        inputToken: underlying.address,
+        claims: [
+          claimParams.percent(50).to(alice.address).build(),
+          claimParams.percent(50).to(bob.address).build(),
+        ],
+      });
+
+      await vault.connect(alice).deposit(params);
+
+      await moveForwardTwoWeeks();
+
+      await vault
+        .connect(alice)
+        .partialWithdraw(
+          alice.address,
+          [1, 2],
+          [parseUnits("25"), parseUnits("30")]
+        );
+
+      const deposit = await vault.deposits(1);
+      expect(deposit.amount).to.eq(parseUnits("25"));
+      expect(deposit.shares).to.eq(parseUnits("25").mul(SHARES_MULTIPLIER));
+
+      const deposit2 = await vault.deposits(2);
+      expect(deposit2.amount).to.eq(parseUnits("20"));
+      expect(deposit2.shares).to.eq(parseUnits("20").mul(SHARES_MULTIPLIER));
+    });
+
+    it("fails if the vault lost funds", async () => {
+      const params = depositParams.build({
+        amount: parseUnits("100"),
+        inputToken: underlying.address,
+        claims: [claimParams.percent(100).to(alice.address).build()],
+      });
+
+      await vault.connect(alice).deposit(params);
+
+      await moveForwardTwoWeeks();
+      await removeUnderlyingFromVault("50");
+
+      const tx = vault
+        .connect(alice)
+        .partialWithdraw(alice.address, [1], [parseUnits("25")]);
+
+      await expect(tx).to.be.revertedWith(
+        "Vault: cannot withdraw more than the available amount"
+      );
+    });
+
+    it("emits an event", async () => {
+      const params = depositParams.build({
+        amount: parseUnits("100"),
+        inputToken: underlying.address,
+        claims: [
+          claimParams.percent(50).to(alice.address).build(),
+          claimParams.percent(50).to(bob.address).build(),
+        ],
+      });
+
+      await vault.connect(alice).deposit(params);
+
+      await moveForwardTwoWeeks();
+
+      const tx = vault
+        .connect(alice)
+        .partialWithdraw(alice.address, [2], [parseUnits("25")]);
+
+      await expect(tx)
+        .to.emit(vault, "DepositWithdrawn")
+        .withArgs(
+          2,
+          parseUnits("25").mul(SHARES_MULTIPLIER),
+          parseUnits("25"),
+          alice.address,
+          false
+        );
     });
   });
 
