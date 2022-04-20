@@ -612,7 +612,7 @@ describe("Vault", () => {
     it("set strategy if no asset invested even there is griefing attack", async () => {
       await vault.connect(owner).setStrategy(strategy.address);
 
-      await aUstToken.transfer(strategy.address, utils.parseEther("2"));
+      await aUstToken.mint(strategy.address, utils.parseEther("2"));
       await setAUstRate(utils.parseEther("1"));
       expect(await strategy.investedAssets()).to.not.eq("0");
       expect(await strategy.hasAssets()).to.equal(false);
