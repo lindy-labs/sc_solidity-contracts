@@ -18,6 +18,8 @@ import {Depositors} from "./vault/Depositors.sol";
 import {Claimers} from "./vault/Claimers.sol";
 import {IStrategy} from "./strategy/IStrategy.sol";
 
+import "hardhat/console.sol";
+
 /**
  * A vault where other accounts can deposit an underlying token
  * currency and set distribution params for their principal and yield
@@ -376,7 +378,13 @@ contract Vault is
         address _inputToken,
         uint256 _amount,
         uint256 _lockDuration
-    ) external override(IVaultSponsoring) nonReentrant onlyRole(SPONSOR_ROLE) whenNotPaused{
+    )
+        external
+        override(IVaultSponsoring)
+        nonReentrant
+        onlyRole(SPONSOR_ROLE)
+        whenNotPaused
+    {
         require(_amount != 0, "Vault: cannot sponsor 0");
 
         require(
@@ -621,6 +629,8 @@ contract Vault is
                 _amounts[i]
             );
         }
+
+        underlying.safeTransfer(_to, amount);
     }
 
     /**
@@ -892,7 +902,7 @@ contract Vault is
         claimer[_deposit.claimerId].totalPrincipal -= _amount;
 
         totalShares -= sharesToBurn;
-        totalPrincipal -= _deposit.amount;
+        totalPrincipal -= _amount;
 
         if (isFull) {
             depositors.burn(_tokenId);
