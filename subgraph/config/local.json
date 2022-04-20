@@ -1,8 +1,10 @@
 {
+  "network": "mainnet",
+  "startBlock": 0,
   "vault": {
-    "address": "0x1c8967Af415b1516c96c08880aA0E87e82161b9a"
+    "address": "0x07F269C684E0d1152C2C24eb798DD826a1021656"
   },
   "strategy": {
-    "address": "0xFa7447c91989141De3Fd4988810e358119EF2e7f"
+    "address": "0x1c8967Af415b1516c96c08880aA0E87e82161b9a"
   }
 }

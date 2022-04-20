@@ -90,6 +90,10 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
 
 func.id = "fixtures";
 func.tags = ["fixtures"];
-func.dependencies = ["vaults"];
+func.dependencies = ["vaults", "strategies", "fixture_deployments"];
+
+// don't deploy to live & testnet
+func.skip = async (hre) =>
+  hre.network.config.chainId === 1 || hre.network.config.chainId === 3;
 
 export default func;

@@ -1,8 +1,10 @@
 {
+  "network": "ropsten",
+  "startBlock": 6627917,
   "vault": {
-    "address": "0xa8E0068f7054Bfc4257777865d6C15A256419B84"
+    "address": "0x6e1d164c682698857EB22fB9a184B245329F7581"
   },
   "strategy": {
-    "address": "0x394480300a35558338d32bBE7263d447BA0d409E"
+    "address": "0xdCa1Cb188F6160f5917A177a5800509F47A25ACF"
   }
 }
