@@ -26,8 +26,8 @@ async function deployMockCurvePool(
 
   await execute(name, { from: deployer }, "addToken", 0, underlying.address);
 
-  let i = 1;
-  for (let tokenName of otherUnderlyings) {
+  for (let i = 1; i < otherUnderlyings.length; i++) {
+    const tokenName = otherUnderlyings[i];
     const token = await get(tokenName);
     const tokenDecimals = await read(tokenName, { from: deployer }, "decimals");
 
@@ -52,8 +52,6 @@ async function deployMockCurvePool(
       0,
       BigNumber.from(10).pow(18 + tokenDecimals - underlyingDecimals)
     );
-
-    i++;
   }
 }
 
