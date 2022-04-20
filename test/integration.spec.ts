@@ -22,6 +22,7 @@ import {
   generateNewAddress,
 } from "./shared";
 
+const { utils } = ethers;
 const { parseUnits } = ethers.utils;
 const BN = ethers.BigNumber;
 const { MaxUint256 } = ethers.constants;
@@ -47,6 +48,7 @@ describe("Integration", () => {
   const PERFORMANCE_FEE_PCT = BigNumber.from("00");
   const INVESTMENT_FEE_PCT = BigNumber.from("200");
   const INVEST_PCT = BigNumber.from("9000");
+  const SPONSOR_ROLE = utils.keccak256(utils.toUtf8Bytes("SPONSOR_ROLE"));
 
   const fixtures = deployments.createFixture(async ({ deployments }) => {
     await deployments.fixture(["vaults"]);
@@ -115,6 +117,7 @@ describe("Integration", () => {
     it("ensures everyone gets their expected amounts", async () => {
       await addUnderlyingBalance(alice, "1000");
       await addUnderlyingBalance(bob, "1000");
+      await vault.connect(owner).grantRole(SPONSOR_ROLE, bob.address);
 
       await vault
         .connect(bob)
@@ -143,6 +146,7 @@ describe("Integration", () => {
     it("ensures the sponsored amount is protected when the vault is underperforming", async () => {
       await addUnderlyingBalance(alice, "1000");
       await addUnderlyingBalance(bob, "1000");
+      await vault.connect(owner).grantRole(SPONSOR_ROLE, bob.address);
 
       expect(await underlyingBalanceOf(bob)).to.eq(parseUnits("1000"));
       await vault
@@ -180,6 +184,7 @@ describe("Integration", () => {
     it("ensures the sponsored amount and the deposit are protected when the vault has no yield", async () => {
       await addUnderlyingBalance(alice, "1000");
       await addUnderlyingBalance(bob, "1000");
+      await vault.connect(owner).grantRole(SPONSOR_ROLE, bob.address);
 
       await vault
         .connect(bob)
@@ -209,6 +214,8 @@ describe("Integration", () => {
     it("ensures the sponsored amount is divided according to their proportion of each claimer's shares", async () => {
       await addUnderlyingBalance(alice, "1500");
       await addUnderlyingBalance(bob, "1000");
+      await vault.connect(owner).grantRole(SPONSOR_ROLE, alice.address);
+      await vault.connect(owner).grantRole(SPONSOR_ROLE, bob.address);
 
       // alice and bob sponsor
       await vault
