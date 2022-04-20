@@ -7,6 +7,7 @@ import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
 
 import {IVault} from "./vault/IVault.sol";
 import {IVaultSponsoring} from "./vault/IVaultSponsoring.sol";
@@ -31,7 +32,8 @@ contract Vault is
     Context,
     ERC165,
     AccessControl,
-    ReentrancyGuard
+    ReentrancyGuard,
+    Pausable
 {
     using SafeERC20 for IERC20;
     using PercentMath for uint256;
@@ -46,6 +48,9 @@ contract Vault is
 
     /// Role allowed to change settings such as performance fee and investment fee
     bytes32 public constant SETTINGS_ROLE = keccak256("SETTINGS_ROLE");
+
+    /// Role for sponsors allowed to call sponsor/unsponsor
+    bytes32 public constant SPONSOR_ROLE = keccak256("SPONSOR_ROLE");
 
     /// Minimum lock for each sponsor
     uint64 public constant MIN_SPONSOR_LOCK_DURATION = 2 weeks;
@@ -151,6 +156,7 @@ contract Vault is
         _setupRole(DEFAULT_ADMIN_ROLE, _owner);
         _setupRole(INVESTOR_ROLE, _owner);
         _setupRole(SETTINGS_ROLE, _owner);
+        _setupRole(SPONSOR_ROLE, _owner);
 
         investPct = _investPct;
         underlying = _underlying;
@@ -225,6 +231,7 @@ contract Vault is
     function deposit(DepositParams calldata _params)
         external
         nonReentrant
+        whenNotPaused
         returns (uint256[] memory depositIds)
     {
         require(_params.amount != 0, "Vault: cannot deposit 0");
@@ -359,7 +366,7 @@ contract Vault is
         address _inputToken,
         uint256 _amount,
         uint256 _lockDuration
-    ) external override(IVaultSponsoring) nonReentrant {
+    ) external override(IVaultSponsoring) nonReentrant onlyRole(SPONSOR_ROLE) whenNotPaused{
         require(_amount != 0, "Vault: cannot sponsor 0");
 
         require(
@@ -932,5 +939,13 @@ contract Vault is
 
     function principalOf(uint256 claimerId) external view returns (uint256) {
         return claimer[claimerId].totalPrincipal;
+    }
+
+    function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _pause();
+    }
+
+    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _unpause();
     }
 }

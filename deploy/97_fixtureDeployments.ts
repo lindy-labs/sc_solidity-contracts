@@ -54,7 +54,10 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   );
 
   // Configure contract roles
-  console.log("Configuring strategy contract role");
+  console.log("Configuring contract roles");
+  const SPONSOR_ROLE = utils.keccak256(utils.toUtf8Bytes("SPONSOR_ROLE"));
+  await vault.connect(owner).grantRole(SPONSOR_ROLE, treasury.address);
+
   const MANAGER_ROLE = utils.keccak256(utils.toUtf8Bytes("MANAGER_ROLE"));
   await anchorStrategy.connect(owner).grantRole(MANAGER_ROLE, owner.address);
 

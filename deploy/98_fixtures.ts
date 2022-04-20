@@ -90,7 +90,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
 
 func.id = "fixtures";
 func.tags = ["fixtures"];
-func.dependencies = ["vaults", "strategies"];
+func.dependencies = ["vaults", "strategies", "fixture_deployments"];
 
 // don't deploy to live & testnet
 func.skip = async (hre) =>
