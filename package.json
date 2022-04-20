@@ -5,7 +5,7 @@
   "license": "MIT",
   "scripts": {
     "coverage": "hardhat coverage",
-    "test": "hardhat test && cd subgraph && yarn test",
+    "test": "NODE_ENV=test hardhat test && cd subgraph && NODE_ENV=test yarn test",
     "compile": "hardhat compile",
     "test:slither": "slither ."
   },

@@ -65,7 +65,7 @@ describe("Vault", () => {
   const fixtures = deployments.createFixture(async ({ deployments }) => {
     await deployments.fixture(["vaults"]);
 
-    [owner] = await ethers.getSigners();
+    [owner, alice, bob, carol] = await ethers.getSigners();
 
     const ustDeployment = await deployments.get("UST");
     const austDeployment = await deployments.get("aUST");
@@ -74,6 +74,10 @@ describe("Vault", () => {
     aUstToken = MockAUST__factory.connect(austDeployment.address, owner);
     underlying = MockUST__factory.connect(ustDeployment.address, owner);
     vault = Vault__factory.connect(ustVaultDeployment.address, owner);
+
+    await addUnderlyingBalance(alice, "1000");
+    await addUnderlyingBalance(bob, "1000");
+    await addUnderlyingBalance(carol, "1000");
   });
 
   beforeEach(() => fixtures());
@@ -608,7 +612,7 @@ describe("Vault", () => {
     it("set strategy if no asset invested even there is griefing attack", async () => {
       await vault.connect(owner).setStrategy(strategy.address);
 
-      await aUstToken.transfer(strategy.address, utils.parseEther("2"));
+      await aUstToken.mint(strategy.address, utils.parseEther("2"));
       await setAUstRate(utils.parseEther("1"));
       expect(await strategy.investedAssets()).to.not.eq("0");
       expect(await strategy.hasAssets()).to.equal(false);
@@ -653,15 +657,19 @@ describe("Vault", () => {
   describe("sponsor", () => {
     it("reverts if contract is paused", async () => {
       await vault.connect(owner).pause();
-      await expect(vault.connect(owner).sponsor(underlying.address, parseUnits("500"), TWO_WEEKS))
-         .to.be.revertedWith("Pausable: paused"
-      );
+      await expect(
+        vault
+          .connect(owner)
+          .sponsor(underlying.address, parseUnits("500"), TWO_WEEKS)
+      ).to.be.revertedWith("Pausable: paused");
       await vault.connect(owner).unpause();
     });
     it("reverts if msg.sender is not sponsor", async () => {
-      await expect(vault.connect(alice).sponsor(underlying.address, parseUnits("500"), TWO_WEEKS))
-         .to.be.revertedWith(getRoleErrorMsg(alice, SPONSOR_ROLE)
-      );
+      await expect(
+        vault
+          .connect(alice)
+          .sponsor(underlying.address, parseUnits("500"), TWO_WEEKS)
+      ).to.be.revertedWith(getRoleErrorMsg(alice, SPONSOR_ROLE));
     });
 
     it("adds a sponsor to the vault", async () => {
@@ -777,6 +785,8 @@ describe("Vault", () => {
     });
 
     it("transfers underlying from user at sponsor", async () => {
+      await addUnderlyingBalance(owner, "1000");
+
       await vault
         .connect(owner)
         .sponsor(underlying.address, parseUnits("400"), TWO_WEEKS);
@@ -793,6 +803,8 @@ describe("Vault", () => {
 
   describe("unsponsor", () => {
     it("removes a sponsor from the vault", async () => {
+      await addUnderlyingBalance(owner, "1000");
+
       await vault
         .connect(owner)
         .sponsor(underlying.address, parseUnits("500"), TWO_WEEKS);
@@ -810,6 +822,8 @@ describe("Vault", () => {
     });
 
     it("emits an event", async () => {
+      await addUnderlyingBalance(owner, "1000");
+
       await vault
         .connect(owner)
         .sponsor(underlying.address, parseUnits("500"), TWO_WEEKS);
@@ -821,6 +835,8 @@ describe("Vault", () => {
     });
 
     it("fails if the caller is not the owner", async () => {
+      await addUnderlyingBalance(owner, "1000");
+
       await vault
         .connect(owner)
         .sponsor(underlying.address, parseUnits("500"), TWO_WEEKS);
@@ -834,6 +850,8 @@ describe("Vault", () => {
     });
 
     it("fails if the destination address is 0x", async () => {
+      await addUnderlyingBalance(owner, "1000");
+
       await vault
         .connect(owner)
         .sponsor(underlying.address, parseUnits("500"), TWO_WEEKS);
@@ -846,6 +864,8 @@ describe("Vault", () => {
     });
 
     it("fails if the amount is still locked", async () => {
+      await addUnderlyingBalance(owner, "1000");
+
       await vault
         .connect(owner)
         .sponsor(underlying.address, parseUnits("500"), TWO_WEEKS);
@@ -855,7 +875,9 @@ describe("Vault", () => {
       ).to.be.revertedWith("Vault: amount is locked");
     });
 
-    it("fails if token id belongs to a withdraw", async () => {
+    it("fails if the token id belongs to a withdraw", async () => {
+      await addUnderlyingBalance(owner, "1000");
+
       await vault.connect(owner).deposit(
         depositParams.build({
           lockDuration: TWO_WEEKS,
@@ -876,6 +898,8 @@ describe("Vault", () => {
     });
 
     it("fails if there are not enough funds", async () => {
+      await addUnderlyingBalance(owner, "1000");
+
       await vault
         .connect(owner)
         .sponsor(underlying.address, parseUnits("1000"), TWO_WEEKS);
@@ -902,8 +926,8 @@ describe("Vault", () => {
         name: "Deposit - Emits Different groupId",
       });
       await vault.connect(owner).pause();
-      await expect(vault.connect(owner).deposit(params))
-         .to.be.revertedWith("Pausable: paused"
+      await expect(vault.connect(owner).deposit(params)).to.be.revertedWith(
+        "Pausable: paused"
       );
       await vault.connect(owner).unpause();
     });
@@ -1201,6 +1225,9 @@ describe("Vault", () => {
       });
 
       it("fails if the destination address is 0x", async () => {
+        await addUnderlyingBalance(alice, "1000");
+        await addUnderlyingBalance(bob, "1000");
+
         const params = depositParams.build({
           inputToken: underlying.address,
           amount: parseUnits("100"),
@@ -1254,6 +1281,8 @@ describe("Vault", () => {
       });
 
       it("fails if token id belongs to a sponsor", async () => {
+        await addUnderlyingBalance(owner, "1000");
+
         await vault.connect(owner).deposit(
           depositParams.build({
             lockDuration: TWO_WEEKS,
@@ -1406,6 +1435,8 @@ describe("Vault", () => {
     });
 
     it("fails is the destination address is 0x", async () => {
+      await addUnderlyingBalance(alice, "1000");
+
       const params = depositParams.build({
         amount: parseUnits("100"),
         inputToken: underlying.address,
@@ -1796,12 +1827,14 @@ describe("Vault", () => {
 
   describe("pause/unpause", () => {
     it("reverts(pause) if not DEFAULT_ADMIN_ROLE", async () => {
-      await expect(vault.connect(alice).pause())
-         .to.be.revertedWith(getRoleErrorMsg(alice, DEFAULT_ADMIN_ROLE));
+      await expect(vault.connect(alice).pause()).to.be.revertedWith(
+        getRoleErrorMsg(alice, DEFAULT_ADMIN_ROLE)
+      );
     });
     it("reverts(unpause) if not DEFAULT_ADMIN_ROLE", async () => {
-      await expect(vault.connect(alice).unpause())
-         .to.be.revertedWith(getRoleErrorMsg(alice, DEFAULT_ADMIN_ROLE));
+      await expect(vault.connect(alice).unpause()).to.be.revertedWith(
+        getRoleErrorMsg(alice, DEFAULT_ADMIN_ROLE)
+      );
     });
   });
 

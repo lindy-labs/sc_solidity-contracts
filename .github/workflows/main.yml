@@ -23,6 +23,7 @@ jobs:
     env:
       ALCHEMY_API_ENDPOINT: ${{ secrets.ALCHEMY_API_ENDPOINT }}
       CC_SECRET: ${{ secrets.CC_SECRET }}
+      NODE_ENV: test
 
     steps:
       - uses: actions/checkout@v2

@@ -34,15 +34,17 @@ async function deployDevToken(
       args: [0],
     });
 
-    for (let account of [deployer, alice, bob, carol]) {
-      const decimals = await read(name, "decimals");
-      await execute(
-        name,
-        { from: account },
-        "mint",
-        account,
-        parseUnits("1000", decimals)
-      );
+    if (process.env.NODE_ENV !== "test") {
+      for (let account of [deployer, alice, bob, carol]) {
+        const decimals = await read(name, "decimals");
+        await execute(
+          name,
+          { from: account },
+          "mint",
+          account,
+          parseUnits("1000", decimals)
+        );
+      }
     }
   }
 }
