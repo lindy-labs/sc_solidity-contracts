@@ -30,8 +30,8 @@ dataSources:
       eventHandlers:
         - event: DepositMinted(indexed uint256,uint256,uint256,uint256,indexed address,indexed address,uint256,uint64,bytes,string)
           handler: handleDepositMinted
-        - event: DepositBurned(indexed uint256,uint256,indexed address)
-          handler: handleDepositBurned
+        - event: DepositWithdrawn(indexed uint256,uint256,uint256,indexed address,bool)
+          handler: handleDepositWithdrawn
         - event: Sponsored(indexed uint256,uint256,indexed address,uint256)
           handler: handleSponsored
         - event: Unsponsored(indexed uint256)

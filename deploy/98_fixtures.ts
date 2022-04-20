@@ -29,6 +29,10 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   await vault.connect(owner).setTreasury(treasury.address);
 
   console.log("The treasury sponsors 1000");
+  await vault.grantRole(
+    ethers.utils.keccak256(ethers.utils.toUtf8Bytes("SPONSOR_ROLE")),
+    treasury.address
+  );
   const lockDuration = await vault.MIN_SPONSOR_LOCK_DURATION();
   await vault
     .connect(treasury)
