@@ -714,7 +714,7 @@ describe("Integration", () => {
       expect(await underlyingBalanceOf(bob)).to.eq(parseUnits("1100"));
     });
 
-    it.only("allows for loss scenarios", async () => {
+    it("allows for loss scenarios", async () => {
       await addUnderlyingBalance(alice, "1000");
       await addUnderlyingBalance(bob, "1000");
 
