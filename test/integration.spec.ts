@@ -713,6 +713,69 @@ describe("Integration", () => {
       expect(await underlyingBalanceOf(alice)).to.eq(parseUnits("1100"));
       expect(await underlyingBalanceOf(bob)).to.eq(parseUnits("1100"));
     });
+
+    it.only("allows for loss scenarios", async () => {
+      await addUnderlyingBalance(alice, "1000");
+      await addUnderlyingBalance(bob, "1000");
+
+      await vault.connect(alice).deposit(
+        depositParams.build({
+          amount: parseUnits("100"),
+          inputToken: underlying.address,
+          claims: [claimParams.percent(100).to(alice.address).build()],
+        })
+      );
+
+      await vault.connect(bob).deposit(
+        depositParams.build({
+          amount: parseUnits("100"),
+          inputToken: underlying.address,
+          claims: [claimParams.percent(100).to(bob.address).build()],
+        })
+      );
+
+      await moveForwardTwoWeeks();
+      await addYieldToVault("200");
+
+      // alice claims
+      await vault.connect(alice).claimYield(alice.address);
+
+      expect(await underlyingBalanceOf(alice)).to.eq(parseUnits("1000"));
+
+      // bob claims and partial withraws
+      await vault
+        .connect(bob)
+        .partialWithdraw(bob.address, [2], [parseUnits("50")]);
+
+      await vault.connect(bob).claimYield(bob.address);
+
+      expect(await underlyingBalanceOf(bob)).to.eq(parseUnits("1050"));
+
+      // there's loss
+      await removeUnderlyingFromVault("15");
+      expect(await underlying.balanceOf(vault.address)).to.eq(
+        parseUnits("135")
+      );
+
+      // bob force withdraws with a loss of 5
+      await vault.connect(bob).forceWithdraw(bob.address, [2]);
+      expect(await underlyingBalanceOf(bob)).to.eq(parseUnits("1095"));
+
+      // there's yiled
+      await addYieldToVault("10");
+
+      // alice partial withdraws
+      await vault
+        .connect(alice)
+        .partialWithdraw(alice.address, [1], [parseUnits("40")]);
+
+      expect(await underlyingBalanceOf(alice)).to.eq(parseUnits("1040"));
+
+      // alice withdraws
+      await vault.connect(alice).withdraw(alice.address, [1]);
+
+      expect(await underlyingBalanceOf(alice)).to.eq(parseUnits("1100"));
+    });
   });
 
   function addYieldToVault(amount: string) {
