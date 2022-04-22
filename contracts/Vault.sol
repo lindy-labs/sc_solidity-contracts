@@ -311,16 +311,18 @@ contract Vault is
         _withdraw(_to, _ids, true);
     }
 
-    function investableAmount() public view returns (uint256) {
-        uint256 maxInvestableAssets = totalUnderlying().pctOf(investPct);
-
-        uint256 alreadyInvested = strategy.investedAssets();
-
-        if (alreadyInvested >= maxInvestableAssets) {
-            return 0;
+    function investState()
+        public
+        view
+        override
+        returns (uint256 maxInvestableAmount, uint256 alreadyInvested)
+    {
+        if (address(strategy) == address(0)) {
+            return (0, 0);
         }
 
-        return maxInvestableAssets - alreadyInvested;
+        maxInvestableAmount = totalUnderlying().pctOf(investPct);
+        alreadyInvested = strategy.investedAssets();
     }
 
     /// @inheritdoc IVault
@@ -331,15 +333,17 @@ contract Vault is
     {
         require(address(strategy) != address(0), "Vault: strategy is not set");
 
-        uint256 _investable = investableAmount();
-
-        require(_investable != 0, "Vault: nothing to invest");
-
-        underlying.safeTransfer(address(strategy), _investable);
-
-        emit Invested(_investable);
+        (uint256 maxInvestableAmount, uint256 alreadyInvested) = investState();
+        require(
+            alreadyInvested < maxInvestableAmount,
+            "Vault: nothing to invest"
+        );
+        uint256 investAmount = maxInvestableAmount - alreadyInvested;
+        underlying.safeTransfer(address(strategy), investAmount);
 
         strategy.invest();
+
+        emit Invested(investAmount);
     }
 
     /// @inheritdoc IVault
@@ -366,7 +370,13 @@ contract Vault is
         address _inputToken,
         uint256 _amount,
         uint256 _lockDuration
-    ) external override(IVaultSponsoring) nonReentrant onlyRole(SPONSOR_ROLE) whenNotPaused{
+    )
+        external
+        override(IVaultSponsoring)
+        nonReentrant
+        onlyRole(SPONSOR_ROLE)
+        whenNotPaused
+    {
         require(_amount != 0, "Vault: cannot sponsor 0");
 
         require(

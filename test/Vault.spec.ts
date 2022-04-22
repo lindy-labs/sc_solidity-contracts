@@ -532,12 +532,19 @@ describe("Vault", () => {
     });
   });
 
-  describe("investableAmount", () => {
+  // TODO: change
+  describe("investState", () => {
     it("returns the amount available to invest", async () => {
       await vault.connect(owner).setStrategy(strategy.address);
       await addYieldToVault("100");
 
-      expect(await vault.investableAmount()).to.equal(parseUnits("90"));
+      const { maxInvestableAmount, alreadyInvested } = await vault
+        .connect(owner)
+        .investState();
+
+      const investAmount = maxInvestableAmount.sub(alreadyInvested);
+
+      expect(investAmount).to.equal(parseUnits("90"));
     });
 
     it("takes into account the invested amount", async () => {
@@ -546,16 +553,13 @@ describe("Vault", () => {
       await addYieldToVault("100");
       await underlying.mint(strategy.address, parseUnits("100"));
 
-      expect(await vault.investableAmount()).to.equal(parseUnits("80"));
-    });
+      const { maxInvestableAmount, alreadyInvested } = await vault
+        .connect(owner)
+        .investState();
 
-    it("returns zero if invested funds is greater or equal than available amount", async () => {
-      await vault.connect(owner).setStrategy(strategy.address);
-      await vault.connect(owner).setInvestPct("9000");
-      await addYieldToVault("10");
-      await underlying.mint(strategy.address, parseUnits("100"));
+      const investAmount = maxInvestableAmount.sub(alreadyInvested);
 
-      expect(await vault.investableAmount()).to.equal(0);
+      expect(investAmount).to.equal(parseUnits("80"));
     });
   });
 
