@@ -537,11 +537,7 @@ describe("Vault", () => {
         await addYieldToVault("10");
         await underlying.mint(strategy.address, parseUnits("190"));
 
-        console.log(await underlying.balanceOf(vault.address));
-
         await vault.connect(owner).updateInvested();
-
-        console.log(await underlying.balanceOf(vault.address));
 
         expect(await underlying.balanceOf(vault.address)).to.eq(parseUnits("20"));
         expect(await underlying.balanceOf(strategy.address)).to.eq(
