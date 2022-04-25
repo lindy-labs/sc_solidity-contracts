@@ -145,9 +145,17 @@ contract AnchorStrategy is IStrategy, AccessControl {
      */
     function withdrawToVault(uint256 amount)
         external
+        virtual
         override(IStrategy)
         onlyManager
-    {}
+    {
+        require(amount > 0, "AnchorUSTStrategy: amount is zero");
+        uint256 _aUstToWithdraw = _estimateUstAmountInAUst(amount);
+
+        if (pendingRedeems < _aUstToWithdraw) {
+            initRedeemStable(_aUstToWithdraw - pendingRedeems);
+        }
+    }
 
     /**
      * Amount, expressed in the underlying currency, currently in the strategy
@@ -342,6 +350,23 @@ contract AnchorStrategy is IStrategy, AccessControl {
      */
     function redeemOperationLength() external view returns (uint256) {
         return redeemOperations.length;
+    }
+
+    /**
+     * @return AUST value of UST amount
+     */
+    function _estimateUstAmountInAUst(uint256 ustAmount)
+        internal
+        view
+        returns (uint256)
+    {
+        if (ustAmount == 0) {
+            return 0;
+        }
+
+        uint256 aUstPrice = _aUstToUstExchangeRate();
+
+        return ((_aUstToUstFeedMultiplier * ustAmount) / aUstPrice);
     }
 
     /**

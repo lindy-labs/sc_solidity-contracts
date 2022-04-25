@@ -486,7 +486,7 @@ describe("Vault", () => {
     });
   });
 
-  describe("updateInvested", () => {
+  describe("updateInvested invest scenario", () => {
     it("reverts if msg.sender is not investor", async () => {
       await expect(vault.connect(alice).updateInvested()).to.be.revertedWith(
         getRoleErrorMsg(alice, INVESTOR_ROLE)
@@ -507,26 +507,57 @@ describe("Vault", () => {
       );
     });
 
-    it("moves the funds to the strategy", async () => {
-      await vault.connect(owner).setStrategy(strategy.address);
-      await vault.connect(owner).setInvestPct("8000");
-      await addYieldToVault("100");
+    describe("invest scenario", () => {
+      it("moves the funds to the strategy", async () => {
+        await vault.connect(owner).setStrategy(strategy.address);
+        await vault.connect(owner).setInvestPct("8000");
+        await addYieldToVault("100");
 
-      await vault.connect(owner).updateInvested();
+        await vault.connect(owner).updateInvested();
 
-      expect(await underlying.balanceOf(strategy.address)).to.eq(
-        parseUnits("80")
-      );
+        expect(await underlying.balanceOf(strategy.address)).to.eq(
+          parseUnits("80")
+        );
+      });
+
+      it("emits an event", async () => {
+        await vault.connect(owner).setStrategy(strategy.address);
+        await vault.connect(owner).setInvestPct("8000");
+        await addYieldToVault("100");
+
+        const tx = await vault.connect(owner).updateInvested();
+
+        await expect(tx).to.emit(vault, "Invested").withArgs(parseUnits("80"));
+      });
     });
 
-    it("emits an event", async () => {
-      await vault.connect(owner).setStrategy(strategy.address);
-      await vault.connect(owner).setInvestPct("8000");
-      await addYieldToVault("100");
+    describe("disinvest scenario", () => {
+      it("call strategy.withdrawToVault with required amount", async () => {
+        await vault.connect(owner).setStrategy(strategy.address);
+        await addYieldToVault("10");
+        await underlying.mint(strategy.address, parseUnits("190"));
 
-      const tx = await vault.connect(owner).updateInvested();
+        console.log(await underlying.balanceOf(vault.address));
 
-      await expect(tx).to.emit(vault, "Invested").withArgs(parseUnits("80"));
+        await vault.connect(owner).updateInvested();
+
+        console.log(await underlying.balanceOf(vault.address));
+
+        expect(await underlying.balanceOf(vault.address)).to.eq(parseUnits("20"));
+        expect(await underlying.balanceOf(strategy.address)).to.eq(
+          parseUnits("180")
+        );
+      });
+
+      it("emits an event", async () => {
+        await vault.connect(owner).setStrategy(strategy.address);
+        await addYieldToVault("10");
+        await underlying.mint(strategy.address, parseUnits("190"));
+
+        const tx = await vault.connect(owner).updateInvested();
+
+        await expect(tx).to.emit(vault, "Disinvested").withArgs(parseUnits("10"));
+      });
     });
   });
 
