@@ -501,8 +501,6 @@ describe("Vault", () => {
 
     it("reverts if no investable amount", async () => {
       await vault.connect(owner).setStrategy(strategy.address);
-      await addYieldToVault("10");
-      await underlying.mint(strategy.address, parseUnits("100"));
 
       await expect(vault.connect(owner).updateInvested()).to.be.revertedWith(
         "Vault: nothing to invest"

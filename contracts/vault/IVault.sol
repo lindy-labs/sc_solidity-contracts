@@ -59,6 +59,8 @@ interface IVault {
 
     event Invested(uint256 amount);
 
+    event Disinvested(uint256 amount);
+
     event YieldClaimed(
         uint256 claimerId,
         address indexed to,

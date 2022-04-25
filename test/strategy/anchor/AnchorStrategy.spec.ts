@@ -295,7 +295,6 @@ describe("AnchorStrategy", () => {
       const operation0 = await strategy.depositOperations(0);
       expect(operation0.operator).equal(operator0);
       expect(operation0.amount).equal(investAmount0);
-
       const operation1 = await strategy.depositOperations(1);
       expect(operation1.operator).equal(operator1);
       expect(operation1.amount).equal(investAmount1);

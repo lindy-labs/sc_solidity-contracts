@@ -334,10 +334,25 @@ contract Vault is
         require(address(strategy) != address(0), "Vault: strategy is not set");
 
         (uint256 maxInvestableAmount, uint256 alreadyInvested) = investState();
+
         require(
-            alreadyInvested < maxInvestableAmount,
-            "Vault: nothing to invest"
+            maxInvestableAmount > alreadyInvested
+                ? maxInvestableAmount - alreadyInvested != 0
+                : alreadyInvested - maxInvestableAmount != 0,
+            "Vault: nothing to invest or disinvest"
         );
+
+        // disinvest
+        if (alreadyInvested > maxInvestableAmount) {
+            uint256 disinvestAmount = alreadyInvested - maxInvestableAmount;
+            strategy.withdrawToVault(disinvestAmount);
+
+            emit Disinvested(disinvestAmount);
+
+            return;
+        }
+
+        // invest
         uint256 investAmount = maxInvestableAmount - alreadyInvested;
         underlying.safeTransfer(address(strategy), investAmount);
 
