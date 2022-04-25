@@ -149,7 +149,7 @@ contract AnchorStrategy is IStrategy, AccessControl {
         override(IStrategy)
         onlyManager
     {
-        require(amount > 0, "AnchorUSTStrategy: amount is zero");
+        require(amount > 0, "AnchorStrategy: amount is zero");
         uint256 _aUstToWithdraw = _estimateUstAmountInAUst(amount);
 
         if (pendingRedeems < _aUstToWithdraw) {
