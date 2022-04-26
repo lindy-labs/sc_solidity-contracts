@@ -197,6 +197,11 @@ contract AnchorStrategy is IStrategy, AccessControl {
         );
     }
 
+    // @inheritdoc IStrategy
+    function disinvest() external virtual override(IStrategy) onlyManager {
+
+    }
+
     /**
      * Calls EthAnchor with a pending deposit ID, and attempts to finish it.
      *
