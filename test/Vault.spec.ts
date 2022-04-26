@@ -306,6 +306,21 @@ describe("Vault", () => {
       ).to.be.revertedWith("Vault: owner cannot be 0x0");
     });
 
+    it("reverts if invalid investment fee", async () => {
+      await expect(
+        VaultFactory.deploy(
+          underlying.address,
+          TWO_WEEKS,
+          INVEST_PCT,
+          TREASURY,
+          owner.address,
+          PERFORMANCE_FEE_PCT,
+          BigNumber.from("10001"),
+          []
+        )
+      ).to.be.revertedWith("Vault: invalid investment fee");
+    });
+
     it("Check initial values", async () => {
       expect(
         await vault.hasRole(DEFAULT_ADMIN_ROLE, owner.address)
