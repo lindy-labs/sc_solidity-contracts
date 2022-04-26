@@ -336,9 +336,7 @@ contract Vault is
         (uint256 maxInvestableAmount, uint256 alreadyInvested) = investState();
 
         require(
-            maxInvestableAmount > alreadyInvested
-                ? maxInvestableAmount - alreadyInvested != 0
-                : alreadyInvested - maxInvestableAmount != 0,
+            maxInvestableAmount != alreadyInvested,
             "Vault: nothing to invest or disinvest"
         );
 
