@@ -26,12 +26,4 @@ describe("Depositors", () => {
       );
     });
   });
-
-  describe("burn", () => {
-    it("fails when the caller is not the vault", async () => {
-      expect(depositors.connect(bob).mint(bob.address)).to.be.revertedWith(
-        "Depositors: not authorized"
-      );
-    });
-  });
 });
