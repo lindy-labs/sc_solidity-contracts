@@ -343,6 +343,10 @@ contract Vault is
         // disinvest
         if (alreadyInvested > maxInvestableAmount) {
             uint256 disinvestAmount = alreadyInvested - maxInvestableAmount;
+
+            // require(disinvestAmount > 10 * 10 ** underlying.decimals(), "Vault: Not enough to disinvest");
+            require(disinvestAmount >= 10 * 10 ** 18, "Vault: Not enough to disinvest");
+
             strategy.withdrawToVault(disinvestAmount);
 
             emit Disinvested(disinvestAmount);
@@ -352,6 +356,10 @@ contract Vault is
 
         // invest
         uint256 investAmount = maxInvestableAmount - alreadyInvested;
+
+        // require(investAmount > 10 * 10 ** underlying.decimals(), "Vault: Not enough to invest");
+        require(investAmount >= 10 * 10 ** 18, "Vault: Not enough to invest");
+
         underlying.safeTransfer(address(strategy), investAmount);
 
         strategy.invest();
