@@ -321,7 +321,6 @@ describe("AnchorStrategy", () => {
       const operation0 = await strategy.depositOperations(0);
       expect(operation0.operator).equal(operator0);
       expect(operation0.amount).equal(investAmount0);
-
       const operation1 = await strategy.depositOperations(1);
       expect(operation1.operator).equal(operator1);
       expect(operation1.amount).equal(investAmount1);
@@ -920,6 +919,70 @@ describe("AnchorStrategy", () => {
       await strategy.connect(manager).finishRedeemStable(0);
 
       expect(await strategy.hasAssets()).to.be.equal(true);
+    });
+  });
+
+  describe("withdrawToVault", () => {
+    it("reverts if msg.sender is not manager", async () => {
+      await expect(
+        strategy.connect(alice).withdrawToVault(1)
+      ).to.be.revertedWith("AnchorStrategy: caller is not manager");
+    });
+
+    it("reverts if amount is zero", async () => {
+      await expect(
+        strategy.connect(manager).withdrawToVault(0)
+      ).to.be.revertedWith("AnchorStrategy: amount is zero");
+    });
+
+    it("init redeem stable for required aUST amount", async () => {
+      await aUstToken.mint(strategy.address, utils.parseEther("100"));
+
+      await registerNewTestOperator();
+      await setAUstRate(utils.parseEther("1.1"));
+
+      await strategy
+        .connect(manager)
+        .withdrawToVault(utils.parseEther("33"));
+
+      expect(await strategy.pendingRedeems()).to.be.equal(
+        utils.parseEther("30")
+      );
+    });
+
+    it("deduct pending redeem amount", async () => {
+      await aUstToken.mint(strategy.address, utils.parseEther("100"));
+
+      await registerNewTestOperator();
+      await strategy.connect(manager).initRedeemStable(utils.parseEther("10"));
+      await registerNewTestOperator();
+
+      await setAUstRate(utils.parseEther("1.1"));
+
+      await strategy
+        .connect(manager)
+        .withdrawToVault(utils.parseEther("33"));
+
+      expect(await strategy.pendingRedeems()).to.be.equal(
+        utils.parseEther("30")
+      );
+    });
+
+    it("do nothing if enough aUST amount is in pending redeem", async () => {
+      await aUstToken.mint(strategy.address, utils.parseEther("100"));
+
+      await registerNewTestOperator();
+      await strategy.connect(manager).initRedeemStable(utils.parseEther("40"));
+
+      await setAUstRate(utils.parseEther("1.1"));
+
+      await strategy
+        .connect(manager)
+        .withdrawToVault(utils.parseEther("33"));
+
+      expect(await strategy.pendingRedeems()).to.be.equal(
+        utils.parseEther("40")
+      );
     });
   });
 

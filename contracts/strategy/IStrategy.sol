@@ -107,8 +107,8 @@ interface IStrategy {
      *
      * @notice since EthAnchor uses an asynchronous model, this function
      * only starts the deposit process, but does not finish it.
-     * Each EthAnchor deposits are handled by different operator, so we store
-     * operator address to finish later.
+     * Each EthAnchor deposit is handled by a different operator, so we store
+     * an operator address to finish later.
      * We need to increase pendingDeposits to track correct underlying assets.
      */
     function invest() external;

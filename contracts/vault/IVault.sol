@@ -65,6 +65,8 @@ interface IVault {
 
     event Invested(uint256 amount);
 
+    event Disinvested(uint256 amount);
+
     event YieldClaimed(
         uint256 claimerId,
         address indexed to,
@@ -85,11 +87,15 @@ interface IVault {
     function updateInvested() external;
 
     /**
-     * Calculates underlying investable amount.
+     * Calculate maximum investable amount and already invested amount
      *
-     * @return the investable amount
+     * @return maxInvestableAmount maximum investable amount
+     * @return alreadyInvested already invested amount
      */
-    function investableAmount() external view returns (uint256);
+    function investState()
+        external
+        view
+        returns (uint256 maxInvestableAmount, uint256 alreadyInvested);
 
     /**
      * Percentage of the total underlying to invest in the strategy

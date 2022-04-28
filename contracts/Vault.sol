@@ -321,16 +321,19 @@ contract Vault is
         _withdrawPartial(_to, _ids, _amounts);
     }
 
-    function investableAmount() public view returns (uint256) {
-        uint256 maxInvestableAssets = totalUnderlying().pctOf(investPct);
-
-        uint256 alreadyInvested = strategy.investedAssets();
-
-        if (alreadyInvested >= maxInvestableAssets) {
-            return 0;
+    /// @inheritdoc IVault
+    function investState()
+        public
+        view
+        override(IVault)
+        returns (uint256 maxInvestableAmount, uint256 alreadyInvested)
+    {
+        if (address(strategy) == address(0)) {
+            return (0, 0);
         }
 
-        return maxInvestableAssets - alreadyInvested;
+        maxInvestableAmount = totalUnderlying().pctOf(investPct);
+        alreadyInvested = strategy.investedAssets();
     }
 
     /// @inheritdoc IVault
@@ -341,15 +344,30 @@ contract Vault is
     {
         require(address(strategy) != address(0), "Vault: strategy is not set");
 
-        uint256 _investable = investableAmount();
+        (uint256 maxInvestableAmount, uint256 alreadyInvested) = investState();
 
-        require(_investable != 0, "Vault: nothing to invest");
+        require(
+            maxInvestableAmount != alreadyInvested,
+            "Vault: nothing to do"
+        );
 
-        underlying.safeTransfer(address(strategy), _investable);
+        // disinvest
+        if (alreadyInvested > maxInvestableAmount) {
+            uint256 disinvestAmount = alreadyInvested - maxInvestableAmount;
+            strategy.withdrawToVault(disinvestAmount);
 
-        emit Invested(_investable);
+            emit Disinvested(disinvestAmount);
+
+            return;
+        }
+
+        // invest
+        uint256 investAmount = maxInvestableAmount - alreadyInvested;
+        underlying.safeTransfer(address(strategy), investAmount);
 
         strategy.invest();
+
+        emit Invested(investAmount);
     }
 
     /// @inheritdoc IVault
