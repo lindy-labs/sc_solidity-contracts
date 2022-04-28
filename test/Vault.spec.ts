@@ -486,7 +486,7 @@ describe("Vault", () => {
     });
   });
 
-  describe("updateInvested invest scenario", () => {
+  describe("updateInvested", () => {
     it("reverts if msg.sender is not investor", async () => {
       await expect(vault.connect(alice).updateInvested()).to.be.revertedWith(
         getRoleErrorMsg(alice, INVESTOR_ROLE)
@@ -508,6 +508,14 @@ describe("Vault", () => {
     });
 
     describe("invest scenario", () => {
+      it("reverts if invest amount < 10 UST", async () => {
+        await vault.connect(owner).setStrategy(strategy.address);
+        await vault.connect(owner).setInvestPct("8000");
+        await addYieldToVault("10");
+
+        await expect(vault.connect(owner).updateInvested()).to.be.revertedWith("Vault: Not enough to invest");
+      });
+
       it("moves the funds to the strategy", async () => {
         await vault.connect(owner).setStrategy(strategy.address);
         await vault.connect(owner).setInvestPct("8000");
@@ -532,6 +540,14 @@ describe("Vault", () => {
     });
 
     describe("disinvest scenario", () => {
+      it("reverts if disinvest amount < 10 UST", async () => {
+        await vault.connect(owner).setStrategy(strategy.address);
+        await addYieldToVault("10");
+        await underlying.mint(strategy.address, parseUnits("150"));
+
+        await expect(vault.connect(owner).updateInvested()).to.be.revertedWith("Vault: Not enough to disinvest");
+      });
+
       it("call strategy.withdrawToVault with required amount", async () => {
         await vault.connect(owner).setStrategy(strategy.address);
         await addYieldToVault("10");
