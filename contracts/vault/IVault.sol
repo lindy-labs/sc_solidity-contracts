@@ -55,7 +55,13 @@ interface IVault {
         string name
     );
 
-    event DepositBurned(uint256 indexed id, uint256 shares, address indexed to);
+    event DepositWithdrawn(
+        uint256 indexed id,
+        uint256 shares,
+        uint256 amount,
+        address indexed to,
+        bool burned
+    );
 
     event Invested(uint256 amount);
 
