@@ -113,14 +113,6 @@ contract AnchorStrategy is IStrategy, AccessControl {
         _;
     }
 
-    modifier onlyAdmin() {
-        require(
-            hasRole(DEFAULT_ADMIN_ROLE, msg.sender),
-            "AnchorStrategy: caller is not admin"
-        );
-        _;
-    }
-
     //
     // IStrategy
     //

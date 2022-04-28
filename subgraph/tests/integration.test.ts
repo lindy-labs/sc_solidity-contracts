@@ -10,7 +10,7 @@ import {
   handleDepositMinted,
   handleSponsored,
   handleUnsponsored,
-  handleDepositBurned,
+  handleDepositWithdrawn,
   handleYieldClaimed,
   handleTreasuryUpdated,
 } from "../src/mappings/vault";
@@ -24,7 +24,7 @@ import {
 } from "../src/mappings/strategy";
 import { Sponsored, Unsponsored } from "../src/types/Vault/IVaultSponsoring";
 import {
-  DepositBurned,
+  DepositWithdrawn,
   DepositMinted,
   YieldClaimed,
 } from "../src/types/Vault/IVault";
@@ -481,7 +481,7 @@ test("handleDepositMinted creates a Deposit", () => {
   );
 });
 
-test("handleDepositBurned removes a Deposit by marking as burned", () => {
+test("handleDepositWithdrawn removes a Deposit by marking as burned", () => {
   clearStore();
 
   let mockEvent = newMockEvent();
@@ -505,7 +505,7 @@ test("handleDepositBurned removes a Deposit by marking as burned", () => {
   foundation.vault = mockEvent.address.toHexString();
   foundation.save();
 
-  const event = new DepositBurned(
+  const event = new DepositWithdrawn(
     mockEvent.address,
     mockEvent.logIndex,
     mockEvent.transactionLogIndex,
@@ -518,9 +518,11 @@ test("handleDepositBurned removes a Deposit by marking as burned", () => {
 
   event.parameters.push(newI32("id", 1));
   event.parameters.push(newI32("shares", 1));
+  event.parameters.push(newI32("amount", 1));
   event.parameters.push(newAddress("to", MOCK_ADDRESS_1));
+  event.parameters.push(newBool("burned", true));
 
-  handleDepositBurned(event);
+  handleDepositWithdrawn(event);
 
   assert.fieldEquals("Deposit", "1", "burned", "true");
   assert.fieldEquals("Foundation", "1", "amountDeposited", "0");

@@ -306,6 +306,21 @@ describe("Vault", () => {
       ).to.be.revertedWith("Vault: owner cannot be 0x0");
     });
 
+    it("reverts if invalid investment fee", async () => {
+      await expect(
+        VaultFactory.deploy(
+          underlying.address,
+          TWO_WEEKS,
+          INVEST_PCT,
+          TREASURY,
+          owner.address,
+          PERFORMANCE_FEE_PCT,
+          BigNumber.from("10001"),
+          []
+        )
+      ).to.be.revertedWith("Vault: invalid investment fee");
+    });
+
     it("Check initial values", async () => {
       expect(
         await vault.hasRole(DEFAULT_ADMIN_ROLE, owner.address)
@@ -503,7 +518,7 @@ describe("Vault", () => {
       await vault.connect(owner).setStrategy(strategy.address);
 
       await expect(vault.connect(owner).updateInvested()).to.be.revertedWith(
-        "Vault: nothing to invest"
+        "Vault: nothing to do"
       );
     });
 
@@ -1180,11 +1195,23 @@ describe("Vault", () => {
           [vaultAction](alice.address, [1, 2]);
 
         await expect(tx)
-          .to.emit(vault, "DepositBurned")
-          .withArgs(1, parseUnits("50").mul(SHARES_MULTIPLIER), alice.address);
+          .to.emit(vault, "DepositWithdrawn")
+          .withArgs(
+            1,
+            parseUnits("50").mul(SHARES_MULTIPLIER),
+            parseUnits("50"),
+            alice.address,
+            true
+          );
         await expect(tx)
-          .to.emit(vault, "DepositBurned")
-          .withArgs(2, parseUnits("50").mul(SHARES_MULTIPLIER), alice.address);
+          .to.emit(vault, "DepositWithdrawn")
+          .withArgs(
+            2,
+            parseUnits("50").mul(SHARES_MULTIPLIER),
+            parseUnits("50"),
+            alice.address,
+            true
+          );
       });
 
       it("withdraws the principal of a deposit", async () => {
@@ -1413,6 +1440,164 @@ describe("Vault", () => {
       await expect(action).to.be.revertedWith(
         "Vault: cannot withdraw more than the available amount"
       );
+    });
+  });
+
+  describe("partialWithdraw", () => {
+    it("reduces the deposits' shares and amount", async () => {
+      const params = depositParams.build({
+        amount: parseUnits("100"),
+        inputToken: underlying.address,
+        claims: [
+          claimParams.percent(50).to(alice.address).build(),
+          claimParams.percent(50).to(bob.address).build(),
+        ],
+      });
+
+      await vault.connect(alice).deposit(params);
+
+      await moveForwardTwoWeeks();
+      await addYieldToVault("100");
+
+      await vault
+        .connect(alice)
+        .partialWithdraw(
+          alice.address,
+          [1, 2],
+          [parseUnits("25"), parseUnits("30")]
+        );
+
+      const deposit = await vault.deposits(1);
+      expect(deposit.amount).to.eq(parseUnits("25"));
+      expect(deposit.shares).to.eq(parseUnits("37.5").mul(SHARES_MULTIPLIER));
+
+      const deposit2 = await vault.deposits(2);
+      expect(deposit2.amount).to.eq(parseUnits("20"));
+      expect(deposit2.shares).to.eq(parseUnits("35").mul(SHARES_MULTIPLIER));
+    });
+
+    it("reduces the claimer's totalShares and totalPrincipal", async () => {
+      const params = depositParams.build({
+        amount: parseUnits("100"),
+        inputToken: underlying.address,
+        claims: [
+          claimParams.percent(50).to(alice.address).build(),
+          claimParams.percent(50).to(bob.address).build(),
+        ],
+      });
+
+      await vault.connect(alice).deposit(params);
+
+      await moveForwardTwoWeeks();
+      await addYieldToVault("100");
+
+      await vault
+        .connect(alice)
+        .partialWithdraw(alice.address, [2], [parseUnits("30")]);
+
+      const deposit = await vault.claimer(2);
+      expect(deposit.totalPrincipal).to.eq(parseUnits("20"));
+      expect(deposit.totalShares).to.eq(
+        parseUnits("35").mul(SHARES_MULTIPLIER)
+      );
+    });
+
+    it("removes the deposit for full withdrawals", async () => {
+      const params = depositParams.build({
+        amount: parseUnits("100"),
+        inputToken: underlying.address,
+        claims: [
+          claimParams.percent(50).to(alice.address).build(),
+          claimParams.percent(50).to(bob.address).build(),
+        ],
+      });
+
+      await vault.connect(alice).deposit(params);
+
+      await moveForwardTwoWeeks();
+      await addYieldToVault("100");
+
+      await vault
+        .connect(alice)
+        .partialWithdraw(alice.address, [2], [parseUnits("50")]);
+
+      const deposit = await vault.deposits(2);
+
+      expect(deposit.amount).to.eq(0);
+      expect(deposit.claimerId).to.eq(0);
+      expect(deposit.lockedUntil).to.eq(0);
+      expect(deposit.shares).to.eq(0);
+    });
+
+    it("fails if the vault lost funds", async () => {
+      const params = depositParams.build({
+        amount: parseUnits("100"),
+        inputToken: underlying.address,
+        claims: [claimParams.percent(100).to(alice.address).build()],
+      });
+
+      await vault.connect(alice).deposit(params);
+
+      await moveForwardTwoWeeks();
+      await removeUnderlyingFromVault("50");
+
+      const tx = vault
+        .connect(alice)
+        .partialWithdraw(alice.address, [1], [parseUnits("25")]);
+
+      await expect(tx).to.be.revertedWith(
+        "Vault: cannot withdraw more than the available amount"
+      );
+    });
+
+    it("fails for full withdrawals if the vault lost funds", async () => {
+      const params = depositParams.build({
+        amount: parseUnits("100"),
+        inputToken: underlying.address,
+        claims: [claimParams.percent(100).to(alice.address).build()],
+      });
+
+      await vault.connect(alice).deposit(params);
+
+      await moveForwardTwoWeeks();
+      await removeUnderlyingFromVault("50");
+
+      const tx = vault
+        .connect(alice)
+        .partialWithdraw(alice.address, [1], [parseUnits("100")]);
+
+      await expect(tx).to.be.revertedWith(
+        "Vault: cannot withdraw more than the available amount"
+      );
+    });
+
+    it("emits an event", async () => {
+      const params = depositParams.build({
+        amount: parseUnits("100"),
+        inputToken: underlying.address,
+        claims: [
+          claimParams.percent(50).to(alice.address).build(),
+          claimParams.percent(50).to(bob.address).build(),
+        ],
+      });
+
+      await vault.connect(alice).deposit(params);
+
+      await moveForwardTwoWeeks();
+
+      const tx = vault
+        .connect(alice)
+        .partialWithdraw(alice.address, [2], [parseUnits("25")]);
+
+      await expect(tx)
+        .to.emit(vault, "DepositWithdrawn")
+        .withArgs(
+          2,
+          parseUnits("25").mul(SHARES_MULTIPLIER),
+          parseUnits("25"),
+          alice.address,
+          false
+        );
     });
   });
 
