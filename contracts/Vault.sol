@@ -338,7 +338,7 @@ contract Vault is
 
         require(
             maxInvestableAmount != alreadyInvested,
-            "Vault: nothing to invest or disinvest"
+            "Vault: nothing to do"
         );
 
         // disinvest

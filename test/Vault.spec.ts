@@ -503,7 +503,7 @@ describe("Vault", () => {
       await vault.connect(owner).setStrategy(strategy.address);
 
       await expect(vault.connect(owner).updateInvested()).to.be.revertedWith(
-        "Vault: nothing to invest"
+        "Vault: nothing to do"
       );
     });
 
