@@ -2,6 +2,7 @@
 pragma solidity =0.8.10;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
@@ -36,6 +37,7 @@ contract Vault is
     Pausable
 {
     using SafeERC20 for IERC20;
+    using SafeERC20 for IERC20Metadata;
     using PercentMath for uint256;
     using PercentMath for uint16;
 
@@ -69,7 +71,7 @@ contract Vault is
     //
 
     /// @inheritdoc IVault
-    IERC20 public override(IVault) underlying;
+    IERC20Metadata public override(IVault) underlying;
 
     /// @inheritdoc IVault
     uint16 public override(IVault) investPct;
@@ -127,7 +129,7 @@ contract Vault is
      * @param _swapPools Swap pools used to automatically convert tokens to underlying
      */
     constructor(
-        IERC20 _underlying,
+        IERC20Metadata _underlying,
         uint64 _minLockPeriod,
         uint16 _investPct,
         address _treasury,
@@ -344,8 +346,7 @@ contract Vault is
         if (alreadyInvested > maxInvestableAmount) {
             uint256 disinvestAmount = alreadyInvested - maxInvestableAmount;
 
-            // require(disinvestAmount > 10 * 10 ** underlying.decimals(), "Vault: Not enough to disinvest");
-            require(disinvestAmount >= 10 * 10 ** 18, "Vault: Not enough to disinvest");
+            require(disinvestAmount >= 10 * 10 ** underlying.decimals(), "Vault: Not enough to disinvest");
 
             strategy.withdrawToVault(disinvestAmount);
 
@@ -357,8 +358,7 @@ contract Vault is
         // invest
         uint256 investAmount = maxInvestableAmount - alreadyInvested;
 
-        // require(investAmount > 10 * 10 ** underlying.decimals(), "Vault: Not enough to invest");
-        require(investAmount >= 10 * 10 ** 18, "Vault: Not enough to invest");
+        require(investAmount >= 10 * 10 ** underlying.decimals(), "Vault: Not enough to invest");
 
         underlying.safeTransfer(address(strategy), investAmount);
 
