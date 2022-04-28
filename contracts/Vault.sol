@@ -311,10 +311,11 @@ contract Vault is
         _withdraw(_to, _ids, true);
     }
 
+    /// @inheritdoc IVault
     function investState()
         public
         view
-        override
+        override(IVault)
         returns (uint256 maxInvestableAmount, uint256 alreadyInvested)
     {
         if (address(strategy) == address(0)) {
