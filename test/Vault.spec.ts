@@ -486,7 +486,7 @@ describe("Vault", () => {
     });
   });
 
-  describe("updateInvested invest scenario", () => {
+  describe("updateInvested", () => {
     it("reverts if msg.sender is not investor", async () => {
       await expect(vault.connect(alice).updateInvested()).to.be.revertedWith(
         getRoleErrorMsg(alice, INVESTOR_ROLE)
