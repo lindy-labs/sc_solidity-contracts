@@ -6,7 +6,7 @@ import {
   Bytes,
 } from "@graphprotocol/graph-ts";
 import {
-  DepositBurned,
+  DepositWithdrawn,
   DepositMinted,
   YieldClaimed,
 } from "../types/Vault/IVault";
@@ -155,7 +155,7 @@ export function handleTreasuryUpdated(event: TreasuryUpdated): void {
 }
 
 var depositId: string;
-export function handleDepositBurned(event: DepositBurned): void {
+export function handleDepositWithdrawn(event: DepositWithdrawn): void {
   depositId = event.params.id.toString();
 
   const deposit = Deposit.load(depositId)!;
