@@ -28,3 +28,8 @@ Invoking Vault.withdraw() with valid parameters always succeeds with
 Invoking Vault.withdraw() with invalid parameters always revert, ie when
  - lock duration has not passed yet
  - user has not made a deposit and user try to withdraw more than zero
+
+
+## Access Control
+
+Invoking strategy function invest, finishDepositstable and initRedeemstable always revert if caller is not manager.
