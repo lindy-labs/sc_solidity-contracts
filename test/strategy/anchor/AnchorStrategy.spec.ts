@@ -139,6 +139,32 @@ describe("AnchorStrategy", () => {
       ).to.be.revertedWith("AnchorStrategy: router is 0x");
     });
 
+    it("Revert if ust is address(0)", async () => {
+      await expect(
+        AnchorStrategyFactory.deploy(
+          vault.address,
+          mockEthAnchorRouter.address,
+          mockAUstUstFeed.address,
+          constants.AddressZero,
+          aUstToken.address,
+          owner.address
+        )
+      ).to.be.revertedWith("AnchorStrategy: ust is 0x");
+    });
+
+    it("Revert if aUST is address(0)", async () => {
+      await expect(
+        AnchorStrategyFactory.deploy(
+          vault.address,
+          mockEthAnchorRouter.address,
+          mockAUstUstFeed.address,
+          ustToken.address,
+          constants.AddressZero,
+          owner.address
+        )
+      ).to.be.revertedWith("AnchorStrategy: aUST is 0x");
+    });
+
     it("Revert if vault does not have IVault interface", async () => {
       await expect(
         AnchorStrategyFactory.deploy(
