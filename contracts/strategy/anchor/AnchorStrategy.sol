@@ -205,7 +205,7 @@ contract AnchorStrategy is IStrategy, AccessControl {
 
         ethAnchorRouter.finishDepositStable(operator);
         uint256 newAUst = _getAUstBalance() - aUstBalanceBefore;
-        require(newAUst > 0, "AnchorStrategy: no aUST returned");
+        require(newAUst != 0, "AnchorStrategy: no aUST returned");
 
         uint256 ustAmount = operation.amount;
         pendingDeposits -= ustAmount;
@@ -274,7 +274,7 @@ contract AnchorStrategy is IStrategy, AccessControl {
         ethAnchorRouter.finishRedeemStable(operator);
 
         uint256 ustAmount = _getUstBalance();
-        require(ustAmount > 0, "AnchorStrategy: nothing redeemed");
+        require(ustAmount != 0, "AnchorStrategy: nothing redeemed");
 
         pendingRedeems -= aUstAmount;
 
