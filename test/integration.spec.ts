@@ -8,13 +8,12 @@ import {
   Vault,
   MockUST,
   Depositors,
-  Claimers,
   MockStrategy,
   MockAUST__factory,
   MockUST__factory,
   Vault__factory,
 } from "../typechain";
-import { Claimers__factory, Depositors__factory } from "../typechain";
+import { Depositors__factory } from "../typechain";
 import { depositParams, claimParams } from "./shared/factories";
 import {
   moveForwardTwoWeeks,
@@ -40,7 +39,6 @@ describe("Integration", () => {
   let aUstToken: Contract;
   let vault: Vault;
   let depositors: Depositors;
-  let claimers: Claimers;
   let strategy: MockStrategy;
 
   const TWO_WEEKS = BigNumber.from(time.duration.weeks(2).toNumber());
@@ -110,7 +108,6 @@ describe("Integration", () => {
     );
 
     depositors = Depositors__factory.connect(await vault.depositors(), owner);
-    claimers = Claimers__factory.connect(await vault.claimers(), owner);
   });
 
   describe("single deposit, single sponsor and single claimer", () => {

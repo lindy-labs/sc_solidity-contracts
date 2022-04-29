@@ -11,10 +11,8 @@ import {
   MockUST,
   MockAUST,
   Depositors,
-  Claimers,
   MockStrategy,
   Vault__factory,
-  Claimers__factory,
   Depositors__factory,
 } from "../typechain";
 
@@ -45,7 +43,6 @@ describe("Vault", () => {
   let aUstToken: MockAUST;
   let vault: Vault;
   let depositors: Depositors;
-  let claimers: Claimers;
   let strategy: MockStrategy;
   const TWO_WEEKS = BigNumber.from(time.duration.weeks(2).toNumber());
   const MAX_DEPOSIT_LOCK_DURATION = BigNumber.from(
@@ -126,7 +123,6 @@ describe("Vault", () => {
     );
 
     depositors = Depositors__factory.connect(await vault.depositors(), owner);
-    claimers = Claimers__factory.connect(await vault.claimers(), owner);
   });
 
   describe("codearena", () => {
@@ -339,7 +335,6 @@ describe("Vault", () => {
       expect(await vault.perfFeePct()).to.be.equal(PERFORMANCE_FEE_PCT);
 
       expect(await vault.depositors()).to.be.not.equal(constants.AddressZero);
-      expect(await vault.claimers()).to.be.not.equal(constants.AddressZero);
     });
   });
 

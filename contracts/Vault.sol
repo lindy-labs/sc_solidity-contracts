@@ -15,7 +15,6 @@ import {IVaultSettings} from "./vault/IVaultSettings.sol";
 import {CurveSwapper} from "./vault/CurveSwapper.sol";
 import {PercentMath} from "./lib/PercentMath.sol";
 import {Depositors} from "./vault/Depositors.sol";
-import {Claimers} from "./vault/Claimers.sol";
 import {IStrategy} from "./strategy/IStrategy.sol";
 
 /**
@@ -88,9 +87,6 @@ contract Vault is
 
     /// Depositors, represented as an NFT per deposit
     Depositors public depositors;
-
-    /// Yield allocation
-    Claimers public claimers;
 
     /// Unique IDs to correlate donations that belong to the same foundation
     uint256 private _depositGroupIds;
@@ -166,7 +162,6 @@ contract Vault is
         investmentFeeEstimatePct = _investmentFeeEstimatePct;
 
         depositors = new Depositors(this);
-        claimers = new Claimers(this);
 
         _addPools(_swapPools);
     }
