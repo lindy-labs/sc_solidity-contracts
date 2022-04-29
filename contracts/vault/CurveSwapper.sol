@@ -165,7 +165,7 @@ abstract contract CurveSwapper {
 
     /// @param _swapPools configs for each swap pool
     function _addPools(SwapPoolParam[] memory _swapPools) internal {
-        for (uint256 i = 0; i < _swapPools.length; ++i) {
+        for (uint256 i; i < _swapPools.length; ++i) {
             _addPool(_swapPools[i]);
         }
     }
