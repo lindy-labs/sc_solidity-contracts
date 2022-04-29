@@ -26,7 +26,7 @@ interface IVault {
         /// amount of the deposit
         uint256 amount;
         /// wallet of the claimer
-        uint256 claimerId;
+        address claimerId;
         /// when can the deposit be withdrawn
         uint256 lockedUntil;
         /// the number of shares issued for this deposit
@@ -49,7 +49,7 @@ interface IVault {
         uint256 shares,
         address indexed depositor,
         address indexed claimer,
-        uint256 claimerId,
+        address claimerId,
         uint64 lockedUntil,
         bytes data,
         string name
@@ -68,7 +68,7 @@ interface IVault {
     event Disinvested(uint256 amount);
 
     event YieldClaimed(
-        uint256 claimerId,
+        address claimerId,
         address indexed to,
         uint256 amount,
         uint256 burnedShares,

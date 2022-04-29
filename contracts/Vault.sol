@@ -98,8 +98,8 @@ contract Vault is
     /// deposit NFT ID => deposit data
     mapping(uint256 => Deposit) public deposits;
 
-    /// claimer NFT ID => claimer data
-    mapping(uint256 => Claimer) public claimer;
+    /// claimer address => claimer data
+    mapping(address => Claimer) public claimer;
 
     /// The total of principal deposited
     uint256 public totalPrincipal;
@@ -196,9 +196,8 @@ contract Vault is
             uint256 perfFee
         )
     {
-        uint256 tokenId = claimers.tokenOf(_to);
-        uint256 claimerPrincipal = claimer[tokenId].totalPrincipal;
-        uint256 claimerShares = claimer[tokenId].totalShares;
+        uint256 claimerPrincipal = claimer[_to].totalPrincipal;
+        uint256 claimerShares = claimer[_to].totalShares;
 
         uint256 currentClaimerPrincipal = _computeAmount(
             claimerShares,
@@ -278,16 +277,14 @@ contract Vault is
 
         if (yield == 0) return;
 
-        uint256 claimerId = claimers.tokenOf(msg.sender);
-
         accumulatedPerfFee += fee;
 
         underlying.safeTransfer(_to, yield);
 
-        claimer[claimerId].totalShares -= shares;
+        claimer[msg.sender].totalShares -= shares;
         totalShares -= shares;
 
-        emit YieldClaimed(claimerId, _to, yield, shares, fee);
+        emit YieldClaimed(msg.sender, _to, yield, shares, fee);
     }
 
     /// @inheritdoc IVault
@@ -415,7 +412,7 @@ contract Vault is
         _transferAndCheckInputToken(msg.sender, _inputToken, _amount);
         uint256 underlyingAmount = _swapIntoUnderlying(_inputToken, _amount);
 
-        deposits[tokenId] = Deposit(underlyingAmount, 0, lockedUntil, 0);
+        deposits[tokenId] = Deposit(underlyingAmount, address(0), lockedUntil, 0); // weird
         totalSponsored += underlyingAmount;
 
         emit Sponsored(tokenId, underlyingAmount, msg.sender, lockedUntil);
@@ -667,14 +664,14 @@ contract Vault is
 
             Deposit memory _deposit = deposits[tokenId];
             uint256 lockedUntil = _deposit.lockedUntil;
-            uint256 claimerId = _deposit.claimerId;
+            address claimerId = _deposit.claimerId;
 
             address owner = depositors.ownerOf(tokenId);
             uint256 amount = _deposit.amount;
 
             require(owner == msg.sender, "Vault: you are not allowed");
             require(lockedUntil <= block.timestamp, "Vault: amount is locked");
-            require(claimerId == 0, "Vault: token id is not a sponsor");
+            require(claimerId == address(0), "Vault: token id is not a sponsor");
 
             sponsorAmount += amount;
 
@@ -780,7 +777,7 @@ contract Vault is
      */
     struct CreateClaimLocals {
         uint256 newShares;
-        uint256 claimerId;
+        address claimerId;
         uint256 tokenId;
     }
 
@@ -799,7 +796,7 @@ contract Vault is
                 _localTotalShares,
                 _localTotalPrincipal
             ),
-            claimerId: claimers.mint(_claim.beneficiary),
+            claimerId: _claim.beneficiary,
             tokenId: depositors.mint(msg.sender)
         });
 
@@ -870,7 +867,7 @@ contract Vault is
             "Vault: deposit is locked"
         );
 
-        require(_deposit.claimerId != 0, "Vault: token id is not a deposit");
+        require(_deposit.claimerId != address(0), "Vault: token id is not a deposit");
 
         bool isFull = _deposit.amount == _amount;
 
@@ -1024,11 +1021,11 @@ contract Vault is
         return _amount - _amount.pctOf(investmentFeeEstimatePct);
     }
 
-    function sharesOf(uint256 claimerId) external view returns (uint256) {
+    function sharesOf(address claimerId) external view returns (uint256) {
         return claimer[claimerId].totalShares;
     }
 
-    function principalOf(uint256 claimerId) external view returns (uint256) {
+    function principalOf(address claimerId) external view returns (uint256) {
         return claimer[claimerId].totalPrincipal;
     }
 
