@@ -44,13 +44,13 @@ contract Vault is
     //
 
     /// Role allowed to invest/desinvest from strategy
-    bytes32 public constant INVESTOR_ROLE = keccak256("INVESTOR_ROLE");
+    bytes32 public immutable INVESTOR_ROLE = keccak256("INVESTOR_ROLE");
 
     /// Role allowed to change settings such as performance fee and investment fee
-    bytes32 public constant SETTINGS_ROLE = keccak256("SETTINGS_ROLE");
+    bytes32 public immutable SETTINGS_ROLE = keccak256("SETTINGS_ROLE");
 
     /// Role for sponsors allowed to call sponsor/unsponsor
-    bytes32 public constant SPONSOR_ROLE = keccak256("SPONSOR_ROLE");
+    bytes32 public immutable SPONSOR_ROLE = keccak256("SPONSOR_ROLE");
 
     /// Minimum lock for each sponsor
     uint64 public constant MIN_SPONSOR_LOCK_DURATION = 2 weeks;
