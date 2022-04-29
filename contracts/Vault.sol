@@ -266,7 +266,56 @@ contract Vault is
             newUnderlyingAmount,
             lockedUntil,
             _params.claims,
-            _params.name
+            _params.name,
+            _depositGroupIds
+        );
+
+        _depositGroupIds++;
+    }
+
+    /// @inheritdoc IVault
+    function deposit(DepositParams calldata _params, uint256 groupId)
+        external
+        nonReentrant
+	whenNotPaused
+        returns (uint256[] memory depositIds)
+    {
+        require(_params.amount != 0, "Vault: cannot deposit 0");
+        require(
+            _params.lockDuration >= minLockPeriod &&
+                _params.lockDuration <= MAX_DEPOSIT_LOCK_DURATION,
+            "Vault: invalid lock period"
+        );
+        uint256 principalMinusStrategyFee = _applyInvestmentFeeEstimate(
+            totalPrincipal
+        );
+        uint256 previousTotalUnderlying = totalUnderlyingMinusSponsored();
+        require(
+            principalMinusStrategyFee <= previousTotalUnderlying,
+            "Vault: cannot deposit when yield is negative"
+        );
+
+        _transferAndCheckInputToken(
+            msg.sender,
+            _params.inputToken,
+            _params.amount
+        );
+        uint256 newUnderlyingAmount = _swapIntoUnderlying(
+            _params.inputToken,
+            _params.amount
+        );
+
+        uint64 lockedUntil = _params.lockDuration + _blockTimestamp();
+
+        require(groupId < _depositGroupIds, "Vault: no such group");
+
+        depositIds = _createDeposit(
+            previousTotalUnderlying,
+            newUnderlyingAmount,
+            lockedUntil,
+            _params.claims,
+            _params.name,
+            groupId
         );
     }
 
@@ -729,12 +778,13 @@ contract Vault is
         uint256 _amount,
         uint64 _lockedUntil,
         ClaimParams[] calldata claims,
-        string calldata _name
+        string calldata _name,
+        uint256 _groupId
     ) internal returns (uint256[] memory) {
         CreateDepositLocals memory locals = CreateDepositLocals({
             totalShares: totalShares,
             totalUnderlying: _previousTotalUnderlying,
-            groupId: _depositGroupIds,
+            groupId: _groupId,
             accumulatedPct: 0,
             accumulatedAmount: 0,
             claimsLen: claims.length
@@ -768,8 +818,6 @@ contract Vault is
             locals.accumulatedPct.is100Pct(),
             "Vault: claims don't add up to 100%"
         );
-
-        _depositGroupIds++;
 
         return result;
     }

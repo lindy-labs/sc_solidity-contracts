@@ -157,6 +157,15 @@ interface IVault {
         returns (uint256[] memory);
 
     /**
+     * Creates a new deposit and add it to existing deposit group
+     *
+     * @param _params Deposit params
+     */
+    function deposit(DepositParams calldata _params, uint256 _groupId)
+        external
+        returns (uint256[] memory);
+
+    /**
      * Withdraws the principal from the deposits with the ids provided in @param _ids and sends it to @param _to.
      *
      * It fails if the vault is underperforming and there are not enough funds
