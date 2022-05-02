@@ -639,7 +639,7 @@ describe("Vault", () => {
     it("reverts if new strategy is address(0)", async () => {
       await expect(
         vault.connect(owner).setStrategy(constants.AddressZero)
-      ).to.be.revertedWith("Vault: strategy 0x");
+      ).to.be.revertedWith("Vault: strategy is not set");
     });
 
     it("reverts if new strategy's vault is invalid", async () => {
