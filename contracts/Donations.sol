@@ -13,7 +13,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 contract Donations is ERC721, AccessControl {
     using SafeERC20 for IERC20;
 
-    bytes32 public constant WORKER_ROLE = keccak256("WORKER_ROLE");
+    bytes32 public immutable WORKER_ROLE = keccak256("WORKER_ROLE");
 
     struct DonationParams {
         uint256 destinationId;
