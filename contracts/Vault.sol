@@ -118,6 +118,9 @@ contract Vault is
     /// Investment fee pct
     uint16 public investmentFeeEstimatePct;
 
+    /// Rebalance minimum
+    uint256 private immutable rebalanceMinimum;
+
     /**
      * @param _underlying Underlying ERC20 token to use.
      * @param _minLockPeriod Minimum lock period to deposit
@@ -169,6 +172,8 @@ contract Vault is
 
         depositors = new Depositors(this);
         claimers = new Claimers(this);
+
+        rebalanceMinimum = 10 * 10 ** underlying.decimals();
 
         _addPools(_swapPools);
     }
@@ -357,7 +362,7 @@ contract Vault is
         if (alreadyInvested > maxInvestableAmount) {
             uint256 disinvestAmount = alreadyInvested - maxInvestableAmount;
 
-            require(disinvestAmount >= 10 * 10 ** underlying.decimals(), "Vault: Not enough to disinvest");
+            require(disinvestAmount >= rebalanceMinimum, "Vault: Not enough to disinvest");
 
             strategy.withdrawToVault(disinvestAmount);
 
@@ -369,7 +374,7 @@ contract Vault is
         // invest
         uint256 investAmount = maxInvestableAmount - alreadyInvested;
 
-        require(investAmount >= 10 * 10 ** underlying.decimals(), "Vault: Not enough to invest");
+        require(investAmount >= rebalanceMinimum, "Vault: Not enough to invest");
 
         underlying.safeTransfer(address(strategy), investAmount);
 
