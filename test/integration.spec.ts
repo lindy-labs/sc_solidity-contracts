@@ -20,6 +20,7 @@ import {
   moveForwardTwoWeeks,
   SHARES_MULTIPLIER,
   generateNewAddress,
+  errors,
 } from "./shared";
 
 const { utils } = ethers;
@@ -172,7 +173,7 @@ describe("Integration", () => {
       await expect(
         vault.connect(alice).withdraw(alice.address, [2])
       ).to.be.revertedWith(
-        "Vault: cannot compute shares when there's no principal"
+        errors.vault.CANNOT_COMPUTE_SHARES_WITHOUT_PRINCIPAL
       );
       await vault.connect(bob).unsponsor(bob.address, [1]);
 
