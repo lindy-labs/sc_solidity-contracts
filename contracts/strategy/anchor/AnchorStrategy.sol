@@ -21,7 +21,7 @@ contract AnchorStrategy is IStrategy, AccessControl {
     using PercentMath for uint256;
     using ERC165Query for address;
 
-    bytes32 public immutable MANAGER_ROLE =
+    bytes32 public constant MANAGER_ROLE =
         0x241ecf16d79d0f8dbfb92cbc07fe17840425976cf0667f022fe9877caa831b08; // keccak256("MANAGER_ROLE");
 
     /// @inheritdoc IStrategy
