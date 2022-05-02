@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity =0.8.10;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 interface IVault {
     //
@@ -105,7 +105,7 @@ interface IVault {
     /**
      * Underlying ERC20 token accepted by the vault
      */
-    function underlying() external view returns (IERC20);
+    function underlying() external view returns (IERC20Metadata);
 
     /**
      * Minimum lock period for each deposit

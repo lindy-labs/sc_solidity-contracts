@@ -2,6 +2,7 @@
 pragma solidity =0.8.10;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
@@ -37,6 +38,7 @@ contract Vault is
     Pausable
 {
     using SafeERC20 for IERC20;
+    using SafeERC20 for IERC20Metadata;
     using PercentMath for uint256;
     using PercentMath for uint16;
 
@@ -45,13 +47,13 @@ contract Vault is
     //
 
     /// Role allowed to invest/desinvest from strategy
-    bytes32 public constant INVESTOR_ROLE = keccak256("INVESTOR_ROLE");
+    bytes32 public immutable INVESTOR_ROLE = keccak256("INVESTOR_ROLE");
 
     /// Role allowed to change settings such as performance fee and investment fee
-    bytes32 public constant SETTINGS_ROLE = keccak256("SETTINGS_ROLE");
+    bytes32 public immutable SETTINGS_ROLE = keccak256("SETTINGS_ROLE");
 
     /// Role for sponsors allowed to call sponsor/unsponsor
-    bytes32 public constant SPONSOR_ROLE = keccak256("SPONSOR_ROLE");
+    bytes32 public immutable SPONSOR_ROLE = keccak256("SPONSOR_ROLE");
 
     /// Minimum lock for each sponsor
     uint64 public constant MIN_SPONSOR_LOCK_DURATION = 2 weeks;
@@ -70,7 +72,7 @@ contract Vault is
     //
 
     /// @inheritdoc IVault
-    IERC20 public override(IVault) underlying;
+    IERC20Metadata public override(IVault) underlying;
 
     /// @inheritdoc IVault
     uint16 public override(IVault) investPct;
@@ -117,6 +119,9 @@ contract Vault is
     /// Investment fee pct
     uint16 public investmentFeeEstimatePct;
 
+    /// Rebalance minimum
+    uint256 private immutable rebalanceMinimum;
+
     /**
      * @param _underlying Underlying ERC20 token to use.
      * @param _minLockPeriod Minimum lock period to deposit
@@ -128,7 +133,7 @@ contract Vault is
      * @param _swapPools Swap pools used to automatically convert tokens to underlying
      */
     constructor(
-        IERC20 _underlying,
+        IERC20Metadata _underlying,
         uint64 _minLockPeriod,
         uint16 _investPct,
         address _treasury,
@@ -168,6 +173,8 @@ contract Vault is
 
         depositors = new Depositors(this);
         claimers = new Claimers(this);
+
+        rebalanceMinimum = 10 * 10 ** underlying.decimals();
 
         _addPools(_swapPools);
     }
@@ -355,6 +362,9 @@ contract Vault is
         // disinvest
         if (alreadyInvested > maxInvestableAmount) {
             uint256 disinvestAmount = alreadyInvested - maxInvestableAmount;
+
+            require(disinvestAmount >= rebalanceMinimum, "Vault: Not enough to disinvest");
+
             strategy.withdrawToVault(disinvestAmount);
 
             emit Disinvested(disinvestAmount);
@@ -364,6 +374,9 @@ contract Vault is
 
         // invest
         uint256 investAmount = maxInvestableAmount - alreadyInvested;
+
+        require(investAmount >= rebalanceMinimum, "Vault: Not enough to invest");
+
         underlying.safeTransfer(address(strategy), investAmount);
 
         strategy.invest();
