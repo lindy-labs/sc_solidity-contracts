@@ -2,6 +2,10 @@
 pragma solidity =0.8.10;
 
 library Errors {
+    //
+    // Vault Errors
+    //
+
     // Vault: invalid investPct
     string public constant VAULT_INVALID_INVESTPCT = "Vault: invalid investPct";
 
@@ -91,4 +95,44 @@ library Errors {
 
     // Vault: cannot compute shares when there's no principal
     string public constant VAULT_CANNOT_COMPUTE_SHARES_WITHOUT_PRINCIPAL = "Vault: cannot compute shares when there's no principal";
+
+    //
+    // Strategy Errors
+    //
+
+    // AnchorStrategy: owner is 0x
+    string public constant STRATEGY_OWNER_CANNOT_BE_0_ADDRESS = "AnchorStrategy: owner is 0x";
+
+    // AnchorStrategy: router is 0x
+    string public constant STRATEGY_ROUTER_CANNOT_BE_0_ADDRESS = "AnchorStrategy: router is 0x";
+
+    // AnchorStrategy: ust is 0x
+    string public constant STRATEGY_UNDERLYING_CANNOT_BE_0_ADDRESS = "AnchorStrategy: ust is 0x";
+
+    // AnchorStrategy: aUST is 0x
+    string public constant STRATEGY_YIELD_TOKEN_CANNOT_BE_0_ADDRESS = "AnchorStrategy: aUST is 0x";
+
+    // AnchorStrategy: not an IVault
+    string public constant STRATEGY_NOT_IVAULT = "AnchorStrategy: not an IVault";
+
+    // AnchorStrategy: caller is not manager
+    string public constant STRATEGY_CALLER_NOT_MANAGER = "AnchorStrategy: caller is not manager";
+
+    // AnchorStrategy: amount is 0
+    string public constant STRATEGY_AMOUNT_ZERO = "AnchorStrategy: amount is 0";
+
+    // AnchorStrategy: no ust exist
+    string public constant STRATEGY_NO_UST = "AnchorStrategy: no ust exist";
+
+    // AnchorStrategy: not running
+    string public constant STRATEGY_NOT_RUNNING = "AnchorStrategy: not running";
+
+    // AnchorStrategy: no aUST returned
+    string public constant STRATEGY_NO_AUST_RETURNED = "AnchorStrategy: no aUST returned";
+
+    // AnchorStrategy: nothing redeemed
+    string public constant STRATEGY_NOTHING_REDEEMED = "AnchorStrategy: nothing redeemed";
+
+    // AnchorStrategy: invalid aUST rate
+    string public constant STRATEGY_INVALID_AUST_RATE = "AnchorStrategy: invalid aUST rate";
 }

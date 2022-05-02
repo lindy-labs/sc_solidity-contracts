@@ -491,7 +491,7 @@ describe("AnchorStrategy", () => {
     it("Revert if amount is 0", async () => {
       await expect(
         strategy.connect(manager).initRedeemStable(0)
-      ).to.be.revertedWith("AnchorStrategy: amount 0");
+      ).to.be.revertedWith("AnchorStrategy: amount is 0");
     });
 
     it("Should init redeem operation", async () => {
@@ -932,7 +932,7 @@ describe("AnchorStrategy", () => {
     it("reverts if amount is zero", async () => {
       await expect(
         strategy.connect(manager).withdrawToVault(0)
-      ).to.be.revertedWith("AnchorStrategy: amount is zero");
+      ).to.be.revertedWith("AnchorStrategy: amount is 0");
     });
 
     it("init redeem stable for required aUST amount", async () => {
