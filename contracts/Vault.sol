@@ -17,6 +17,7 @@ import {PercentMath} from "./lib/PercentMath.sol";
 import {Depositors} from "./vault/Depositors.sol";
 import {Claimers} from "./vault/Claimers.sol";
 import {IStrategy} from "./strategy/IStrategy.sol";
+import {Errors} from "./lib/Errors.sol";
 
 /**
  * A vault where other accounts can deposit an underlying token
@@ -136,7 +137,7 @@ contract Vault is
         uint16 _investmentFeeEstimatePct,
         SwapPoolParam[] memory _swapPools
     ) {
-        require(_investPct.validPct(), "Vault: invalid investPct");
+        require(_investPct.validPct(), Errors.VAULT_INVALID_INVESTPCT);
         require(_perfFeePct.validPct(), "Vault: invalid performance fee");
         require(
             _investmentFeeEstimatePct.validPct(),
@@ -475,7 +476,7 @@ contract Vault is
         override(IVaultSettings)
         onlyRole(SETTINGS_ROLE)
     {
-        require(PercentMath.validPct(_investPct), "Vault: invalid investPct");
+        require(PercentMath.validPct(_investPct), Errors.VAULT_INVALID_INVESTPCT);
 
         emit InvestPctUpdated(_investPct);
 
