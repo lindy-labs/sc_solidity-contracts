@@ -141,19 +141,19 @@ describe("Vault", () => {
         await moveForwardTwoWeeks();
       });
 
-      it.skip("works with a single withdraw", async () => {
+      it("works with a single withdraw", async () => {
         await vault.connect(alice).withdraw(alice.address, arrayFromTo(1, 99));
 
         expect(await underlying.balanceOf(alice.address)).to.eq(
           parseUnits("990")
         );
 
-        expect(await vault.sharesOf(alice.address)).to.eq(
+        expect(await vault.sharesOf(bob.address)).to.eq(
           parseUnits("10").mul(SHARES_MULTIPLIER)
         );
       });
 
-      it.skip("works with multiple withdraws", async () => {
+      it("works with multiple withdraws", async () => {
         await Promise.all(
           arrayFromTo(1, 99).map((i) =>
             vault.connect(alice).withdraw(alice.address, [i])
@@ -163,14 +163,14 @@ describe("Vault", () => {
         expect(await underlying.balanceOf(alice.address)).to.eq(
           parseUnits("990")
         );
-        expect(await vault.sharesOf(alice.address)).to.eq(
+        expect(await vault.sharesOf(bob.address)).to.eq(
           parseUnits("10").mul(SHARES_MULTIPLIER)
         );
       });
     });
 
     describe("issue #52", () => {
-      it.skip("works with irregular amounts without losing precision", async () => {
+      it("works with irregular amounts without losing precision", async () => {
         await addUnderlyingBalance(alice, "1000");
 
         await vault.connect(alice).deposit(
@@ -184,8 +184,8 @@ describe("Vault", () => {
           })
         );
 
-        expect((await vault.deposits(alice.address)).amount).to.equal(5);
-        expect((await vault.deposits(bob.address)).amount).to.equal(6);
+        expect((await vault.deposits(1)).amount).to.equal(5);
+        expect((await vault.deposits(2)).amount).to.equal(6);
       });
     });
   });
@@ -833,7 +833,7 @@ describe("Vault", () => {
       expect(await depositors.ownerOf("1")).to.be.equal(owner.address);
     });
 
-    it.skip("updates deposit info for sponsor", async () => {
+    it("updates deposit info for sponsor", async () => {
       await addUnderlyingBalance(owner, "1000");
 
       await vault
@@ -844,12 +844,11 @@ describe("Vault", () => {
 
       const deposit = await vault.deposits(1);
       expect(deposit.amount).to.be.equals(parseUnits("500"));
-      expect(deposit.claimerId).to.be.equal(0);
       expect(deposit.lockedUntil).to.be.equal(currentTime.add(TWO_WEEKS));
       expect(deposit.shares).to.be.equal(0);
     });
 
-    it.skip("transfers underlying from user at sponsor", async () => {
+    it("transfers underlying from user at sponsor", async () => {
       await addUnderlyingBalance(owner, "1000");
 
       await vault
@@ -1193,7 +1192,7 @@ describe("Vault", () => {
           );
       });
 
-      it.skip("withdraws the principal of a deposit", async () => {
+      it("withdraws the principal of a deposit", async () => {
         const params = depositParams.build({
           amount: parseUnits("100"),
           inputToken: underlying.address,
@@ -1217,7 +1216,7 @@ describe("Vault", () => {
         );
       });
 
-      it.skip("withdraws funds to a different address", async () => {
+      it("withdraws funds to a different address", async () => {
         const params = depositParams.build({
           inputToken: underlying.address,
           amount: parseUnits("100"),
@@ -1382,7 +1381,7 @@ describe("Vault", () => {
   });
 
   describe("forceWithdraw", () => {
-    it.skip("works if the vault doesn't have enough funds", async () => {
+    it("works if the vault doesn't have enough funds", async () => {
       const params = depositParams.build({
         amount: parseUnits("1000"),
         inputToken: underlying.address,
@@ -1606,7 +1605,7 @@ describe("Vault", () => {
         );
     });
 
-    it.skip("claims the yield of a user", async () => {
+    it("claims the yield of a user", async () => {
       const params = depositParams.build({
         amount: parseUnits("100"),
         inputToken: underlying.address,

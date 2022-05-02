@@ -111,7 +111,7 @@ describe("Integration", () => {
   });
 
   describe("single deposit, single sponsor and single claimer", () => {
-    it.skip("ensures everyone gets their expected amounts", async () => {
+    it("ensures everyone gets their expected amounts", async () => {
       await addUnderlyingBalance(alice, "1000");
       await addUnderlyingBalance(bob, "1000");
       await vault.connect(owner).grantRole(SPONSOR_ROLE, bob.address);
@@ -140,7 +140,7 @@ describe("Integration", () => {
       expect(await underlyingBalanceOf(carol)).to.eq(parseUnits("2000"));
     });
 
-    it.skip("ensures the sponsored amount is protected when the vault is underperforming", async () => {
+    it("ensures the sponsored amount is protected when the vault is underperforming", async () => {
       await addUnderlyingBalance(alice, "1000");
       await addUnderlyingBalance(bob, "1000");
       await vault.connect(owner).grantRole(SPONSOR_ROLE, bob.address);
@@ -178,7 +178,7 @@ describe("Integration", () => {
       expect(await underlyingBalanceOf(carol)).to.eq(parseUnits("0"));
     });
 
-    it.skip("ensures the sponsored amount and the deposit are protected when the vault has no yield", async () => {
+    it("ensures the sponsored amount and the deposit are protected when the vault has no yield", async () => {
       await addUnderlyingBalance(alice, "1000");
       await addUnderlyingBalance(bob, "1000");
       await vault.connect(owner).grantRole(SPONSOR_ROLE, bob.address);
@@ -208,7 +208,7 @@ describe("Integration", () => {
   });
 
   describe("single deposit, two sponsors and two claimers", () => {
-    it.skip("ensures the sponsored amount is divided according to their proportion of each claimer's shares", async () => {
+    it("ensures the sponsored amount is divided according to their proportion of each claimer's shares", async () => {
       await addUnderlyingBalance(alice, "1500");
       await addUnderlyingBalance(bob, "1000");
       await vault.connect(owner).grantRole(SPONSOR_ROLE, alice.address);
@@ -269,7 +269,7 @@ describe("Integration", () => {
   });
 
   describe("single deposit, single claimer", () => {
-    it.skip("creates a deposit and updates the claimer", async () => {
+    it("creates a deposit and updates the claimer", async () => {
       await addUnderlyingBalance(alice, "1000");
       const params = depositParams.build({
         amount: parseUnits("100"),
@@ -295,7 +295,7 @@ describe("Integration", () => {
   });
 
   describe("single deposit, multiple claimers", () => {
-    it.skip("creates two deposit and updates the claimers", async () => {
+    it("creates two deposit and updates the claimers", async () => {
       await addUnderlyingBalance(alice, "1000");
       const amount = BN.from("100");
       const params = depositParams.build({
@@ -327,7 +327,7 @@ describe("Integration", () => {
       expect(await vault.principalOf(carol.address)).to.equal(75);
     });
 
-    it.skip("allows claiming the yield after the principal is withdrawn", async () => {
+    it("allows claiming the yield after the principal is withdrawn", async () => {
       await addUnderlyingBalance(alice, "1000");
       const params = depositParams.build({
         amount: parseUnits("100"),
@@ -351,7 +351,7 @@ describe("Integration", () => {
       expect(await underlyingBalanceOf(carol)).to.eq(parseUnits("100"));
     });
 
-    it.skip("allows the yield to value after the principal is claiemd", async () => {
+    it("allows the yield to value after the principal is claiemd", async () => {
       await addUnderlyingBalance(alice, "1000");
       const params = depositParams.build({
         amount: parseUnits("100"),
@@ -376,7 +376,7 @@ describe("Integration", () => {
   });
 
   describe("when there's loss", () => {
-    it.skip("allows for an initial loss caused by the strategy's fees", async () => {
+    it("allows for an initial loss caused by the strategy's fees", async () => {
       await vault.setStrategy(strategy.address);
       await addUnderlyingBalance(alice, "100");
       await addUnderlyingBalance(bob, "100");
@@ -408,7 +408,7 @@ describe("Integration", () => {
       expect(await underlyingBalanceOf(bob)).to.eq(parseUnits("99").add(1));
     });
 
-    it.skip("it distributes the loss evenly when sending yield to the same person", async () => {
+    it("it distributes the loss evenly when sending yield to the same person", async () => {
       await addUnderlyingBalance(alice, "1000");
       await addUnderlyingBalance(bob, "2000");
 
@@ -438,7 +438,7 @@ describe("Integration", () => {
       expect(await underlyingBalanceOf(bob)).to.eq(parseUnits("1000"));
     });
 
-    it.skip("it distributes the loss evenly when sending yield to different people", async () => {
+    it("it distributes the loss evenly when sending yield to different people", async () => {
       await addUnderlyingBalance(alice, "1000");
       await addUnderlyingBalance(bob, "2000");
 
@@ -468,7 +468,7 @@ describe("Integration", () => {
       expect(await underlyingBalanceOf(bob)).to.eq(parseUnits("1000"));
     });
 
-    it.skip("takes unclaimed yield into account when distributing loss", async () => {
+    it("takes unclaimed yield into account when distributing loss", async () => {
       await addUnderlyingBalance(alice, "1000");
       await addUnderlyingBalance(bob, "2000");
 
@@ -509,7 +509,7 @@ describe("Integration", () => {
   });
 
   describe("two deposits, two claimers", () => {
-    it.skip("withdraws only one of the deposits", async () => {
+    it("withdraws only one of the deposits", async () => {
       await addUnderlyingBalance(alice, "1000");
 
       await vault.connect(alice).deposit(
@@ -538,7 +538,7 @@ describe("Integration", () => {
       expect(await underlyingBalanceOf(alice)).to.eq(parseUnits("875"));
     });
 
-    it.skip("allows withdraws at different times", async () => {
+    it("allows withdraws at different times", async () => {
       await addUnderlyingBalance(alice, "1000");
 
       await vault.connect(alice).deposit(
@@ -573,7 +573,7 @@ describe("Integration", () => {
       expect(await underlyingBalanceOf(carol)).to.eq(parseUnits("250"));
     });
 
-    it.skip("compounds the yield of the first deposit", async () => {
+    it("compounds the yield of the first deposit", async () => {
       await addUnderlyingBalance(alice, "1000");
 
       await vault.connect(alice).deposit(
@@ -608,7 +608,7 @@ describe("Integration", () => {
   });
 
   describe("multiple depositors, multiple partial withdrawals, multiple claimers", () => {
-    it.skip("allows for multiple partial withdrawals for the same deposit", async () => {
+    it("allows for multiple partial withdrawals for the same deposit", async () => {
       await addUnderlyingBalance(alice, "1000");
       await addUnderlyingBalance(bob, "1000");
 
@@ -657,7 +657,7 @@ describe("Integration", () => {
       expect(await underlyingBalanceOf(bob)).to.eq(parseUnits("900"));
     });
 
-    it.skip("allows for claiming yield after a partial withdraw", async () => {
+    it("allows for claiming yield after a partial withdraw", async () => {
       await addUnderlyingBalance(alice, "1000");
       await addUnderlyingBalance(bob, "1000");
 
@@ -708,7 +708,7 @@ describe("Integration", () => {
       expect(await underlyingBalanceOf(bob)).to.eq(parseUnits("1100"));
     });
 
-    it.skip("allows for loss scenarios", async () => {
+    it("allows for loss scenarios", async () => {
       await addUnderlyingBalance(alice, "1000");
       await addUnderlyingBalance(bob, "1000");
 

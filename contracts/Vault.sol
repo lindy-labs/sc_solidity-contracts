@@ -407,7 +407,7 @@ contract Vault is
         _transferAndCheckInputToken(msg.sender, _inputToken, _amount);
         uint256 underlyingAmount = _swapIntoUnderlying(_inputToken, _amount);
 
-        deposits[tokenId] = Deposit(underlyingAmount, address(0), lockedUntil, 0); // weird
+        deposits[tokenId] = Deposit(underlyingAmount, address(0), lockedUntil, 0);
         totalSponsored += underlyingAmount;
 
         emit Sponsored(tokenId, underlyingAmount, msg.sender, lockedUntil);
