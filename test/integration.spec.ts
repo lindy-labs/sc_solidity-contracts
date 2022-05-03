@@ -20,7 +20,6 @@ import {
   moveForwardTwoWeeks,
   SHARES_MULTIPLIER,
   generateNewAddress,
-  errors,
 } from "./shared";
 
 const { utils } = ethers;
@@ -172,9 +171,7 @@ describe("Integration", () => {
       // we expect the withdraw to fail because there are not enough funds in the vault
       await expect(
         vault.connect(alice).withdraw(alice.address, [2])
-      ).to.be.revertedWith(
-        errors.vault.CANNOT_COMPUTE_SHARES_WITHOUT_PRINCIPAL
-      );
+      ).to.be.revertedWith('CannotComputeSharesWithoutPrincipal')
       await vault.connect(bob).unsponsor(bob.address, [1]);
 
       expect(await underlyingBalanceOf(bob)).to.eq(parseUnits("1000"));
