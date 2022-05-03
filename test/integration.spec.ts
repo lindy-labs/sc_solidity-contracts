@@ -7,13 +7,11 @@ import { Contract, BigNumber } from "ethers";
 import {
   Vault,
   MockUST,
-  Depositors,
   MockStrategy,
   MockAUST__factory,
   MockUST__factory,
   Vault__factory,
 } from "../typechain";
-import { Depositors__factory } from "../typechain";
 import { depositParams, claimParams } from "./shared/factories";
 import {
   moveForwardTwoWeeks,
@@ -38,7 +36,6 @@ describe("Integration", () => {
   let underlying: MockUST;
   let aUstToken: Contract;
   let vault: Vault;
-  let depositors: Depositors;
   let strategy: MockStrategy;
 
   const TWO_WEEKS = BigNumber.from(time.duration.weeks(2).toNumber());
@@ -106,8 +103,6 @@ describe("Integration", () => {
       underlying.address,
       aUstToken.address
     );
-
-    depositors = Depositors__factory.connect(await vault.depositors(), owner);
   });
 
   describe("single deposit, single sponsor and single claimer", () => {
@@ -279,10 +274,8 @@ describe("Integration", () => {
 
       await vault.connect(alice).deposit(params);
 
-      expect(await depositors.ownerOf(1)).to.equal(alice.address);
-
       const deposit = await vault.deposits(1);
-
+      expect(deposit.owner).to.equal(alice.address);
       expect(deposit.amount).to.equal(parseUnits("100"));
       expect(deposit.claimerId).to.equal(bob.address);
 
@@ -309,7 +302,8 @@ describe("Integration", () => {
 
       await vault.connect(alice).deposit(params);
 
-      expect(await depositors.ownerOf(1)).to.equal(alice.address);
+      const deposit = await vault.deposits(1);
+      expect(deposit.owner).to.equal(alice.address);
       const part0 = await vault.deposits(1);
       expect(part0.amount).to.equal(amount.div("4"));
       expect(part0.claimerId).to.equal(bob.address);

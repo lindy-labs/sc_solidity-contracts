@@ -10,10 +10,8 @@ import {
   MockAUST__factory,
   MockUST,
   MockAUST,
-  Depositors,
   MockStrategy,
   Vault__factory,
-  Depositors__factory,
 } from "../typechain";
 
 import { depositParams, claimParams } from "./shared/factories";
@@ -42,7 +40,6 @@ describe("Vault", () => {
   let underlying: MockUST;
   let aUstToken: MockAUST;
   let vault: Vault;
-  let depositors: Depositors;
   let strategy: MockStrategy;
   const TWO_WEEKS = BigNumber.from(time.duration.weeks(2).toNumber());
   const MAX_DEPOSIT_LOCK_DURATION = BigNumber.from(
@@ -121,8 +118,6 @@ describe("Vault", () => {
       underlying.address,
       aUstToken.address
     );
-
-    depositors = Depositors__factory.connect(await vault.depositors(), owner);
   });
 
   describe("codearena", () => {
@@ -333,8 +328,6 @@ describe("Vault", () => {
       expect(await vault.investPct()).to.be.equal(INVEST_PCT);
       expect(await vault.treasury()).to.be.equal(TREASURY);
       expect(await vault.perfFeePct()).to.be.equal(PERFORMANCE_FEE_PCT);
-
-      expect(await vault.depositors()).to.be.not.equal(constants.AddressZero);
     });
   });
 
@@ -846,7 +839,8 @@ describe("Vault", () => {
         .connect(owner)
         .sponsor(underlying.address, parseUnits("500"), TWO_WEEKS);
 
-      expect(await depositors.ownerOf("1")).to.be.equal(owner.address);
+      const deposit = await vault.deposits(1);
+      expect(deposit.owner).to.be.equal(owner.address);
     });
 
     it("updates deposit info for sponsor", async () => {
@@ -1246,24 +1240,6 @@ describe("Vault", () => {
         expect(await underlying.balanceOf(carol.address)).to.eq(
           parseUnits("1100")
         );
-      });
-
-      it("burns the NFTs of the deposits", async () => {
-        const params = depositParams.build({
-          amount: parseUnits("100"),
-          inputToken: underlying.address,
-          claims: [
-            claimParams.percent(50).to(carol.address).build(),
-            claimParams.percent(50).to(bob.address).build(),
-          ],
-        });
-
-        await vault.connect(alice).deposit(params);
-        await moveForwardTwoWeeks();
-        await vault.connect(alice)[vaultAction](alice.address, [2, 1]);
-
-        expect(await depositors.exists(1)).to.false;
-        expect(await depositors.exists(2)).to.false;
       });
 
       it("removes the shares from the claimers", async () => {
@@ -2051,25 +2027,6 @@ describe("Vault", () => {
       expect(deposit2.shares).to.be.equal(
         parseUnits("0.6").mul(SHARES_MULTIPLIER)
       );
-    });
-
-    it("mints Depositors NFTs", async () => {
-      const params = depositParams.build({
-        inputToken: underlying.address,
-        claims: [
-          claimParams.percent(40).build({
-            beneficiary: bob.address,
-          }),
-          claimParams.percent(60).build({
-            beneficiary: carol.address,
-          }),
-        ],
-      });
-
-      await vault.connect(alice).deposit(params);
-
-      expect(await vault.totalUnderlying()).to.be.equal(params.amount);
-      expect(await depositors.ownerOf("1")).to.be.equal(alice.address);
     });
   });
 
