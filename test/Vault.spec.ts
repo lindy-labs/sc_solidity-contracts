@@ -209,7 +209,7 @@ describe("Vault", () => {
           INVESTMENT_FEE_PCT,
           []
         )
-      ).to.be.revertedWith("Vault: underlying cannot be 0x0");
+      ).to.be.revertedWith('VaultUnderlyingCannotBe0Address');
     });
 
     it("reverts if min lock period is zero", async () => {
@@ -224,7 +224,7 @@ describe("Vault", () => {
           INVESTMENT_FEE_PCT,
           []
         )
-      ).to.be.revertedWith("Vault: invalid minLockPeriod");
+      ).to.be.revertedWith('VaultInvalidMinLockPeriod');
     });
 
     it("reverts if min lock period is greater than maximum", async () => {
@@ -239,7 +239,7 @@ describe("Vault", () => {
           INVESTMENT_FEE_PCT,
           []
         )
-      ).to.be.revertedWith("Vault: invalid minLockPeriod");
+      ).to.be.revertedWith('VaultInvalidMinLockPeriod');
     });
 
     it("reverts if invest percentage is greater than 100%", async () => {
@@ -254,7 +254,7 @@ describe("Vault", () => {
           INVESTMENT_FEE_PCT,
           []
         )
-      ).to.be.revertedWith("Vault: invalid investPct");
+      ).to.be.revertedWith('VaultInvalidInvestpct');
     });
 
     it("reverts if performance fee percentage is greater than 100%", async () => {
@@ -269,7 +269,7 @@ describe("Vault", () => {
           INVESTMENT_FEE_PCT,
           []
         )
-      ).to.be.revertedWith("Vault: invalid performance fee");
+      ).to.be.revertedWith('VaultInvalidPerformanceFee');
     });
 
     it("reverts if treasury is address(0)", async () => {
@@ -284,7 +284,7 @@ describe("Vault", () => {
           INVESTMENT_FEE_PCT,
           []
         )
-      ).to.be.revertedWith("Vault: treasury cannot be 0x0");
+      ).to.be.revertedWith('VaultTreasuryCannotBe0Address');
     });
 
     it("reverts if owner is address(0)", async () => {
@@ -299,7 +299,7 @@ describe("Vault", () => {
           INVESTMENT_FEE_PCT,
           []
         )
-      ).to.be.revertedWith("Vault: owner cannot be 0x0");
+      ).to.be.revertedWith('VaultOwnerCannotBe0Address');
     });
 
     it("reverts if invalid investment fee", async () => {
@@ -314,7 +314,7 @@ describe("Vault", () => {
           BigNumber.from("10001"),
           []
         )
-      ).to.be.revertedWith("Vault: invalid investment fee");
+      ).to.be.revertedWith('VaultInvalidInvestmentFee');
     });
 
     it("Check initial values", async () => {
@@ -348,7 +348,7 @@ describe("Vault", () => {
     it("reverts if treasury is address(0)", async () => {
       await expect(
         vault.connect(owner).setTreasury(constants.AddressZero)
-      ).to.be.revertedWith("Vault: treasury cannot be 0x0");
+      ).to.be.revertedWith('VaultTreasuryCannotBe0Address');
     });
 
     it("change treasury and emit TreasuryUpdated event", async () => {
@@ -370,7 +370,7 @@ describe("Vault", () => {
     it("reverts if performance fee percentage is greater than 100%", async () => {
       await expect(
         vault.connect(owner).setPerfFeePct(DENOMINATOR.add(BigNumber.from("1")))
-      ).to.be.revertedWith("Vault: invalid performance fee");
+      ).to.be.revertedWith('VaultInvalidPerformanceFee');
     });
 
     it("change perfFeePct and emit PerfFeePctUpdated event", async () => {
@@ -392,7 +392,7 @@ describe("Vault", () => {
     it("reverts if invest percentage is greater than 100%", async () => {
       await expect(
         vault.connect(owner).setInvestPct(DENOMINATOR.add(BigNumber.from("1")))
-      ).to.be.revertedWith("Vault: invalid investPct");
+      ).to.be.revertedWith('VaultInvalidInvestpct');
     });
 
     it("change investPct and emit InvestPercentageUpdated event", async () => {
@@ -416,7 +416,7 @@ describe("Vault", () => {
         vault
           .connect(owner)
           .setInvestmentFeeEstimatePct(DENOMINATOR.add(BigNumber.from("1")))
-      ).to.be.revertedWith("Vault: invalid investment fee");
+      ).to.be.revertedWith('VaultInvalidInvestmentFee');
     });
 
     it("change investmentFeeEstimatePct and emit InvestPercentageUpdated event", async () => {
@@ -492,7 +492,7 @@ describe("Vault", () => {
 
       await expect(
         vault.connect(owner).withdrawPerformanceFee()
-      ).to.be.revertedWith("Vault: no performance fee");
+      ).to.be.revertedWith('VaultNoPerformanceFee');
     });
   });
 
@@ -505,7 +505,7 @@ describe("Vault", () => {
 
     it("reverts if strategy is not set", async () => {
       await expect(vault.connect(owner).updateInvested()).to.be.revertedWith(
-        "Vault: strategy is not set"
+        'VaultStrategyNotSet' 
       );
     });
 
@@ -513,7 +513,7 @@ describe("Vault", () => {
       await vault.connect(owner).setStrategy(strategy.address);
 
       await expect(vault.connect(owner).updateInvested()).to.be.revertedWith(
-        "Vault: nothing to do"
+        'VaultNothingToDo'
       );
     });
 
@@ -523,7 +523,7 @@ describe("Vault", () => {
         await vault.connect(owner).setInvestPct("8000");
         await addYieldToVault("10");
 
-        await expect(vault.connect(owner).updateInvested()).to.be.revertedWith("Vault: Not enough to invest");
+        await expect(vault.connect(owner).updateInvested()).to.be.revertedWith('VaultNotEnoughToRebalance');
       });
 
       it("moves the funds to the strategy", async () => {
@@ -555,7 +555,7 @@ describe("Vault", () => {
         await addYieldToVault("10");
         await underlying.mint(strategy.address, parseUnits("150"));
 
-        await expect(vault.connect(owner).updateInvested()).to.be.revertedWith("Vault: Not enough to disinvest");
+        await expect(vault.connect(owner).updateInvested()).to.be.revertedWith('VaultNotEnoughToRebalance');
       });
 
       it("call strategy.withdrawToVault with required amount", async () => {
@@ -650,7 +650,7 @@ describe("Vault", () => {
     it("reverts if new strategy is address(0)", async () => {
       await expect(
         vault.connect(owner).setStrategy(constants.AddressZero)
-      ).to.be.revertedWith("Vault: strategy 0x");
+      ).to.be.revertedWith('VaultStrategyNotSet');
     });
 
     it("reverts if new strategy's vault is invalid", async () => {
@@ -669,7 +669,7 @@ describe("Vault", () => {
 
       await expect(
         anotherVault.connect(owner).setStrategy(strategy.address)
-      ).to.be.revertedWith("Vault: invalid vault");
+      ).to.be.revertedWith('VaultInvalidVault');
     });
 
     it("set strategy when no strategy was set before", async () => {
@@ -731,7 +731,7 @@ describe("Vault", () => {
 
       await expect(
         vault.connect(owner).setStrategy(newStrategy.address)
-      ).to.be.revertedWith("Vault: strategy has invested funds");
+      ).to.be.revertedWith('VaultStrategyHasInvestedFunds');
     });
   });
 
@@ -803,7 +803,7 @@ describe("Vault", () => {
 
       await expect(
         vault.connect(owner).sponsor(underlying.address, parseUnits("500"), 0)
-      ).to.be.revertedWith("Vault: invalid lock period");
+      ).to.be.revertedWith('VaultInvalidLockPeriod');
     });
 
     it("fails if the lock duration is less than the minimum", async () => {
@@ -814,7 +814,7 @@ describe("Vault", () => {
         vault
           .connect(owner)
           .sponsor(underlying.address, parseUnits("500"), lockDuration)
-      ).to.be.revertedWith("Vault: invalid lock period");
+      ).to.be.revertedWith('VaultInvalidLockPeriod');
     });
 
     it("fails if the lock duration is larger than the maximum", async () => {
@@ -825,7 +825,7 @@ describe("Vault", () => {
         vault
           .connect(owner)
           .sponsor(underlying.address, parseUnits("500"), lockDuration)
-      ).to.be.revertedWith("Vault: invalid lock period");
+      ).to.be.revertedWith('VaultInvalidLockPeriod');
     });
 
     it("fails if the sponsor amount is 0", async () => {
@@ -836,7 +836,7 @@ describe("Vault", () => {
         vault
           .connect(owner)
           .sponsor(underlying.address, parseUnits("0"), lockDuration)
-      ).to.be.revertedWith("Vault: cannot sponsor 0");
+      ).to.be.revertedWith('VaultCannotSponsor0');
     });
 
     it("mints Depositor NFT to sponsor", async () => {
@@ -924,7 +924,7 @@ describe("Vault", () => {
       await vault.connect(owner).grantRole(SPONSOR_ROLE, bob.address);
       await expect(
         vault.connect(bob).unsponsor(owner.address, [1])
-      ).to.be.revertedWith("Vault: you are not allowed");
+      ).to.be.revertedWith('VaultNotAllowed');
 
       await vault.connect(owner).revokeRole(SPONSOR_ROLE, bob.address);
     });
@@ -940,7 +940,7 @@ describe("Vault", () => {
         vault
           .connect(owner)
           .unsponsor("0x0000000000000000000000000000000000000000", [1])
-      ).to.be.revertedWith("Vault: destination address is 0x");
+      ).to.be.revertedWith('VaultDestinationCannotBe0Address');
     });
 
     it("fails if the amount is still locked", async () => {
@@ -952,7 +952,7 @@ describe("Vault", () => {
 
       await expect(
         vault.connect(owner).unsponsor(owner.address, [1])
-      ).to.be.revertedWith("Vault: amount is locked");
+      ).to.be.revertedWith('VaultAmountLocked');
     });
 
     it("fails if the token id belongs to a withdraw", async () => {
@@ -974,7 +974,7 @@ describe("Vault", () => {
 
       await expect(
         vault.connect(owner).unsponsor(owner.address, [1, 2])
-      ).to.be.revertedWith("Vault: token id is not a sponsor");
+      ).to.be.revertedWith('VaultNotSponsor');
     });
 
     it("fails if there are not enough funds", async () => {
@@ -989,7 +989,7 @@ describe("Vault", () => {
 
       await expect(
         vault.connect(owner).unsponsor(owner.address, [1])
-      ).to.be.revertedWith("Vault: not enough funds");
+      ).to.be.revertedWith('VaultNotEnoughFunds');
     });
   });
 
@@ -1136,7 +1136,7 @@ describe("Vault", () => {
 
       const action = vault.connect(alice).deposit(params);
 
-      await expect(action).to.be.revertedWith("Vault: invalid lock period");
+      await expect(action).to.be.revertedWith('VaultInvalidLockPeriod');
     });
 
     it("fails if the claim percentage is 0", async () => {
@@ -1151,9 +1151,7 @@ describe("Vault", () => {
 
       const action = vault.connect(alice).deposit(params);
 
-      await expect(action).to.be.revertedWith(
-        "Vault: claim percentage cannot be 0"
-      );
+      await expect(action).to.be.revertedWith('VaultClaimPercentageCannotBe0');
     });
 
     it("fails if the amount is 0", async () => {
@@ -1165,7 +1163,7 @@ describe("Vault", () => {
 
       const action = vault.connect(alice).deposit(params);
 
-      await expect(action).to.be.revertedWith("Vault: cannot deposit 0");
+      await expect(action).to.be.revertedWith('VaultCannotDeposit0');
     });
   });
 
@@ -1335,7 +1333,7 @@ describe("Vault", () => {
           [vaultAction]("0x0000000000000000000000000000000000000000", [1, 2]);
 
         await expect(action).to.be.revertedWith(
-          "Vault: destination address is 0x"
+         'VaultDestinationCannotBe0Address' 
         );
       });
 
@@ -1353,7 +1351,7 @@ describe("Vault", () => {
         const action = vault.connect(bob)[vaultAction](bob.address, [1, 2]);
 
         await expect(action).to.be.revertedWith(
-          "Vault: you are not the owner of a deposit"
+          'VaultNotOwnerOfDeposit'
         );
       });
 
@@ -1369,7 +1367,7 @@ describe("Vault", () => {
 
         const action = vault.connect(alice)[vaultAction](alice.address, [1]);
 
-        await expect(action).to.be.revertedWith("Vault: deposit is locked");
+        await expect(action).to.be.revertedWith('VaultDepositLocked');
       });
 
       it("fails if token id belongs to a sponsor", async () => {
@@ -1391,7 +1389,7 @@ describe("Vault", () => {
 
         await expect(
           vault.connect(owner)[vaultAction](owner.address, [1, 2])
-        ).to.be.revertedWith("Vault: token id is not a deposit");
+        ).to.be.revertedWith('VaultNotDeposit');
       });
     });
   });
@@ -1432,7 +1430,7 @@ describe("Vault", () => {
       const action = vault.connect(alice).withdraw(alice.address, [1]);
 
       await expect(action).to.be.revertedWith(
-        "Vault: cannot withdraw more than the available amount"
+        'VaultCannotWithdrawMoreThanAvailable'
       );
     });
   });
@@ -1540,7 +1538,7 @@ describe("Vault", () => {
         .partialWithdraw(alice.address, [1], [parseUnits("25")]);
 
       await expect(tx).to.be.revertedWith(
-        "Vault: cannot withdraw more than the available amount"
+        'VaultCannotWithdrawMoreThanAvailable'
       );
     });
 
@@ -1561,7 +1559,7 @@ describe("Vault", () => {
         .partialWithdraw(alice.address, [1], [parseUnits("100")]);
 
       await expect(tx).to.be.revertedWith(
-        "Vault: cannot withdraw more than the available amount"
+        'VaultCannotWithdrawMoreThanAvailable'
       );
     });
 
@@ -1700,7 +1698,7 @@ describe("Vault", () => {
         vault
           .connect(bob)
           .claimYield("0x0000000000000000000000000000000000000000")
-      ).to.be.revertedWith("Vault: destination address is 0x");
+      ).to.be.revertedWith('VaultDestinationCannotBe0Address');
     });
 
     it("updates shares after claim", async () => {
@@ -1785,7 +1783,7 @@ describe("Vault", () => {
       });
 
       await expect(vault.connect(alice).deposit(params)).to.be.revertedWith(
-        "Vault: cannot deposit 0"
+        'VaultCannotDeposit0'
       );
     });
 
@@ -1796,7 +1794,7 @@ describe("Vault", () => {
       });
 
       await expect(vault.connect(alice).deposit(params)).to.be.revertedWith(
-        "Vault: invalid lock period"
+        'VaultInvalidLockPeriod'
       );
     });
 
@@ -1807,7 +1805,7 @@ describe("Vault", () => {
       });
 
       await expect(vault.connect(alice).deposit(params)).to.be.revertedWith(
-        "Vault: invalid lock period"
+        'VaultInvalidLockPeriod'
       );
     });
 
@@ -1822,7 +1820,7 @@ describe("Vault", () => {
       await removeUnderlyingFromVault("21");
 
       await expect(vault.connect(alice).deposit(params)).to.be.revertedWith(
-        "Vault: cannot deposit when yield is negative"
+        'VaultCannotDepositWhenYieldNegative'
       );
     });
 
@@ -1927,7 +1925,7 @@ describe("Vault", () => {
       const action = vault.connect(alice).deposit(params);
 
       await expect(action).to.be.revertedWith(
-        "Vault: claims don't add up to 100%"
+        'VaultClaimsDontAddUp' 
       );
     });
 
