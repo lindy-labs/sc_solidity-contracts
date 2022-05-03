@@ -114,7 +114,7 @@ contract Vault is
     uint256 public accumulatedPerfFee;
 
     /// Investment fee pct
-    uint16 public investmentFeeEstimatePct;
+    uint16 public investmentTolerancePct;
 
     /// Rebalance minimum
     uint256 private immutable rebalanceMinimum;
@@ -126,7 +126,7 @@ contract Vault is
      * @param _treasury Treasury address to collect performance fee
      * @param _owner Vault admin address
      * @param _perfFeePct Performance fee percentage
-     * @param _investmentFeeEstimatePct Estimated fee charged when investing through the strategy
+     * @param _investmentTolerancePct Loss tolerance when investing through the strategy
      * @param _swapPools Swap pools used to automatically convert tokens to underlying
      */
     constructor(
@@ -136,20 +136,9 @@ contract Vault is
         address _treasury,
         address _owner,
         uint16 _perfFeePct,
-        uint16 _investmentFeeEstimatePct,
+        uint16 _investmentTolerancePct,
         SwapPoolParam[] memory _swapPools
     ) {
-        if (!_investPct.validPct()) revert VaultInvalidInvestpct();
-        if (!_perfFeePct.validPct()) revert VaultInvalidPerformanceFee();
-        if (!_investmentFeeEstimatePct.validPct())
-            revert VaultInvalidInvestmentFee();
-        if (address(_underlying) == address(0x0))
-            revert VaultUnderlyingCannotBe0Address();
-        if (_treasury == address(0x0)) revert VaultTreasuryCannotBe0Address();
-        if (_owner == address(0x0)) revert VaultOwnerCannotBe0Address();
-        if (_minLockPeriod == 0 || _minLockPeriod > MAX_DEPOSIT_LOCK_DURATION)
-            revert VaultInvalidMinLockPeriod();
-
         _setupRole(DEFAULT_ADMIN_ROLE, _owner);
         _setupRole(INVESTOR_ROLE, _owner);
         _setupRole(SETTINGS_ROLE, _owner);
@@ -160,7 +149,7 @@ contract Vault is
         treasury = _treasury;
         minLockPeriod = _minLockPeriod;
         perfFeePct = _perfFeePct;
-        investmentFeeEstimatePct = _investmentFeeEstimatePct;
+        investmentTolerancePct = _investmentTolerancePct;
 
         depositors = new Depositors(this);
 
@@ -237,7 +226,7 @@ contract Vault is
             _params.lockDuration > MAX_DEPOSIT_LOCK_DURATION
         ) revert VaultInvalidLockPeriod();
 
-        uint256 principalMinusStrategyFee = _applyInvestmentFeeEstimate(
+        uint256 principalMinusStrategyFee = _applyInvestmentTolerance(
             totalPrincipal
         );
         uint256 previousTotalUnderlying = totalUnderlyingMinusSponsored();
@@ -525,15 +514,15 @@ contract Vault is
     }
 
     /// @inheritdoc IVaultSettings
-    function setInvestmentFeeEstimatePct(uint16 pct)
+    function setInvestmentTolerancePct(uint16 pct)
         external
         override(IVaultSettings)
         onlyRole(SETTINGS_ROLE)
     {
         if (!pct.validPct()) revert VaultInvalidInvestmentFee();
 
-        investmentFeeEstimatePct = pct;
-        emit InvestmentFeeEstimatePctUpdated(pct);
+        investmentTolerancePct = pct;
+        emit InvestmentTolerancePctUpdated(pct);
     }
 
     //
@@ -978,21 +967,21 @@ contract Vault is
     }
 
     /**
-     * Applies an estimated fee to the given @param _amount.
+     * Applies an investment tolerance to the given @param _amount.
      *
-     * This function should be used to estimate how much underlying will be
-     * left after the strategy invests. For instance, the fees taken by Anchor.
+     * This function is used to prevent the vault from entering loss mode when funds are lost due to fees in the strategy.
+     * For instance, the fees taken by Anchor.
      *
      * @param _amount Amount to apply the fees to.
      *
      * @return Amount with the fees applied.
      */
-    function _applyInvestmentFeeEstimate(uint256 _amount)
+    function _applyInvestmentTolerance(uint256 _amount)
         internal
         view
         returns (uint256)
     {
-        return _amount - _amount.pctOf(investmentFeeEstimatePct);
+        return _amount - _amount.pctOf(investmentTolerancePct);
     }
 
     function sharesOf(address claimerId) external view returns (uint256) {

@@ -26,7 +26,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
     minLockPeriod,
     investPct,
     perfFeePct,
-    investmentFeeEstimatePct,
+    investmentTolerancePct,
     multisig,
   } = await getCurrentNetworkConfig();
   const treasury = multisig;
@@ -39,7 +39,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
     treasury,
     owner,
     perfFeePct,
-    investmentFeeEstimatePct,
+    investmentTolerancePct,
     [
       {
         token: dai.address,

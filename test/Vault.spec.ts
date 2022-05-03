@@ -406,10 +406,10 @@ describe('Vault', () => {
     });
   });
 
-  describe('setInvestmentFeeEstimatePct', () => {
+  describe('setInvestmentTolerancePct', () => {
     it('reverts if msg.sender is not admin', async () => {
       await expect(
-        vault.connect(alice).setInvestmentFeeEstimatePct(100),
+        vault.connect(alice).setInvestmentTolerancePct(100),
       ).to.be.revertedWith(getRoleErrorMsg(alice, SETTINGS_ROLE));
     });
 
@@ -417,21 +417,21 @@ describe('Vault', () => {
       await expect(
         vault
           .connect(owner)
-          .setInvestmentFeeEstimatePct(DENOMINATOR.add(BigNumber.from('1'))),
+          .setInvestmentTolerancePct(DENOMINATOR.add(BigNumber.from('1'))),
       ).to.be.revertedWith('VaultInvalidInvestmentFee');
     });
 
-    it('change investmentFeeEstimatePct and emit InvestPercentageUpdated event', async () => {
-      const newInvestmentFeeEstimatePct = 200;
+    it('change investmentTolerancePct and emit InvestPercentageUpdated event', async () => {
+      const newInvestmentTolerancePct = 200;
       const tx = await vault
         .connect(owner)
-        .setInvestmentFeeEstimatePct(newInvestmentFeeEstimatePct);
+        .setInvestmentTolerancePct(newInvestmentTolerancePct);
 
       await expect(tx)
-        .emit(vault, 'InvestmentFeeEstimatePctUpdated')
-        .withArgs(newInvestmentFeeEstimatePct);
-      expect(await vault.investmentFeeEstimatePct()).to.be.equal(
-        newInvestmentFeeEstimatePct,
+        .emit(vault, 'InvestmentTolerancePctUpdated')
+        .withArgs(newInvestmentTolerancePct);
+      expect(await vault.investmentTolerancePct()).to.be.equal(
+        newInvestmentTolerancePct,
       );
     });
   });
