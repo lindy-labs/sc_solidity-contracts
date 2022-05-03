@@ -8,13 +8,12 @@ import {
   Vault,
   MockUST,
   Depositors,
-  Claimers,
   MockStrategy,
   MockAUST__factory,
   MockUST__factory,
   Vault__factory,
 } from "../typechain";
-import { Claimers__factory, Depositors__factory } from "../typechain";
+import { Depositors__factory } from "../typechain";
 import { depositParams, claimParams } from "./shared/factories";
 import {
   moveForwardTwoWeeks,
@@ -40,7 +39,6 @@ describe("Integration", () => {
   let aUstToken: Contract;
   let vault: Vault;
   let depositors: Depositors;
-  let claimers: Claimers;
   let strategy: MockStrategy;
 
   const TWO_WEEKS = BigNumber.from(time.duration.weeks(2).toNumber());
@@ -110,7 +108,6 @@ describe("Integration", () => {
     );
 
     depositors = Depositors__factory.connect(await vault.depositors(), owner);
-    claimers = Claimers__factory.connect(await vault.claimers(), owner);
   });
 
   describe("single deposit, single sponsor and single claimer", () => {
@@ -285,14 +282,13 @@ describe("Integration", () => {
       const deposit = await vault.deposits(1);
 
       expect(deposit.amount).to.equal(parseUnits("100"));
-      expect(deposit.claimerId).to.equal(1);
+      expect(deposit.claimerId).to.equal(bob.address);
 
       expect(await vault.totalShares()).to.equal(
         parseUnits("100").mul(SHARES_MULTIPLIER)
       );
 
-      const tokenId = await claimers.addressToTokenID(bob.address);
-      expect(await vault.principalOf(tokenId)).to.equal(parseUnits("100"));
+      expect(await vault.principalOf(bob.address)).to.equal(parseUnits("100"));
     });
   });
 
@@ -314,21 +310,19 @@ describe("Integration", () => {
       expect(await depositors.ownerOf(1)).to.equal(alice.address);
       const part0 = await vault.deposits(1);
       expect(part0.amount).to.equal(amount.div("4"));
-      expect(part0.claimerId).to.equal(1);
+      expect(part0.claimerId).to.equal(bob.address);
 
       const part1 = await vault.deposits(2);
       expect(part1.amount).to.equal(amount.div("4").mul("3"));
-      expect(part1.claimerId).to.equal(2);
+      expect(part1.claimerId).to.equal(carol.address);
 
       expect(await vault.totalShares()).to.equal(
         BigNumber.from("100").mul(SHARES_MULTIPLIER)
       );
 
-      const bobTokenId = await claimers.addressToTokenID(bob.address);
-      expect(await vault.principalOf(bobTokenId)).to.equal(25);
+      expect(await vault.principalOf(bob.address)).to.equal(25);
 
-      const carolTokenId = await claimers.addressToTokenID(carol.address);
-      expect(await vault.principalOf(carolTokenId)).to.equal(75);
+      expect(await vault.principalOf(carol.address)).to.equal(75);
     });
 
     it("allows claiming the yield after the principal is withdrawn", async () => {

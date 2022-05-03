@@ -11,10 +11,8 @@ import {
   MockUST,
   MockAUST,
   Depositors,
-  Claimers,
   MockStrategy,
   Vault__factory,
-  Claimers__factory,
   Depositors__factory,
 } from "../typechain";
 
@@ -45,7 +43,6 @@ describe("Vault", () => {
   let aUstToken: MockAUST;
   let vault: Vault;
   let depositors: Depositors;
-  let claimers: Claimers;
   let strategy: MockStrategy;
   const TWO_WEEKS = BigNumber.from(time.duration.weeks(2).toNumber());
   const MAX_DEPOSIT_LOCK_DURATION = BigNumber.from(
@@ -126,7 +123,6 @@ describe("Vault", () => {
     );
 
     depositors = Depositors__factory.connect(await vault.depositors(), owner);
-    claimers = Claimers__factory.connect(await vault.claimers(), owner);
   });
 
   describe("codearena", () => {
@@ -152,7 +148,7 @@ describe("Vault", () => {
           parseUnits("990")
         );
 
-        expect(await vault.sharesOf(1)).to.eq(
+        expect(await vault.sharesOf(bob.address)).to.eq(
           parseUnits("10").mul(SHARES_MULTIPLIER)
         );
       });
@@ -167,7 +163,7 @@ describe("Vault", () => {
         expect(await underlying.balanceOf(alice.address)).to.eq(
           parseUnits("990")
         );
-        expect(await vault.sharesOf(1)).to.eq(
+        expect(await vault.sharesOf(bob.address)).to.eq(
           parseUnits("10").mul(SHARES_MULTIPLIER)
         );
       });
@@ -339,7 +335,6 @@ describe("Vault", () => {
       expect(await vault.perfFeePct()).to.be.equal(PERFORMANCE_FEE_PCT);
 
       expect(await vault.depositors()).to.be.not.equal(constants.AddressZero);
-      expect(await vault.claimers()).to.be.not.equal(constants.AddressZero);
     });
   });
 
@@ -865,7 +860,6 @@ describe("Vault", () => {
 
       const deposit = await vault.deposits(1);
       expect(deposit.amount).to.be.equals(parseUnits("500"));
-      expect(deposit.claimerId).to.be.equal(0);
       expect(deposit.lockedUntil).to.be.equal(currentTime.add(TWO_WEEKS));
       expect(deposit.shares).to.be.equal(0);
     });
@@ -1045,7 +1039,7 @@ describe("Vault", () => {
           parseUnits("50").mul(SHARES_MULTIPLIER),
           alice.address,
           carol.address,
-          1,
+          carol.address,
           TWO_WEEKS.add(await getLastBlockTimestamp()),
           "0x00",
           "Deposit - Emits Events"
@@ -1060,7 +1054,7 @@ describe("Vault", () => {
           parseUnits("50").mul(SHARES_MULTIPLIER),
           alice.address,
           bob.address,
-          2,
+          bob.address,
           TWO_WEEKS.add(await getLastBlockTimestamp()),
           ethers.utils.hexlify(123),
           "Deposit - Emits Events"
@@ -1091,7 +1085,7 @@ describe("Vault", () => {
           parseUnits("50").mul(SHARES_MULTIPLIER),
           alice.address,
           carol.address,
-          1,
+          carol.address,
           TWO_WEEKS.add(await getLastBlockTimestamp()),
           "0x00",
           "Deposit - Emits Different groupId"
@@ -1106,7 +1100,7 @@ describe("Vault", () => {
           parseUnits("50").mul(SHARES_MULTIPLIER),
           alice.address,
           bob.address,
-          2,
+          bob.address,
           TWO_WEEKS.add(await getLastBlockTimestamp()),
           "0x00",
           "Deposit - Emits Different groupId"
@@ -1282,18 +1276,18 @@ describe("Vault", () => {
 
         await vault.connect(alice).deposit(params);
 
-        expect(await vault.sharesOf(1)).to.eq(
+        expect(await vault.sharesOf(carol.address)).to.eq(
           parseUnits("50").mul(SHARES_MULTIPLIER)
         );
-        expect(await vault.sharesOf(2)).to.eq(
+        expect(await vault.sharesOf(bob.address)).to.eq(
           parseUnits("50").mul(SHARES_MULTIPLIER)
         );
 
         await moveForwardTwoWeeks();
         await vault.connect(alice)[vaultAction](alice.address, [1]);
 
-        expect(await vault.sharesOf(1)).to.eq(0);
-        expect(await vault.sharesOf(2)).to.eq(
+        expect(await vault.sharesOf(carol.address)).to.eq(0);
+        expect(await vault.sharesOf(bob.address)).to.eq(
           parseUnits("50").mul(SHARES_MULTIPLIER)
         );
       });
@@ -1310,14 +1304,14 @@ describe("Vault", () => {
 
         await vault.connect(alice).deposit(params);
 
-        expect(await vault.principalOf(1)).to.eq(parseUnits("50"));
-        expect(await vault.principalOf(2)).to.eq(parseUnits("50"));
+        expect(await vault.principalOf(carol.address)).to.eq(parseUnits("50"));
+        expect(await vault.principalOf(bob.address)).to.eq(parseUnits("50"));
 
         await moveForwardTwoWeeks();
         await vault.connect(alice)[vaultAction](alice.address, [1]);
 
-        expect(await vault.principalOf(1)).to.eq(0);
-        expect(await vault.principalOf(2)).to.eq(parseUnits("50"));
+        expect(await vault.principalOf(carol.address)).to.eq(0);
+        expect(await vault.principalOf(bob.address)).to.eq(parseUnits("50"));
       });
 
       it("fails if the destination address is 0x", async () => {
@@ -1493,7 +1487,7 @@ describe("Vault", () => {
         .connect(alice)
         .partialWithdraw(alice.address, [2], [parseUnits("30")]);
 
-      const deposit = await vault.claimer(2);
+      const deposit = await vault.claimer(bob.address);
       expect(deposit.totalPrincipal).to.eq(parseUnits("20"));
       expect(deposit.totalShares).to.eq(
         parseUnits("35").mul(SHARES_MULTIPLIER)
@@ -1522,7 +1516,7 @@ describe("Vault", () => {
       const deposit = await vault.deposits(2);
 
       expect(deposit.amount).to.eq(0);
-      expect(deposit.claimerId).to.eq(0);
+      //expect(deposit.claimerId).to.eq(0);
       expect(deposit.lockedUntil).to.eq(0);
       expect(deposit.shares).to.eq(0);
     });
@@ -1617,7 +1611,7 @@ describe("Vault", () => {
       await expect(tx)
         .to.emit(vault, "YieldClaimed")
         .withArgs(
-          1,
+          carol.address,
           carol.address,
           parseUnits("49"),
           parseUnits("25").mul(SHARES_MULTIPLIER),
@@ -1724,7 +1718,7 @@ describe("Vault", () => {
       expect(await vault.totalShares()).to.be.equal(
         parseUnits("75").mul(SHARES_MULTIPLIER)
       );
-      expect(await vault.sharesOf(1)).to.be.equal(
+      expect(await vault.sharesOf(carol.address)).to.be.equal(
         parseUnits("25").mul(SHARES_MULTIPLIER)
       );
     });
@@ -1966,13 +1960,13 @@ describe("Vault", () => {
 
       await vault.connect(alice).deposit(params);
 
-      const claimer1 = await vault.claimer(1);
+      const claimer1 = await vault.claimer(bob.address);
       expect(claimer1.totalShares).to.be.equal(
         parseUnits("0.4").mul(SHARES_MULTIPLIER)
       );
       expect(claimer1.totalPrincipal).to.be.equal(parseUnits("0.4"));
 
-      const claimer2 = await vault.claimer(2);
+      const claimer2 = await vault.claimer(carol.address);
       expect(claimer2.totalShares).to.be.equal(
         parseUnits("0.6").mul(SHARES_MULTIPLIER)
       );
@@ -2006,13 +2000,13 @@ describe("Vault", () => {
 
       await vault.connect(alice).deposit(params2);
 
-      const claimer1 = await vault.claimer(1);
+      const claimer1 = await vault.claimer(bob.address);
       expect(claimer1.totalShares).to.be.equal(
         parseUnits("10.4").mul(SHARES_MULTIPLIER)
       );
       expect(claimer1.totalPrincipal).to.be.equal(parseUnits("10.4"));
 
-      const claimer2 = await vault.claimer(2);
+      const claimer2 = await vault.claimer(carol.address);
       expect(claimer2.totalShares).to.be.equal(
         parseUnits("0.6").mul(SHARES_MULTIPLIER)
       );
@@ -2038,7 +2032,7 @@ describe("Vault", () => {
 
       const deposit1 = await vault.deposits(1);
       expect(deposit1.amount).to.be.equal(parseUnits("0.4"));
-      expect(deposit1.claimerId).to.be.equal(1);
+      expect(deposit1.claimerId).to.be.equal(bob.address);
       expect(deposit1.lockedUntil).to.be.equal(
         currentTime.add(params.lockDuration)
       );
@@ -2048,7 +2042,7 @@ describe("Vault", () => {
 
       const deposit2 = await vault.deposits(2);
       expect(deposit2.amount).to.be.equal(parseUnits("0.6"));
-      expect(deposit2.claimerId).to.be.equal(2);
+      expect(deposit2.claimerId).to.be.equal(carol.address);
       expect(deposit2.lockedUntil).to.be.equal(
         currentTime.add(params.lockDuration)
       );
@@ -2057,7 +2051,7 @@ describe("Vault", () => {
       );
     });
 
-    it("mints Depositors and Claimers NFTs", async () => {
+    it("mints Depositors NFTs", async () => {
       const params = depositParams.build({
         inputToken: underlying.address,
         claims: [
@@ -2074,8 +2068,6 @@ describe("Vault", () => {
 
       expect(await vault.totalUnderlying()).to.be.equal(params.amount);
       expect(await depositors.ownerOf("1")).to.be.equal(alice.address);
-      expect(await claimers.ownerOf("1")).to.be.equal(bob.address);
-      expect(await claimers.ownerOf("2")).to.be.equal(carol.address);
     });
   });
 
