@@ -644,7 +644,7 @@ contract Vault is
 
             if (owner != msg.sender) revert VaultNotAllowed();
             if (lockedUntil > block.timestamp) revert VaultAmountLocked();
-            if (claimerId != 0) revert VaultNotSponsor();
+            if (claimerId != address(0)) revert VaultNotSponsor();
 
             sponsorAmount += amount;
 
@@ -827,7 +827,7 @@ contract Vault is
         Claimer memory _claim = claimer[_deposit.claimerId];
 
         if (_deposit.lockedUntil > block.timestamp) revert VaultDepositLocked();
-        if (_deposit.claimerId == 0) revert VaultNotDeposit();
+        if (_deposit.claimerId == address(0)) revert VaultNotDeposit();
 
         bool isFull = _deposit.amount == _amount;
 
