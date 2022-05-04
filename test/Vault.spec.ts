@@ -1003,6 +1003,206 @@ describe('Vault', () => {
     });
   });
 
+  describe('depositForGroupId', () => {
+    it('reverts if contract is paused', async () => {
+      await vault.connect(alice).deposit(
+        depositParams.build({
+          amount: parseUnits('100'),
+          inputToken: underlying.address,
+          claims: [claimParams.percent(100).to(carol.address).build()],
+          name: 'My Deposit',
+        }),
+      );
+
+      await vault.connect(owner).pause();
+
+      const topUpParams = depositParams.build({
+        amount: parseUnits('100'),
+        inputToken: underlying.address,
+        claims: [claimParams.percent(100).to(bob.address).build()],
+        name: 'My Deposit',
+      });
+
+      await expect(
+        vault.connect(alice).depositForGroupId(0, topUpParams),
+      ).to.be.revertedWith('Pausable: paused');
+
+      await vault.connect(owner).unpause();
+    });
+
+    it('emits events', async () => {
+      await vault.connect(alice).deposit(
+        depositParams.build({
+          amount: parseUnits('100'),
+          inputToken: underlying.address,
+          claims: [claimParams.percent(100).to(carol.address).build()],
+          name: 'My Deposit',
+        }),
+      );
+
+      const params = depositParams.build({
+        lockDuration: TWO_WEEKS,
+        amount: parseUnits('100'),
+        inputToken: underlying.address,
+        claims: [
+          claimParams.percent(50).to(carol.address).build(),
+          claimParams
+            .percent(50)
+            .data(ethers.utils.hexlify(123))
+            .to(bob.address)
+            .build(),
+        ],
+        name: 'My Deposit',
+      });
+
+      const tx = await vault.connect(alice).depositForGroupId(0, params);
+
+      await expect(tx)
+        .to.emit(vault, 'DepositMinted')
+        .withArgs(
+          2,
+          0,
+          parseUnits('50'),
+          parseUnits('50').mul(SHARES_MULTIPLIER),
+          alice.address,
+          carol.address,
+          carol.address,
+          TWO_WEEKS.add(await getLastBlockTimestamp()),
+          '0x00',
+          'My Deposit',
+        );
+
+      await expect(tx)
+        .to.emit(vault, 'DepositMinted')
+        .withArgs(
+          3,
+          0,
+          parseUnits('50'),
+          parseUnits('50').mul(SHARES_MULTIPLIER),
+          alice.address,
+          bob.address,
+          bob.address,
+          TWO_WEEKS.add(await getLastBlockTimestamp()),
+          ethers.utils.hexlify(123),
+          'My Deposit',
+        );
+    });
+
+    it('sets a timelock of at least 2 weeks by default', async () => {
+      const params = depositParams.build({
+        amount: parseUnits('100'),
+        inputToken: underlying.address,
+        claims: [claimParams.percent(100).to(carol.address).build()],
+      });
+
+      await vault.connect(alice).deposit(params);
+
+      await vault.connect(alice).depositForGroupId(0, params);
+
+      const deposit = await vault.deposits(2);
+
+      expect(deposit.lockedUntil.toNumber()).to.be.at.least(
+        TWO_WEEKS.add(await getLastBlockTimestamp()),
+      );
+    });
+
+    it("fails if the groupId doesn't exist", async () => {
+      const params = depositParams.build({
+        amount: parseUnits('100'),
+        inputToken: underlying.address,
+        claims: [claimParams.percent(100).to(bob.address).build()],
+      });
+
+      const action = vault.connect(alice).depositForGroupId(0, params);
+
+      await expect(action).to.be.revertedWith('VaultSenderNotOwnerOfGroupId');
+    });
+
+    it("fails if the groupId doesn't belong to the caller", async () => {
+      await vault.connect(alice).deposit(
+        depositParams.build({
+          amount: parseUnits('100'),
+          inputToken: underlying.address,
+          claims: [claimParams.percent(100).to(carol.address).build()],
+        }),
+      );
+
+      const params = depositParams.build({
+        amount: parseUnits('100'),
+        inputToken: underlying.address,
+        claims: [claimParams.percent(100).to(bob.address).build()],
+      });
+
+      const action = vault.connect(bob).depositForGroupId(0, params);
+
+      await expect(action).to.be.revertedWith('VaultSenderNotOwnerOfGroupId');
+    });
+
+    it('fails if the timelock is less than 2 weeks', async () => {
+      await vault.connect(alice).deposit(
+        depositParams.build({
+          amount: parseUnits('100'),
+          inputToken: underlying.address,
+          claims: [claimParams.percent(100).to(bob.address).build()],
+        }),
+      );
+
+      const params = depositParams.build({
+        amount: parseUnits('100'),
+        lockDuration: BigNumber.from(time.duration.days(13).toNumber()),
+        inputToken: underlying.address,
+        claims: [claimParams.percent(100).to(bob.address).build()],
+      });
+
+      const action = vault.connect(alice).depositForGroupId(0, params);
+
+      await expect(action).to.be.revertedWith('VaultInvalidLockPeriod');
+    });
+
+    it('fails if the claim percentage is 0', async () => {
+      await vault.connect(alice).deposit(
+        depositParams.build({
+          amount: parseUnits('100'),
+          inputToken: underlying.address,
+          claims: [claimParams.percent(100).to(bob.address).build()],
+        }),
+      );
+
+      const params = depositParams.build({
+        amount: parseUnits('100'),
+        inputToken: underlying.address,
+        claims: [
+          claimParams.percent(100).to(bob.address).build(),
+          claimParams.percent(0).to(bob.address).build(),
+        ],
+      });
+
+      const action = vault.connect(alice).depositForGroupId(0, params);
+
+      await expect(action).to.be.revertedWith('VaultClaimPercentageCannotBe0');
+    });
+
+    it('fails if the amount is 0', async () => {
+      await vault.connect(alice).deposit(
+        depositParams.build({
+          amount: parseUnits('1000'),
+          inputToken: underlying.address,
+          claims: [claimParams.percent(100).to(bob.address).build()],
+        }),
+      );
+
+      const params = depositParams.build({
+        amount: parseUnits('0'),
+        inputToken: underlying.address,
+        claims: [claimParams.percent(100).to(bob.address).build()],
+      });
+
+      const action = vault.connect(alice).depositForGroupId(0, params);
+
+      await expect(action).to.be.revertedWith('VaultCannotDeposit0');
+    });
+  });
+
   describe('deposit', () => {
     it('reverts if contract is paused', async () => {
       const params = depositParams.build({
