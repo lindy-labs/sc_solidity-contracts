@@ -225,6 +225,7 @@ contract Vault is
         claimableYield = sharesAmount - perfFee;
     }
 
+    /// @inheritdoc IVault
     function depositForGroupId(uint256 _groupId, DepositParams calldata _params)
         external
         nonReentrant
