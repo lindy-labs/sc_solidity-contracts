@@ -9,14 +9,18 @@ const { parseUnits } = ethers.utils;
 
 interface DepositParams {
   amount: BigNumberish;
+  inputToken: string;
   claims: ClaimParams[];
   lockDuration: BigNumberish;
+  name: string;
 }
 
 export const depositParams = Factory.define<DepositParams>(() => {
   return {
     amount: parseUnits("1"),
+    inputToken: "0x0",
     claims: [claimParams.build()],
     lockDuration: ethers.BigNumber.from(time.duration.weeks(2).toNumber()), // 2 weeks
+    name: "Foundation name",
   };
 });

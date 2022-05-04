@@ -2,23 +2,23 @@ import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { ethers } from "hardhat";
 import { time } from "@openzeppelin/test-helpers";
 import { expect } from "chai";
-import { BigNumber, utils, constants, ContractFactory } from "ethers";
+import { BigNumber, utils, constants } from "ethers";
 import {
   MockChainlinkPriceFeed,
   Vault,
-  AnchorUSTStrategy,
+  AnchorStrategy,
   MockEthAnchorRouter,
   MockERC20,
-  AnchorUSTStrategy__factory,
+  AnchorStrategy__factory,
 } from "../../../typechain";
 import { generateNewAddress } from "../../shared/";
 
-describe("AnchorUSTStrategy", () => {
+describe("AnchorStrategy", () => {
   let owner: SignerWithAddress;
   let alice: SignerWithAddress;
   let manager: SignerWithAddress;
   let vault: Vault;
-  let strategy: AnchorUSTStrategy;
+  let strategy: AnchorStrategy;
   let mockEthAnchorRouter: MockEthAnchorRouter;
   let mockAUstUstFeed: MockChainlinkPriceFeed;
   let ustToken: MockERC20;
@@ -30,6 +30,7 @@ describe("AnchorUSTStrategy", () => {
   const TWO_WEEKS = time.duration.days(14).toNumber();
   const PERFORMANCE_FEE_PCT = BigNumber.from("200");
   const INVEST_PCT = BigNumber.from("9000");
+  const INVESTMENT_FEE_PCT = BigNumber.from("200");
   const DENOMINATOR = BigNumber.from("10000");
 
   const DEFAULT_ADMIN_ROLE = constants.HashZero;
@@ -73,14 +74,16 @@ describe("AnchorUSTStrategy", () => {
       INVEST_PCT,
       TREASURY,
       owner.address,
-      PERFORMANCE_FEE_PCT
+      PERFORMANCE_FEE_PCT,
+      INVESTMENT_FEE_PCT,
+      []
     );
 
-    const AnchorUSTStrategyFactory = await ethers.getContractFactory(
-      "AnchorUSTStrategy"
+    const AnchorStrategyFactory = await ethers.getContractFactory(
+      "AnchorStrategy"
     );
 
-    strategy = await AnchorUSTStrategyFactory.deploy(
+    strategy = await AnchorStrategyFactory.deploy(
       vault.address,
       mockEthAnchorRouter.address,
       mockAUstUstFeed.address,
@@ -104,17 +107,15 @@ describe("AnchorUSTStrategy", () => {
   });
 
   describe("constructor", () => {
-    let AnchorUSTStrategyFactory: AnchorUSTStrategy__factory;
+    let AnchorStrategyFactory: AnchorStrategy__factory;
 
     beforeEach(async () => {
-      AnchorUSTStrategyFactory = await ethers.getContractFactory(
-        "AnchorUSTStrategy"
-      );
+      AnchorStrategyFactory = await ethers.getContractFactory("AnchorStrategy");
     });
 
     it("Revert if owner is address(0)", async () => {
       await expect(
-        AnchorUSTStrategyFactory.deploy(
+        AnchorStrategyFactory.deploy(
           vault.address,
           mockEthAnchorRouter.address,
           mockAUstUstFeed.address,
@@ -122,12 +123,12 @@ describe("AnchorUSTStrategy", () => {
           aUstToken.address,
           constants.AddressZero
         )
-      ).to.be.revertedWith("AnchorBaseStrategy: owner is 0x");
+      ).to.be.revertedWith('StrategyOwnerCannotBe0Address');
     });
 
     it("Revert if ethAnchorRouter is address(0)", async () => {
       await expect(
-        AnchorUSTStrategyFactory.deploy(
+        AnchorStrategyFactory.deploy(
           vault.address,
           constants.AddressZero,
           mockAUstUstFeed.address,
@@ -135,12 +136,38 @@ describe("AnchorUSTStrategy", () => {
           aUstToken.address,
           owner.address
         )
-      ).to.be.revertedWith("AnchorBaseStrategy: router is 0x");
+      ).to.be.revertedWith('StrategyRouterCannotBe0Address');
+    });
+
+    it("Revert if ust is address(0)", async () => {
+      await expect(
+        AnchorStrategyFactory.deploy(
+          vault.address,
+          mockEthAnchorRouter.address,
+          mockAUstUstFeed.address,
+          constants.AddressZero,
+          aUstToken.address,
+          owner.address
+        )
+      ).to.be.revertedWith('StrategyUnderlyingCannotBe0Address');
+    });
+
+    it("Revert if aUST is address(0)", async () => {
+      await expect(
+        AnchorStrategyFactory.deploy(
+          vault.address,
+          mockEthAnchorRouter.address,
+          mockAUstUstFeed.address,
+          ustToken.address,
+          constants.AddressZero,
+          owner.address
+        )
+      ).to.be.revertedWith('StrategyYieldTokenCannotBe0Address');
     });
 
     it("Revert if vault does not have IVault interface", async () => {
       await expect(
-        AnchorUSTStrategyFactory.deploy(
+        AnchorStrategyFactory.deploy(
           TREASURY,
           mockEthAnchorRouter.address,
           mockAUstUstFeed.address,
@@ -148,30 +175,7 @@ describe("AnchorUSTStrategy", () => {
           aUstToken.address,
           owner.address
         )
-      ).to.be.revertedWith("AnchorBaseStrategy: not an IVault");
-    });
-
-    it("Revert if underlying is not ustToken", async () => {
-      const VaultFactory = await ethers.getContractFactory("Vault");
-      vault = await VaultFactory.deploy(
-        aUstToken.address,
-        1,
-        INVEST_PCT,
-        TREASURY,
-        owner.address,
-        PERFORMANCE_FEE_PCT
-      );
-
-      await expect(
-        AnchorUSTStrategyFactory.deploy(
-          vault.address,
-          mockEthAnchorRouter.address,
-          mockAUstUstFeed.address,
-          ustToken.address,
-          aUstToken.address,
-          owner.address
-        )
-      ).to.be.revertedWith("AnchorUSTStrategy: invalid underlying");
+      ).to.be.revertedWith('StrategyNotIVault');
     });
 
     it("Check initial values", async () => {
@@ -182,7 +186,6 @@ describe("AnchorUSTStrategy", () => {
         true
       );
       expect(await strategy.vault()).to.be.equal(vault.address);
-      expect(await strategy.underlying()).to.be.equal(underlying.address);
       expect(await strategy.ethAnchorRouter()).to.be.equal(
         mockEthAnchorRouter.address
       );
@@ -197,15 +200,11 @@ describe("AnchorUSTStrategy", () => {
 
   describe("#invest function", () => {
     it("Revert if msg.sender is not manager", async () => {
-      await expect(strategy.connect(alice).invest("0x")).to.be.revertedWith(
-        "AnchorBaseStrategy: caller is not manager"
-      );
+      await expect(strategy.connect(alice).invest()).to.be.revertedWith('StrategyCallerNotManager');
     });
 
     it("Revert if underlying balance is zero", async () => {
-      await expect(strategy.connect(manager).invest("0x")).to.be.revertedWith(
-        "AnchorBaseStrategy: no ust exist"
-      );
+      await expect(strategy.connect(manager).invest()).to.be.revertedWith('StrategyNoUST');
     });
 
     it("Revert if aUST/UST exchange rate is invalid", async () => {
@@ -215,7 +214,7 @@ describe("AnchorUSTStrategy", () => {
       const amount0 = utils.parseUnits("100", 18);
       const aUstAmount0 = utils.parseUnits("90", 18);
       await underlying.connect(owner).transfer(vault.address, amount0);
-      await vault.connect(owner).updateInvested("0x");
+      await vault.connect(owner).updateInvested();
 
       let exchangeRate = amount0.mul(utils.parseEther("1")).div(aUstAmount0);
       await mockAUstUstFeed.setAnswer(exchangeRate);
@@ -228,9 +227,9 @@ describe("AnchorUSTStrategy", () => {
 
       // when price is not positive
       await mockAUstUstFeed.setLatestRoundData(1, 0, 100, 100, 1);
-      await expect(
-        vault.connect(owner).updateInvested("0x")
-      ).to.be.revertedWith("AnchorBaseStrategy: invalid aUST rate");
+      await expect(vault.connect(owner).updateInvested()).to.be.revertedWith(
+        'StrategyInvalidAUSTRate'
+      );
 
       // when round id is invalid
       await mockAUstUstFeed.setLatestRoundData(
@@ -240,9 +239,9 @@ describe("AnchorUSTStrategy", () => {
         100,
         1
       );
-      await expect(
-        vault.connect(owner).updateInvested("0x")
-      ).to.be.revertedWith("AnchorBaseStrategy: invalid aUST rate");
+      await expect(vault.connect(owner).updateInvested()).to.be.revertedWith(
+        'StrategyInvalidAUSTRate'
+      );
 
       // when updated time is zero
       await mockAUstUstFeed.setLatestRoundData(
@@ -252,9 +251,9 @@ describe("AnchorUSTStrategy", () => {
         0,
         1
       );
-      await expect(
-        vault.connect(owner).updateInvested("0x")
-      ).to.be.revertedWith("AnchorBaseStrategy: invalid aUST rate");
+      await expect(vault.connect(owner).updateInvested()).to.be.revertedWith(
+        'StrategyInvalidAUSTRate'
+      );
     });
 
     it("Should init deposit stable with all underlying", async () => {
@@ -267,7 +266,7 @@ describe("AnchorUSTStrategy", () => {
 
       expect(await vault.totalUnderlying()).equal(underlyingAmount);
 
-      const tx = await vault.connect(owner).updateInvested("0x");
+      const tx = await vault.connect(owner).updateInvested();
 
       expect(await underlying.balanceOf(strategy.address)).equal(0);
       expect(await strategy.pendingDeposits()).equal(investAmount);
@@ -291,7 +290,7 @@ describe("AnchorUSTStrategy", () => {
 
       let investAmount0 = underlyingBalance0.mul(INVEST_PCT).div(DENOMINATOR);
 
-      await vault.connect(owner).updateInvested("0x");
+      await vault.connect(owner).updateInvested();
 
       const operator1 = await registerNewTestOperator();
       let underlyingBalance1 = utils.parseUnits("50", 18);
@@ -303,7 +302,7 @@ describe("AnchorUSTStrategy", () => {
         .div(DENOMINATOR)
         .sub(investAmount0);
 
-      await vault.connect(owner).updateInvested("0x");
+      await vault.connect(owner).updateInvested();
 
       expect(await underlying.balanceOf(strategy.address)).equal(0);
       expect(await strategy.pendingDeposits()).equal(
@@ -318,7 +317,6 @@ describe("AnchorUSTStrategy", () => {
       const operation0 = await strategy.depositOperations(0);
       expect(operation0.operator).equal(operator0);
       expect(operation0.amount).equal(investAmount0);
-
       const operation1 = await strategy.depositOperations(1);
       expect(operation1.operator).equal(operator1);
       expect(operation1.amount).equal(investAmount1);
@@ -338,26 +336,26 @@ describe("AnchorUSTStrategy", () => {
       underlyingAmount0 = utils.parseUnits("100", 18);
       aUstAmount0 = utils.parseUnits("80", 18);
       await depositVault(underlyingAmount0);
-      await vault.connect(owner).updateInvested("0x");
+      await vault.connect(owner).updateInvested();
       investAmount0 = underlyingAmount0.mul(INVEST_PCT).div(DENOMINATOR);
     });
 
     it("Revert if msg.sender is not manager", async () => {
       await expect(
         strategy.connect(alice).finishDepositStable(0)
-      ).to.be.revertedWith("AnchorBaseStrategy: caller is not manager");
+      ).to.be.revertedWith('StrategyCallerNotManager');
     });
 
     it("Revert if idx is out of array", async () => {
       await expect(
         strategy.connect(manager).finishDepositStable(1)
-      ).to.be.revertedWith("AnchorBaseStrategy: not running");
+      ).to.be.revertedWith('StrategyNotRunning');
     });
 
     it("Revert if no aUST returned", async () => {
       await expect(
         strategy.connect(manager).finishDepositStable(0)
-      ).to.be.revertedWith("AnchorBaseStrategy: no aUST returned");
+      ).to.be.revertedWith('StrategyNoAUSTReturned');
     });
 
     it("Should finish deposit operation", async () => {
@@ -392,7 +390,7 @@ describe("AnchorUSTStrategy", () => {
 
       const underlyingAmount1 = utils.parseUnits("50", 18);
       await depositVault(underlyingAmount1);
-      await vault.connect(owner).updateInvested("0x");
+      await vault.connect(owner).updateInvested();
 
       let investAmount1 = underlyingAmount1
         .add(underlyingAmount0)
@@ -433,6 +431,35 @@ describe("AnchorUSTStrategy", () => {
       expect(operation0.operator).equal(operator1);
       expect(operation0.amount).equal(investAmount1);
     });
+
+    it("Should rearrange deposit operations when not finalizing last in array", async () => {
+      let aUstRate = utils.parseEther("1.1");
+      await setAUstRate(aUstRate);
+
+      await notifyDepositReturnAmount(operator0, aUstAmount0);
+
+      const underlyingAmount1 = utils.parseUnits("100", 18);
+      const aUstAmount1 = utils.parseUnits("80", 18);
+
+      const operator1 = await registerNewTestOperator();
+
+      await depositVault(underlyingAmount1);
+      await vault.connect(owner).updateInvested();
+
+      await notifyDepositReturnAmount(operator1, aUstAmount1);
+
+      const tx = await strategy.connect(manager).finishDepositStable(0);
+
+      expect(await strategy.depositOperationLength()).equal(1);
+
+      await expect(tx)
+        .to.emit(strategy, "RearrangeDepositOperation")
+        .withArgs(operator1, operator0, 0);
+
+      await expect(tx)
+        .to.emit(strategy, "FinishDepositStable")
+        .withArgs(operator0, investAmount0, aUstAmount0);
+    });
   });
 
   describe("#initRedeemStable function", () => {
@@ -445,7 +472,7 @@ describe("AnchorUSTStrategy", () => {
       underlyingAmount0 = utils.parseUnits("100", 18);
       aUstAmount0 = utils.parseUnits("80", 18);
       await depositVault(underlyingAmount0);
-      await vault.connect(owner).updateInvested("0x");
+      await vault.connect(owner).updateInvested();
 
       await notifyDepositReturnAmount(operator, aUstAmount0);
       await strategy.connect(manager).finishDepositStable(0);
@@ -454,13 +481,13 @@ describe("AnchorUSTStrategy", () => {
     it("Revert if msg.sender is not manager", async () => {
       await expect(
         strategy.connect(alice).initRedeemStable(aUstAmount0)
-      ).to.be.revertedWith("AnchorBaseStrategy: caller is not manager");
+      ).to.be.revertedWith('StrategyCallerNotManager');
     });
 
     it("Revert if amount is 0", async () => {
       await expect(
         strategy.connect(manager).initRedeemStable(0)
-      ).to.be.revertedWith("AnchorBaseStrategy: amount 0");
+      ).to.be.revertedWith('StrategyAmountZero');
     });
 
     it("Should init redeem operation", async () => {
@@ -487,7 +514,7 @@ describe("AnchorUSTStrategy", () => {
 
       await expect(tx)
         .to.emit(strategy, "InitRedeemStable")
-        .withArgs(operator, redeemAmount);
+        .withArgs(operator, 0, redeemAmount);
     });
 
     it("Should be able to init redeem several times", async () => {
@@ -537,7 +564,7 @@ describe("AnchorUSTStrategy", () => {
       investAmount0 = underlyingAmount0.mul(INVEST_PCT).div(DENOMINATOR);
       aUstAmount0 = utils.parseUnits("80", 18);
       await depositVault(underlyingAmount0);
-      await vault.connect(owner).updateInvested("0x");
+      await vault.connect(owner).updateInvested();
 
       await notifyDepositReturnAmount(operator0, aUstAmount0);
       await strategy.connect(manager).finishDepositStable(0);
@@ -551,19 +578,19 @@ describe("AnchorUSTStrategy", () => {
     it("Revert if msg.sender is not manager", async () => {
       await expect(
         strategy.connect(alice).finishRedeemStable(0)
-      ).to.be.revertedWith("AnchorBaseStrategy: caller is not manager");
+      ).to.be.revertedWith('StrategyCallerNotManager');
     });
 
     it("Revert if idx is out of array", async () => {
       await expect(
         strategy.connect(manager).finishRedeemStable(1)
-      ).to.be.revertedWith("AnchorBaseStrategy: not running");
+      ).to.be.revertedWith('StrategyNotRunning');
     });
 
     it("Revert if 0 UST redeemed", async () => {
       await expect(
         strategy.connect(manager).finishRedeemStable(0)
-      ).to.be.revertedWith("AnchorBaseStrategy: nothing redeemed");
+      ).to.be.revertedWith('StrategyNothingRedeemed');
     });
 
     it("Should finish redeem operation", async () => {
@@ -667,6 +694,46 @@ describe("AnchorUSTStrategy", () => {
 
       expect(await strategy.redeemOperationLength()).equal(0);
     });
+
+    it("Should rearrange redeem operations when not finalizing last in array", async () => {
+      let aUstRate = utils.parseEther("1.1");
+      await setAUstRate(aUstRate);
+
+      let redeemedUSTAmount0 = utils.parseUnits("55", 18);
+      await notifyRedeemReturnAmount(operator0, redeemedUSTAmount0);
+
+      const underlyingAmount1 = utils.parseUnits("100", 18);
+      const aUstAmount1 = utils.parseUnits("80", 18);
+      const operator1 = await registerNewTestOperator();
+      await depositVault(underlyingAmount1);
+      await vault.connect(owner).updateInvested();
+
+      await notifyDepositReturnAmount(operator1, aUstAmount1);
+      await strategy.connect(manager).finishDepositStable(0);
+
+      const operator2 = await registerNewTestOperator();
+
+      await strategy.connect(manager).initRedeemStable(redeemAmount0);
+
+      await notifyRedeemReturnAmount(operator2, redeemedUSTAmount0);
+
+      const tx = await strategy.connect(manager).finishRedeemStable(0);
+
+      expect(await strategy.redeemOperationLength()).equal(1);
+
+      await expect(tx)
+        .to.emit(strategy, "RearrangeRedeemOperation")
+        .withArgs(operator2, operator0, 0);
+
+      await expect(tx)
+        .to.emit(strategy, "FinishRedeemStable")
+        .withArgs(
+          operator0,
+          redeemAmount0,
+          redeemedUSTAmount0,
+          redeemedUSTAmount0
+        );
+    });
   });
 
   describe("#withdrawAllToVault function", () => {
@@ -677,7 +744,7 @@ describe("AnchorUSTStrategy", () => {
       const operator0 = await registerNewTestOperator();
 
       await depositVault(underlyingAmount0);
-      await vault.connect(owner).updateInvested("0x");
+      await vault.connect(owner).updateInvested();
 
       await notifyDepositReturnAmount(operator0, aUstAmount0);
       await strategy.connect(manager).finishDepositStable(0);
@@ -686,7 +753,7 @@ describe("AnchorUSTStrategy", () => {
     it("Revert if msg.sender is not manager", async () => {
       await expect(
         strategy.connect(alice).withdrawAllToVault()
-      ).to.be.revertedWith("AnchorBaseStrategy: caller is not manager");
+      ).to.be.revertedWith('StrategyCallerNotManager');
     });
 
     it("Should init redeem all aUST", async () => {
@@ -708,7 +775,7 @@ describe("AnchorUSTStrategy", () => {
 
       await expect(tx)
         .to.emit(strategy, "InitRedeemStable")
-        .withArgs(operator, aUstAmount0);
+        .withArgs(operator, 0, aUstAmount0);
     });
   });
 
@@ -725,7 +792,7 @@ describe("AnchorUSTStrategy", () => {
     it("Include pending deposits", async () => {
       await depositVault(underlyingAmount);
       await registerNewTestOperator();
-      await vault.updateInvested("0x");
+      await vault.updateInvested();
 
       expect(await strategy.investedAssets()).to.be.equal(
         underlyingAmount.mul(INVEST_PCT).div(DENOMINATOR)
@@ -766,7 +833,7 @@ describe("AnchorUSTStrategy", () => {
     it("Return true if there is pendingDeposits", async () => {
       await depositVault(utils.parseEther("100"));
       await registerNewTestOperator();
-      await vault.updateInvested("0x");
+      await vault.updateInvested();
 
       expect(await strategy.hasAssets()).to.be.equal(true);
     });
@@ -774,7 +841,7 @@ describe("AnchorUSTStrategy", () => {
     it("Return true if partical redeemed", async () => {
       await depositVault(utils.parseEther("100"));
       let operator = await registerNewTestOperator();
-      await vault.updateInvested("0x");
+      await vault.updateInvested();
 
       await notifyDepositReturnAmount(operator, utils.parseEther("90"));
       await strategy.connect(manager).finishDepositStable(0);
@@ -793,7 +860,7 @@ describe("AnchorUSTStrategy", () => {
     it("Return true if pendingRedeem exist after all redeem initialized", async () => {
       await depositVault(utils.parseEther("100"));
       const operator = await registerNewTestOperator();
-      await vault.updateInvested("0x");
+      await vault.updateInvested();
 
       await notifyDepositReturnAmount(operator, utils.parseEther("90"));
       await strategy.connect(manager).finishDepositStable(0);
@@ -808,7 +875,7 @@ describe("AnchorUSTStrategy", () => {
     it("Return false after all aUST redeemed", async () => {
       await depositVault(utils.parseEther("100"));
       let operator = await registerNewTestOperator();
-      await vault.updateInvested("0x");
+      await vault.updateInvested();
 
       await notifyDepositReturnAmount(operator, utils.parseEther("90"));
       await strategy.connect(manager).finishDepositStable(0);
@@ -828,7 +895,7 @@ describe("AnchorUSTStrategy", () => {
     it("Return true if all aUST redeem finished after new init deposit stable", async () => {
       await depositVault(utils.parseEther("100"));
       let operator = await registerNewTestOperator();
-      await vault.updateInvested("0x");
+      await vault.updateInvested();
 
       await notifyDepositReturnAmount(operator, utils.parseEther("90"));
       await strategy.connect(manager).finishDepositStable(0);
@@ -843,11 +910,75 @@ describe("AnchorUSTStrategy", () => {
       await setAUstRate(utils.parseEther("1.1"));
       await depositVault(utils.parseEther("50"));
       await registerNewTestOperator();
-      await vault.updateInvested("0x");
+      await vault.updateInvested();
 
       await strategy.connect(manager).finishRedeemStable(0);
 
       expect(await strategy.hasAssets()).to.be.equal(true);
+    });
+  });
+
+  describe("withdrawToVault", () => {
+    it("reverts if msg.sender is not manager", async () => {
+      await expect(
+        strategy.connect(alice).withdrawToVault(1)
+      ).to.be.revertedWith('StrategyCallerNotManager');
+    });
+
+    it("reverts if amount is zero", async () => {
+      await expect(
+        strategy.connect(manager).withdrawToVault(0)
+      ).to.be.revertedWith('StrategyAmountZero');
+    });
+
+    it("init redeem stable for required aUST amount", async () => {
+      await aUstToken.mint(strategy.address, utils.parseEther("100"));
+
+      await registerNewTestOperator();
+      await setAUstRate(utils.parseEther("1.1"));
+
+      await strategy
+        .connect(manager)
+        .withdrawToVault(utils.parseEther("33"));
+
+      expect(await strategy.pendingRedeems()).to.be.equal(
+        utils.parseEther("30")
+      );
+    });
+
+    it("deduct pending redeem amount", async () => {
+      await aUstToken.mint(strategy.address, utils.parseEther("100"));
+
+      await registerNewTestOperator();
+      await strategy.connect(manager).initRedeemStable(utils.parseEther("10"));
+      await registerNewTestOperator();
+
+      await setAUstRate(utils.parseEther("1.1"));
+
+      await strategy
+        .connect(manager)
+        .withdrawToVault(utils.parseEther("33"));
+
+      expect(await strategy.pendingRedeems()).to.be.equal(
+        utils.parseEther("30")
+      );
+    });
+
+    it("do nothing if enough aUST amount is in pending redeem", async () => {
+      await aUstToken.mint(strategy.address, utils.parseEther("100"));
+
+      await registerNewTestOperator();
+      await strategy.connect(manager).initRedeemStable(utils.parseEther("40"));
+
+      await setAUstRate(utils.parseEther("1.1"));
+
+      await strategy
+        .connect(manager)
+        .withdrawToVault(utils.parseEther("33"));
+
+      expect(await strategy.pendingRedeems()).to.be.equal(
+        utils.parseEther("40")
+      );
     });
   });
 
@@ -861,6 +992,7 @@ describe("AnchorUSTStrategy", () => {
   const depositVault = async (amount: BigNumber) => {
     await vault.connect(owner).deposit({
       amount,
+      inputToken: underlying.address,
       claims: [
         {
           pct: DENOMINATOR,
@@ -869,6 +1001,7 @@ describe("AnchorUSTStrategy", () => {
         },
       ],
       lockDuration: TWO_WEEKS,
+      name: "Foundation name",
     });
   };
 
@@ -896,7 +1029,7 @@ describe("AnchorUSTStrategy", () => {
   ): Promise<BigNumber> => {
     const operator = await registerNewTestOperator();
     await depositVault(underlyingAmount);
-    await vault.updateInvested("0x");
+    await vault.updateInvested();
 
     await notifyDepositReturnAmount(operator, aUstAmount);
     await strategy.connect(manager).finishDepositStable(0);

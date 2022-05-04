@@ -11,12 +11,51 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  * @notice It's up to the vault to decide how much to invest from the total pool
  */
 interface IStrategy {
-    /**
-     * The underlying ERC20 token stored by the vault
-     *
-     * @return The ERC20 token address
-     */
-    function underlying() external view returns (IERC20);
+    //
+    // Events
+    //
+
+    event InitDepositStable(
+        address indexed operator,
+        uint256 indexed idx,
+        uint256 underlyingAmount,
+        uint256 ustAmount
+    );
+    event FinishDepositStable(
+        address indexed operator,
+        uint256 ustAmount,
+        uint256 aUstAmount
+    );
+    event RearrangeDepositOperation(
+        address indexed operatorFrom,
+        address indexed operatorTo,
+        uint256 indexed newIdx
+    );
+    event InitRedeemStable(
+        address indexed operator,
+        uint256 indexed idx,
+        uint256 aUstAmount
+    );
+    event FinishRedeemStable(
+        address indexed operator,
+        uint256 aUstAmount,
+        uint256 ustAmount,
+        uint256 underlyingAmount
+    );
+    event RearrangeRedeemOperation(
+        address indexed operatorFrom,
+        address indexed operatorTo,
+        uint256 indexed newIdx
+    );
+
+    //
+    // Structs
+    //
+
+    struct Operation {
+        address operator;
+        uint256 amount;
+    }
 
     /**
      * The vault linked to this stragegy
@@ -64,25 +103,13 @@ interface IStrategy {
     function hasAssets() external view returns (bool);
 
     /**
-     * Applies an estimated fee to the given @param _amount.
+     * Initiates a deposit of all the currently held UST into EthAnchor
      *
-     * This function should be used to estimate how much underlying will be
-     * left after the strategy invests. For instance, the fees taken by Anchor
-     * and Curve.
-     *
-     * @param _amount Amount to apply the fees to.
-     *
-     * @return Amount with the fees applied.
+     * @notice since EthAnchor uses an asynchronous model, this function
+     * only starts the deposit process, but does not finish it.
+     * Each EthAnchor deposit is handled by a different operator, so we store
+     * an operator address to finish later.
+     * We need to increase pendingDeposits to track correct underlying assets.
      */
-    function applyInvestmentFee(uint256 _amount)
-        external
-        view
-        returns (uint256);
-
-    /**
-     * Initiates the process of investing the underlying currency
-     *
-     * @param data external data to invest underlying
-     */
-    function invest(bytes calldata data) external;
+    function invest() external;
 }

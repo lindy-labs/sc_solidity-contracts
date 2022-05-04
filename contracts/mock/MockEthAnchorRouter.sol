@@ -36,7 +36,10 @@ contract MockEthAnchorRouter is IEthAnchorRouter {
         override(IEthAnchorRouter)
         returns (address operator)
     {
-        require(pendingOperator != address(0));
+        require(
+            pendingOperator != address(0),
+            "pendingOperator cannot be null address"
+        );
         ustToken.safeTransferFrom(msg.sender, address(this), _amount);
         depositOperations[pendingOperator] = _amount;
         operator = pendingOperator;
@@ -44,7 +47,7 @@ contract MockEthAnchorRouter is IEthAnchorRouter {
     }
 
     function notifyDepositResult(address _operation, uint256 _amount) external {
-        require(depositOperations[_operation] > 0);
+        require(depositOperations[_operation] != 0);
         aUstToken.safeTransferFrom(msg.sender, address(this), _amount);
         depositOperations[_operation] = 0;
         depositFinishResults[_operation] = _amount;
@@ -71,7 +74,7 @@ contract MockEthAnchorRouter is IEthAnchorRouter {
     }
 
     function notifyRedeemResult(address _operation, uint256 _amount) external {
-        require(redeemOperations[_operation] > 0);
+        require(redeemOperations[_operation] != 0);
         ustToken.safeTransferFrom(msg.sender, address(this), _amount);
         redeemOperations[_operation] = 0;
         redeemFinishResults[_operation] = _amount;

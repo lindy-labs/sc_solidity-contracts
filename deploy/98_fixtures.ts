@@ -1,8 +1,7 @@
 import type { HardhatRuntimeEnvironment } from "hardhat/types";
 import type { DeployFunction } from "hardhat-deploy/types";
 import { parseUnits } from "@ethersproject/units";
-import { BigNumber } from "ethers";
-import { run, ethers } from "hardhat";
+import { ethers } from "hardhat";
 
 const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   const { get } = env.deployments;
@@ -11,10 +10,10 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
 
   console.table([alice, bob, treasury]);
 
-  const ust = await get("USDC");
+  const ust = await get("UST");
   const underlying = await ethers.getContractAt("MockERC20", ust.address);
 
-  const vaultAddress = (await get("Vault_USDC")).address;
+  const vaultAddress = (await get("Vault_UST")).address;
   const vault = await ethers.getContractAt("Vault", vaultAddress);
 
   await underlying.mint(alice.address, parseUnits("5000", 6));
@@ -30,14 +29,21 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   await vault.connect(owner).setTreasury(treasury.address);
 
   console.log("The treasury sponsors 1000");
-  const lockUntil = await vault.MIN_SPONSOR_LOCK_DURATION();
-  await vault.connect(treasury).sponsor(parseUnits("1000", 6), lockUntil);
+  await vault.grantRole(
+    ethers.utils.keccak256(ethers.utils.toUtf8Bytes("SPONSOR_ROLE")),
+    treasury.address
+  );
+  const lockDuration = await vault.MIN_SPONSOR_LOCK_DURATION();
+  await vault
+    .connect(treasury)
+    .sponsor(ust.address, parseUnits("1000", 6), lockDuration);
 
   console.log(
     "Alice deposits 1000 with 90% yield to Alice and 10% yield for donations"
   );
   await vault.connect(alice).deposit({
     amount: parseUnits("1000", 6),
+    inputToken: ust.address,
     lockDuration: 1,
     claims: [
       {
@@ -51,6 +57,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
         data: ethers.utils.hexlify(123124),
       },
     ],
+    name: "Alice's Foundation 1",
   });
 
   console.log(
@@ -58,6 +65,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   );
   await vault.connect(bob).deposit({
     amount: parseUnits("1000", 6),
+    inputToken: ust.address,
     lockDuration: 1,
     claims: [
       {
@@ -71,6 +79,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
         data: ethers.utils.hexlify(123123),
       },
     ],
+    name: "Bob's Foundation 1",
   });
 
   console.log("2000 yield is generated");
@@ -85,6 +94,10 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
 
 func.id = "fixtures";
 func.tags = ["fixtures"];
-func.dependencies = ["vaults"];
+func.dependencies = ["vaults", "strategies", "fixture_deployments"];
+
+// don't deploy to live & testnet
+func.skip = async (hre) =>
+  hre.network.config.chainId === 1 || hre.network.config.chainId === 3;
 
 export default func;

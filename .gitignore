@@ -7,6 +7,7 @@ artifacts
 coverage
 coverage.json
 .env
+.envrc
 typechain
 docs/
 deployments/localhost
@@ -16,3 +17,4 @@ subgraph/generated
 subgraph/tests/.bin/*
 crytic-export/
 corpus/
+subgraph/subgraph.yaml

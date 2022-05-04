@@ -3,6 +3,7 @@ import type { HardhatUserConfig } from "hardhat/config";
 import "@nomiclabs/hardhat-ethers";
 import "@nomiclabs/hardhat-waffle";
 import "@nomiclabs/hardhat-web3";
+import "@nomiclabs/hardhat-etherscan";
 import "@primitivefi/hardhat-dodoc";
 import "@typechain/hardhat";
 import "hardhat-deploy";
@@ -30,12 +31,19 @@ const config: HardhatUserConfig = {
         accountsBalance: "100000000000000000000000000",
       },
       initialBaseFeePerGas: 0,
+      chainId: 31337,
     },
     docker: {
       url: "http://localhost:8545",
       accounts: {
         mnemonic: devMnemonic,
       },
+      initialBaseFeePerGas: 0,
+      chainId: 31337,
+      live: false,
+    },
+    etheno: {
+      url: "http://localhost:8545",
       chainId: 1337,
       live: false,
     },
@@ -63,6 +71,8 @@ const config: HardhatUserConfig = {
     alice: 1,
     bob: 2,
     carol: 3,
+    ethAnchorOperator: 4,
+    ethAnchorOperator1: 5,
   },
   mocha: {
     timeout: 2000000,
@@ -80,6 +90,11 @@ const config: HardhatUserConfig = {
       "IIntegration",
       "PercentMath",
     ],
+  },
+  etherscan: {
+    apiKey: {
+      ropsten: process.env.ETHERSCAN_KEY || "missing-key",
+    },
   },
 };
 

@@ -2,35 +2,43 @@
 pragma solidity =0.8.10;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
 
 import {IVault} from "./vault/IVault.sol";
 import {IVaultSponsoring} from "./vault/IVaultSponsoring.sol";
+import {IVaultSettings} from "./vault/IVaultSettings.sol";
+import {CurveSwapper} from "./vault/CurveSwapper.sol";
 import {PercentMath} from "./lib/PercentMath.sol";
 import {Depositors} from "./vault/Depositors.sol";
-import {Claimers} from "./vault/Claimers.sol";
 import {IStrategy} from "./strategy/IStrategy.sol";
+import {CustomErrors} from "./interfaces/CustomErrors.sol";
 
 /**
  * A vault where other accounts can deposit an underlying token
  * currency and set distribution params for their principal and yield
  *
- * @dev Yield generation strategies not yet implemented
+ * @notice The underlying token can be automatically swapped from any configured ERC20 token via {CurveSwapper}
  */
-
 contract Vault is
     IVault,
     IVaultSponsoring,
+    IVaultSettings,
+    CurveSwapper,
     Context,
     ERC165,
     AccessControl,
-    ReentrancyGuard
+    ReentrancyGuard,
+    Pausable,
+    CustomErrors
 {
     using SafeERC20 for IERC20;
+    using SafeERC20 for IERC20Metadata;
     using PercentMath for uint256;
     using PercentMath for uint16;
 
@@ -38,176 +46,131 @@ contract Vault is
     // Constants
     //
 
+    /// Role allowed to invest/desinvest from strategy
     bytes32 public constant INVESTOR_ROLE = keccak256("INVESTOR_ROLE");
+
+    /// Role allowed to change settings such as performance fee and investment fee
+    bytes32 public constant SETTINGS_ROLE = keccak256("SETTINGS_ROLE");
+
+    /// Role for sponsors allowed to call sponsor/unsponsor
+    bytes32 public constant SPONSOR_ROLE = keccak256("SPONSOR_ROLE");
+
+    /// Minimum lock for each sponsor
     uint64 public constant MIN_SPONSOR_LOCK_DURATION = 2 weeks;
+
+    /// Maximum lock for each sponsor
     uint64 public constant MAX_SPONSOR_LOCK_DURATION = 24 weeks;
+
+    /// Maximum lock for each deposit
     uint64 public constant MAX_DEPOSIT_LOCK_DURATION = 24 weeks;
+
+    /// Helper constant for computing shares without losing precision
     uint256 public constant SHARES_MULTIPLIER = 10**18;
 
     //
     // State
     //
 
-    /// See {IVault}
-    IERC20 public override(IVault) underlying;
+    /// @inheritdoc IVault
+    IERC20Metadata public override(IVault) underlying;
 
-    /// See {IVault}
-    IStrategy public strategy;
+    /// @inheritdoc IVault
+    uint16 public override(IVault) investPct;
 
-    /// See {IVault}
-    uint16 public override(IVault) investPerc;
-
-    /// See {IVault}
+    /// @inheritdoc IVault
     uint64 public immutable override(IVault) minLockPeriod;
 
-    /// See {IVaultSponsoring}
+    /// @inheritdoc IVaultSponsoring
     uint256 public override(IVaultSponsoring) totalSponsored;
+
+    /// @inheritdoc IVault
+    uint256 public override(IVault) totalShares;
+
+    /// The investment strategy
+    IStrategy public strategy;
 
     /// Depositors, represented as an NFT per deposit
     Depositors public depositors;
 
-    /// Yield allocation
-    Claimers public claimers;
-
     /// Unique IDs to correlate donations that belong to the same foundation
     uint256 private _depositGroupIds;
 
-    struct Deposit {
-        /// amount of the deposit
-        uint256 amount;
-        /// wallet of the claimer
-        uint256 claimerId;
-        /// when can the deposit be withdrawn
-        uint256 lockedUntil;
-        /// the number of shares issued for this deposit
-        uint256 shares;
-    }
-
+    /// deposit NFT ID => deposit data
     mapping(uint256 => Deposit) public deposits;
 
-    struct Claimer {
-        uint256 totalPrincipal;
-        uint256 totalShares;
-    }
+    /// claimer address => claimer data
+    mapping(address => Claimer) public claimer;
 
-    mapping(uint256 => Claimer) public claimer;
-
-    // The total of shares
-    uint256 public totalShares;
-
-    // The total of principal deposited
+    /// The total of principal deposited
     uint256 public totalPrincipal;
 
-    // Treasury address to collect performance fee
+    /// Treasury address to collect performance fee
     address public treasury;
 
-    // Performance fee percentage
+    /// Performance fee percentage
     uint16 public perfFeePct;
 
-    // Current accumulated performance fee;
+    /// Current accumulated performance fee;
     uint256 public accumulatedPerfFee;
+
+    /// Investment fee pct
+    uint16 public investmentFeeEstimatePct;
+
+    /// Rebalance minimum
+    uint256 private immutable rebalanceMinimum;
 
     /**
      * @param _underlying Underlying ERC20 token to use.
      * @param _minLockPeriod Minimum lock period to deposit
-     * @param _investPerc Percentage of the total underlying to invest in the strategy
+     * @param _investPct Percentage of the total underlying to invest in the strategy
      * @param _treasury Treasury address to collect performance fee
      * @param _owner Vault admin address
      * @param _perfFeePct Performance fee percentage
+     * @param _investmentFeeEstimatePct Estimated fee charged when investing through the strategy
+     * @param _swapPools Swap pools used to automatically convert tokens to underlying
      */
     constructor(
-        IERC20 _underlying,
+        IERC20Metadata _underlying,
         uint64 _minLockPeriod,
-        uint16 _investPerc,
+        uint16 _investPct,
         address _treasury,
         address _owner,
-        uint16 _perfFeePct
+        uint16 _perfFeePct,
+        uint16 _investmentFeeEstimatePct,
+        SwapPoolParam[] memory _swapPools
     ) {
-        require(
-            PercentMath.validPerc(_investPerc),
-            "Vault: invalid investPerc"
-        );
-        require(
-            PercentMath.validPerc(_perfFeePct),
-            "Vault: invalid performance fee"
-        );
-        require(
-            address(_underlying) != address(0x0),
-            "Vault: underlying cannot be 0x0"
-        );
-        require(_treasury != address(0x0), "Vault: treasury cannot be 0x0");
-        require(_owner != address(0x0), "Vault: owner cannot be 0x0");
-        require(
-            _minLockPeriod != 0 && _minLockPeriod <= MAX_DEPOSIT_LOCK_DURATION,
-            "Vault: invalid minLockPeriod"
-        );
+        if (!_investPct.validPct()) revert VaultInvalidInvestpct();
+        if (!_perfFeePct.validPct()) revert VaultInvalidPerformanceFee();
+        if (!_investmentFeeEstimatePct.validPct()) revert VaultInvalidInvestmentFee();
+        if (address(_underlying) == address(0x0)) revert VaultUnderlyingCannotBe0Address();
+        if (_treasury == address(0x0)) revert VaultTreasuryCannotBe0Address();
+        if (_owner == address(0x0)) revert VaultOwnerCannotBe0Address();
+        if (_minLockPeriod == 0 || _minLockPeriod > MAX_DEPOSIT_LOCK_DURATION) revert VaultInvalidMinLockPeriod();
 
         _setupRole(DEFAULT_ADMIN_ROLE, _owner);
         _setupRole(INVESTOR_ROLE, _owner);
+        _setupRole(SETTINGS_ROLE, _owner);
+        _setupRole(SPONSOR_ROLE, _owner);
 
-        investPerc = _investPerc;
+        investPct = _investPct;
         underlying = _underlying;
         treasury = _treasury;
         minLockPeriod = _minLockPeriod;
         perfFeePct = _perfFeePct;
+        investmentFeeEstimatePct = _investmentFeeEstimatePct;
 
         depositors = new Depositors(this);
-        claimers = new Claimers(this);
+
+        rebalanceMinimum = 10 * 10 ** underlying.decimals();
+
+        _addPools(_swapPools);
     }
 
     //
     // IVault
     //
 
-    /// See {IVault}
-    function setTreasury(address _treasury)
-        external
-        override(IVault)
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        require(
-            address(_treasury) != address(0x0),
-            "Vault: treasury cannot be 0x0"
-        );
-        treasury = _treasury;
-        emit TreasuryUpdated(_treasury);
-    }
-
-    /// See {IVault}
-    function setPerfFeePct(uint16 _perfFeePct)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        require(
-            PercentMath.validPerc(_perfFeePct),
-            "Vault: invalid performance fee"
-        );
-        perfFeePct = _perfFeePct;
-        emit PerfFeePctUpdated(_perfFeePct);
-    }
-
-    /// See {IVault}
-    function setStrategy(address _strategy)
-        external
-        override(IVault)
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
-        require(_strategy != address(0), "Vault: strategy 0x");
-        require(
-            IStrategy(_strategy).vault() == address(this),
-            "Vault: invalid vault"
-        );
-        require(
-            address(strategy) == address(0) || strategy.hasAssets() == false,
-            "Vault: strategy has invested funds"
-        );
-
-        strategy = IStrategy(_strategy);
-
-        emit StrategyUpdated(_strategy);
-    }
-
-    /// See {IVault}
+    /// @inheritdoc IVault
     function totalUnderlying() public view override(IVault) returns (uint256) {
         if (address(strategy) != address(0)) {
             return
@@ -217,7 +180,7 @@ contract Vault is
         return underlying.balanceOf(address(this));
     }
 
-    /// See {IVault}
+    /// @inheritdoc IVault
     function yieldFor(address _to)
         public
         view
@@ -228,9 +191,8 @@ contract Vault is
             uint256 perfFee
         )
     {
-        uint256 tokenId = claimers.tokenOf(_to);
-        uint256 claimerPrincipal = claimer[tokenId].totalPrincipal;
-        uint256 claimerShares = claimer[tokenId].totalShares;
+        uint256 claimerPrincipal = claimer[_to].totalPrincipal;
+        uint256 claimerShares = claimer[_to].totalShares;
 
         uint256 currentClaimerPrincipal = _computeAmount(
             claimerShares,
@@ -255,171 +217,303 @@ contract Vault is
             totalUnderlyingMinusSponsored()
         );
 
-        perfFee = sharesAmount.percOf(perfFeePct);
+        perfFee = sharesAmount.pctOf(perfFeePct);
         claimableYield = sharesAmount - perfFee;
     }
 
-    /// See {IVault}
+    /// @inheritdoc IVault
     function deposit(DepositParams calldata _params)
         external
         nonReentrant
+        whenNotPaused
         returns (uint256[] memory depositIds)
     {
-        require(_params.amount != 0, "Vault: cannot deposit 0");
-        require(
-            _params.lockDuration >= minLockPeriod &&
-                _params.lockDuration <= MAX_DEPOSIT_LOCK_DURATION,
-            "Vault: invalid lock period"
+        if (_params.amount == 0) revert VaultCannotDeposit0();
+        if (_params.lockDuration < minLockPeriod || _params.lockDuration > MAX_DEPOSIT_LOCK_DURATION) revert VaultInvalidLockPeriod();
+
+        uint256 principalMinusStrategyFee = _applyInvestmentFeeEstimate(
+            totalPrincipal
         );
-        uint256 principalMinusStrategyFee = _applyInvestmentFee(totalPrincipal);
-        require(
-            principalMinusStrategyFee <= totalUnderlyingMinusSponsored(),
-            "Vault: cannot deposit when yield is negative"
+        uint256 previousTotalUnderlying = totalUnderlyingMinusSponsored();
+        if (principalMinusStrategyFee > previousTotalUnderlying) revert VaultCannotDepositWhenYieldNegative();
+
+        _transferAndCheckInputToken(
+            msg.sender,
+            _params.inputToken,
+            _params.amount
+        );
+        uint256 newUnderlyingAmount = _swapIntoUnderlying(
+            _params.inputToken,
+            _params.amount
         );
 
         uint64 lockedUntil = _params.lockDuration + _blockTimestamp();
 
         depositIds = _createDeposit(
-            _params.amount,
+            previousTotalUnderlying,
+            newUnderlyingAmount,
             lockedUntil,
-            _params.claims
+            _params.claims,
+            _params.name
         );
-        _transferAndCheckUnderlying(msg.sender, _params.amount);
     }
 
-    /// See {IVault}
+    /// @inheritdoc IVault
     function claimYield(address _to) external override(IVault) nonReentrant {
-        require(_to != address(0), "Vault: destination address is 0x");
+        if (_to == address(0)) revert VaultDestinationCannotBe0Address();
 
         (uint256 yield, uint256 shares, uint256 fee) = yieldFor(msg.sender);
 
         if (yield == 0) return;
 
-        uint256 claimerId = claimers.tokenOf(msg.sender);
-
         accumulatedPerfFee += fee;
 
         underlying.safeTransfer(_to, yield);
 
-        claimer[claimerId].totalShares -= shares;
+        claimer[msg.sender].totalShares -= shares;
         totalShares -= shares;
 
-        emit YieldClaimed(claimerId, _to, yield, shares, fee);
+        emit YieldClaimed(msg.sender, _to, yield, shares, fee);
     }
 
-    /// See {IVault}
+    /// @inheritdoc IVault
     function withdraw(address _to, uint256[] calldata _ids)
         external
         override(IVault)
         nonReentrant
     {
-        require(_to != address(0), "Vault: destination address is 0x");
+        if (_to == address(0)) revert VaultDestinationCannotBe0Address();
 
-        _withdraw(_to, _ids, false);
+        _withdrawAll(_to, _ids, false);
     }
 
-    /// See {IVault}
+    /// @inheritdoc IVault
     function forceWithdraw(address _to, uint256[] calldata _ids)
         external
         nonReentrant
     {
-        require(_to != address(0), "Vault: destination address is 0x");
+        if (_to == address(0)) revert VaultDestinationCannotBe0Address();
 
-        _withdraw(_to, _ids, true);
+        _withdrawAll(_to, _ids, true);
     }
 
-    /// See {IVault}
-    function setInvestPerc(uint16 _investPerc)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
+    function partialWithdraw(
+        address _to,
+        uint256[] calldata _ids,
+        uint256[] calldata _amounts
+    ) external nonReentrant {
+        if (_to == address(0)) revert VaultDestinationCannotBe0Address();
+
+        _withdrawPartial(_to, _ids, _amounts);
+    }
+
+    /// @inheritdoc IVault
+    function investState()
+        public
+        view
+        override(IVault)
+        returns (uint256 maxInvestableAmount, uint256 alreadyInvested)
     {
-        require(
-            PercentMath.validPerc(_investPerc),
-            "Vault: invalid investPerc"
-        );
-
-        emit InvestPercentageUpdated(_investPerc);
-
-        investPerc = _investPerc;
-    }
-
-    /// See {IVault}
-    function investableAmount() public view returns (uint256) {
-        uint256 maxInvestableAssets = totalUnderlying().percOf(investPerc);
-
-        uint256 alreadyInvested = strategy.investedAssets();
-
-        if (alreadyInvested >= maxInvestableAssets) {
-            return 0;
+        if (address(strategy) == address(0)) {
+            return (0, 0);
         }
 
-        return maxInvestableAssets - alreadyInvested;
+        maxInvestableAmount = totalUnderlying().pctOf(investPct);
+        alreadyInvested = strategy.investedAssets();
     }
 
-    /// See {IVault}
-    function updateInvested(bytes calldata data)
+    /// @inheritdoc IVault
+    function updateInvested()
         external
+        override(IVault)
         onlyRole(INVESTOR_ROLE)
     {
-        require(address(strategy) != address(0), "Vault: strategy is not set");
+        if (address(strategy) == address(0)) revert VaultStrategyNotSet();
 
-        uint256 _investable = investableAmount();
+        (uint256 maxInvestableAmount, uint256 alreadyInvested) = investState();
 
-        require(_investable != 0, "Vault: nothing to invest");
+        if (maxInvestableAmount == alreadyInvested) revert VaultNothingToDo();
 
-        underlying.safeTransfer(address(strategy), _investable);
+        // disinvest
+        if (alreadyInvested > maxInvestableAmount) {
+            uint256 disinvestAmount = alreadyInvested - maxInvestableAmount;
 
-        emit Invested(_investable);
+            if (disinvestAmount < rebalanceMinimum) revert VaultNotEnoughToRebalance();
 
-        strategy.invest(data);
+            strategy.withdrawToVault(disinvestAmount);
+
+            emit Disinvested(disinvestAmount);
+
+            return;
+        }
+
+        // invest
+        uint256 investAmount = maxInvestableAmount - alreadyInvested;
+
+        if (investAmount < rebalanceMinimum) revert VaultNotEnoughToRebalance();
+
+        underlying.safeTransfer(address(strategy), investAmount);
+
+        strategy.invest();
+
+        emit Invested(investAmount);
     }
 
-    //
-    // IVaultSponsoring
-
-    /// See {IVaultSponsoring}
-    function sponsor(uint256 _amount, uint256 _lockDuration)
+    /// @inheritdoc IVault
+    function withdrawPerformanceFee()
         external
-        override(IVaultSponsoring)
-        nonReentrant
+        override(IVault)
+        onlyRole(INVESTOR_ROLE)
     {
-        require(_amount != 0, "Vault: cannot sponsor 0");
-
-        require(
-            _lockDuration >= MIN_SPONSOR_LOCK_DURATION &&
-                _lockDuration <= MAX_SPONSOR_LOCK_DURATION,
-            "Vault: invalid lock period"
-        );
-
-        uint256 lockedUntil = _lockDuration + block.timestamp;
-        uint256 tokenId = depositors.mint(msg.sender);
-
-        deposits[tokenId] = Deposit(_amount, 0, lockedUntil, 0);
-
-        emit Sponsored(tokenId, _amount, msg.sender, lockedUntil);
-
-        totalSponsored += _amount;
-        _transferAndCheckUnderlying(msg.sender, _amount);
-    }
-
-    /// See {IVaultSponsoring}
-    function unsponsor(address _to, uint256[] calldata _ids)
-        external
-        nonReentrant
-    {
-        require(_to != address(0), "Vault: destination address is 0x");
-
-        _unsponsor(_to, _ids);
-    }
-
-    function withdrawPerformanceFee() external onlyRole(INVESTOR_ROLE) {
         uint256 _perfFee = accumulatedPerfFee;
-        require(_perfFee != 0, "Vault: no performance fee");
+        if (_perfFee == 0) revert VaultNoPerformanceFee();
 
         accumulatedPerfFee = 0;
 
         emit FeeWithdrawn(_perfFee);
         underlying.safeTransfer(treasury, _perfFee);
+    }
+
+    //
+    // IVaultSponsoring
+    //
+
+    /// @inheritdoc IVaultSponsoring
+    function sponsor(
+        address _inputToken,
+        uint256 _amount,
+        uint256 _lockDuration
+    )
+        external
+        override(IVaultSponsoring)
+        nonReentrant
+        onlyRole(SPONSOR_ROLE)
+        whenNotPaused
+    {
+        if (_amount == 0) revert VaultCannotSponsor0();
+
+        if (_lockDuration < MIN_SPONSOR_LOCK_DURATION || _lockDuration > MAX_SPONSOR_LOCK_DURATION) revert VaultInvalidLockPeriod();
+
+        uint256 lockedUntil = _lockDuration + block.timestamp;
+        uint256 tokenId = depositors.mint(msg.sender);
+
+        _transferAndCheckInputToken(msg.sender, _inputToken, _amount);
+        uint256 underlyingAmount = _swapIntoUnderlying(_inputToken, _amount);
+
+        deposits[tokenId] = Deposit(underlyingAmount, address(0), lockedUntil, 0);
+        totalSponsored += underlyingAmount;
+
+        emit Sponsored(tokenId, underlyingAmount, msg.sender, lockedUntil);
+    }
+
+    /// @inheritdoc IVaultSponsoring
+    function unsponsor(address _to, uint256[] calldata _ids)
+        external
+        nonReentrant
+    {
+        if (_to == address(0)) revert VaultDestinationCannotBe0Address();
+
+        _unsponsor(_to, _ids);
+    }
+
+    //
+    // CurveSwapper
+    //
+
+    /// @inheritdoc CurveSwapper
+    function getUnderlying()
+        public
+        view
+        override(CurveSwapper)
+        returns (address)
+    {
+        return address(underlying);
+    }
+
+    /// Adds a new curve swap pool from an input token to {underlying}
+    ///
+    /// @param _param Swap pool params
+    function addPool(SwapPoolParam memory _param)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        _addPool(_param);
+    }
+
+    /// Removes an existing swap pool, and the ability to deposit the given token as underlying
+    ///
+    /// @param _inputToken the token to remove
+    function removePool(address _inputToken)
+        external
+        onlyRole(DEFAULT_ADMIN_ROLE)
+    {
+        _removePool(_inputToken);
+    }
+
+    //
+    // Admin functions
+    //
+
+    /// @inheritdoc IVaultSettings
+    function setInvestPct(uint16 _investPct)
+        external
+        override(IVaultSettings)
+        onlyRole(SETTINGS_ROLE)
+    {
+        if (!PercentMath.validPct(_investPct)) revert VaultInvalidInvestpct();
+
+        emit InvestPctUpdated(_investPct);
+
+        investPct = _investPct;
+    }
+
+    /// @inheritdoc IVaultSettings
+    function setTreasury(address _treasury)
+        external
+        override(IVaultSettings)
+        onlyRole(SETTINGS_ROLE)
+    {
+        if (address(_treasury) == address(0x0)) revert VaultTreasuryCannotBe0Address();
+        treasury = _treasury;
+        emit TreasuryUpdated(_treasury);
+    }
+
+    /// @inheritdoc IVaultSettings
+    function setPerfFeePct(uint16 _perfFeePct)
+        external
+        override(IVaultSettings)
+        onlyRole(SETTINGS_ROLE)
+    {
+        if (!PercentMath.validPct(_perfFeePct)) revert VaultInvalidPerformanceFee();
+        perfFeePct = _perfFeePct;
+        emit PerfFeePctUpdated(_perfFeePct);
+    }
+
+    /// @inheritdoc IVaultSettings
+    function setStrategy(address _strategy)
+        external
+        override(IVaultSettings)
+        onlyRole(SETTINGS_ROLE)
+    {
+        if (_strategy == address(0)) revert VaultStrategyNotSet();
+        if (IStrategy(_strategy).vault() != address(this)) revert VaultInvalidVault();
+        if (address(strategy) != address(0) && strategy.hasAssets() == true) revert VaultStrategyHasInvestedFunds();
+
+        strategy = IStrategy(_strategy);
+
+        emit StrategyUpdated(_strategy);
+    }
+
+    /// @inheritdoc IVaultSettings
+    function setInvestmentFeeEstimatePct(uint16 pct)
+        external
+        override(IVaultSettings)
+        onlyRole(SETTINGS_ROLE)
+    {
+        if (!pct.validPct()) revert VaultInvalidInvestmentFee();
+
+        investmentFeeEstimatePct = pct;
+        emit InvestmentFeeEstimatePctUpdated(pct);
     }
 
     //
@@ -473,7 +567,7 @@ contract Vault is
      * @param _ids Array with the ids of the deposits.
      * @param _force Boolean to specify if the action should be perfomed when there's loss.
      */
-    function _withdraw(
+    function _withdrawAll(
         address _to,
         uint256[] calldata _ids,
         bool _force
@@ -484,12 +578,41 @@ contract Vault is
         uint256 idsLen = _ids.length;
 
         for (uint256 i; i < idsLen; ++i) {
-            amount += _withdrawDeposit(
+            uint256 depositAmount = deposits[_ids[i]].amount;
+
+            amount += _withdrawSingle(
                 _ids[i],
                 localTotalShares,
                 localTotalPrincipal,
                 _to,
-                _force
+                _force,
+                depositAmount
+            );
+        }
+
+        underlying.safeTransfer(_to, amount);
+    }
+
+    function _withdrawPartial(
+        address _to,
+        uint256[] calldata _ids,
+        uint256[] calldata _amounts
+    ) internal {
+        uint256 localTotalShares = totalShares;
+        uint256 localTotalPrincipal = totalUnderlyingMinusSponsored();
+        uint256 amount;
+        uint256 idsLen = _ids.length;
+
+        for (uint256 i; i < idsLen; ++i) {
+            if (_amounts[i] > deposits[_ids[i]].amount) revert VaultAmountTooLarge();
+
+            amount += _withdrawSingle(
+                _ids[i],
+                localTotalShares,
+                localTotalPrincipal,
+                _to,
+                false,
+                _amounts[i]
             );
         }
 
@@ -511,16 +634,17 @@ contract Vault is
 
         for (uint8 i; i < idsLen; ++i) {
             uint256 tokenId = _ids[i];
-            
-            Deposit memory deposit = deposits[tokenId];
-            uint256 lockedUntil = deposit.lockedUntil;
-            uint256 claimerId = deposit.claimerId;
-            address owner = depositors.ownerOf(tokenId);
-            uint256 amount = deposit.amount;
 
-            require(owner == msg.sender, "Vault: you are not allowed");
-            require(lockedUntil <= block.timestamp, "Vault: amount is locked");
-            require(claimerId == 0, "Vault: token id is not a sponsor");
+            Deposit memory _deposit = deposits[tokenId];
+            uint256 lockedUntil = _deposit.lockedUntil;
+            address claimerId = _deposit.claimerId;
+
+            address owner = depositors.ownerOf(tokenId);
+            uint256 amount = _deposit.amount;
+
+            if (owner != msg.sender) revert VaultNotAllowed();
+            if (lockedUntil > block.timestamp) revert VaultAmountLocked();
+            if (claimerId != address(0)) revert VaultNotSponsor();
 
             sponsorAmount += amount;
 
@@ -531,10 +655,7 @@ contract Vault is
 
         uint256 sponsorToTransfer = sponsorAmount;
 
-        require(
-            sponsorToTransfer <= totalUnderlying(),
-            "Vault: not enough funds"
-        );
+        if (sponsorToTransfer > totalUnderlying()) revert VaultNotEnoughFunds();
 
         totalSponsored -= sponsorAmount;
 
@@ -571,13 +692,15 @@ contract Vault is
      * params.
      */
     function _createDeposit(
+        uint256 _previousTotalUnderlying,
         uint256 _amount,
         uint64 _lockedUntil,
-        ClaimParams[] calldata claims
+        ClaimParams[] calldata claims,
+        string calldata _name
     ) internal returns (uint256[] memory) {
         CreateDepositLocals memory locals = CreateDepositLocals({
             totalShares: totalShares,
-            totalUnderlying: totalUnderlyingMinusSponsored(),
+            totalUnderlying: _previousTotalUnderlying,
             groupId: _depositGroupIds,
             accumulatedPct: 0,
             accumulatedAmount: 0,
@@ -588,12 +711,12 @@ contract Vault is
 
         for (uint256 i; i < locals.claimsLen; ++i) {
             ClaimParams memory data = claims[i];
-            require(data.pct != 0, "Vault: claim percentage cannot be 0");
+            if (data.pct == 0) revert VaultClaimPercentageCannotBe0();
             // if it's the last claim, just grab all remaining amount, instead
-            // of relying on percentrages
+            // of relying on percentages
             uint256 localAmount = i == locals.claimsLen - 1
                 ? _amount - locals.accumulatedAmount
-                : _amount.percOf(data.pct);
+                : _amount.pctOf(data.pct);
 
             result[i] = _createClaim(
                 locals.groupId,
@@ -601,20 +724,28 @@ contract Vault is
                 _lockedUntil,
                 data,
                 locals.totalShares,
-                locals.totalUnderlying
+                locals.totalUnderlying,
+                _name
             );
             locals.accumulatedPct += data.pct;
             locals.accumulatedAmount += localAmount;
         }
 
-        require(
-            locals.accumulatedPct.is100Perc(),
-            "Vault: claims don't add up to 100%"
-        );
+        if (!locals.accumulatedPct.is100Pct()) revert VaultClaimsDontAddUp();
 
         _depositGroupIds++;
 
         return result;
+    }
+
+    /**
+     * @dev `_createClaim` declares too many locals
+     * We move some of them to this struct to fix the problem
+     */
+    struct CreateClaimLocals {
+        uint256 newShares;
+        address claimerId;
+        uint256 tokenId;
     }
 
     function _createClaim(
@@ -623,44 +754,46 @@ contract Vault is
         uint64 _lockedUntil,
         ClaimParams memory _claim,
         uint256 _localTotalShares,
-        uint256 _localTotalPrincipal
+        uint256 _localTotalPrincipal,
+        string calldata _name
     ) internal returns (uint256) {
-        uint256 newShares = _computeShares(
-            _amount,
-            _localTotalShares,
-            _localTotalPrincipal
-        );
+        CreateClaimLocals memory locals = CreateClaimLocals({
+            newShares: _computeShares(
+                _amount,
+                _localTotalShares,
+                _localTotalPrincipal
+            ),
+            claimerId: _claim.beneficiary,
+            tokenId: depositors.mint(msg.sender)
+        });
 
-        uint256 claimerId = claimers.mint(_claim.beneficiary);
+        claimer[locals.claimerId].totalShares += locals.newShares;
+        claimer[locals.claimerId].totalPrincipal += _amount;
 
-        claimer[claimerId].totalShares += newShares;
-        claimer[claimerId].totalPrincipal += _amount;
-
-        totalShares += newShares;
+        totalShares += locals.newShares;
         totalPrincipal += _amount;
 
-        uint256 tokenId = depositors.mint(msg.sender);
-
-        deposits[tokenId] = Deposit(
+        deposits[locals.tokenId] = Deposit(
             _amount,
-            claimerId,
+            locals.claimerId,
             _lockedUntil,
-            newShares
+            locals.newShares
         );
 
         emit DepositMinted(
-            tokenId,
+            locals.tokenId,
             _depositGroupId,
             _amount,
-            newShares,
+            locals.newShares,
             msg.sender,
             _claim.beneficiary,
-            claimerId,
+            locals.claimerId,
             _lockedUntil,
-            _claim.data
+            _claim.data,
+            _name
         );
 
-        return tokenId;
+        return locals.tokenId;
     }
 
     /**
@@ -679,90 +812,97 @@ contract Vault is
      *
      * @return the amount to withdraw.
      */
-    function _withdrawDeposit(
+    function _withdrawSingle(
         uint256 _tokenId,
         uint256 _totalShares,
         uint256 _totalUnderlyingMinusSponsored,
         address _to,
-        bool _force
+        bool _force,
+        uint256 _amount
     ) internal returns (uint256) {
-        require(
-            depositors.ownerOf(_tokenId) == msg.sender,
-            "Vault: you are not the owner of a deposit"
-        );
+        if (depositors.ownerOf(_tokenId) != msg.sender) revert VaultNotOwnerOfDeposit();
 
         // memoizing saves warm sloads
-        Deposit memory deposit = deposits[_tokenId];
+        Deposit memory _deposit = deposits[_tokenId];
+        Claimer memory _claim = claimer[_deposit.claimerId];
 
-        require(
-            deposit.lockedUntil <= block.timestamp,
-            "Vault: deposit is locked"
-        );
+        if (_deposit.lockedUntil > block.timestamp) revert VaultDepositLocked();
+        if (_deposit.claimerId == address(0)) revert VaultNotDeposit();
 
-        require(
-            deposit.claimerId != 0,
-            "Vault: token id is not a deposit"
-        );
+        bool isFull = _deposit.amount == _amount;
 
-        uint256 claimerId = deposit.claimerId;
-        uint256 depositInitialShares = deposit.shares;
-        uint256 depositAmount = deposit.amount;
-
-        uint256 claimerShares = claimer[claimerId].totalShares;
-        uint256 claimerPrincipal = claimer[claimerId].totalPrincipal;
-
+        // total amount of shares this deposit is currently worth
+        // computed only to check if we're currently at a loss
         uint256 depositShares = _computeShares(
-            depositAmount,
+            _deposit.amount,
             _totalShares,
             _totalUnderlyingMinusSponsored
         );
 
-        bool lostMoney = depositShares > depositInitialShares ||
-            depositShares > claimerShares;
+        // for full withdrawals, sharesToBurn is the same as depositShares.
+        // otherwise we compute the partian number of shares to burn
+        uint256 sharesToBurn = isFull
+            ? depositShares
+            : _computeShares(
+                _amount,
+                _totalShares,
+                _totalUnderlyingMinusSponsored
+            );
 
-        if (_force && lostMoney) {
+        bool lostMoney = depositShares > _deposit.shares ||
+            depositShares > _claim.totalShares;
+
+        // _force is only allowed in full withdrawals, not partials, so this will
+        // implicitly be false essentially preventing "partial withdrawals at a loss"
+        // which would mess up the whole math
+        if (isFull && _force && lostMoney) {
             // When there's a loss it means that a deposit is now worth more
             // shares than before. In that scenario, we cannot allow the
             // depositor to withdraw all her money. Instead, the depositor gets
             // a number of shares that are equivalent to the percentage of this
             // deposit in the total deposits for this claimer.
-            depositShares = (depositAmount * claimerShares) / claimerPrincipal;
-        } else {
-            require(
-                lostMoney == false,
-                "Vault: cannot withdraw more than the available amount"
-            );
+            sharesToBurn =
+                (_amount * _claim.totalShares) /
+                _claim.totalPrincipal;
+        } else if (lostMoney) {
+            revert VaultCannotWithdrawMoreThanAvailable(); 
         }
 
-        claimer[claimerId].totalShares -= depositShares;
-        claimer[claimerId].totalPrincipal -= depositAmount;
+        claimer[_deposit.claimerId].totalShares -= sharesToBurn;
+        claimer[_deposit.claimerId].totalPrincipal -= _amount;
 
-        totalShares -= depositShares;
-        totalPrincipal -= depositAmount;
+        totalShares -= sharesToBurn;
+        totalPrincipal -= _amount;
 
-        depositors.burn(_tokenId);
+        if (isFull) {
+            depositors.burn(_tokenId);
+            delete deposits[_tokenId];
+        } else {
+            deposits[_tokenId].shares -= sharesToBurn;
+            deposits[_tokenId].amount -= _amount;
+        }
 
-        emit DepositBurned(_tokenId, depositShares, _to);
+        uint256 amount = _computeAmount(
+            sharesToBurn,
+            _totalShares,
+            _totalUnderlyingMinusSponsored
+        );
 
-        return
-            _computeAmount(
-                depositShares,
-                _totalShares,
-                _totalUnderlyingMinusSponsored
-            );
+        emit DepositWithdrawn(_tokenId, sharesToBurn, amount, _to, isFull);
+
+        return amount;
     }
 
-    function _transferAndCheckUnderlying(address _from, uint256 _amount)
-        internal
-    {
-        uint256 balanceBefore = underlying.balanceOf(address(this));
-        underlying.safeTransferFrom(_from, address(this), _amount);
-        uint256 balanceAfter = underlying.balanceOf(address(this));
+    function _transferAndCheckInputToken(
+        address _from,
+        address _token,
+        uint256 _amount
+    ) internal {
+        uint256 balanceBefore = IERC20(_token).balanceOf(address(this));
+        IERC20(_token).safeTransferFrom(_from, address(this), _amount);
+        uint256 balanceAfter = IERC20(_token).balanceOf(address(this));
 
-        require(
-            balanceAfter == balanceBefore + _amount,
-            "Vault: amount received does not match params"
-        );
+        if (balanceAfter != balanceBefore + _amount) revert VaultAmountDoesNotMatchParams();
     }
 
     function _blockTimestamp() internal view returns (uint64) {
@@ -784,11 +924,7 @@ contract Vault is
     ) internal pure returns (uint256) {
         if (_amount == 0) return 0;
         if (_totalShares == 0) return _amount * SHARES_MULTIPLIER;
-
-        require(
-            _totalUnderlyingMinusSponsored != 0,
-            "Vault: cannot compute shares when there's no principal"
-        );
+        if (_totalUnderlyingMinusSponsored == 0) revert VaultCannotComputeSharesWithoutPrincipal();
 
         return (_amount * _totalShares) / _totalUnderlyingMinusSponsored;
     }
@@ -821,30 +957,33 @@ contract Vault is
      * Applies an estimated fee to the given @param _amount.
      *
      * This function should be used to estimate how much underlying will be
-     * left after the strategy invests. For instance, the fees taken by Anchor
-     * and Curve.
-     *
-     * @notice Returns @param _amount when a strategy is not set.
+     * left after the strategy invests. For instance, the fees taken by Anchor.
      *
      * @param _amount Amount to apply the fees to.
      *
      * @return Amount with the fees applied.
      */
-    function _applyInvestmentFee(uint256 _amount)
+    function _applyInvestmentFeeEstimate(uint256 _amount)
         internal
         view
         returns (uint256)
     {
-        if (address(strategy) == address(0)) return _amount;
-
-        return strategy.applyInvestmentFee(_amount);
+        return _amount - _amount.pctOf(investmentFeeEstimatePct);
     }
 
-    function sharesOf(uint256 claimerId) external view returns (uint256) {
+    function sharesOf(address claimerId) external view returns (uint256) {
         return claimer[claimerId].totalShares;
     }
 
-    function principalOf(uint256 claimerId) external view returns (uint256) {
+    function principalOf(address claimerId) external view returns (uint256) {
         return claimer[claimerId].totalPrincipal;
+    }
+
+    function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _pause();
+    }
+
+    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _unpause();
     }
 }

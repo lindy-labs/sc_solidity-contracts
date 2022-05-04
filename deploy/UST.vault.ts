@@ -2,24 +2,77 @@ import type { HardhatRuntimeEnvironment } from "hardhat/types";
 import type { DeployFunction } from "hardhat-deploy/types";
 
 import { getCurrentNetworkConfig } from "../scripts/deployConfigs";
+import deployMockCurvePool from "./helpers/mockPool";
 
 const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   const { deployer } = await env.getNamedAccounts();
   const { deploy, get } = env.deployments;
 
   const ust = await get("UST");
+  const dai = await get("DAI");
+  const usdc = await get("USDC");
 
-  const { minLockPeriod, investPct, perfFeePct, multisig } =
-    await getCurrentNetworkConfig();
+  // Deploy mock pool for ropsten only
+  if (env.network.config.chainId === 3) {
+    await deployMockCurvePool(env, "CurvePool-UST-3CRV", "UST", [
+      "DAI",
+      "USDC",
+    ]);
+  }
+
+  const curvePool = await get("CurvePool-UST-3CRV");
+
+  const {
+    minLockPeriod,
+    investPct,
+    perfFeePct,
+    investmentFeeEstimatePct,
+    multisig,
+  } = await getCurrentNetworkConfig();
   const treasury = multisig;
   const owner = multisig;
 
-  await deploy("Vault_UST", {
+  const args = [
+    ust.address,
+    minLockPeriod,
+    investPct,
+    treasury,
+    owner,
+    perfFeePct,
+    investmentFeeEstimatePct,
+    [
+      {
+        token: dai.address,
+        pool: curvePool.address,
+        tokenI: 1,
+        underlyingI: 0,
+      },
+      {
+        token: usdc.address,
+        pool: curvePool.address,
+        tokenI: 2,
+        underlyingI: 0,
+      },
+    ],
+  ];
+
+  const vaultDeployment = await deploy("Vault_UST", {
     contract: "Vault",
     from: deployer,
     log: true,
-    args: [ust.address, minLockPeriod, investPct, treasury, owner, perfFeePct],
+    args,
   });
+
+  if (env.network.config.chainId === 1 || env.network.config.chainId === 3) {
+    try {
+      await env.run("verify:verify", {
+        address: vaultDeployment.address,
+        constructorArguments: args,
+      });
+    } catch (e) {
+      console.error((e as Error).message);
+    }
+  }
 };
 
 func.id = "deploy_ust_vault";

@@ -1,12 +1,13 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity =0.8.10;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 interface IVault {
     //
     // Structs
     //
+
     struct ClaimParams {
         uint16 pct;
         address beneficiary;
@@ -14,9 +15,27 @@ interface IVault {
     }
 
     struct DepositParams {
+        address inputToken;
+        uint64 lockDuration;
         uint256 amount;
         ClaimParams[] claims;
-        uint64 lockDuration;
+        string name;
+    }
+
+    struct Deposit {
+        /// amount of the deposit
+        uint256 amount;
+        /// wallet of the claimer
+        address claimerId;
+        /// when can the deposit be withdrawn
+        uint256 lockedUntil;
+        /// the number of shares issued for this deposit
+        uint256 shares;
+    }
+
+    struct Claimer {
+        uint256 totalPrincipal;
+        uint256 totalShares;
     }
 
     //
@@ -30,25 +49,26 @@ interface IVault {
         uint256 shares,
         address indexed depositor,
         address indexed claimer,
-        uint256 claimerId,
+        address claimerId,
         uint64 lockedUntil,
-        bytes data
+        bytes data,
+        string name
     );
 
-    event DepositBurned(uint256 indexed id, uint256 shares, address indexed to);
-
-    event InvestPercentageUpdated(uint256 percentage);
+    event DepositWithdrawn(
+        uint256 indexed id,
+        uint256 shares,
+        uint256 amount,
+        address indexed to,
+        bool burned
+    );
 
     event Invested(uint256 amount);
 
-    event StrategyUpdated(address indexed strategy);
-
-    event TreasuryUpdated(address indexed treasury);
-
-    event PerfFeePctUpdated(uint16 pct);
+    event Disinvested(uint256 amount);
 
     event YieldClaimed(
-        uint256 claimerId,
+        address claimerId,
         address indexed to,
         uint256 amount,
         uint256 burnedShares,
@@ -63,36 +83,29 @@ interface IVault {
 
     /**
      * Update the invested amount;
-     *
-     * @param data exteranl data to invest underlying
      */
-    function updateInvested(bytes calldata data) external;
+    function updateInvested() external;
 
     /**
-     * Calculates underlying investable amount.
+     * Calculate maximum investable amount and already invested amount
      *
-     * @return the investable amount
+     * @return maxInvestableAmount maximum investable amount
+     * @return alreadyInvested already invested amount
      */
-    function investableAmount() external view returns (uint256);
-
-    /**
-     * Update invest percentage
-     *
-     * Emits {InvestPercentageUpdated} event
-     *
-     * @param _investPct the new invest percentage
-     */
-    function setInvestPerc(uint16 _investPct) external;
+    function investState()
+        external
+        view
+        returns (uint256 maxInvestableAmount, uint256 alreadyInvested);
 
     /**
      * Percentage of the total underlying to invest in the strategy
      */
-    function investPerc() external view returns (uint16);
+    function investPct() external view returns (uint16);
 
     /**
      * Underlying ERC20 token accepted by the vault
      */
-    function underlying() external view returns (IERC20);
+    function underlying() external view returns (IERC20Metadata);
 
     /**
      * Minimum lock period for each deposit
@@ -165,24 +178,7 @@ interface IVault {
     function forceWithdraw(address _to, uint256[] calldata _ids) external;
 
     /**
-     * Changes the strategy used by the vault.
-     *
-     * @notice if there is invested funds in previous strategy, it is not allowed to set new strategy.
-     * @param _strategy the new strategy's address.
+     * Withdraws any pending performance fee amount back to the treasury
      */
-    function setStrategy(address _strategy) external;
-
-    /**
-     * Changes the treasury used by the vault.
-     *
-     * @param _treasury the new strategy's address.
-     */
-    function setTreasury(address _treasury) external;
-
-    /**
-     * Changes the performance fee
-     *
-     * @param _perfFeePct The new performance fee %
-     */
-    function setPerfFeePct(uint16 _perfFeePct) external;
+    function withdrawPerformanceFee() external;
 }
