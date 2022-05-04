@@ -1,10 +1,10 @@
-import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import type { Depositors } from "../../typechain";
+import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
+import type { Depositors } from '../../typechain';
 
-import { ethers } from "hardhat";
-import { expect } from "chai";
+import { ethers } from 'hardhat';
+import { expect } from 'chai';
 
-describe("Depositors", () => {
+describe('Depositors', () => {
   let vault: SignerWithAddress;
   let alice: SignerWithAddress;
   let bob: SignerWithAddress;
@@ -14,15 +14,15 @@ describe("Depositors", () => {
   beforeEach(async () => {
     [vault, alice, bob] = await ethers.getSigners();
 
-    let Depositors = await ethers.getContractFactory("Depositors");
+    let Depositors = await ethers.getContractFactory('Depositors');
 
     depositors = (await Depositors.deploy(vault.address)) as Depositors;
   });
 
-  describe("mint", () => {
-    it("fails when the caller is not the vault", async () => {
+  describe('mint', () => {
+    it('fails when the caller is not the vault', async () => {
       expect(depositors.connect(bob).mint(bob.address)).to.be.revertedWith(
-        "Depositors: not authorized"
+        'Depositors: not authorized',
       );
     });
   });

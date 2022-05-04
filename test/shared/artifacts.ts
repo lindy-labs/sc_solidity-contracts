@@ -1,3 +1,3 @@
-import Vault from "../../artifacts/contracts/Vault.sol/Vault.json";
+import Vault from '../../artifacts/contracts/Vault.sol/Vault.json';
 
 export { Vault };

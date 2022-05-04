@@ -78,10 +78,14 @@ contract AnchorStrategy is IStrategy, AccessControl, CustomErrors {
         address _owner
     ) {
         if (_owner == address(0)) revert StrategyOwnerCannotBe0Address();
-        if (_ethAnchorRouter == address(0)) revert StrategyRouterCannotBe0Address();
-        if (address(_ustToken) == address(0)) revert StrategyUnderlyingCannotBe0Address();
-        if (address(_aUstToken) == address(0)) revert StrategyYieldTokenCannotBe0Address();
-        if (!_vault.doesContractImplementInterface(type(IVault).interfaceId)) revert StrategyNotIVault();
+        if (_ethAnchorRouter == address(0))
+            revert StrategyRouterCannotBe0Address();
+        if (address(_ustToken) == address(0))
+            revert StrategyUnderlyingCannotBe0Address();
+        if (address(_aUstToken) == address(0))
+            revert StrategyYieldTokenCannotBe0Address();
+        if (!_vault.doesContractImplementInterface(type(IVault).interfaceId))
+            revert StrategyNotIVault();
 
         _setupRole(DEFAULT_ADMIN_ROLE, _owner);
         _setupRole(MANAGER_ROLE, _vault);
@@ -101,7 +105,8 @@ contract AnchorStrategy is IStrategy, AccessControl, CustomErrors {
     //
 
     modifier onlyManager() {
-        if (!hasRole(MANAGER_ROLE, msg.sender)) revert StrategyCallerNotManager();
+        if (!hasRole(MANAGER_ROLE, msg.sender))
+            revert StrategyCallerNotManager();
         _;
     }
 
@@ -380,7 +385,8 @@ contract AnchorStrategy is IStrategy, AccessControl, CustomErrors {
             uint80 answeredInRound
         ) = aUstToUstFeed.latestRoundData();
 
-        if (price <= 0 || updateTime == 0 || answeredInRound < roundID) revert StrategyInvalidAUSTRate();
+        if (price <= 0 || updateTime == 0 || answeredInRound < roundID)
+            revert StrategyInvalidAUSTRate();
 
         return uint256(price);
     }

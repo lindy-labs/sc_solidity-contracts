@@ -1,8 +1,8 @@
-import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
-import { time } from "@openzeppelin/test-helpers";
-import { ethers } from "hardhat";
-import { BigNumber } from "ethers";
-import { expect } from "chai";
+import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
+import { time } from '@openzeppelin/test-helpers';
+import { ethers } from 'hardhat';
+import { BigNumber } from 'ethers';
+import { expect } from 'chai';
 
 import {
   Vault,
@@ -11,25 +11,25 @@ import {
   ICurve,
   ICurve__factory,
   ERC20__factory,
-} from "../typechain";
-import { ForkHelpers, getRoleErrorMsg, arrayFromTo } from "./shared";
-import { depositParams, claimParams } from "./shared/factories";
+} from '../typechain';
+import { ForkHelpers, getRoleErrorMsg, arrayFromTo } from './shared';
+import { depositParams, claimParams } from './shared/factories';
 
 const { formatUnits, parseUnits, getAddress } = ethers.utils;
 const { MaxUint256, HashZero, AddressZero } = ethers.constants;
 
 const FORK_BLOCK = 14449700;
-const UST_ADDRESS = getAddress("0xa47c8bf37f92abed4a126bda807a7b7498661acd");
-const USDC_ADDRESS = getAddress("0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48");
-const DAI_ADDRESS = getAddress("0x6b175474e89094c44da98b954eedeac495271d0f");
+const UST_ADDRESS = getAddress('0xa47c8bf37f92abed4a126bda807a7b7498661acd');
+const USDC_ADDRESS = getAddress('0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48');
+const DAI_ADDRESS = getAddress('0x6b175474e89094c44da98b954eedeac495271d0f');
 const CURVE_UST_3CRV_POOL = getAddress(
-  "0x890f4e345b1daed0367a877a1612f86a1f86985f"
+  '0x890f4e345b1daed0367a877a1612f86a1f86985f',
 );
 const TWO_WEEKS = BigNumber.from(time.duration.weeks(2).toNumber());
-const PERFORMANCE_FEE_PCT = BigNumber.from("200");
-const INVEST_PCT = BigNumber.from("9000");
-const INVESTMENT_FEE_PCT = BigNumber.from("200");
-const DENOMINATOR = BigNumber.from("10000");
+const PERFORMANCE_FEE_PCT = BigNumber.from('200');
+const INVEST_PCT = BigNumber.from('9000');
+const INVESTMENT_FEE_PCT = BigNumber.from('200');
+const DENOMINATOR = BigNumber.from('10000');
 const DEFAULT_ADMIN_ROLE = HashZero;
 
 const curveIndexes = {
@@ -38,7 +38,7 @@ const curveIndexes = {
   usdc: 2,
 };
 
-describe("Vault (fork tests)", () => {
+describe('Vault (fork tests)', () => {
   let owner: SignerWithAddress;
   let alice: SignerWithAddress;
   let bob: SignerWithAddress;
@@ -81,31 +81,31 @@ describe("Vault (fork tests)", () => {
           tokenI: curveIndexes.dai,
           underlyingI: curveIndexes.ust,
         },
-      ]
+      ],
     );
 
     await ForkHelpers.mintToken(
       dai,
       alice,
-      parseUnits("1000", await dai.decimals())
+      parseUnits('1000', await dai.decimals()),
     );
     await ForkHelpers.mintToken(
       usdc,
       alice,
-      parseUnits("1000", await usdc.decimals())
+      parseUnits('1000', await usdc.decimals()),
     );
     await ForkHelpers.mintToken(
       ust,
       alice,
-      parseUnits("1000", await ust.decimals())
+      parseUnits('1000', await ust.decimals()),
     );
     dai.connect(alice).approve(vault.address, MaxUint256);
     usdc.connect(alice).approve(vault.address, MaxUint256);
     ust.connect(alice).approve(vault.address, MaxUint256);
   });
 
-  describe("addPool", function () {
-    it("allows adding new valid pools", async () => {
+  describe('addPool', function () {
+    it('allows adding new valid pools', async () => {
       const action = vault.addPool({
         token: usdc.address,
         pool: curvePool.address,
@@ -120,7 +120,7 @@ describe("Vault (fork tests)", () => {
       expect(pool[0]).to.equal(curvePool.address);
     });
 
-    it("does not allow adding a pool where underlyingI does not match", async () => {
+    it('does not allow adding a pool where underlyingI does not match', async () => {
       const action = vault.addPool({
         token: usdc.address,
         pool: curvePool.address,
@@ -129,11 +129,11 @@ describe("Vault (fork tests)", () => {
       });
 
       await expect(action).to.be.revertedWith(
-        "_underlyingI does not match underlying token"
+        '_underlyingI does not match underlying token',
       );
     });
 
-    it("is not callable by a non-admin", async () => {
+    it('is not callable by a non-admin', async () => {
       const action = vault.connect(alice).addPool({
         token: usdc.address,
         pool: curvePool.address,
@@ -142,13 +142,13 @@ describe("Vault (fork tests)", () => {
       });
 
       await expect(action).to.be.revertedWith(
-        getRoleErrorMsg(alice, DEFAULT_ADMIN_ROLE)
+        getRoleErrorMsg(alice, DEFAULT_ADMIN_ROLE),
       );
     });
   });
 
-  describe("removePool", function () {
-    it("allows removing existing pools", async () => {
+  describe('removePool', function () {
+    it('allows removing existing pools', async () => {
       const action = vault.removePool(dai.address);
 
       await expect(action).not.to.be.reverted;
@@ -158,56 +158,56 @@ describe("Vault (fork tests)", () => {
       expect(pool[0]).to.equal(AddressZero);
     });
 
-    it("is not callable by a non-admin", async () => {
+    it('is not callable by a non-admin', async () => {
       const action = vault.connect(alice).removePool(dai.address);
 
       await expect(action).to.be.revertedWith(
-        getRoleErrorMsg(alice, DEFAULT_ADMIN_ROLE)
+        getRoleErrorMsg(alice, DEFAULT_ADMIN_ROLE),
       );
     });
   });
 
-  describe("deposit with DAI", function () {
-    it("automatically swaps into UST and deposits that", async () => {
+  describe('deposit with DAI', function () {
+    it('automatically swaps into UST and deposits that', async () => {
       const action = vault.connect(alice).deposit(
         depositParams.build({
-          amount: parseUnits("1000", await dai.decimals()),
+          amount: parseUnits('1000', await dai.decimals()),
           inputToken: dai.address,
           claims: [claimParams.percent(100).to(bob.address).build()],
-        })
+        }),
       );
 
-      const expectedUnderlyingAmount = "998093178708890943065";
+      const expectedUnderlyingAmount = '998093178708890943065';
 
       await expect(action)
-        .to.emit(vault, "Swap")
+        .to.emit(vault, 'Swap')
         .withArgs(
           dai.address,
           ust.address,
-          parseUnits("1000", await dai.decimals()),
-          expectedUnderlyingAmount
+          parseUnits('1000', await dai.decimals()),
+          expectedUnderlyingAmount,
         );
 
       expect((await vault.deposits(1)).amount).to.equal(
-        expectedUnderlyingAmount
+        expectedUnderlyingAmount,
       );
     });
   });
 
-  describe("deposit with DAI", function () {
-    it("fails if USDT is not whitelisted", async () => {
+  describe('deposit with DAI', function () {
+    it('fails if USDT is not whitelisted', async () => {
       const action = vault.connect(alice).deposit(
         depositParams.build({
-          amount: parseUnits("1000", await usdc.decimals()),
+          amount: parseUnits('1000', await usdc.decimals()),
           inputToken: usdc.address,
           claims: [claimParams.percent(100).to(bob.address).build()],
-        })
+        }),
       );
 
       await expect(action).to.be.reverted;
     });
 
-    it("works after whitelisting USDC", async () => {
+    it('works after whitelisting USDC', async () => {
       await vault.addPool({
         token: usdc.address,
         pool: curvePool.address,
@@ -217,21 +217,21 @@ describe("Vault (fork tests)", () => {
 
       const action = vault.connect(alice).deposit(
         depositParams.build({
-          amount: parseUnits("1000", await usdc.decimals()),
+          amount: parseUnits('1000', await usdc.decimals()),
           inputToken: usdc.address,
           claims: arrayFromTo(1, 100).map(() =>
-            claimParams.percent(1).to(bob.address).build()
+            claimParams.percent(1).to(bob.address).build(),
           ),
-        })
+        }),
       );
 
       await expect(action)
-        .to.emit(vault, "Swap")
+        .to.emit(vault, 'Swap')
         .withArgs(
           usdc.address,
           ust.address,
-          parseUnits("1000", await usdc.decimals()),
-          "998096860985047176646"
+          parseUnits('1000', await usdc.decimals()),
+          '998096860985047176646',
         );
     });
   });
