@@ -3,23 +3,23 @@ import {
   BigInt,
   ByteArray,
   log,
-  Bytes,
-} from '@graphprotocol/graph-ts';
+  Bytes
+} from "@graphprotocol/graph-ts";
 import {
   DepositWithdrawn,
   DepositMinted,
-  YieldClaimed,
-} from '../types/Vault/IVault';
-import { TreasuryUpdated } from '../types/Vault/IVaultSettings';
-import { Sponsored, Unsponsored } from '../types/Vault/IVaultSponsoring';
+  YieldClaimed
+} from "../types/Vault/IVault";
+import { TreasuryUpdated } from "../types/Vault/IVaultSettings";
+import { Sponsored, Unsponsored } from "../types/Vault/IVaultSponsoring";
 import {
   Sponsor,
   Claimer,
   Deposit,
   Foundation,
   Vault,
-  Donation,
-} from '../types/schema';
+  Donation
+} from "../types/schema";
 
 export function handleYieldClaimed(event: YieldClaimed): void {
   const claimerId = event.params.claimerId.toString();
@@ -31,7 +31,7 @@ export function handleYieldClaimed(event: YieldClaimed): void {
   claimer.claimed = claimer.claimed.plus(event.params.amount);
   claimer.shares = claimer.shares.minus(event.params.burnedShares);
   vault.totalShares = vault.totalShares.minus(event.params.burnedShares);
-  log.debug('claim, sub shares {}', [event.params.burnedShares.toString()]);
+  log.debug("claim, sub shares {}", [event.params.burnedShares.toString()]);
 
   let totalClaimedShares = new BigInt(0);
 
@@ -60,9 +60,9 @@ export function handleYieldClaimed(event: YieldClaimed): void {
     ) {
       const id =
         event.transaction.hash.toHex() +
-        '-' +
+        "-" +
         event.logIndex.toString() +
-        '-' +
+        "-" +
         i.toString();
 
       const donation = new Donation(id);
@@ -87,21 +87,21 @@ export function handleYieldClaimed(event: YieldClaimed): void {
 
 export function handleDepositMinted(event: DepositMinted): void {
   const vaultId = event.address.toHexString();
-  const foundationId = vaultId + '-' + event.params.groupId.toString();
+  const foundationId = vaultId + "-" + event.params.groupId.toString();
   const depositId = event.params.id.toString();
   const claimerId = event.params.claimerId.toString();
 
   createVault(vaultId);
   const vault = Vault.load(vaultId)!;
   vault.totalShares = vault.totalShares.plus(event.params.shares);
-  log.debug('mint, adding shares {}', [event.params.shares.toString()]);
+  log.debug("mint, adding shares {}", [event.params.shares.toString()]);
 
   let claimer = Claimer.load(claimerId);
 
   if (!claimer) {
     claimer = new Claimer(claimerId);
     claimer.owner = event.params.claimer;
-    claimer.claimed = BigInt.fromString('0');
+    claimer.claimed = BigInt.fromString("0");
     claimer.depositsIds = [];
   }
 
@@ -118,12 +118,12 @@ export function handleDepositMinted(event: DepositMinted): void {
     foundation.owner = event.params.depositor;
     foundation.createdAt = event.block.timestamp;
     foundation.lockedUntil = event.params.lockedUntil;
-    foundation.amountDeposited = BigInt.fromString('0');
-    foundation.name = event.params.name;
+    foundation.amountDeposited = BigInt.fromString("0");
   }
 
+  foundation.name = event.params.name;
   foundation.amountDeposited = foundation.amountDeposited.plus(
-    event.params.amount,
+    event.params.amount
   );
 
   const deposit = new Deposit(depositId);
@@ -168,12 +168,12 @@ export function handleDepositWithdrawn(event: DepositWithdrawn): void {
   claimer.principal = claimer.principal.minus(deposit.amount);
   claimer.shares = claimer.shares.minus(event.params.shares);
   claimer.depositsIds = claimer.depositsIds.filter(
-    (id: string) => id !== depositId,
+    (id: string) => id !== depositId
   );
 
   deposit.burned = true;
   vault.totalShares = vault.totalShares.minus(event.params.shares);
-  log.debug('burn, subbing shares {}', [event.params.shares.toString()]);
+  log.debug("burn, subbing shares {}", [event.params.shares.toString()]);
 
   foundation.amountDeposited = foundation.amountDeposited.minus(deposit.amount);
 
@@ -205,7 +205,7 @@ function createVault(id: string): void {
 
   if (vault == null) {
     vault = new Vault(id);
-    vault.totalShares = BigInt.fromString('0');
+    vault.totalShares = BigInt.fromString("0");
     vault.save();
   }
 }
