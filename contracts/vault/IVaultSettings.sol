@@ -10,7 +10,7 @@ interface IVaultSettings {
     event TreasuryUpdated(address indexed treasury);
     event PerfFeePctUpdated(uint16 pct);
     event StrategyUpdated(address indexed strategy);
-    event InvestmentTolerancePctUpdated(uint16 pct);
+    event LossTolerancePctUpdated(uint16 pct);
 
     /**
      * Update invest percentage
@@ -48,5 +48,5 @@ interface IVaultSettings {
      *
      * @param _pct the new investment fee estimated percentage.
      */
-    function setInvestmentTolerancePct(uint16 _pct) external;
+    function setLossTolerancePct(uint16 _pct) external;
 }

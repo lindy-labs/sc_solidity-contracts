@@ -114,7 +114,7 @@ contract Vault is
     uint256 public accumulatedPerfFee;
 
     /// Investment fee pct
-    uint16 public investmentTolerancePct;
+    uint16 public lossTolerancePct;
 
     /// Rebalance minimum
     uint256 private immutable rebalanceMinimum;
@@ -126,7 +126,7 @@ contract Vault is
      * @param _treasury Treasury address to collect performance fee
      * @param _owner Vault admin address
      * @param _perfFeePct Performance fee percentage
-     * @param _investmentTolerancePct Loss tolerance when investing through the strategy
+     * @param _lossTolerancePct Loss tolerance when investing through the strategy
      * @param _swapPools Swap pools used to automatically convert tokens to underlying
      */
     constructor(
@@ -136,7 +136,7 @@ contract Vault is
         address _treasury,
         address _owner,
         uint16 _perfFeePct,
-        uint16 _investmentTolerancePct,
+        uint16 _lossTolerancePct,
         SwapPoolParam[] memory _swapPools
     ) {
         _setupRole(DEFAULT_ADMIN_ROLE, _owner);
@@ -149,7 +149,7 @@ contract Vault is
         treasury = _treasury;
         minLockPeriod = _minLockPeriod;
         perfFeePct = _perfFeePct;
-        investmentTolerancePct = _investmentTolerancePct;
+        lossTolerancePct = _lossTolerancePct;
 
         depositors = new Depositors(this);
 
@@ -226,9 +226,7 @@ contract Vault is
             _params.lockDuration > MAX_DEPOSIT_LOCK_DURATION
         ) revert VaultInvalidLockPeriod();
 
-        uint256 principalMinusStrategyFee = _applyInvestmentTolerance(
-            totalPrincipal
-        );
+        uint256 principalMinusStrategyFee = _applyLossTolerance(totalPrincipal);
         uint256 previousTotalUnderlying = totalUnderlyingMinusSponsored();
         if (principalMinusStrategyFee > previousTotalUnderlying)
             revert VaultCannotDepositWhenYieldNegative();
@@ -514,15 +512,15 @@ contract Vault is
     }
 
     /// @inheritdoc IVaultSettings
-    function setInvestmentTolerancePct(uint16 pct)
+    function setLossTolerancePct(uint16 pct)
         external
         override(IVaultSettings)
         onlyRole(SETTINGS_ROLE)
     {
-        if (!pct.validPct()) revert VaultInvalidInvestmentFee();
+        if (!pct.validPct()) revert VaultInvalidLossTolerance();
 
-        investmentTolerancePct = pct;
-        emit InvestmentTolerancePctUpdated(pct);
+        lossTolerancePct = pct;
+        emit LossTolerancePctUpdated(pct);
     }
 
     //
@@ -976,12 +974,12 @@ contract Vault is
      *
      * @return Amount with the fees applied.
      */
-    function _applyInvestmentTolerance(uint256 _amount)
+    function _applyLossTolerance(uint256 _amount)
         internal
         view
         returns (uint256)
     {
-        return _amount - _amount.pctOf(investmentTolerancePct);
+        return _amount - _amount.pctOf(lossTolerancePct);
     }
 
     function sharesOf(address claimerId) external view returns (uint256) {
