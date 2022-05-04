@@ -113,7 +113,7 @@ contract Vault is
     /// Current accumulated performance fee;
     uint256 public accumulatedPerfFee;
 
-    /// Investment fee pct
+    /// Loss tolerance pct
     uint16 public lossTolerancePct;
 
     /// Rebalance minimum
@@ -965,7 +965,7 @@ contract Vault is
     }
 
     /**
-     * Applies an investment tolerance to the given @param _amount.
+     * Applies a loss tolerance to the given @param _amount.
      *
      * This function is used to prevent the vault from entering loss mode when funds are lost due to fees in the strategy.
      * For instance, the fees taken by Anchor.
