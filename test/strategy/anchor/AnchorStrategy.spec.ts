@@ -2,7 +2,7 @@ import type { SignerWithAddress } from "@nomiclabs/hardhat-ethers/signers";
 import { ethers } from "hardhat";
 import { time } from "@openzeppelin/test-helpers";
 import { expect } from "chai";
-import { BigNumber, utils, constants, ContractFactory } from "ethers";
+import { BigNumber, utils, constants } from "ethers";
 import {
   MockChainlinkPriceFeed,
   Vault,
@@ -123,7 +123,7 @@ describe("AnchorStrategy", () => {
           aUstToken.address,
           constants.AddressZero
         )
-      ).to.be.revertedWith("AnchorStrategy: owner is 0x");
+      ).to.be.revertedWith('StrategyOwnerCannotBe0Address');
     });
 
     it("Revert if ethAnchorRouter is address(0)", async () => {
@@ -136,7 +136,7 @@ describe("AnchorStrategy", () => {
           aUstToken.address,
           owner.address
         )
-      ).to.be.revertedWith("AnchorStrategy: router is 0x");
+      ).to.be.revertedWith('StrategyRouterCannotBe0Address');
     });
 
     it("Revert if ust is address(0)", async () => {
@@ -149,7 +149,7 @@ describe("AnchorStrategy", () => {
           aUstToken.address,
           owner.address
         )
-      ).to.be.revertedWith("AnchorStrategy: ust is 0x");
+      ).to.be.revertedWith('StrategyUnderlyingCannotBe0Address');
     });
 
     it("Revert if aUST is address(0)", async () => {
@@ -162,7 +162,7 @@ describe("AnchorStrategy", () => {
           constants.AddressZero,
           owner.address
         )
-      ).to.be.revertedWith("AnchorStrategy: aUST is 0x");
+      ).to.be.revertedWith('StrategyYieldTokenCannotBe0Address');
     });
 
     it("Revert if vault does not have IVault interface", async () => {
@@ -175,7 +175,7 @@ describe("AnchorStrategy", () => {
           aUstToken.address,
           owner.address
         )
-      ).to.be.revertedWith("AnchorStrategy: not an IVault");
+      ).to.be.revertedWith('StrategyNotIVault');
     });
 
     it("Check initial values", async () => {
@@ -200,15 +200,11 @@ describe("AnchorStrategy", () => {
 
   describe("#invest function", () => {
     it("Revert if msg.sender is not manager", async () => {
-      await expect(strategy.connect(alice).invest()).to.be.revertedWith(
-        "AnchorStrategy: caller is not manager"
-      );
+      await expect(strategy.connect(alice).invest()).to.be.revertedWith('StrategyCallerNotManager');
     });
 
     it("Revert if underlying balance is zero", async () => {
-      await expect(strategy.connect(manager).invest()).to.be.revertedWith(
-        "AnchorStrategy: no ust exist"
-      );
+      await expect(strategy.connect(manager).invest()).to.be.revertedWith('StrategyNoUST');
     });
 
     it("Revert if aUST/UST exchange rate is invalid", async () => {
@@ -232,7 +228,7 @@ describe("AnchorStrategy", () => {
       // when price is not positive
       await mockAUstUstFeed.setLatestRoundData(1, 0, 100, 100, 1);
       await expect(vault.connect(owner).updateInvested()).to.be.revertedWith(
-        "AnchorStrategy: invalid aUST rate"
+        'StrategyInvalidAUSTRate'
       );
 
       // when round id is invalid
@@ -244,7 +240,7 @@ describe("AnchorStrategy", () => {
         1
       );
       await expect(vault.connect(owner).updateInvested()).to.be.revertedWith(
-        "AnchorStrategy: invalid aUST rate"
+        'StrategyInvalidAUSTRate'
       );
 
       // when updated time is zero
@@ -256,7 +252,7 @@ describe("AnchorStrategy", () => {
         1
       );
       await expect(vault.connect(owner).updateInvested()).to.be.revertedWith(
-        "AnchorStrategy: invalid aUST rate"
+        'StrategyInvalidAUSTRate'
       );
     });
 
@@ -347,19 +343,19 @@ describe("AnchorStrategy", () => {
     it("Revert if msg.sender is not manager", async () => {
       await expect(
         strategy.connect(alice).finishDepositStable(0)
-      ).to.be.revertedWith("AnchorStrategy: caller is not manager");
+      ).to.be.revertedWith('StrategyCallerNotManager');
     });
 
     it("Revert if idx is out of array", async () => {
       await expect(
         strategy.connect(manager).finishDepositStable(1)
-      ).to.be.revertedWith("AnchorStrategy: not running");
+      ).to.be.revertedWith('StrategyNotRunning');
     });
 
     it("Revert if no aUST returned", async () => {
       await expect(
         strategy.connect(manager).finishDepositStable(0)
-      ).to.be.revertedWith("AnchorStrategy: no aUST returned");
+      ).to.be.revertedWith('StrategyNoAUSTReturned');
     });
 
     it("Should finish deposit operation", async () => {
@@ -485,13 +481,13 @@ describe("AnchorStrategy", () => {
     it("Revert if msg.sender is not manager", async () => {
       await expect(
         strategy.connect(alice).initRedeemStable(aUstAmount0)
-      ).to.be.revertedWith("AnchorStrategy: caller is not manager");
+      ).to.be.revertedWith('StrategyCallerNotManager');
     });
 
     it("Revert if amount is 0", async () => {
       await expect(
         strategy.connect(manager).initRedeemStable(0)
-      ).to.be.revertedWith("AnchorStrategy: amount 0");
+      ).to.be.revertedWith('StrategyAmountZero');
     });
 
     it("Should init redeem operation", async () => {
@@ -582,19 +578,19 @@ describe("AnchorStrategy", () => {
     it("Revert if msg.sender is not manager", async () => {
       await expect(
         strategy.connect(alice).finishRedeemStable(0)
-      ).to.be.revertedWith("AnchorStrategy: caller is not manager");
+      ).to.be.revertedWith('StrategyCallerNotManager');
     });
 
     it("Revert if idx is out of array", async () => {
       await expect(
         strategy.connect(manager).finishRedeemStable(1)
-      ).to.be.revertedWith("AnchorStrategy: not running");
+      ).to.be.revertedWith('StrategyNotRunning');
     });
 
     it("Revert if 0 UST redeemed", async () => {
       await expect(
         strategy.connect(manager).finishRedeemStable(0)
-      ).to.be.revertedWith("AnchorStrategy: nothing redeemed");
+      ).to.be.revertedWith('StrategyNothingRedeemed');
     });
 
     it("Should finish redeem operation", async () => {
@@ -757,7 +753,7 @@ describe("AnchorStrategy", () => {
     it("Revert if msg.sender is not manager", async () => {
       await expect(
         strategy.connect(alice).withdrawAllToVault()
-      ).to.be.revertedWith("AnchorStrategy: caller is not manager");
+      ).to.be.revertedWith('StrategyCallerNotManager');
     });
 
     it("Should init redeem all aUST", async () => {
@@ -926,13 +922,13 @@ describe("AnchorStrategy", () => {
     it("reverts if msg.sender is not manager", async () => {
       await expect(
         strategy.connect(alice).withdrawToVault(1)
-      ).to.be.revertedWith("AnchorStrategy: caller is not manager");
+      ).to.be.revertedWith('StrategyCallerNotManager');
     });
 
     it("reverts if amount is zero", async () => {
       await expect(
         strategy.connect(manager).withdrawToVault(0)
-      ).to.be.revertedWith("AnchorStrategy: amount is zero");
+      ).to.be.revertedWith('StrategyAmountZero');
     });
 
     it("init redeem stable for required aUST amount", async () => {

@@ -17,6 +17,7 @@ import {IVaultSettings} from "./vault/IVaultSettings.sol";
 import {CurveSwapper} from "./vault/CurveSwapper.sol";
 import {PercentMath} from "./lib/PercentMath.sol";
 import {IStrategy} from "./strategy/IStrategy.sol";
+import {CustomErrors} from "./interfaces/CustomErrors.sol";
 
 /**
  * A vault where other accounts can deposit an underlying token
@@ -33,7 +34,8 @@ contract Vault is
     ERC165,
     AccessControl,
     ReentrancyGuard,
-    Pausable
+    Pausable,
+    CustomErrors
 {
     using SafeERC20 for IERC20;
     using SafeERC20 for IERC20Metadata;
@@ -138,22 +140,13 @@ contract Vault is
         uint16 _investmentFeeEstimatePct,
         SwapPoolParam[] memory _swapPools
     ) {
-        require(_investPct.validPct(), "Vault: invalid investPct");
-        require(_perfFeePct.validPct(), "Vault: invalid performance fee");
-        require(
-            _investmentFeeEstimatePct.validPct(),
-            "Vault: invalid investment fee"
-        );
-        require(
-            address(_underlying) != address(0x0),
-            "Vault: underlying cannot be 0x0"
-        );
-        require(_treasury != address(0x0), "Vault: treasury cannot be 0x0");
-        require(_owner != address(0x0), "Vault: owner cannot be 0x0");
-        require(
-            _minLockPeriod != 0 && _minLockPeriod <= MAX_DEPOSIT_LOCK_DURATION,
-            "Vault: invalid minLockPeriod"
-        );
+        if (!_investPct.validPct()) revert VaultInvalidInvestpct();
+        if (!_perfFeePct.validPct()) revert VaultInvalidPerformanceFee();
+        if (!_investmentFeeEstimatePct.validPct()) revert VaultInvalidInvestmentFee();
+        if (address(_underlying) == address(0x0)) revert VaultUnderlyingCannotBe0Address();
+        if (_treasury == address(0x0)) revert VaultTreasuryCannotBe0Address();
+        if (_owner == address(0x0)) revert VaultOwnerCannotBe0Address();
+        if (_minLockPeriod == 0 || _minLockPeriod > MAX_DEPOSIT_LOCK_DURATION) revert VaultInvalidMinLockPeriod();
 
         _setupRole(DEFAULT_ADMIN_ROLE, _owner);
         _setupRole(INVESTOR_ROLE, _owner);
@@ -235,20 +228,14 @@ contract Vault is
         whenNotPaused
         returns (uint256[] memory depositIds)
     {
-        require(_params.amount != 0, "Vault: cannot deposit 0");
-        require(
-            _params.lockDuration >= minLockPeriod &&
-                _params.lockDuration <= MAX_DEPOSIT_LOCK_DURATION,
-            "Vault: invalid lock period"
-        );
+        if (_params.amount == 0) revert VaultCannotDeposit0();
+        if (_params.lockDuration < minLockPeriod || _params.lockDuration > MAX_DEPOSIT_LOCK_DURATION) revert VaultInvalidLockPeriod();
+
         uint256 principalMinusStrategyFee = _applyInvestmentFeeEstimate(
             totalPrincipal
         );
         uint256 previousTotalUnderlying = totalUnderlyingMinusSponsored();
-        require(
-            principalMinusStrategyFee <= previousTotalUnderlying,
-            "Vault: cannot deposit when yield is negative"
-        );
+        if (principalMinusStrategyFee > previousTotalUnderlying) revert VaultCannotDepositWhenYieldNegative();
 
         _transferAndCheckInputToken(
             msg.sender,
@@ -273,7 +260,7 @@ contract Vault is
 
     /// @inheritdoc IVault
     function claimYield(address _to) external override(IVault) nonReentrant {
-        require(_to != address(0), "Vault: destination address is 0x");
+        if (_to == address(0)) revert VaultDestinationCannotBe0Address();
 
         (uint256 yield, uint256 shares, uint256 fee) = yieldFor(msg.sender);
 
@@ -295,7 +282,7 @@ contract Vault is
         override(IVault)
         nonReentrant
     {
-        require(_to != address(0), "Vault: destination address is 0x");
+        if (_to == address(0)) revert VaultDestinationCannotBe0Address();
 
         _withdrawAll(_to, _ids, false);
     }
@@ -305,7 +292,7 @@ contract Vault is
         external
         nonReentrant
     {
-        require(_to != address(0), "Vault: destination address is 0x");
+        if (_to == address(0)) revert VaultDestinationCannotBe0Address();
 
         _withdrawAll(_to, _ids, true);
     }
@@ -315,7 +302,7 @@ contract Vault is
         uint256[] calldata _ids,
         uint256[] calldata _amounts
     ) external nonReentrant {
-        require(_to != address(0), "Vault: destination address is 0x");
+        if (_to == address(0)) revert VaultDestinationCannotBe0Address();
 
         _withdrawPartial(_to, _ids, _amounts);
     }
@@ -341,20 +328,17 @@ contract Vault is
         override(IVault)
         onlyRole(INVESTOR_ROLE)
     {
-        require(address(strategy) != address(0), "Vault: strategy is not set");
+        if (address(strategy) == address(0)) revert VaultStrategyNotSet();
 
         (uint256 maxInvestableAmount, uint256 alreadyInvested) = investState();
 
-        require(
-            maxInvestableAmount != alreadyInvested,
-            "Vault: nothing to do"
-        );
+        if (maxInvestableAmount == alreadyInvested) revert VaultNothingToDo();
 
         // disinvest
         if (alreadyInvested > maxInvestableAmount) {
             uint256 disinvestAmount = alreadyInvested - maxInvestableAmount;
 
-            require(disinvestAmount >= rebalanceMinimum, "Vault: Not enough to disinvest");
+            if (disinvestAmount < rebalanceMinimum) revert VaultNotEnoughToRebalance();
 
             strategy.withdrawToVault(disinvestAmount);
 
@@ -366,7 +350,7 @@ contract Vault is
         // invest
         uint256 investAmount = maxInvestableAmount - alreadyInvested;
 
-        require(investAmount >= rebalanceMinimum, "Vault: Not enough to invest");
+        if (investAmount < rebalanceMinimum) revert VaultNotEnoughToRebalance();
 
         underlying.safeTransfer(address(strategy), investAmount);
 
@@ -382,7 +366,7 @@ contract Vault is
         onlyRole(INVESTOR_ROLE)
     {
         uint256 _perfFee = accumulatedPerfFee;
-        require(_perfFee != 0, "Vault: no performance fee");
+        if (_perfFee == 0) revert VaultNoPerformanceFee();
 
         accumulatedPerfFee = 0;
 
@@ -406,13 +390,9 @@ contract Vault is
         onlyRole(SPONSOR_ROLE)
         whenNotPaused
     {
-        require(_amount != 0, "Vault: cannot sponsor 0");
+        if (_amount == 0) revert VaultCannotSponsor0();
 
-        require(
-            _lockDuration >= MIN_SPONSOR_LOCK_DURATION &&
-                _lockDuration <= MAX_SPONSOR_LOCK_DURATION,
-            "Vault: invalid lock period"
-        );
+        if (_lockDuration < MIN_SPONSOR_LOCK_DURATION || _lockDuration > MAX_SPONSOR_LOCK_DURATION) revert VaultInvalidLockPeriod();
 
         uint256 lockedUntil = _lockDuration + block.timestamp;
         _depositTokenIds.increment();
@@ -432,7 +412,7 @@ contract Vault is
         external
         nonReentrant
     {
-        require(_to != address(0), "Vault: destination address is 0x");
+        if (_to == address(0)) revert VaultDestinationCannotBe0Address();
 
         _unsponsor(_to, _ids);
     }
@@ -481,7 +461,7 @@ contract Vault is
         override(IVaultSettings)
         onlyRole(SETTINGS_ROLE)
     {
-        require(PercentMath.validPct(_investPct), "Vault: invalid investPct");
+        if (!PercentMath.validPct(_investPct)) revert VaultInvalidInvestpct();
 
         emit InvestPctUpdated(_investPct);
 
@@ -494,10 +474,7 @@ contract Vault is
         override(IVaultSettings)
         onlyRole(SETTINGS_ROLE)
     {
-        require(
-            address(_treasury) != address(0x0),
-            "Vault: treasury cannot be 0x0"
-        );
+        if (address(_treasury) == address(0x0)) revert VaultTreasuryCannotBe0Address();
         treasury = _treasury;
         emit TreasuryUpdated(_treasury);
     }
@@ -508,10 +485,7 @@ contract Vault is
         override(IVaultSettings)
         onlyRole(SETTINGS_ROLE)
     {
-        require(
-            PercentMath.validPct(_perfFeePct),
-            "Vault: invalid performance fee"
-        );
+        if (!PercentMath.validPct(_perfFeePct)) revert VaultInvalidPerformanceFee();
         perfFeePct = _perfFeePct;
         emit PerfFeePctUpdated(_perfFeePct);
     }
@@ -522,15 +496,9 @@ contract Vault is
         override(IVaultSettings)
         onlyRole(SETTINGS_ROLE)
     {
-        require(_strategy != address(0), "Vault: strategy 0x");
-        require(
-            IStrategy(_strategy).vault() == address(this),
-            "Vault: invalid vault"
-        );
-        require(
-            address(strategy) == address(0) || strategy.hasAssets() == false,
-            "Vault: strategy has invested funds"
-        );
+        if (_strategy == address(0)) revert VaultStrategyNotSet();
+        if (IStrategy(_strategy).vault() != address(this)) revert VaultInvalidVault();
+        if (address(strategy) != address(0) && strategy.hasAssets() == true) revert VaultStrategyHasInvestedFunds();
 
         strategy = IStrategy(_strategy);
 
@@ -543,7 +511,7 @@ contract Vault is
         override(IVaultSettings)
         onlyRole(SETTINGS_ROLE)
     {
-        require(pct.validPct(), "Vault: invalid investment fee");
+        if (!pct.validPct()) revert VaultInvalidInvestmentFee();
 
         investmentFeeEstimatePct = pct;
         emit InvestmentFeeEstimatePctUpdated(pct);
@@ -637,10 +605,7 @@ contract Vault is
         uint256 idsLen = _ids.length;
 
         for (uint256 i; i < idsLen; ++i) {
-            require(
-                _amounts[i] <= deposits[_ids[i]].amount,
-                "amount too large"
-            );
+            if (_amounts[i] > deposits[_ids[i]].amount) revert VaultAmountTooLarge();
 
             amount += _withdrawSingle(
                 _ids[i],
@@ -678,9 +643,9 @@ contract Vault is
             address owner = _deposit.owner;
             uint256 amount = _deposit.amount;
 
-            require(owner == msg.sender, "Vault: you are not allowed");
-            require(lockedUntil <= block.timestamp, "Vault: amount is locked");
-            require(claimerId == address(0), "Vault: token id is not a sponsor");
+            if (owner != msg.sender) revert VaultNotAllowed();
+            if (lockedUntil > block.timestamp) revert VaultAmountLocked();
+            if (claimerId != address(0)) revert VaultNotSponsor();
 
             sponsorAmount += amount;
 
@@ -691,10 +656,7 @@ contract Vault is
 
         uint256 sponsorToTransfer = sponsorAmount;
 
-        require(
-            sponsorToTransfer <= totalUnderlying(),
-            "Vault: not enough funds"
-        );
+        if (sponsorToTransfer > totalUnderlying()) revert VaultNotEnoughFunds();
 
         totalSponsored -= sponsorAmount;
 
@@ -750,7 +712,7 @@ contract Vault is
 
         for (uint256 i; i < locals.claimsLen; ++i) {
             ClaimParams memory data = claims[i];
-            require(data.pct != 0, "Vault: claim percentage cannot be 0");
+            if (data.pct == 0) revert VaultClaimPercentageCannotBe0();
             // if it's the last claim, just grab all remaining amount, instead
             // of relying on percentages
             uint256 localAmount = i == locals.claimsLen - 1
@@ -770,10 +732,7 @@ contract Vault is
             locals.accumulatedAmount += localAmount;
         }
 
-        require(
-            locals.accumulatedPct.is100Pct(),
-            "Vault: claims don't add up to 100%"
-        );
+        if (!locals.accumulatedPct.is100Pct()) revert VaultClaimsDontAddUp();
 
         _depositGroupIds++;
 
@@ -864,21 +823,14 @@ contract Vault is
         bool _force,
         uint256 _amount
     ) internal returns (uint256) {
-        require(
-            deposits[_tokenId].owner == msg.sender,
-            "Vault: you are not the owner of a deposit"
-        );
+        if (deposits[_tokenId].owner != msg.sender) revert VaultNotOwnerOfDeposit();
 
         // memoizing saves warm sloads
         Deposit memory _deposit = deposits[_tokenId];
         Claimer memory _claim = claimer[_deposit.claimerId];
 
-        require(
-            _deposit.lockedUntil <= block.timestamp,
-            "Vault: deposit is locked"
-        );
-
-        require(_deposit.claimerId != address(0), "Vault: token id is not a deposit");
+        if (_deposit.lockedUntil > block.timestamp) revert VaultDepositLocked();
+        if (_deposit.claimerId == address(0)) revert VaultNotDeposit();
 
         bool isFull = _deposit.amount == _amount;
 
@@ -915,11 +867,8 @@ contract Vault is
             sharesToBurn =
                 (_amount * _claim.totalShares) /
                 _claim.totalPrincipal;
-        } else {
-            require(
-                lostMoney == false,
-                "Vault: cannot withdraw more than the available amount"
-            );
+        } else if (lostMoney) {
+            revert VaultCannotWithdrawMoreThanAvailable(); 
         }
 
         claimer[_deposit.claimerId].totalShares -= sharesToBurn;
@@ -955,10 +904,7 @@ contract Vault is
         IERC20(_token).safeTransferFrom(_from, address(this), _amount);
         uint256 balanceAfter = IERC20(_token).balanceOf(address(this));
 
-        require(
-            balanceAfter == balanceBefore + _amount,
-            "Vault: amount received does not match params"
-        );
+        if (balanceAfter != balanceBefore + _amount) revert VaultAmountDoesNotMatchParams();
     }
 
     function _blockTimestamp() internal view returns (uint64) {
@@ -980,11 +926,7 @@ contract Vault is
     ) internal pure returns (uint256) {
         if (_amount == 0) return 0;
         if (_totalShares == 0) return _amount * SHARES_MULTIPLIER;
-
-        require(
-            _totalUnderlyingMinusSponsored != 0,
-            "Vault: cannot compute shares when there's no principal"
-        );
+        if (_totalUnderlyingMinusSponsored == 0) revert VaultCannotComputeSharesWithoutPrincipal();
 
         return (_amount * _totalShares) / _totalUnderlyingMinusSponsored;
     }

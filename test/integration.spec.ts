@@ -163,9 +163,7 @@ describe("Integration", () => {
       // we expect the withdraw to fail because there are not enough funds in the vault
       await expect(
         vault.connect(alice).withdraw(alice.address, [2])
-      ).to.be.revertedWith(
-        "Vault: cannot compute shares when there's no principal"
-      );
+      ).to.be.revertedWith('CannotComputeSharesWithoutPrincipal')
       await vault.connect(bob).unsponsor(bob.address, [1]);
 
       expect(await underlyingBalanceOf(bob)).to.eq(parseUnits("1000"));

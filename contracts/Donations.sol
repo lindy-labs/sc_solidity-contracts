@@ -13,7 +13,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 contract Donations is ERC721, AccessControl {
     using SafeERC20 for IERC20;
 
-    bytes32 public immutable WORKER_ROLE = keccak256("WORKER_ROLE");
+    bytes32 public constant WORKER_ROLE = keccak256("WORKER_ROLE");
 
     struct DonationParams {
         uint256 destinationId;
@@ -131,20 +131,22 @@ contract Donations is ERC721, AccessControl {
         uint64 expiry = _getBlockTimestamp() + ttl;
         uint256 length = _params.length;
 
-        for (uint256 i = 0; i < length; i++) {
-            metadataId += 1;
+        uint256 _metadataId = metadataId;
 
-            metadata[metadataId] = Metadata({
+        for (uint256 i = 0; i < length; i++) {
+            _metadataId += 1;
+
+            metadata[_metadataId] = Metadata({
                 destinationId: _params[i].destinationId,
                 token: _params[i].token,
                 expiry: expiry,
                 amount: _params[i].amount
             });
 
-            _mint(_params[i].owner, metadataId);
+            _mint(_params[i].owner, _metadataId);
 
             emit DonationMinted(
-                metadataId,
+                _metadataId,
                 _params[i].destinationId,
                 groupId,
                 _params[i].token,
@@ -153,6 +155,8 @@ contract Donations is ERC721, AccessControl {
                 _params[i].owner
             );
         }
+
+        metadataId = _metadataId;
 
         processedDonationsGroups[groupId] = true;
     }
