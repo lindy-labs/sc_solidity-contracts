@@ -64,7 +64,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
   await mockEthAnchorRouter.notifyDepositResult(
     ethAnchorOperator,
-    parseUnits('2000', 18),
+    parseUnits('2812', 18)
   );
 
   console.log('Stable Deposit finished');
