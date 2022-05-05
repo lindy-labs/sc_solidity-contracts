@@ -139,6 +139,17 @@ contract Vault is
         uint16 _lossTolerancePct,
         SwapPoolParam[] memory _swapPools
     ) {
+        if (!_investPct.validPct()) revert VaultInvalidInvestpct();
+        if (!_perfFeePct.validPct()) revert VaultInvalidPerformanceFee();
+        if (!_investmentFeeEstimatePct.validPct())
+            revert VaultInvalidInvestmentFee();
+        if (address(_underlying) == address(0x0))
+            revert VaultUnderlyingCannotBe0Address();
+        if (_treasury == address(0x0)) revert VaultTreasuryCannotBe0Address();
+        if (_owner == address(0x0)) revert VaultOwnerCannotBe0Address();
+        if (_minLockPeriod == 0 || _minLockPeriod > MAX_DEPOSIT_LOCK_DURATION)
+            revert VaultInvalidMinLockPeriod();
+
         _setupRole(DEFAULT_ADMIN_ROLE, _owner);
         _setupRole(INVESTOR_ROLE, _owner);
         _setupRole(SETTINGS_ROLE, _owner);
