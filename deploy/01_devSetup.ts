@@ -1,7 +1,7 @@
-import type { HardhatRuntimeEnvironment } from "hardhat/types";
+import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 
-import { ethers } from "hardhat";
-import deployMockCurvePool from "./helpers/mockPool";
+import { ethers } from 'hardhat';
+import deployMockCurvePool from './helpers/mockPool';
 
 const { parseUnits } = ethers.utils;
 
@@ -10,17 +10,17 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     return;
   }
 
-  await deployDevToken(env, "DAI", "MockDAI");
-  await deployDevToken(env, "USDC", "MockUSDC");
-  await deployDevToken(env, "UST", "MockUST");
-  await deployDevToken(env, "aUST", "MockAUST");
-  await deployMockCurvePool(env, "CurvePool-UST-3CRV", "UST", ["DAI", "USDC"]);
+  await deployDevToken(env, 'DAI', 'MockDAI');
+  await deployDevToken(env, 'USDC', 'MockUSDC');
+  await deployDevToken(env, 'UST', 'MockUST');
+  await deployDevToken(env, 'aUST', 'MockAUST');
+  await deployMockCurvePool(env, 'CurvePool-UST-3CRV', 'UST', ['DAI', 'USDC']);
 };
 
 async function deployDevToken(
   env: HardhatRuntimeEnvironment,
   name: string,
-  contract: string
+  contract: string,
 ) {
   const { deployer, alice, bob, carol } = await env.getNamedAccounts();
   const { deploy, execute, getOrNull, read } = env.deployments;
@@ -34,22 +34,22 @@ async function deployDevToken(
       args: [0],
     });
 
-    if (process.env.NODE_ENV !== "test") {
+    if (process.env.NODE_ENV !== 'test') {
       for (let account of [deployer, alice, bob, carol]) {
-        const decimals = await read(name, "decimals");
+        const decimals = await read(name, 'decimals');
         await execute(
           name,
           { from: account },
-          "mint",
+          'mint',
           account,
-          parseUnits("1000", decimals)
+          parseUnits('1000', decimals),
         );
       }
     }
   }
 }
 
-func.id = "dev_setup";
-func.tags = ["dev_setup"];
+func.id = 'dev_setup';
+func.tags = ['dev_setup'];
 
 export default func;
