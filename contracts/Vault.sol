@@ -141,8 +141,7 @@ contract Vault is
     ) {
         if (!_investPct.validPct()) revert VaultInvalidInvestpct();
         if (!_perfFeePct.validPct()) revert VaultInvalidPerformanceFee();
-        if (!_investmentFeeEstimatePct.validPct())
-            revert VaultInvalidInvestmentFee();
+        if (!_lossTolerancePct.validPct()) revert VaultInvalidLossTolerance();
         if (address(_underlying) == address(0x0))
             revert VaultUnderlyingCannotBe0Address();
         if (_treasury == address(0x0)) revert VaultTreasuryCannotBe0Address();
