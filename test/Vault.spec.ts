@@ -314,7 +314,7 @@ describe('Vault', () => {
           BigNumber.from('10001'),
           [],
         ),
-      ).to.be.revertedWith('VaultInvalidInvestmentFee');
+      ).to.be.revertedWith('VaultInvalidLossTolerance');
     });
 
     it('Check initial values', async () => {
@@ -406,10 +406,10 @@ describe('Vault', () => {
     });
   });
 
-  describe('setInvestmentTolerancePct', () => {
+  describe('setLossTolerancePct', () => {
     it('reverts if msg.sender is not admin', async () => {
       await expect(
-        vault.connect(alice).setInvestmentTolerancePct(100),
+        vault.connect(alice).setLossTolerancePct(100),
       ).to.be.revertedWith(getRoleErrorMsg(alice, SETTINGS_ROLE));
     });
 
@@ -417,22 +417,20 @@ describe('Vault', () => {
       await expect(
         vault
           .connect(owner)
-          .setInvestmentTolerancePct(DENOMINATOR.add(BigNumber.from('1'))),
-      ).to.be.revertedWith('VaultInvalidInvestmentFee');
+          .setLossTolerancePct(DENOMINATOR.add(BigNumber.from('1'))),
+      ).to.be.revertedWith('VaultInvalidLossTolerance');
     });
 
-    it('change investmentTolerancePct and emit InvestPercentageUpdated event', async () => {
-      const newInvestmentTolerancePct = 200;
+    it('change lossTolerancePct and emit InvestPercentageUpdated event', async () => {
+      const newLossTolerancePct = 200;
       const tx = await vault
         .connect(owner)
-        .setInvestmentTolerancePct(newInvestmentTolerancePct);
+        .setLossTolerancePct(newLossTolerancePct);
 
       await expect(tx)
-        .emit(vault, 'InvestmentTolerancePctUpdated')
-        .withArgs(newInvestmentTolerancePct);
-      expect(await vault.investmentTolerancePct()).to.be.equal(
-        newInvestmentTolerancePct,
-      );
+        .emit(vault, 'LossTolerancePctUpdated')
+        .withArgs(newLossTolerancePct);
+      expect(await vault.lossTolerancePct()).to.be.equal(newLossTolerancePct);
     });
   });
 
