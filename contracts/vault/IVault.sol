@@ -148,6 +148,16 @@ interface IVault {
     function claimYield(address _to) external;
 
     /**
+     * Creates a new deposit using the specified group id
+     *
+     * @param _groupId The group id for the new deposit
+     * @param _params Deposit params
+     */
+    function depositForGroupId(uint256 _groupId, DepositParams calldata _params)
+        external
+        returns (uint256[] memory);
+
+    /**
      * Creates a new deposit
      *
      * @param _params Deposit params

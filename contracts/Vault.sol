@@ -94,6 +94,7 @@ contract Vault is
 
     /// Unique IDs to correlate donations that belong to the same foundation
     uint256 private _depositGroupIds;
+    mapping(uint256 => address) public depositGroupIdOwner;
 
     /// deposit NFT ID => deposit data
     mapping(uint256 => Deposit) public deposits;
@@ -224,10 +225,34 @@ contract Vault is
     }
 
     /// @inheritdoc IVault
+    function depositForGroupId(uint256 _groupId, DepositParams calldata _params)
+        external
+        nonReentrant
+        whenNotPaused
+        returns (uint256[] memory depositIds)
+    {
+        if (depositGroupIdOwner[_groupId] != msg.sender)
+            revert VaultSenderNotOwnerOfGroupId();
+
+        depositIds = _doDeposit(_groupId, _params);
+    }
+
+    /// @inheritdoc IVault
     function deposit(DepositParams calldata _params)
         external
         nonReentrant
         whenNotPaused
+        returns (uint256[] memory depositIds)
+    {
+        depositGroupIdOwner[_depositGroupIds] = msg.sender;
+
+        depositIds = _doDeposit(_depositGroupIds, _params);
+
+        ++_depositGroupIds;
+    }
+
+    function _doDeposit(uint256 _groupId, DepositParams calldata _params)
+        internal
         returns (uint256[] memory depositIds)
     {
         if (_params.amount == 0) revert VaultCannotDeposit0();
@@ -258,7 +283,8 @@ contract Vault is
             newUnderlyingAmount,
             lockedUntil,
             _params.claims,
-            _params.name
+            _params.name,
+            _groupId
         );
     }
 
@@ -687,7 +713,6 @@ contract Vault is
     struct CreateDepositLocals {
         uint256 totalShares;
         uint256 totalUnderlying;
-        uint256 groupId;
         uint16 accumulatedPct;
         uint256 accumulatedAmount;
         uint256 claimsLen;
@@ -714,12 +739,12 @@ contract Vault is
         uint256 _amount,
         uint64 _lockedUntil,
         ClaimParams[] calldata claims,
-        string calldata _name
+        string calldata _name,
+        uint256 _groupId
     ) internal returns (uint256[] memory) {
         CreateDepositLocals memory locals = CreateDepositLocals({
             totalShares: totalShares,
             totalUnderlying: _previousTotalUnderlying,
-            groupId: _depositGroupIds,
             accumulatedPct: 0,
             accumulatedAmount: 0,
             claimsLen: claims.length
@@ -737,7 +762,7 @@ contract Vault is
                 : _amount.pctOf(data.pct);
 
             result[i] = _createClaim(
-                locals.groupId,
+                _groupId,
                 localAmount,
                 _lockedUntil,
                 data,
@@ -750,8 +775,6 @@ contract Vault is
         }
 
         if (!locals.accumulatedPct.is100Pct()) revert VaultClaimsDontAddUp();
-
-        _depositGroupIds++;
 
         return result;
     }

@@ -6,6 +6,9 @@ interface CustomErrors {
     // Vault Errors
     //
 
+    // Vault: sender is not the owner of the group id
+    error VaultSenderNotOwnerOfGroupId();
+
     // Vault: invalid investPct
     error VaultInvalidInvestpct();
 

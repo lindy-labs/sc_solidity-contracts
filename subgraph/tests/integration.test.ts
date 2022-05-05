@@ -3,7 +3,7 @@ import {
   test,
   assert,
   newMockEvent,
-  clearStore,
+  clearStore
 } from "matchstick-as/assembly/index";
 
 import {
@@ -12,7 +12,7 @@ import {
   handleUnsponsored,
   handleDepositWithdrawn,
   handleYieldClaimed,
-  handleTreasuryUpdated,
+  handleTreasuryUpdated
 } from "../src/mappings/vault";
 import {
   handleInitDeposit,
@@ -20,13 +20,13 @@ import {
   handleFinishDeposit,
   handleFinishRedeem,
   handleRearrangeDeposit,
-  handleRearrangeRedeem,
+  handleRearrangeRedeem
 } from "../src/mappings/strategy";
 import { Sponsored, Unsponsored } from "../src/types/Vault/IVaultSponsoring";
 import {
   DepositWithdrawn,
   DepositMinted,
-  YieldClaimed,
+  YieldClaimed
 } from "../src/types/Vault/IVault";
 import { TreasuryUpdated } from "../src/types/Vault/IVaultSettings";
 import {
@@ -36,7 +36,7 @@ import {
   Claimer,
   Foundation,
   DepositOperation,
-  RedeemOperation,
+  RedeemOperation
 } from "../src/types/schema";
 import {
   FinishDepositStable,
@@ -44,13 +44,11 @@ import {
   InitDepositStable,
   InitRedeemStable,
   RearrangeDepositOperation,
-  RearrangeRedeemOperation,
+  RearrangeRedeemOperation
 } from "../src/types/Strategy/AnchorStrategy";
 
-const MOCK_ADDRESS_1 =
-  "0xC80B3caAd6d2DE80Ac76a41d5F0072E36D2519Cd".toLowerCase();
-const MOCK_ADDRESS_2 =
-  "0xE80B3caAd6d2DE80Ac76a41d5F0072E36D2519Ce".toLowerCase();
+const MOCK_ADDRESS_1 = "0xC80B3caAd6d2DE80Ac76a41d5F0072E36D2519Cd".toLowerCase();
+const MOCK_ADDRESS_2 = "0xE80B3caAd6d2DE80Ac76a41d5F0072E36D2519Ce".toLowerCase();
 const TREASURY_ADDRESS = "0x4940c6e628da11ac0bdcf7f82be8579b4696fa33";
 
 test("handleInitDeposit creates a DepositOperation", () => {
@@ -477,6 +475,88 @@ test("handleDepositMinted creates a Deposit", () => {
     foundationId,
     "createdAt",
     event.block.timestamp.toString()
+  );
+});
+
+test("handleDepositMinted uses the last event's name as the Foundation's name", () => {
+  clearStore();
+
+  let mockEvent = newMockEvent();
+  let event = new DepositMinted(
+    mockEvent.address,
+    mockEvent.logIndex,
+    mockEvent.transactionLogIndex,
+    mockEvent.logType,
+    mockEvent.block,
+    mockEvent.transaction,
+    mockEvent.parameters
+  );
+  event.parameters = new Array();
+
+  const vault = new Vault(mockEvent.address.toHexString());
+  vault.save();
+
+  const idParam = newI32("id", 1);
+  const groupId = newI32("groupId", 1);
+  const amount = newI32("amount", 1);
+  const shares = newI32("shares", 1);
+  const depositor = newAddress("depositor", MOCK_ADDRESS_1);
+  const claimer = newAddress("claimer", MOCK_ADDRESS_1);
+  const claimerId = newI32("claimerId", 1);
+  const lockedUntil = newI32("lockedUntil", 1);
+  const data = newBytes("data", Bytes.empty());
+  let name = newString("name", "Foundation");
+
+  event.parameters.push(idParam);
+  event.parameters.push(groupId);
+  event.parameters.push(amount);
+  event.parameters.push(shares);
+  event.parameters.push(depositor);
+  event.parameters.push(claimer);
+  event.parameters.push(claimerId);
+  event.parameters.push(lockedUntil);
+  event.parameters.push(data);
+  event.parameters.push(name);
+
+  handleDepositMinted(event);
+
+  const foundationId = `${vault.id}-1`;
+  assert.fieldEquals("Foundation", foundationId, "name", "Foundation");
+
+  // Sending another DepositMinted that updates the name
+
+  mockEvent = newMockEvent();
+  event = new DepositMinted(
+    mockEvent.address,
+    mockEvent.logIndex,
+    mockEvent.transactionLogIndex,
+    mockEvent.logType,
+    mockEvent.block,
+    mockEvent.transaction,
+    mockEvent.parameters
+  );
+  event.parameters = new Array();
+
+  name = newString("name", "Updated Foundation Name");
+
+  event.parameters.push(idParam);
+  event.parameters.push(groupId);
+  event.parameters.push(amount);
+  event.parameters.push(shares);
+  event.parameters.push(depositor);
+  event.parameters.push(claimer);
+  event.parameters.push(claimerId);
+  event.parameters.push(lockedUntil);
+  event.parameters.push(data);
+  event.parameters.push(name);
+
+  handleDepositMinted(event);
+
+  assert.fieldEquals(
+    "Foundation",
+    foundationId,
+    "name",
+    "Updated Foundation Name"
   );
 });
 
