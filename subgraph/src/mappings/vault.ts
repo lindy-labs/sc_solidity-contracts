@@ -22,7 +22,7 @@ import {
 } from "../types/schema";
 
 export function handleYieldClaimed(event: YieldClaimed): void {
-  const claimerId = event.params.claimerId.toString();
+  const claimerId = event.params.claimerId.toHexString();
   const claimer = Claimer.load(claimerId)!;
 
   createVault(claimer.vault);
@@ -89,7 +89,7 @@ export function handleDepositMinted(event: DepositMinted): void {
   const vaultId = event.address.toHexString();
   const foundationId = vaultId + "-" + event.params.groupId.toString();
   const depositId = event.params.id.toString();
-  const claimerId = event.params.claimerId.toString();
+  const claimerId = event.params.claimerId.toHexString();
 
   createVault(vaultId);
   const vault = Vault.load(vaultId)!;

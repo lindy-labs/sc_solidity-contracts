@@ -443,7 +443,6 @@ test("handleDepositMinted creates a Deposit", () => {
   const shares = newI32("shares", 1);
   const depositor = newAddress("depositor", MOCK_ADDRESS_1);
   const claimer = newAddress("claimer", MOCK_ADDRESS_1);
-  const claimerId = newI32("claimerId", 1);
   const lockedUntil = newI32("lockedUntil", 1);
   const data = newBytes("data", Bytes.empty());
   const name = newString("name", "Foundation");
@@ -454,7 +453,7 @@ test("handleDepositMinted creates a Deposit", () => {
   event.parameters.push(shares);
   event.parameters.push(depositor);
   event.parameters.push(claimer);
-  event.parameters.push(claimerId);
+  event.parameters.push(claimer);
   event.parameters.push(lockedUntil);
   event.parameters.push(data);
   event.parameters.push(name);
@@ -463,9 +462,9 @@ test("handleDepositMinted creates a Deposit", () => {
 
   assert.fieldEquals("Deposit", "1", "amount", "1");
   assert.fieldEquals("Deposit", "1", "depositor", MOCK_ADDRESS_1);
-  assert.fieldEquals("Deposit", "1", "claimer", "1");
-  assert.fieldEquals("Claimer", "1", "principal", "1");
-  assert.fieldEquals("Claimer", "1", "depositsIds", "[1]");
+  assert.fieldEquals("Deposit", "1", "claimer", MOCK_ADDRESS_1);
+  assert.fieldEquals("Claimer", MOCK_ADDRESS_1, "principal", "1");
+  assert.fieldEquals("Claimer", MOCK_ADDRESS_1, "depositsIds", "[1]");
 
   const foundationId = `${vault.id}-1`;
   assert.fieldEquals("Foundation", foundationId, "name", "Foundation");
@@ -543,7 +542,7 @@ test("handleYieldClaimed reduces shares from Deposits and creates Donations", ()
   vault.save();
 
   // Create claimer
-  const claimer = new Claimer("1");
+  const claimer = new Claimer(MOCK_ADDRESS_1);
   claimer.vault = mockEvent.address.toHexString();
   claimer.depositsIds = ["1", "2"];
   claimer.save();
@@ -564,7 +563,7 @@ test("handleYieldClaimed reduces shares from Deposits and creates Donations", ()
   );
   event.parameters = new Array();
 
-  event.parameters.push(newI32("claimerId", 1));
+  event.parameters.push(newAddress("claimerId", MOCK_ADDRESS_1));
   event.parameters.push(newAddress("to", TREASURY_ADDRESS));
   event.parameters.push(newI32("amount", 150));
   event.parameters.push(newI32("burnedShares", 75));
@@ -596,7 +595,7 @@ test("handleYieldClaimed takes the performance fee into account", () => {
   vault.save();
 
   // Create claimer
-  const claimer = new Claimer("1");
+  const claimer = new Claimer(MOCK_ADDRESS_1);
   claimer.vault = mockEvent.address.toHexString();
   claimer.depositsIds = ["1", "2"];
   claimer.save();
@@ -617,7 +616,7 @@ test("handleYieldClaimed takes the performance fee into account", () => {
   );
   event.parameters = new Array();
 
-  event.parameters.push(newI32("claimerId", 1));
+  event.parameters.push(newAddress("claimerId", MOCK_ADDRESS_1));
   event.parameters.push(newAddress("to", TREASURY_ADDRESS));
   event.parameters.push(newI32("amount", 120));
   event.parameters.push(newI32("burnedShares", 75));
@@ -625,7 +624,7 @@ test("handleYieldClaimed takes the performance fee into account", () => {
 
   handleYieldClaimed(event);
 
-  assert.fieldEquals("Claimer", "1", "claimed", "120");
+  assert.fieldEquals("Claimer", MOCK_ADDRESS_1, "claimed", "120");
 
   assert.fieldEquals("Deposit", "1", "shares", "25");
   assert.fieldEquals("Deposit", "2", "shares", "50");
@@ -651,7 +650,7 @@ test("handleYieldClaimed doesn't create donations if the deposits are not to the
   vault.save();
 
   // Create claimer
-  const claimer = new Claimer("1");
+  const claimer = new Claimer(MOCK_ADDRESS_2);
   claimer.vault = mockEvent.address.toHexString();
   claimer.depositsIds = ["1", "2"];
   claimer.save();
@@ -672,7 +671,7 @@ test("handleYieldClaimed doesn't create donations if the deposits are not to the
   );
   event.parameters = new Array();
 
-  event.parameters.push(newI32("claimerId", 1));
+  event.parameters.push(newAddress("claimerId", MOCK_ADDRESS_2));
   event.parameters.push(newAddress("to", MOCK_ADDRESS_1));
   event.parameters.push(newI32("amount", 150));
   event.parameters.push(newI32("burnedShares", 75));
@@ -699,7 +698,7 @@ test("handleYieldClaimed handles scenarios where only one of the deposits genera
   vault.treasury = Address.fromString(TREASURY_ADDRESS);
   vault.save();
 
-  const claimer = new Claimer("1");
+  const claimer = new Claimer(MOCK_ADDRESS_2);
   claimer.vault = mockEvent.address.toHexString();
   claimer.depositsIds = ["1", "2"];
   claimer.save();
@@ -719,7 +718,7 @@ test("handleYieldClaimed handles scenarios where only one of the deposits genera
   );
   event.parameters = new Array();
 
-  event.parameters.push(newI32("claimerId", 1));
+  event.parameters.push(newAddress("claimerId", MOCK_ADDRESS_2));
   event.parameters.push(newAddress("to", TREASURY_ADDRESS));
   event.parameters.push(newI32("amount", 50));
   event.parameters.push(newI32("burnedShares", 25));
@@ -745,7 +744,7 @@ test("handleYieldClaimed handles scenarios where the yield is not proportional t
   vault.treasury = Address.fromString(TREASURY_ADDRESS);
   vault.save();
 
-  const claimer = new Claimer("1");
+  const claimer = new Claimer(MOCK_ADDRESS_2);
   claimer.vault = mockEvent.address.toHexString();
   claimer.depositsIds = ["1", "2"];
   claimer.save();
@@ -765,7 +764,7 @@ test("handleYieldClaimed handles scenarios where the yield is not proportional t
   );
   event.parameters = new Array();
 
-  event.parameters.push(newI32("claimerId", 1));
+  event.parameters.push(newAddress("claimerId", MOCK_ADDRESS_2));
   event.parameters.push(newAddress("to", TREASURY_ADDRESS));
   event.parameters.push(newI32("amount", 147));
   event.parameters.push(newI32("burnedShares", 49));

@@ -16,12 +16,12 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   const vaultAddress = (await get("Vault_UST")).address;
   const vault = await ethers.getContractAt("Vault", vaultAddress);
 
-  await underlying.mint(alice.address, parseUnits("5000", 6));
-  await underlying.mint(bob.address, parseUnits("5000", 6));
+  await underlying.mint(alice.address, parseUnits("5000", 18));
+  await underlying.mint(bob.address, parseUnits("5000", 18));
 
   await Promise.all(
     [alice, bob, treasury].map((account) =>
-      underlying.connect(account).approve(vault.address, parseUnits("5000", 6))
+      underlying.connect(account).approve(vault.address, parseUnits("5000", 18))
     )
   );
 
@@ -36,13 +36,13 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   const lockDuration = await vault.MIN_SPONSOR_LOCK_DURATION();
   await vault
     .connect(treasury)
-    .sponsor(ust.address, parseUnits("1000", 6), lockDuration);
+    .sponsor(ust.address, parseUnits("1000", 18), lockDuration);
 
   console.log(
     "Alice deposits 1000 with 90% yield to Alice and 10% yield for donations"
   );
   await vault.connect(alice).deposit({
-    amount: parseUnits("1000", 6),
+    amount: parseUnits("1000", 18),
     inputToken: ust.address,
     lockDuration: 1,
     claims: [
@@ -64,7 +64,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
     "Bob deposits 1000 with 50% yield to Alice and 50% yield for donations"
   );
   await vault.connect(bob).deposit({
-    amount: parseUnits("1000", 6),
+    amount: parseUnits("1000", 18),
     inputToken: ust.address,
     lockDuration: 1,
     claims: [
@@ -83,7 +83,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   });
 
   console.log("2000 yield is generated");
-  await underlying.mint(vault.address, parseUnits("2000", 6));
+  await underlying.mint(vault.address, parseUnits("2000", 18));
 
   console.log("Alice claims");
   await vault.connect(alice).claimYield(alice.address);
