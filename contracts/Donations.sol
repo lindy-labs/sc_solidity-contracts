@@ -95,12 +95,9 @@ contract Donations is ERC721, AccessControl {
         IERC20 _token,
         address _to
     ) external onlyRole(WORKER_ROLE) {
-        require(
-            transferableAmounts[_token][_destinationId] != 0,
-            "Donations: nothing to donate"
-        );
-
         uint256 amount = transferableAmounts[_token][_destinationId];
+        require(amount != 0, "Donations: nothing to donate");
+
         transferableAmounts[_token][_destinationId] = 0;
 
         emit DonationsSent(_destinationId, _token, _to, amount);
@@ -131,8 +128,8 @@ contract Donations is ERC721, AccessControl {
         uint64 expiry = _getBlockTimestamp() + ttl;
         uint256 length = _params.length;
 
-        for (uint256 i = 0; i < length; i++) {
-            metadataId += 1;
+        for (uint256 i = 0; i < length; ++i) {
+            ++metadataId;
 
             metadata[metadataId] = Metadata({
                 destinationId: _params[i].destinationId,
@@ -167,15 +164,11 @@ contract Donations is ERC721, AccessControl {
 
         Metadata storage data = metadata[_id];
 
-        bool expired = data.expiry <= _getBlockTimestamp();
+        bool expired = data.expiry < _getBlockTimestamp();
 
         require(isOwner || expired, "Donations: not allowed");
 
-        uint256 destinationId = data.destinationId;
-        IERC20 token = data.token;
-        uint256 amount = data.amount;
-
-        transferableAmounts[token][destinationId] += amount;
+        transferableAmounts[data.token][data.destinationId] += data.amount;
 
         _burn(_id);
 
