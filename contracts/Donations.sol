@@ -16,22 +16,22 @@ contract Donations is ERC721, AccessControl {
     bytes32 public constant WORKER_ROLE = keccak256("WORKER_ROLE");
 
     struct DonationParams {
-        uint256 destinationId;
+        uint128 destinationId;
         address owner;
         IERC20 token;
         uint256 amount;
     }
 
     struct Metadata {
-        uint256 destinationId;
+        uint128 destinationId;
+        uint64 expiry;
         IERC20 token;
         uint256 amount;
-        uint64 expiry;
     }
 
     event DonationMinted(
         uint256 indexed id,
-        uint256 indexed destinationId,
+        uint128 indexed destinationId,
         bytes32 indexed groupId,
         IERC20 token,
         uint256 expiry,
@@ -42,7 +42,7 @@ contract Donations is ERC721, AccessControl {
     event DonationBurned(uint256 indexed id);
 
     event DonationsSent(
-        uint256 indexed destinationId,
+        uint128 indexed destinationId,
         IERC20 indexed token,
         address indexed to,
         uint256 amount
@@ -60,7 +60,7 @@ contract Donations is ERC721, AccessControl {
     mapping(bytes32 => bool) public processedDonationsGroups;
 
     /// Stores how much should be transferred to each charity in each coin.
-    mapping(IERC20 => mapping(uint256 => uint256)) public transferableAmounts;
+    mapping(IERC20 => mapping(uint128 => uint256)) public transferableAmounts;
 
     /**
      * @param _owner Account that will receive the admin role.
@@ -91,7 +91,7 @@ contract Donations is ERC721, AccessControl {
      * @param _to Address of the charity.
      */
     function donate(
-        uint256 _destinationId,
+        uint128 _destinationId,
         IERC20 _token,
         address _to
     ) external onlyRole(WORKER_ROLE) {
