@@ -16,7 +16,7 @@ interface CustomErrors {
     error VaultNoPerformanceFee();
 
     // Vault: invalid investment fee
-    error VaultInvalidInvestmentFee();
+    error VaultInvalidLossTolerance();
 
     // Vault: underlying cannot be 0x0
     error VaultUnderlyingCannotBe0Address();
