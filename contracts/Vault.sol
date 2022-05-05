@@ -249,7 +249,7 @@ contract Vault is
 
         depositIds = _doDeposit(_depositGroupIds, _params);
 
-        _depositGroupIds++;
+        ++_depositGroupIds;
     }
 
     function _doDeposit(uint256 _groupId, DepositParams calldata _params)
