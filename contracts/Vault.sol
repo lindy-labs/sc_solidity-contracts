@@ -141,11 +141,14 @@ contract Vault is
     ) {
         if (!_investPct.validPct()) revert VaultInvalidInvestpct();
         if (!_perfFeePct.validPct()) revert VaultInvalidPerformanceFee();
-        if (!_investmentFeeEstimatePct.validPct()) revert VaultInvalidInvestmentFee();
-        if (address(_underlying) == address(0x0)) revert VaultUnderlyingCannotBe0Address();
+        if (!_investmentFeeEstimatePct.validPct())
+            revert VaultInvalidInvestmentFee();
+        if (address(_underlying) == address(0x0))
+            revert VaultUnderlyingCannotBe0Address();
         if (_treasury == address(0x0)) revert VaultTreasuryCannotBe0Address();
         if (_owner == address(0x0)) revert VaultOwnerCannotBe0Address();
-        if (_minLockPeriod == 0 || _minLockPeriod > MAX_DEPOSIT_LOCK_DURATION) revert VaultInvalidMinLockPeriod();
+        if (_minLockPeriod == 0 || _minLockPeriod > MAX_DEPOSIT_LOCK_DURATION)
+            revert VaultInvalidMinLockPeriod();
 
         _setupRole(DEFAULT_ADMIN_ROLE, _owner);
         _setupRole(INVESTOR_ROLE, _owner);
@@ -161,7 +164,7 @@ contract Vault is
 
         depositors = new Depositors(this);
 
-        rebalanceMinimum = 10 * 10 ** underlying.decimals();
+        rebalanceMinimum = 10 * 10**underlying.decimals();
 
         _addPools(_swapPools);
     }
@@ -229,13 +232,17 @@ contract Vault is
         returns (uint256[] memory depositIds)
     {
         if (_params.amount == 0) revert VaultCannotDeposit0();
-        if (_params.lockDuration < minLockPeriod || _params.lockDuration > MAX_DEPOSIT_LOCK_DURATION) revert VaultInvalidLockPeriod();
+        if (
+            _params.lockDuration < minLockPeriod ||
+            _params.lockDuration > MAX_DEPOSIT_LOCK_DURATION
+        ) revert VaultInvalidLockPeriod();
 
         uint256 principalMinusStrategyFee = _applyInvestmentFeeEstimate(
             totalPrincipal
         );
         uint256 previousTotalUnderlying = totalUnderlyingMinusSponsored();
-        if (principalMinusStrategyFee > previousTotalUnderlying) revert VaultCannotDepositWhenYieldNegative();
+        if (principalMinusStrategyFee > previousTotalUnderlying)
+            revert VaultCannotDepositWhenYieldNegative();
 
         _transferAndCheckInputToken(
             msg.sender,
@@ -338,7 +345,8 @@ contract Vault is
         if (alreadyInvested > maxInvestableAmount) {
             uint256 disinvestAmount = alreadyInvested - maxInvestableAmount;
 
-            if (disinvestAmount < rebalanceMinimum) revert VaultNotEnoughToRebalance();
+            if (disinvestAmount < rebalanceMinimum)
+                revert VaultNotEnoughToRebalance();
 
             strategy.withdrawToVault(disinvestAmount);
 
@@ -392,7 +400,10 @@ contract Vault is
     {
         if (_amount == 0) revert VaultCannotSponsor0();
 
-        if (_lockDuration < MIN_SPONSOR_LOCK_DURATION || _lockDuration > MAX_SPONSOR_LOCK_DURATION) revert VaultInvalidLockPeriod();
+        if (
+            _lockDuration < MIN_SPONSOR_LOCK_DURATION ||
+            _lockDuration > MAX_SPONSOR_LOCK_DURATION
+        ) revert VaultInvalidLockPeriod();
 
         uint256 lockedUntil = _lockDuration + block.timestamp;
         uint256 tokenId = depositors.mint(msg.sender);
@@ -400,7 +411,12 @@ contract Vault is
         _transferAndCheckInputToken(msg.sender, _inputToken, _amount);
         uint256 underlyingAmount = _swapIntoUnderlying(_inputToken, _amount);
 
-        deposits[tokenId] = Deposit(underlyingAmount, address(0), lockedUntil, 0);
+        deposits[tokenId] = Deposit(
+            underlyingAmount,
+            address(0),
+            lockedUntil,
+            0
+        );
         totalSponsored += underlyingAmount;
 
         emit Sponsored(tokenId, underlyingAmount, msg.sender, lockedUntil);
@@ -473,7 +489,8 @@ contract Vault is
         override(IVaultSettings)
         onlyRole(SETTINGS_ROLE)
     {
-        if (address(_treasury) == address(0x0)) revert VaultTreasuryCannotBe0Address();
+        if (address(_treasury) == address(0x0))
+            revert VaultTreasuryCannotBe0Address();
         treasury = _treasury;
         emit TreasuryUpdated(_treasury);
     }
@@ -484,7 +501,8 @@ contract Vault is
         override(IVaultSettings)
         onlyRole(SETTINGS_ROLE)
     {
-        if (!PercentMath.validPct(_perfFeePct)) revert VaultInvalidPerformanceFee();
+        if (!PercentMath.validPct(_perfFeePct))
+            revert VaultInvalidPerformanceFee();
         perfFeePct = _perfFeePct;
         emit PerfFeePctUpdated(_perfFeePct);
     }
@@ -496,8 +514,10 @@ contract Vault is
         onlyRole(SETTINGS_ROLE)
     {
         if (_strategy == address(0)) revert VaultStrategyNotSet();
-        if (IStrategy(_strategy).vault() != address(this)) revert VaultInvalidVault();
-        if (address(strategy) != address(0) && strategy.hasAssets() == true) revert VaultStrategyHasInvestedFunds();
+        if (IStrategy(_strategy).vault() != address(this))
+            revert VaultInvalidVault();
+        if (address(strategy) != address(0) && strategy.hasAssets() == true)
+            revert VaultStrategyHasInvestedFunds();
 
         strategy = IStrategy(_strategy);
 
@@ -604,7 +624,8 @@ contract Vault is
         uint256 idsLen = _ids.length;
 
         for (uint256 i; i < idsLen; ++i) {
-            if (_amounts[i] > deposits[_ids[i]].amount) revert VaultAmountTooLarge();
+            if (_amounts[i] > deposits[_ids[i]].amount)
+                revert VaultAmountTooLarge();
 
             amount += _withdrawSingle(
                 _ids[i],
@@ -820,7 +841,8 @@ contract Vault is
         bool _force,
         uint256 _amount
     ) internal returns (uint256) {
-        if (depositors.ownerOf(_tokenId) != msg.sender) revert VaultNotOwnerOfDeposit();
+        if (depositors.ownerOf(_tokenId) != msg.sender)
+            revert VaultNotOwnerOfDeposit();
 
         // memoizing saves warm sloads
         Deposit memory _deposit = deposits[_tokenId];
@@ -865,7 +887,7 @@ contract Vault is
                 (_amount * _claim.totalShares) /
                 _claim.totalPrincipal;
         } else if (lostMoney) {
-            revert VaultCannotWithdrawMoreThanAvailable(); 
+            revert VaultCannotWithdrawMoreThanAvailable();
         }
 
         claimer[_deposit.claimerId].totalShares -= sharesToBurn;
@@ -902,7 +924,8 @@ contract Vault is
         IERC20(_token).safeTransferFrom(_from, address(this), _amount);
         uint256 balanceAfter = IERC20(_token).balanceOf(address(this));
 
-        if (balanceAfter != balanceBefore + _amount) revert VaultAmountDoesNotMatchParams();
+        if (balanceAfter != balanceBefore + _amount)
+            revert VaultAmountDoesNotMatchParams();
     }
 
     function _blockTimestamp() internal view returns (uint64) {
@@ -924,7 +947,8 @@ contract Vault is
     ) internal pure returns (uint256) {
         if (_amount == 0) return 0;
         if (_totalShares == 0) return _amount * SHARES_MULTIPLIER;
-        if (_totalUnderlyingMinusSponsored == 0) revert VaultCannotComputeSharesWithoutPrincipal();
+        if (_totalUnderlyingMinusSponsored == 0)
+            revert VaultCannotComputeSharesWithoutPrincipal();
 
         return (_amount * _totalShares) / _totalUnderlyingMinusSponsored;
     }

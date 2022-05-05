@@ -1,6 +1,6 @@
-import { BigNumberish } from "ethers";
-import { Factory } from "fishery";
-import { ethers } from "ethers";
+import { BigNumberish } from 'ethers';
+import { Factory } from 'fishery';
+import { ethers } from 'ethers';
 
 const { parseUnits } = ethers.utils;
 
@@ -13,9 +13,9 @@ interface DonationParams {
 
 export const donationParams = Factory.define<DonationParams>(() => {
   return {
-    amount: parseUnits("1"),
-    destinationId: parseUnits("1"),
-    owner: "0x000000000000000000000000000000000000dEaD",
-    token: "0x000000000000000000000000000000000000dEaD",
+    amount: parseUnits('1'),
+    destinationId: parseUnits('1'),
+    owner: '0x000000000000000000000000000000000000dEaD',
+    token: '0x000000000000000000000000000000000000dEaD',
   };
 });

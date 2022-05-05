@@ -1,11 +1,11 @@
-import { BigNumber } from "ethers";
-import { HardhatRuntimeEnvironment } from "hardhat/types";
+import { BigNumber } from 'ethers';
+import { HardhatRuntimeEnvironment } from 'hardhat/types';
 
 async function deployMockCurvePool(
   env: HardhatRuntimeEnvironment,
   name: string,
   underlying0: string,
-  otherUnderlyings: string[]
+  otherUnderlyings: string[],
 ) {
   const { deployer } = await env.getNamedAccounts();
   const { deploy, execute, getOrNull, read, get } = env.deployments;
@@ -15,42 +15,42 @@ async function deployMockCurvePool(
   const underlyingDecimals = await read(
     underlying0,
     { from: deployer },
-    "decimals"
+    'decimals',
   );
 
   if (await getOrNull(name)) {
     return;
   }
 
-  await deploy(name, { contract: "MockCurve", from: deployer, args: [] });
+  await deploy(name, { contract: 'MockCurve', from: deployer, args: [] });
 
-  await execute(name, { from: deployer }, "addToken", 0, underlying.address);
+  await execute(name, { from: deployer }, 'addToken', 0, underlying.address);
 
   for (let i = 1; i < otherUnderlyings.length; i++) {
     const tokenName = otherUnderlyings[i];
     const token = await get(tokenName);
-    const tokenDecimals = await read(tokenName, { from: deployer }, "decimals");
+    const tokenDecimals = await read(tokenName, { from: deployer }, 'decimals');
 
     // add token to pool
-    await execute(name, { from: deployer }, "addToken", i, token.address);
+    await execute(name, { from: deployer }, 'addToken', i, token.address);
 
     // add exchange rates from/to underlying
     await execute(
       name,
       { from: deployer },
-      "updateRate",
+      'updateRate',
       0,
       i,
-      BigNumber.from(10).pow(18 + underlyingDecimals - tokenDecimals)
+      BigNumber.from(10).pow(18 + underlyingDecimals - tokenDecimals),
     );
 
     await execute(
       name,
       { from: deployer },
-      "updateRate",
+      'updateRate',
       i,
       0,
-      BigNumber.from(10).pow(18 + tokenDecimals - underlyingDecimals)
+      BigNumber.from(10).pow(18 + tokenDecimals - underlyingDecimals),
     );
   }
 }

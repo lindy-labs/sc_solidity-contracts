@@ -1,5 +1,5 @@
-import type { HardhatRuntimeEnvironment } from "hardhat/types";
-import { ethers } from "hardhat";
+import type { HardhatRuntimeEnvironment } from 'hardhat/types';
+import { ethers } from 'hardhat';
 
 const { parseUnits } = ethers.utils;
 
@@ -9,75 +9,77 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   const { get } = env.deployments;
   const [owner, alice, bob, treasury] = await ethers.getSigners();
 
-  const mockUST = await get("UST");
-  const underlying = await ethers.getContractAt("MockERC20", mockUST.address);
+  const mockUST = await get('UST');
+  const underlying = await ethers.getContractAt('MockERC20', mockUST.address);
 
-  const mockaUSTDeployment = await get("aUST");
+  const mockaUSTDeployment = await get('aUST');
   const mockaUST = await ethers.getContractAt(
-    "MockERC20",
-    mockaUSTDeployment.address
+    'MockERC20',
+    mockaUSTDeployment.address,
   );
 
-  console.log("Deployed UST strategy dependencies");
+  console.log('Deployed UST strategy dependencies');
 
-  const vaultDeployment = await get("Vault_UST");
-  const vault = await ethers.getContractAt("Vault", vaultDeployment.address);
-  const mockEthAnchorRouterDeployment = await get("MockEthAnchorRouter");
-  const mockChainlinkPriceFeedDeployment = await get("MockChainlinkPriceFeed");
+  const vaultDeployment = await get('Vault_UST');
+  const vault = await ethers.getContractAt('Vault', vaultDeployment.address);
+  const mockEthAnchorRouterDeployment = await get('MockEthAnchorRouter');
+  const mockChainlinkPriceFeedDeployment = await get('MockChainlinkPriceFeed');
   const mockChainlinkPriceFeed = await ethers.getContractAt(
-    "MockChainlinkPriceFeed",
-    mockChainlinkPriceFeedDeployment.address
+    'MockChainlinkPriceFeed',
+    mockChainlinkPriceFeedDeployment.address,
   );
 
   const mockEthAnchorRouter = await ethers.getContractAt(
-    "MockEthAnchorRouter",
-    mockEthAnchorRouterDeployment.address
+    'MockEthAnchorRouter',
+    mockEthAnchorRouterDeployment.address,
   );
 
-  const anchorStrategyDeployment = await get("AnchorStrategy");
+  const anchorStrategyDeployment = await get('AnchorStrategy');
   const anchorStrategy = await ethers.getContractAt(
-    "AnchorStrategy",
-    anchorStrategyDeployment.address
+    'AnchorStrategy',
+    anchorStrategyDeployment.address,
   );
 
-  await underlying.mint(bob.address, parseUnits("5000", 18));
-  await mockaUST.mint(owner.address, parseUnits("5000", 18));
+  await underlying.mint(bob.address, parseUnits('5000', 18));
+  await mockaUST.mint(owner.address, parseUnits('5000', 18));
 
   await Promise.all(
     [alice, bob, treasury, owner].map((account) =>
-      underlying.connect(account).approve(vault.address, parseUnits("5000", 18))
-    )
+      underlying
+        .connect(account)
+        .approve(vault.address, parseUnits('5000', 18)),
+    ),
   );
 
   await mockaUST
     .connect(owner)
-    .approve(mockEthAnchorRouter.address, parseUnits("5000", 18));
+    .approve(mockEthAnchorRouter.address, parseUnits('5000', 18));
 
   await setChainlinkData(1);
 
-  console.log("StrategyUpdated Event triggered, calling updateInvested");
+  console.log('StrategyUpdated Event triggered, calling updateInvested');
   await mockEthAnchorRouter.addPendingOperator(ethAnchorOperator);
   const updateInvestedTx = await vault.connect(owner).updateInvested();
   await updateInvestedTx.wait();
 
   await mockEthAnchorRouter.notifyDepositResult(
     ethAnchorOperator,
-    parseUnits("2000", 18)
+    parseUnits('2000', 18),
   );
 
-  console.log("Stable Deposit finished");
-  await anchorStrategy.finishDepositStable("0");
+  console.log('Stable Deposit finished');
+  await anchorStrategy.finishDepositStable('0');
 
   await setChainlinkData(2);
 
   await vault.connect(bob).deposit({
-    amount: parseUnits("1500", 18),
+    amount: parseUnits('1500', 18),
     lockDuration: 1,
     claims: [
       {
         beneficiary: bob.address,
         pct: 10000,
-        data: "0x",
+        data: '0x',
       },
     ],
     inputToken: mockUST.address,
@@ -89,23 +91,23 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
   await mockEthAnchorRouter.notifyDepositResult(
     ethAnchorOperator1,
-    parseUnits("1500", 18)
+    parseUnits('1500', 18),
   );
 
   async function setChainlinkData(round: number) {
     await mockChainlinkPriceFeed.setLatestRoundData(
       round,
-      ethers.utils.parseEther("1"),
+      ethers.utils.parseEther('1'),
       0,
       round,
-      round
+      round,
     );
   }
 };
 
-func.id = "dev_strategies";
-func.tags = ["dev_strategies"];
-func.dependencies = ["vaults", "fixtures", "fixture_deployments"];
+func.id = 'dev_strategies';
+func.tags = ['dev_strategies'];
+func.dependencies = ['vaults', 'fixtures', 'fixture_deployments'];
 
 // Deploy only to hardhat
 func.skip = async (hre: HardhatRuntimeEnvironment) =>
