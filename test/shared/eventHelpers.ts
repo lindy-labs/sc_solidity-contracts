@@ -1,4 +1,4 @@
-import { ethers } from "hardhat";
+import { ethers } from 'hardhat';
 import type {
   ContractReceipt,
   Event,
@@ -6,12 +6,12 @@ import type {
   Contract,
   ContractTransaction,
   utils,
-} from "ethers";
+} from 'ethers';
 
 export async function findEvents(
   tx: ContractTransaction,
   contract: Contract,
-  name: string
+  name: string,
 ): Promise<utils.LogDescription[]> {
   const receipt = await tx.wait(); //await contract.provider.waitForTransaction(tx.hash);
   const eventFragment = contract.interface.getEvent(name);
@@ -22,7 +22,7 @@ export async function findEvents(
       (log) =>
         log.topics.includes(topic) &&
         log.address &&
-        log.address.toLowerCase() === contract.address
+        log.address.toLowerCase() === contract.address,
     )
     .map((log) => contract.interface.parseLog(log));
 }
@@ -31,7 +31,7 @@ export async function findEvent(
   tx: ContractTransaction,
   contract: Contract,
   name: string,
-  i: number
+  i: number,
 ): Promise<Event | undefined> {
   return findEvents(tx, contract, name)[i || 0];
 }

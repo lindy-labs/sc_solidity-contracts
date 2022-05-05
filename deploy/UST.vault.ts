@@ -1,26 +1,26 @@
-import type { HardhatRuntimeEnvironment } from "hardhat/types";
-import type { DeployFunction } from "hardhat-deploy/types";
+import type { HardhatRuntimeEnvironment } from 'hardhat/types';
+import type { DeployFunction } from 'hardhat-deploy/types';
 
-import { getCurrentNetworkConfig } from "../scripts/deployConfigs";
-import deployMockCurvePool from "./helpers/mockPool";
+import { getCurrentNetworkConfig } from '../scripts/deployConfigs';
+import deployMockCurvePool from './helpers/mockPool';
 
 const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   const { deployer } = await env.getNamedAccounts();
   const { deploy, get } = env.deployments;
 
-  const ust = await get("UST");
-  const dai = await get("DAI");
-  const usdc = await get("USDC");
+  const ust = await get('UST');
+  const dai = await get('DAI');
+  const usdc = await get('USDC');
 
   // Deploy mock pool for ropsten only
   if (env.network.config.chainId === 3) {
-    await deployMockCurvePool(env, "CurvePool-UST-3CRV", "UST", [
-      "DAI",
-      "USDC",
+    await deployMockCurvePool(env, 'CurvePool-UST-3CRV', 'UST', [
+      'DAI',
+      'USDC',
     ]);
   }
 
-  const curvePool = await get("CurvePool-UST-3CRV");
+  const curvePool = await get('CurvePool-UST-3CRV');
 
   const {
     minLockPeriod,
@@ -56,8 +56,8 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
     ],
   ];
 
-  const vaultDeployment = await deploy("Vault_UST", {
-    contract: "Vault",
+  const vaultDeployment = await deploy('Vault_UST', {
+    contract: 'Vault',
     from: deployer,
     log: true,
     args,
@@ -65,7 +65,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
 
   if (env.network.config.chainId === 1 || env.network.config.chainId === 3) {
     try {
-      await env.run("verify:verify", {
+      await env.run('verify:verify', {
         address: vaultDeployment.address,
         constructorArguments: args,
       });
@@ -75,8 +75,8 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   }
 };
 
-func.id = "deploy_ust_vault";
-func.tags = ["vaults", "ust"];
-func.dependencies = ["dev_setup"];
+func.id = 'deploy_ust_vault';
+func.tags = ['vaults', 'ust'];
+func.dependencies = ['dev_setup'];
 
 export default func;
