@@ -9,13 +9,13 @@ import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
+import {Counters} from "@openzeppelin/contracts/utils/Counters.sol";
 
 import {IVault} from "./vault/IVault.sol";
 import {IVaultSponsoring} from "./vault/IVaultSponsoring.sol";
 import {IVaultSettings} from "./vault/IVaultSettings.sol";
 import {CurveSwapper} from "./vault/CurveSwapper.sol";
 import {PercentMath} from "./lib/PercentMath.sol";
-import {Depositors} from "./vault/Depositors.sol";
 import {IStrategy} from "./strategy/IStrategy.sol";
 import {CustomErrors} from "./interfaces/CustomErrors.sol";
 
@@ -41,6 +41,7 @@ contract Vault is
     using SafeERC20 for IERC20Metadata;
     using PercentMath for uint256;
     using PercentMath for uint16;
+    using Counters for Counters.Counter;
 
     //
     // Constants
@@ -89,15 +90,15 @@ contract Vault is
     /// The investment strategy
     IStrategy public strategy;
 
-    /// Depositors, represented as an NFT per deposit
-    Depositors public depositors;
-
     /// Unique IDs to correlate donations that belong to the same foundation
     uint256 private _depositGroupIds;
     mapping(uint256 => address) public depositGroupIdOwner;
 
-    /// deposit NFT ID => deposit data
+    /// deposit ID => deposit data
     mapping(uint256 => Deposit) public deposits;
+
+    /// Counter for deposit ids
+    Counters.Counter private _depositTokenIds;
 
     /// claimer address => claimer data
     mapping(address => Claimer) public claimer;
@@ -162,7 +163,6 @@ contract Vault is
         perfFeePct = _perfFeePct;
         lossTolerancePct = _lossTolerancePct;
 
-        depositors = new Depositors(this);
 
         rebalanceMinimum = 10 * 10**underlying.decimals();
 
@@ -429,13 +429,15 @@ contract Vault is
         ) revert VaultInvalidLockPeriod();
 
         uint256 lockedUntil = _lockDuration + block.timestamp;
-        uint256 tokenId = depositors.mint(msg.sender);
+        _depositTokenIds.increment();
+        uint256 tokenId = _depositTokenIds.current();
 
         _transferAndCheckInputToken(msg.sender, _inputToken, _amount);
         uint256 underlyingAmount = _swapIntoUnderlying(_inputToken, _amount);
 
         deposits[tokenId] = Deposit(
             underlyingAmount,
+            msg.sender,
             address(0),
             lockedUntil,
             0
@@ -683,7 +685,7 @@ contract Vault is
             uint256 lockedUntil = _deposit.lockedUntil;
             address claimerId = _deposit.claimerId;
 
-            address owner = depositors.ownerOf(tokenId);
+            address owner = _deposit.owner;
             uint256 amount = _deposit.amount;
 
             if (owner != msg.sender) revert VaultNotAllowed();
@@ -692,7 +694,7 @@ contract Vault is
 
             sponsorAmount += amount;
 
-            depositors.burn(tokenId);
+            delete deposits[tokenId];
 
             emit Unsponsored(tokenId);
         }
@@ -798,6 +800,7 @@ contract Vault is
         uint256 _localTotalPrincipal,
         string calldata _name
     ) internal returns (uint256) {
+        _depositTokenIds.increment();
         CreateClaimLocals memory locals = CreateClaimLocals({
             newShares: _computeShares(
                 _amount,
@@ -805,7 +808,7 @@ contract Vault is
                 _localTotalPrincipal
             ),
             claimerId: _claim.beneficiary,
-            tokenId: depositors.mint(msg.sender)
+            tokenId: _depositTokenIds.current()
         });
 
         claimer[locals.claimerId].totalShares += locals.newShares;
@@ -816,6 +819,7 @@ contract Vault is
 
         deposits[locals.tokenId] = Deposit(
             _amount,
+            msg.sender,
             locals.claimerId,
             _lockedUntil,
             locals.newShares
@@ -861,7 +865,7 @@ contract Vault is
         bool _force,
         uint256 _amount
     ) internal returns (uint256) {
-        if (depositors.ownerOf(_tokenId) != msg.sender)
+        if (deposits[_tokenId].owner != msg.sender)
             revert VaultNotOwnerOfDeposit();
 
         // memoizing saves warm sloads
@@ -917,7 +921,6 @@ contract Vault is
         totalPrincipal -= _amount;
 
         if (isFull) {
-            depositors.burn(_tokenId);
             delete deposits[_tokenId];
         } else {
             deposits[_tokenId].shares -= sharesToBurn;

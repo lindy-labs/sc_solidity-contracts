@@ -25,6 +25,8 @@ interface IVault {
     struct Deposit {
         /// amount of the deposit
         uint256 amount;
+        /// wallet of the owner
+        address owner;
         /// wallet of the claimer
         address claimerId;
         /// when can the deposit be withdrawn
