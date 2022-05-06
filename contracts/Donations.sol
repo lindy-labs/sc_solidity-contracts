@@ -175,6 +175,33 @@ contract Donations is ERC721, AccessControl {
         emit DonationBurned(_id);
     }
 
+    /**
+     * Basically similar to the above burn() method but is called on an array of _ids
+     * Expected to be called by the backend to burn a bunch of NFTs when they expire
+     *
+     * @param _ids IDs of the NFTs.
+     */
+    function burnBatch(uint256[] calldata _ids) external {
+        uint256 _id;
+        Metadata storage data;
+        bool expired;
+
+        for (uint256 i = 0; i < _ids.length; ++i) {
+            _id = _ids[i];
+            data = metadata[_id];
+
+            expired = data.expiry < _getBlockTimestamp();
+
+            require(expired, "Donations: not allowed");
+
+            transferableAmounts[data.token][data.destinationId] += data.amount;
+
+            _burn(_id);
+
+            emit DonationBurned(_id);
+        }
+    }
+
     function _getBlockTimestamp() private view returns (uint64) {
         return uint64(block.timestamp);
     }
