@@ -11,6 +11,7 @@ import {
   getLastBlockTimestamp,
   getRoleErrorMsg,
   moveForwardTwoWeeks,
+  moveForwardDays,
 } from "./shared";
 
 const { parseUnits } = ethers.utils;
@@ -307,6 +308,88 @@ describe("Donations", () => {
       await expect(donations.connect(bob).burn(1)).to.be.revertedWith(
         "Donations: not allowed"
       );
+    });
+  });
+
+  describe("burnBatch", () => {
+    it("adds the donated amount to the charity", async () => {
+      const ttl = BigNumber.from(time.duration.days(14).toNumber());
+      await donations.setTTL(ttl);
+
+      let aliceDonation = donationParams.build({
+        destinationId: CHARITY_ID,
+        amount: parseUnits("100"),
+        owner: alice.address,
+        token: underlying.address,
+      });
+
+      let bobDonation = donationParams.build({
+        destinationId: CHARITY_ID,
+        amount: parseUnits("1000"),
+        owner: bob.address,
+        token: underlying.address,
+      });
+
+      let carolDonation = donationParams.build({
+        destinationId: CHARITY_ID,
+        amount: parseUnits("10000"),
+        owner: carol.address,
+        token: underlying.address,
+      });
+
+      await donations.mint(DUMMY_TX, 0, [
+        aliceDonation,
+        bobDonation,
+        carolDonation,
+      ]);
+
+      await moveForwardTwoWeeks();
+
+      await donations.connect(owner).burnBatch([1, 2, 3]);
+
+      expect(
+        await donations.transferableAmounts(underlying.address, CHARITY_ID)
+      ).to.equal(parseUnits("11100"));
+    });
+
+    it("must work only if the NFT is expired", async () => {
+      let aliceDonation = donationParams.build({
+        destinationId: CHARITY_ID,
+        amount: parseUnits("100"),
+        owner: alice.address,
+        token: underlying.address,
+      });
+
+      let bobDonation = donationParams.build({
+        destinationId: CHARITY_ID,
+        amount: parseUnits("1000"),
+        owner: bob.address,
+        token: underlying.address,
+      });
+
+      let carolDonation = donationParams.build({
+        destinationId: CHARITY_ID,
+        amount: parseUnits("10000"),
+        owner: carol.address,
+        token: underlying.address,
+      });
+
+      const ttl = BigNumber.from(time.duration.days(14).toNumber());
+      await donations.setTTL(ttl);
+
+      await donations.mint(DUMMY_TX, 0, [aliceDonation, bobDonation]);
+
+      await moveForwardDays(5);
+
+      await donations.mint(DUMMY_TX, 1, [carolDonation]);
+
+      await moveForwardDays(10);
+
+      await donations.connect(carol).burnBatch([1, 2, 3]);
+
+      expect(
+        await donations.transferableAmounts(underlying.address, CHARITY_ID)
+      ).to.equal(parseUnits("1100"));
     });
   });
 

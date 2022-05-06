@@ -186,19 +186,23 @@ contract Donations is ERC721, AccessControl {
         Metadata storage data;
         bool expired;
 
+        uint256 timestamp = _getBlockTimestamp();
+
         for (uint256 i = 0; i < _ids.length; ++i) {
             _id = _ids[i];
             data = metadata[_id];
 
-            expired = data.expiry < _getBlockTimestamp();
+            expired = data.expiry < timestamp;
 
-            require(expired, "Donations: not allowed");
+            // used an if statement instead of require so that the method will keep on running for the other ids and not stop execution
+            if (expired) {
+                transferableAmounts[data.token][data.destinationId] += data
+                    .amount;
 
-            transferableAmounts[data.token][data.destinationId] += data.amount;
+                _burn(_id);
 
-            _burn(_id);
-
-            emit DonationBurned(_id);
+                emit DonationBurned(_id);
+            }
         }
     }
 
