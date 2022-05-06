@@ -3,7 +3,7 @@
 ![Build Status](https://github.com/lindy-labs/sc_solidity-contracts/workflows/CI/badge.svg)
 [![Coverage Status](https://coveralls.io/repos/github/lindy-labs/sc_solidity-contracts/badge.svg)](https://coveralls.io/github/lindy-labs/sc_solidity-contracts)
 
-Solidity implementation of [Sandclock]'s vaults, strategies, and peripheral contracts.
+Solidity implementation of [Sandclock](https://sandclock.org)'s vaults, strategies, and peripheral contracts.
 
 ## Contracts
 
