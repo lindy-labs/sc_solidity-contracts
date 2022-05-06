@@ -98,13 +98,6 @@ You have to perform a forced withdrawal in order to withdraw during a loss scena
 
 Because Anchor takes a fee for deposits, we could temporarily enter loss mode while the strategy is investing the funds. It is unlikely to happen after the initial phase. Still, to account for that, the vault allows for a tolerance fee determined by the strategy before it enters loss mode.
 
-### Resources
-
-[sandclock]: https://sandclock.org
-[curve]: https://curve.fi
-[ethanchor]: https://docs.anchorprotocol.com/ethanchor/ethanchor
-[uniswap]: https://uniswap.org/
-
 ---
 
 ## Build
