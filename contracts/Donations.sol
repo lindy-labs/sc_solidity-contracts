@@ -16,22 +16,22 @@ contract Donations is ERC721, AccessControl {
     bytes32 public constant WORKER_ROLE = keccak256("WORKER_ROLE");
 
     struct DonationParams {
-        uint256 destinationId;
+        uint128 destinationId;
         address owner;
         IERC20 token;
         uint256 amount;
     }
 
     struct Metadata {
-        uint256 destinationId;
+        uint128 destinationId;
+        uint64 expiry;
         IERC20 token;
         uint256 amount;
-        uint64 expiry;
     }
 
     event DonationMinted(
         uint256 indexed id,
-        uint256 indexed destinationId,
+        uint128 indexed destinationId,
         bytes32 indexed groupId,
         IERC20 token,
         uint256 expiry,
@@ -42,7 +42,7 @@ contract Donations is ERC721, AccessControl {
     event DonationBurned(uint256 indexed id);
 
     event DonationsSent(
-        uint256 indexed destinationId,
+        uint128 indexed destinationId,
         IERC20 indexed token,
         address indexed to,
         uint256 amount
@@ -60,7 +60,7 @@ contract Donations is ERC721, AccessControl {
     mapping(bytes32 => bool) public processedDonationsGroups;
 
     /// Stores how much should be transferred to each charity in each coin.
-    mapping(IERC20 => mapping(uint256 => uint256)) public transferableAmounts;
+    mapping(IERC20 => mapping(uint128 => uint256)) public transferableAmounts;
 
     /**
      * @param _owner Account that will receive the admin role.
@@ -91,16 +91,13 @@ contract Donations is ERC721, AccessControl {
      * @param _to Address of the charity.
      */
     function donate(
-        uint256 _destinationId,
+        uint128 _destinationId,
         IERC20 _token,
         address _to
     ) external onlyRole(WORKER_ROLE) {
-        require(
-            transferableAmounts[_token][_destinationId] != 0,
-            "Donations: nothing to donate"
-        );
-
         uint256 amount = transferableAmounts[_token][_destinationId];
+        require(amount != 0, "Donations: nothing to donate");
+
         transferableAmounts[_token][_destinationId] = 0;
 
         emit DonationsSent(_destinationId, _token, _to, amount);
@@ -130,21 +127,22 @@ contract Donations is ERC721, AccessControl {
 
         uint64 expiry = _getBlockTimestamp() + ttl;
         uint256 length = _params.length;
+        uint256 _metadataId = metadataId;
 
-        for (uint256 i = 0; i < length; i++) {
-            metadataId += 1;
+        for (uint256 i = 0; i < length; ++i) {
+            ++_metadataId;
 
-            metadata[metadataId] = Metadata({
+            metadata[_metadataId] = Metadata({
                 destinationId: _params[i].destinationId,
                 token: _params[i].token,
                 expiry: expiry,
                 amount: _params[i].amount
             });
 
-            _mint(_params[i].owner, metadataId);
+            _mint(_params[i].owner, _metadataId);
 
             emit DonationMinted(
-                metadataId,
+                _metadataId,
                 _params[i].destinationId,
                 groupId,
                 _params[i].token,
@@ -153,6 +151,8 @@ contract Donations is ERC721, AccessControl {
                 _params[i].owner
             );
         }
+
+        metadataId = _metadataId;
 
         processedDonationsGroups[groupId] = true;
     }
@@ -167,19 +167,47 @@ contract Donations is ERC721, AccessControl {
 
         Metadata storage data = metadata[_id];
 
-        bool expired = data.expiry <= _getBlockTimestamp();
+        bool expired = data.expiry < _getBlockTimestamp();
 
         require(isOwner || expired, "Donations: not allowed");
 
-        uint256 destinationId = data.destinationId;
-        IERC20 token = data.token;
-        uint256 amount = data.amount;
-
-        transferableAmounts[token][destinationId] += amount;
+        transferableAmounts[data.token][data.destinationId] += data.amount;
 
         _burn(_id);
 
         emit DonationBurned(_id);
+    }
+
+    /**
+     * Basically similar to the above burn() method but is called on an array of _ids
+     * Expected to be called by the backend to burn a bunch of NFTs when they expire
+     *
+     * @param _ids IDs of the NFTs.
+     */
+    function burnBatch(uint256[] calldata _ids) external {
+        uint256 _id;
+        Metadata storage data;
+        bool expired;
+
+        uint256 timestamp = _getBlockTimestamp();
+
+        uint256 idsLen = _ids.length;
+        for (uint256 i = 0; i < idsLen; ++i) {
+            _id = _ids[i];
+            data = metadata[_id];
+
+            expired = data.expiry < timestamp;
+
+            // used an if statement instead of require so that the method will keep on running for the other ids and not stop execution
+            if (expired) {
+                transferableAmounts[data.token][data.destinationId] += data
+                    .amount;
+
+                _burn(_id);
+
+                emit DonationBurned(_id);
+            }
+        }
     }
 
     function _getBlockTimestamp() private view returns (uint64) {

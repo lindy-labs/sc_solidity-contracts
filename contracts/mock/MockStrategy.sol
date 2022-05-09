@@ -2,10 +2,13 @@
 pragma solidity =0.8.10;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 import {AnchorStrategy} from "../strategy/anchor/AnchorStrategy.sol";
 
 contract MockStrategy is AnchorStrategy {
+    using SafeERC20 for IERC20;
+
     constructor(
         address _vault,
         address _ethAnchorRouter,
@@ -25,8 +28,12 @@ contract MockStrategy is AnchorStrategy {
 
     function invest() external override(AnchorStrategy) onlyManager {}
 
-    function finishRedeemStable(uint256 idx) external override(AnchorStrategy) {
-        _finishRedeemStable(idx);
+    function withdrawToVault(uint256 amount)
+        external
+        override
+        onlyManager
+    {
+        ustToken.safeTransfer(vault, amount);
     }
 
     function investedAssets() external view override returns (uint256) {

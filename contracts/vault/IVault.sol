@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity =0.8.10;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
 interface IVault {
     //
@@ -19,13 +19,16 @@ interface IVault {
         uint64 lockDuration;
         uint256 amount;
         ClaimParams[] claims;
+        string name;
     }
 
     struct Deposit {
         /// amount of the deposit
         uint256 amount;
+        /// wallet of the owner
+        address owner;
         /// wallet of the claimer
-        uint256 claimerId;
+        address claimerId;
         /// when can the deposit be withdrawn
         uint256 lockedUntil;
         /// the number of shares issued for this deposit
@@ -48,17 +51,26 @@ interface IVault {
         uint256 shares,
         address indexed depositor,
         address indexed claimer,
-        uint256 claimerId,
+        address claimerId,
         uint64 lockedUntil,
-        bytes data
+        bytes data,
+        string name
     );
 
-    event DepositBurned(uint256 indexed id, uint256 shares, address indexed to);
+    event DepositWithdrawn(
+        uint256 indexed id,
+        uint256 shares,
+        uint256 amount,
+        address indexed to,
+        bool burned
+    );
 
     event Invested(uint256 amount);
 
+    event Disinvested(uint256 amount);
+
     event YieldClaimed(
-        uint256 claimerId,
+        address claimerId,
         address indexed to,
         uint256 amount,
         uint256 burnedShares,
@@ -77,21 +89,25 @@ interface IVault {
     function updateInvested() external;
 
     /**
-     * Calculates underlying investable amount.
+     * Calculate maximum investable amount and already invested amount
      *
-     * @return the investable amount
+     * @return maxInvestableAmount maximum investable amount
+     * @return alreadyInvested already invested amount
      */
-    function investableAmount() external view returns (uint256);
+    function investState()
+        external
+        view
+        returns (uint256 maxInvestableAmount, uint256 alreadyInvested);
 
     /**
      * Percentage of the total underlying to invest in the strategy
      */
-    function investPerc() external view returns (uint16);
+    function investPct() external view returns (uint16);
 
     /**
      * Underlying ERC20 token accepted by the vault
      */
-    function underlying() external view returns (IERC20);
+    function underlying() external view returns (IERC20Metadata);
 
     /**
      * Minimum lock period for each deposit
@@ -132,6 +148,16 @@ interface IVault {
      * @param _to Address that will receive the yield.
      */
     function claimYield(address _to) external;
+
+    /**
+     * Creates a new deposit using the specified group id
+     *
+     * @param _groupId The group id for the new deposit
+     * @param _params Deposit params
+     */
+    function depositForGroupId(uint256 _groupId, DepositParams calldata _params)
+        external
+        returns (uint256[] memory);
 
     /**
      * Creates a new deposit

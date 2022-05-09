@@ -4,12 +4,13 @@ schema:
 dataSources:
   - name: Vault
     kind: ethereum/contract
-    network: mainnet
+    network: {{network}}
     source:
       abi: Vault
       {{#vault}}
       address: "{{address}}"
       {{/vault}}
+      startBlock: {{startBlock}}
     mapping: &mapping
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -25,28 +26,31 @@ dataSources:
           file: ../artifacts/contracts/vault/IVault.sol/IVault.json
         - name: IVaultSponsoring
           file: ../artifacts/contracts/vault/IVaultSponsoring.sol/IVaultSponsoring.json
+        - name: IVaultSettings
+          file: ../artifacts/contracts/vault/IVaultSettings.sol/IVaultSettings.json
       eventHandlers:
-        - event: DepositMinted(indexed uint256,uint256,uint256,uint256,indexed address,indexed address,uint256,uint64,bytes)
+        - event: DepositMinted(indexed uint256,uint256,uint256,uint256,indexed address,indexed address,address,uint64,bytes,string)
           handler: handleDepositMinted
-        - event: DepositBurned(indexed uint256,uint256,indexed address)
-          handler: handleDepositBurned
+        - event: DepositWithdrawn(indexed uint256,uint256,uint256,indexed address,bool)
+          handler: handleDepositWithdrawn
         - event: Sponsored(indexed uint256,uint256,indexed address,uint256)
           handler: handleSponsored
         - event: Unsponsored(indexed uint256)
           handler: handleUnsponsored
-        - event: YieldClaimed(uint256,indexed address,uint256,uint256,uint256)
+        - event: YieldClaimed(address,indexed address,uint256,uint256,uint256)
           handler: handleYieldClaimed
         - event: TreasuryUpdated(indexed address)
           handler: handleTreasuryUpdated
 
   - name: Strategy
     kind: ethereum/contract
-    network: mainnet
+    network: {{network}}
     source:
       abi: AnchorStrategy
       {{#strategy}}
       address: "{{address}}"
       {{/strategy}}
+      startBlock: {{startBlock}}
     mapping: &mapping
       kind: ethereum/events
       apiVersion: 0.0.6
