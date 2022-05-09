@@ -127,9 +127,10 @@ contract Donations is ERC721, AccessControl {
 
         uint64 expiry = _getBlockTimestamp() + ttl;
         uint256 length = _params.length;
+        uint256 _metadataId = metadataId;
 
         for (uint256 i = 0; i < length; ++i) {
-            ++metadataId;
+            ++_metadataId;
 
             metadata[_metadataId] = Metadata({
                 destinationId: _params[i].destinationId,
