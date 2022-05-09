@@ -6,6 +6,9 @@ interface CustomErrors {
     // Vault Errors
     //
 
+    // Vault: sender is not the owner of the group id
+    error VaultSenderNotOwnerOfGroupId();
+
     // Vault: invalid investPct
     error VaultInvalidInvestpct();
 
@@ -16,7 +19,7 @@ interface CustomErrors {
     error VaultNoPerformanceFee();
 
     // Vault: invalid investment fee
-    error VaultInvalidInvestmentFee();
+    error VaultInvalidLossTolerance();
 
     // Vault: underlying cannot be 0x0
     error VaultUnderlyingCannotBe0Address();

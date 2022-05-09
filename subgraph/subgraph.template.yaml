@@ -29,7 +29,7 @@ dataSources:
         - name: IVaultSettings
           file: ../artifacts/contracts/vault/IVaultSettings.sol/IVaultSettings.json
       eventHandlers:
-        - event: DepositMinted(indexed uint256,uint256,uint256,uint256,indexed address,indexed address,uint256,uint64,bytes,string)
+        - event: DepositMinted(indexed uint256,uint256,uint256,uint256,indexed address,indexed address,address,uint64,bytes,string)
           handler: handleDepositMinted
         - event: DepositWithdrawn(indexed uint256,uint256,uint256,indexed address,bool)
           handler: handleDepositWithdrawn
@@ -37,7 +37,7 @@ dataSources:
           handler: handleSponsored
         - event: Unsponsored(indexed uint256)
           handler: handleUnsponsored
-        - event: YieldClaimed(uint256,indexed address,uint256,uint256,uint256)
+        - event: YieldClaimed(address,indexed address,uint256,uint256,uint256)
           handler: handleYieldClaimed
         - event: TreasuryUpdated(indexed address)
           handler: handleTreasuryUpdated

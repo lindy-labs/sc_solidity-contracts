@@ -25,6 +25,8 @@ interface IVault {
     struct Deposit {
         /// amount of the deposit
         uint256 amount;
+        /// wallet of the owner
+        address owner;
         /// wallet of the claimer
         address claimerId;
         /// when can the deposit be withdrawn
@@ -146,6 +148,16 @@ interface IVault {
      * @param _to Address that will receive the yield.
      */
     function claimYield(address _to) external;
+
+    /**
+     * Creates a new deposit using the specified group id
+     *
+     * @param _groupId The group id for the new deposit
+     * @param _params Deposit params
+     */
+    function depositForGroupId(uint256 _groupId, DepositParams calldata _params)
+        external
+        returns (uint256[] memory);
 
     /**
      * Creates a new deposit

@@ -1,5 +1,5 @@
-import { store } from "@graphprotocol/graph-ts";
-import { DepositOperation, RedeemOperation } from "../types/schema";
+import { store } from '@graphprotocol/graph-ts';
+import { DepositOperation, RedeemOperation } from '../types/schema';
 import {
   FinishDepositStable,
   FinishRedeemStable,
@@ -7,7 +7,7 @@ import {
   InitRedeemStable,
   RearrangeDepositOperation,
   RearrangeRedeemOperation,
-} from "../types/Strategy/AnchorStrategy";
+} from '../types/Strategy/AnchorStrategy';
 
 export function handleInitDeposit(event: InitDepositStable): void {
   const id = event.params.operator.toHexString();
@@ -24,7 +24,7 @@ export function handleInitDeposit(event: InitDepositStable): void {
 export function handleFinishDeposit(event: FinishDepositStable): void {
   const id = event.params.operator.toHexString();
 
-  store.remove("DepositOperation", id);
+  store.remove('DepositOperation', id);
 }
 
 export function handleRearrangeDeposit(event: RearrangeDepositOperation): void {
@@ -52,7 +52,7 @@ export function handleInitRedeem(event: InitRedeemStable): void {
 export function handleFinishRedeem(event: FinishRedeemStable): void {
   const id = event.params.operator.toHexString();
 
-  store.remove("RedeemOperation", id);
+  store.remove('RedeemOperation', id);
 }
 
 export function handleRearrangeRedeem(event: RearrangeRedeemOperation): void {

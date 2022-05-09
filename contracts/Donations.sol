@@ -131,17 +131,17 @@ contract Donations is ERC721, AccessControl {
         for (uint256 i = 0; i < length; ++i) {
             ++metadataId;
 
-            metadata[metadataId] = Metadata({
+            metadata[_metadataId] = Metadata({
                 destinationId: _params[i].destinationId,
                 token: _params[i].token,
                 expiry: expiry,
                 amount: _params[i].amount
             });
 
-            _mint(_params[i].owner, metadataId);
+            _mint(_params[i].owner, _metadataId);
 
             emit DonationMinted(
-                metadataId,
+                _metadataId,
                 _params[i].destinationId,
                 groupId,
                 _params[i].token,
@@ -150,6 +150,8 @@ contract Donations is ERC721, AccessControl {
                 _params[i].owner
             );
         }
+
+        metadataId = _metadataId;
 
         processedDonationsGroups[groupId] = true;
     }

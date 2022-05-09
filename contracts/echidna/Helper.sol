@@ -3,7 +3,6 @@ pragma solidity =0.8.10;
 import "./Addresses.sol";
 
 contract Helper is Addresses {
-
     event Log(string reason, uint256 amount);
     event LogAddress(string reason, address a);
 
@@ -16,7 +15,10 @@ contract Helper is Addresses {
         return 1 + (random % (type(uint64).max - 1));
     }
 
-    function populate_claims(uint16 pctTotal, IVault.ClaimParams[] memory _claims) internal {
+    function populate_claims(
+        uint16 pctTotal,
+        IVault.ClaimParams[] memory _claims
+    ) internal {
         uint16 length = uint16(_claims.length);
         uint16 left = pctTotal;
         for (uint16 i = length; i > 1; --i) {
@@ -30,7 +32,9 @@ contract Helper is Addresses {
         emit Log("pct", _claims[0].pct);
     }
 
-    function withdraw_should_revert(address recipient, uint256[] memory _ids) internal {
+    function withdraw_should_revert(address recipient, uint256[] memory _ids)
+        internal
+    {
         try vault.withdraw(recipient, _ids) {
             assert(false);
         } catch {
@@ -38,9 +42,15 @@ contract Helper is Addresses {
         }
     }
 
-    function withdraw_should_succeed(address recipient, uint256[] memory _ids) internal {
+    function withdraw_should_succeed(address recipient, uint256[] memory _ids)
+        internal
+    {
         (bool success, ) = address(vault).call(
-            abi.encodeWithSignature("withdraw(address,uint256[])", recipient, _ids)
+            abi.encodeWithSignature(
+                "withdraw(address,uint256[])",
+                recipient,
+                _ids
+            )
         );
         if (!success) {
             assert(false);
@@ -48,7 +58,9 @@ contract Helper is Addresses {
         }
     }
 
-    function deposit_should_revert(IVault.DepositParams memory _params) internal {
+    function deposit_should_revert(IVault.DepositParams memory _params)
+        internal
+    {
         try vault.deposit(_params) {
             assert(false);
         } catch {
@@ -56,7 +68,9 @@ contract Helper is Addresses {
         }
     }
 
-    function deposit_should_succeed(IVault.DepositParams memory _params) internal {
+    function deposit_should_succeed(IVault.DepositParams memory _params)
+        internal
+    {
         try vault.deposit(_params) {
             assert(true);
         } catch {
