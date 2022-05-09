@@ -188,7 +188,8 @@ contract Donations is ERC721, AccessControl {
 
         uint256 timestamp = _getBlockTimestamp();
 
-        for (uint256 i = 0; i < _ids.length; ++i) {
+        uint256 idsLen = _ids.length;
+        for (uint256 i = 0; i < idsLen; ++i) {
             _id = _ids[i];
             data = metadata[_id];
 
