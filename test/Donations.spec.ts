@@ -12,7 +12,7 @@ import {
   getRoleErrorMsg,
   moveForwardTwoWeeks,
   moveForwardDays,
-} from "./shared";
+} from './shared';
 
 const { parseUnits } = ethers.utils;
 
@@ -311,29 +311,28 @@ describe('Donations', () => {
     });
   });
 
-<<<<<<< HEAD
-  describe("burnBatch", () => {
-    it("adds the donated amount to the charity", async () => {
+  describe('burnBatch', () => {
+    it('adds the donated amount to the charity', async () => {
       const ttl = BigNumber.from(time.duration.days(14).toNumber());
       await donations.setTTL(ttl);
 
       let aliceDonation = donationParams.build({
         destinationId: CHARITY_ID,
-        amount: parseUnits("100"),
+        amount: parseUnits('100'),
         owner: alice.address,
         token: underlying.address,
       });
 
       let bobDonation = donationParams.build({
         destinationId: CHARITY_ID,
-        amount: parseUnits("1000"),
+        amount: parseUnits('1000'),
         owner: bob.address,
         token: underlying.address,
       });
 
       let carolDonation = donationParams.build({
         destinationId: CHARITY_ID,
-        amount: parseUnits("10000"),
+        amount: parseUnits('10000'),
         owner: carol.address,
         token: underlying.address,
       });
@@ -349,28 +348,28 @@ describe('Donations', () => {
       await donations.connect(owner).burnBatch([1, 2, 3]);
 
       expect(
-        await donations.transferableAmounts(underlying.address, CHARITY_ID)
-      ).to.equal(parseUnits("11100"));
+        await donations.transferableAmounts(underlying.address, CHARITY_ID),
+      ).to.equal(parseUnits('11100'));
     });
 
-    it("must work only if the NFT is expired", async () => {
+    it('must work only if the NFT is expired', async () => {
       let aliceDonation = donationParams.build({
         destinationId: CHARITY_ID,
-        amount: parseUnits("100"),
+        amount: parseUnits('100'),
         owner: alice.address,
         token: underlying.address,
       });
 
       let bobDonation = donationParams.build({
         destinationId: CHARITY_ID,
-        amount: parseUnits("1000"),
+        amount: parseUnits('1000'),
         owner: bob.address,
         token: underlying.address,
       });
 
       let carolDonation = donationParams.build({
         destinationId: CHARITY_ID,
-        amount: parseUnits("10000"),
+        amount: parseUnits('10000'),
         owner: carol.address,
         token: underlying.address,
       });
@@ -389,20 +388,13 @@ describe('Donations', () => {
       await donations.connect(carol).burnBatch([1, 2, 3]);
 
       expect(
-        await donations.transferableAmounts(underlying.address, CHARITY_ID)
-      ).to.equal(parseUnits("1100"));
+        await donations.transferableAmounts(underlying.address, CHARITY_ID),
+      ).to.equal(parseUnits('1100'));
     });
   });
 
-  describe("mint", () => {
-    it("mints an NFT for every donation", async () => {
-||||||| 8225e7f
-  describe("mint", () => {
-    it("mints an NFT for every donation", async () => {
-=======
   describe('mint', () => {
     it('mints an NFT for every donation', async () => {
->>>>>>> main
       await donations.mint(DUMMY_TX, 0, [
         donationParams.build(),
         donationParams.build(),
