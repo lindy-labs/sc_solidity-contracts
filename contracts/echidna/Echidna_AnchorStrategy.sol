@@ -31,34 +31,6 @@ contract Echidna_AnchorStrategy is Helper {
         }
     }
 
-    // updateInvested should succeed if there is funds available to
-    // invest and revert otherwise
-    function updateInvested_zero_investable() public {
-
-        uint256 balance_vault_before = vault.totalUnderlying();
-        emit Log("balance of vault before", balance_vault_before);
-
-
-        emit Log("vault.investableAmount()", vault.investableAmount());
-        emit Log("strategy.investedAssets()", strategy.investedAssets());
-        if (vault.investableAmount() == 0) {
-            try vault.updateInvested() {
-                assert(false);
-            } catch {
-                assert(true);
-            }
-        } else {
-            try vault.updateInvested() {
-                assert(true);
-            } catch {
-                assert(false);
-            }
-        }
-
-        uint256 balance_vault_after = vault.totalUnderlying();
-        emit Log("balance of vault after", balance_vault_after);
-    }
-
     // given some vault balance after running updateInvested approx
     // 90% should be moved to strategy.
     function updateInvested(uint256 amount) public {
@@ -68,7 +40,6 @@ contract Echidna_AnchorStrategy is Helper {
         uint256 balance_strategy_before = underlying.balanceOf(address(strategy));
         emit Log("balance of strategy before", balance_strategy_before);
 
-        emit Log("vault.investableAmount()", vault.investableAmount());
         emit Log("strategy.investedAssets()", strategy.investedAssets());
 
         try vault.updateInvested() {
