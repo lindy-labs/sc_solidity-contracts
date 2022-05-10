@@ -167,13 +167,20 @@ export function handleDepositWithdrawn(event: DepositWithdrawn): void {
 
   claimer.principal = claimer.principal.minus(deposit.amount);
   claimer.shares = claimer.shares.minus(event.params.shares);
-  claimer.depositsIds = claimer.depositsIds.filter(
-    (id: string) => id !== depositId,
-  );
 
-  deposit.burned = true;
+  if (event.params.burned) {
+    claimer.depositsIds = claimer.depositsIds.filter(
+      (id: string) => id !== depositId,
+    );
+
+    deposit.burned = true;
+  }
+
+  deposit.amount = deposit.amount.minus(event.params.amount);
+  deposit.shares = deposit.shares.minus(event.params.shares);
+
   vault.totalShares = vault.totalShares.minus(event.params.shares);
-  log.debug('burn, subbing shares {}', [event.params.shares.toString()]);
+  log.debug('subbing shares {}', [event.params.shares.toString()]);
 
   foundation.amountDeposited = foundation.amountDeposited.minus(deposit.amount);
 

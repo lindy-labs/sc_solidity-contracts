@@ -31,7 +31,7 @@ type Deposit @entity {
 }
 
 type Claimer @entity {
-  id: ID!
+  id: Bytes!
   owner: Bytes!
   vault: Vault!
   deposits: [Deposit!]! @derivedFrom(field: "claimer")
