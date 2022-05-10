@@ -2,9 +2,8 @@
 pragma solidity =0.8.10;
 import "./Helper.sol";
 import {IVault} from "../vault/IVault.sol";
-import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 
-contract Echidna_Invalid_Deposit is Helper,ERC721Holder {
+contract Echidna_Invalid_Deposit is Helper {
 
     // deposit zero should always revert
     function deposit_with_zero_amount(IVault.DepositParams memory _params) public {
