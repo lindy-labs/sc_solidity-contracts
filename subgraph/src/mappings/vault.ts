@@ -184,9 +184,22 @@ export function handleDepositWithdrawn(event: DepositWithdrawn): void {
   vault.totalShares = vault.totalShares.minus(event.params.shares);
   log.debug('subbing shares {}', [event.params.shares.toString()]);
 
-  foundation.amountDeposited = foundation.amountDeposited.minus(deposit.amount);
+  log.debug('ASJDLSADA {} {}', [
+    foundation.amountDeposited.toString(),
+    foundation.shares.toString(),
+  ]);
+  log.debug('ASJDLSADA {} {}', [
+    event.params.amount.toString(),
+    event.params.shares.toString(),
+  ]);
+
+  foundation.amountDeposited = foundation.amountDeposited.minus(
+    event.params.amount,
+  );
+  foundation.shares = foundation.shares.minus(event.params.shares);
 
   claimer.save();
+  foundation.save();
   deposit.save();
   vault.save();
 }

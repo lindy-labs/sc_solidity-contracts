@@ -18,50 +18,23 @@ import {
 
 import {
   handleDepositMinted,
-  handleSponsored,
-  handleUnsponsored,
   handleDepositWithdrawn,
   handleYieldClaimed,
-  handleTreasuryUpdated,
 } from '../src/mappings/vault';
-import {
-  handleInitDeposit,
-  handleInitRedeem,
-  handleFinishDeposit,
-  handleFinishRedeem,
-  handleRearrangeDeposit,
-  handleRearrangeRedeem,
-} from '../src/mappings/strategy';
-import { Sponsored, Unsponsored } from '../src/types/Vault/IVaultSponsoring';
+
 import {
   DepositWithdrawn,
   DepositMinted,
   YieldClaimed,
 } from '../src/types/Vault/IVault';
-import { TreasuryUpdated } from '../src/types/Vault/IVaultSettings';
-import {
-  Vault,
-  Deposit,
-  Sponsor,
-  Claimer,
-  Foundation,
-  DepositOperation,
-  RedeemOperation,
-} from '../src/types/schema';
-import {
-  FinishDepositStable,
-  FinishRedeemStable,
-  InitDepositStable,
-  InitRedeemStable,
-  RearrangeDepositOperation,
-  RearrangeRedeemOperation,
-} from '../src/types/Strategy/AnchorStrategy';
+
+import { Vault, Claimer, Foundation } from '../src/types/schema';
 
 const MOCK_ADDRESS_1 = '0xC80B3caAd6d2DE80Ac76a41d5F0072E36D2519Cd'.toLowerCase();
 const MOCK_ADDRESS_2 = '0xE80B3caAd6d2DE80Ac76a41d5F0072E36D2519Ce'.toLowerCase();
 const TREASURY_ADDRESS = '0x4940c6e628da11ac0bdcf7f82be8579b4696fa33';
 
-test('handleDepositMinted updates the Foundation', () => {
+test('updates the Foundation', () => {
   clearStore();
 
   let mockEvent = newMockEvent();
@@ -131,7 +104,7 @@ test('handleDepositMinted updates the Foundation', () => {
   );
   event2.parameters = new Array();
 
-  idParam = newI32('id', 1);
+  idParam = newI32('id', 2);
   amount = newI32('amount', 20);
   shares = newI32('shares', 15);
   depositor = newAddress('depositor', MOCK_ADDRESS_1);
@@ -165,6 +138,31 @@ test('handleDepositMinted updates the Foundation', () => {
     'createdAt',
     event.block.timestamp.toString(),
   );
+
+  // Partial withdraw
+
+  mockEvent = newMockEvent();
+  const event3 = new DepositWithdrawn(
+    mockEvent.address,
+    mockEvent.logIndex,
+    mockEvent.transactionLogIndex,
+    mockEvent.logType,
+    mockEvent.block,
+    mockEvent.transaction,
+    mockEvent.parameters,
+  );
+  event3.parameters = new Array();
+
+  event3.parameters.push(newI32('id', 1));
+  event3.parameters.push(newI32('shares', 5));
+  event3.parameters.push(newI32('amount', 10));
+  event3.parameters.push(newAddress('to', MOCK_ADDRESS_1));
+  event3.parameters.push(newBool('burned', false));
+
+  handleDepositWithdrawn(event3);
+
+  assert.fieldEquals('Foundation', foundationId, 'amountDeposited', '20');
+  assert.fieldEquals('Foundation', foundationId, 'shares', '20');
 });
 
 test('handleYieldClaimed handles scenarios where only one of the deposits generated yield', () => {

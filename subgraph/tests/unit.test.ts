@@ -592,6 +592,8 @@ test("handleDepositWithdrawn doesn't remove a Deposit for partial withdraws", ()
 
   const foundation = new Foundation('1');
   foundation.vault = mockEvent.address.toHexString();
+  foundation.amountDeposited = BigInt.fromI32(10);
+  foundation.shares = BigInt.fromI32(10);
   foundation.save();
 
   const event = new DepositWithdrawn(
@@ -616,7 +618,8 @@ test("handleDepositWithdrawn doesn't remove a Deposit for partial withdraws", ()
   assert.fieldEquals('Deposit', '1', 'burned', 'false');
   assert.fieldEquals('Deposit', '1', 'shares', '5');
   assert.fieldEquals('Deposit', '1', 'amount', '5');
-  assert.fieldEquals('Foundation', '1', 'amountDeposited', '0');
+  assert.fieldEquals('Foundation', '1', 'amountDeposited', '5');
+  assert.fieldEquals('Foundation', '1', 'shares', '5');
 });
 
 test('handleDepositWithdrawn removes a Deposit by marking as burned', () => {
@@ -641,6 +644,8 @@ test('handleDepositWithdrawn removes a Deposit by marking as burned', () => {
 
   const foundation = new Foundation('1');
   foundation.vault = mockEvent.address.toHexString();
+  foundation.amountDeposited = BigInt.fromI32(1);
+  foundation.shares = BigInt.fromI32(1);
   foundation.save();
 
   const event = new DepositWithdrawn(
@@ -666,6 +671,7 @@ test('handleDepositWithdrawn removes a Deposit by marking as burned', () => {
   assert.fieldEquals('Deposit', '1', 'shares', '0');
   assert.fieldEquals('Deposit', '1', 'amount', '0');
   assert.fieldEquals('Foundation', '1', 'amountDeposited', '0');
+  assert.fieldEquals('Foundation', '1', 'shares', '0');
 });
 
 test('handleYieldClaimed reduces shares from Deposits and creates Donations', () => {
