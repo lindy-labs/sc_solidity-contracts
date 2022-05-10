@@ -34,7 +34,7 @@ contract Echidna_AnchorStrategy is Helper {
     // given some vault balance after running updateInvested approx
     // 90% should be moved to strategy.
     function updateInvested(uint256 amount) public {
-        Helper.mint_helper(address(vault), 3 + Helper.one_to_max_uint64(amount));
+        Helper.mint_helper(address(vault), 12*10**18 + Helper.one_to_max_uint64(amount));
         uint256 balance_vault_before = vault.totalUnderlying();
         emit Log("balance of vault before", balance_vault_before);
         uint256 balance_strategy_before = underlying.balanceOf(address(strategy));
@@ -53,6 +53,6 @@ contract Echidna_AnchorStrategy is Helper {
         uint256 balance_strategy_after = underlying.balanceOf(address(strategy));
         emit Log("balance of strategy after", balance_strategy_after);
 
-        assert(balance_vault_after * 3 < balance_strategy_after);
+        assert(balance_vault_after * 8 < balance_strategy_after);
     }
 }
