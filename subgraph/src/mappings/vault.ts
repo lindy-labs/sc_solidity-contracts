@@ -1,10 +1,4 @@
-import {
-  BigDecimal,
-  BigInt,
-  ByteArray,
-  log,
-  Bytes,
-} from '@graphprotocol/graph-ts';
+import { BigInt, log } from '@graphprotocol/graph-ts';
 import {
   DepositWithdrawn,
   DepositMinted,
