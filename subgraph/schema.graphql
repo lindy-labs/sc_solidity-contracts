@@ -15,6 +15,7 @@ type Foundation @entity {
   deposits: [Deposit!]! @derivedFrom(field: "foundation")
   amountDeposited: BigInt!
   shares: BigInt!
+  amountClaimed: BigInt!
   lockedUntil: BigInt!
   createdAt: BigInt!
 }

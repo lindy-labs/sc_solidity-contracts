@@ -54,8 +54,8 @@ test('updates the Foundation', () => {
 
   let idParam = newI32('id', 1);
   const groupId = newI32('groupId', 1);
-  let amount = newI32('amount', 10);
-  let shares = newI32('shares', 10);
+  let amount = newI32('amount', 30);
+  let shares = newI32('shares', 30);
   let depositor = newAddress('depositor', MOCK_ADDRESS_1);
   let claimer = newAddress('claimer', MOCK_ADDRESS_1);
   let lockedUntil = newI32('lockedUntil', 1);
@@ -80,8 +80,8 @@ test('updates the Foundation', () => {
   assert.fieldEquals('Foundation', foundationId, 'name', 'Foundation');
   assert.fieldEquals('Foundation', foundationId, 'owner', MOCK_ADDRESS_1);
   assert.fieldEquals('Foundation', foundationId, 'vault', vault.id);
-  assert.fieldEquals('Foundation', foundationId, 'amountDeposited', '10');
-  assert.fieldEquals('Foundation', foundationId, 'shares', '10');
+  assert.fieldEquals('Foundation', foundationId, 'amountDeposited', '30');
+  assert.fieldEquals('Foundation', foundationId, 'shares', '30');
   assert.fieldEquals('Foundation', foundationId, 'lockedUntil', '1');
   assert.fieldEquals(
     'Foundation',
@@ -106,7 +106,7 @@ test('updates the Foundation', () => {
 
   idParam = newI32('id', 2);
   amount = newI32('amount', 20);
-  shares = newI32('shares', 15);
+  shares = newI32('shares', 20);
   depositor = newAddress('depositor', MOCK_ADDRESS_1);
   claimer = newAddress('claimer', MOCK_ADDRESS_1);
   lockedUntil = newI32('lockedUntil', 2);
@@ -129,8 +129,8 @@ test('updates the Foundation', () => {
   assert.fieldEquals('Foundation', foundationId, 'name', 'Foundation 2');
   assert.fieldEquals('Foundation', foundationId, 'owner', MOCK_ADDRESS_1);
   assert.fieldEquals('Foundation', foundationId, 'vault', vault.id);
-  assert.fieldEquals('Foundation', foundationId, 'amountDeposited', '30');
-  assert.fieldEquals('Foundation', foundationId, 'shares', '25');
+  assert.fieldEquals('Foundation', foundationId, 'amountDeposited', '50');
+  assert.fieldEquals('Foundation', foundationId, 'shares', '50');
   assert.fieldEquals('Foundation', foundationId, 'lockedUntil', '2');
   assert.fieldEquals(
     'Foundation',
@@ -154,15 +154,41 @@ test('updates the Foundation', () => {
   event3.parameters = new Array();
 
   event3.parameters.push(newI32('id', 1));
-  event3.parameters.push(newI32('shares', 5));
+  event3.parameters.push(newI32('shares', 10));
   event3.parameters.push(newI32('amount', 10));
   event3.parameters.push(newAddress('to', MOCK_ADDRESS_1));
   event3.parameters.push(newBool('burned', false));
 
   handleDepositWithdrawn(event3);
 
-  assert.fieldEquals('Foundation', foundationId, 'amountDeposited', '20');
+  assert.fieldEquals('Foundation', foundationId, 'amountDeposited', '40');
+  assert.fieldEquals('Foundation', foundationId, 'shares', '40');
+
+  // Claim yield
+
+  mockEvent = newMockEvent();
+  const event4 = new YieldClaimed(
+    mockEvent.address,
+    mockEvent.logIndex,
+    mockEvent.transactionLogIndex,
+    mockEvent.logType,
+    mockEvent.block,
+    mockEvent.transaction,
+    mockEvent.parameters,
+  );
+  event4.parameters = new Array();
+
+  event4.parameters.push(newAddress('claimerId', MOCK_ADDRESS_1));
+  event4.parameters.push(newAddress('to', MOCK_ADDRESS_1));
+  event4.parameters.push(newI32('amount', 40));
+  event4.parameters.push(newI32('burnedShares', 20));
+  event4.parameters.push(newI32('perfFee', 0));
+
+  handleYieldClaimed(event4);
+
+  assert.fieldEquals('Foundation', foundationId, 'amountDeposited', '40');
   assert.fieldEquals('Foundation', foundationId, 'shares', '20');
+  assert.fieldEquals('Foundation', foundationId, 'amountClaimed', '40');
 });
 
 test('handleYieldClaimed handles scenarios where only one of the deposits generated yield', () => {

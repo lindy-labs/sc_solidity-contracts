@@ -33,6 +33,7 @@ export function handleYieldClaimed(event: YieldClaimed): void {
   vault.totalShares = vault.totalShares.minus(event.params.burnedShares);
   log.debug('claim, sub shares {}', [event.params.burnedShares.toString()]);
 
+  const claimedAmount = event.params.amount.plus(event.params.perfFee);
   let totalClaimedShares = new BigInt(0);
 
   for (let i = 0; i < claimer.depositsIds.length; i++) {
@@ -40,23 +41,34 @@ export function handleYieldClaimed(event: YieldClaimed): void {
 
     if (!deposit) continue;
 
-    const claimedAmount = event.params.amount.plus(event.params.perfFee);
+    const foundation = Foundation.load(deposit.foundation);
 
-    const claimedShares = deposit.shares
+    if (!foundation) continue;
+
+    const depositClaimedAmount = deposit.shares
       .times(claimedAmount)
       .div(event.params.burnedShares)
-      .minus(deposit.amount)
+      .minus(deposit.amount);
+
+    const depositClaimedShares = depositClaimedAmount
       .times(event.params.burnedShares)
       .div(claimedAmount);
 
-    totalClaimedShares = totalClaimedShares.plus(claimedShares);
-    deposit.shares = deposit.shares.minus(claimedShares);
+    totalClaimedShares = totalClaimedShares.plus(depositClaimedShares);
+
+    deposit.shares = deposit.shares.minus(depositClaimedShares);
     deposit.save();
+
+    foundation.shares = foundation.shares.minus(depositClaimedShares);
+    foundation.amountClaimed = foundation.amountClaimed.plus(
+      depositClaimedAmount,
+    );
+    foundation.save();
 
     if (
       vault.treasury !== null &&
       event.params.to.toString() == vault.treasury!.toString() &&
-      claimedShares.gt(BigInt.fromI32(0))
+      depositClaimedShares.gt(BigInt.fromI32(0))
     ) {
       const id =
         event.transaction.hash.toHex() +
@@ -67,7 +79,7 @@ export function handleYieldClaimed(event: YieldClaimed): void {
 
       const donation = new Donation(id);
       donation.txHash = event.transaction.hash;
-      donation.amount = claimedShares
+      donation.amount = depositClaimedShares
         .times(event.params.amount)
         .div(event.params.burnedShares);
       donation.owner = deposit.depositor;
@@ -119,6 +131,7 @@ export function handleDepositMinted(event: DepositMinted): void {
     foundation.createdAt = event.block.timestamp;
     foundation.amountDeposited = BigInt.fromString('0');
     foundation.shares = BigInt.fromString('0');
+    foundation.amountClaimed = BigInt.fromString('0');
   }
 
   foundation.lockedUntil = event.params.lockedUntil;
@@ -183,15 +196,6 @@ export function handleDepositWithdrawn(event: DepositWithdrawn): void {
 
   vault.totalShares = vault.totalShares.minus(event.params.shares);
   log.debug('subbing shares {}', [event.params.shares.toString()]);
-
-  log.debug('ASJDLSADA {} {}', [
-    foundation.amountDeposited.toString(),
-    foundation.shares.toString(),
-  ]);
-  log.debug('ASJDLSADA {} {}', [
-    event.params.amount.toString(),
-    event.params.shares.toString(),
-  ]);
 
   foundation.amountDeposited = foundation.amountDeposited.minus(
     event.params.amount,
