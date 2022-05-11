@@ -36,6 +36,9 @@ export function handleYieldClaimed(event: YieldClaimed): void {
   const claimedAmount = event.params.amount.plus(event.params.perfFee);
   let totalClaimedShares = new BigInt(0);
 
+  // The price per share s the event's claimed amount divided by the burned shares.
+  const pricePerSare = claimedAmount.div(event.params.burnedShares);
+
   for (let i = 0; i < claimer.depositsIds.length; i++) {
     const deposit = Deposit.load(claimer.depositsIds[i]);
 
@@ -45,9 +48,10 @@ export function handleYieldClaimed(event: YieldClaimed): void {
 
     if (!foundation) continue;
 
+    // The deposit's claimed amount it the same as the deposit's yield.
+    // Which is the difference between the deposit's amount and what its shares are worth right now.
     const depositClaimedAmount = deposit.shares
-      .times(claimedAmount)
-      .div(event.params.burnedShares)
+      .times(pricePerSare)
       .minus(deposit.amount);
 
     const depositClaimedShares = depositClaimedAmount
@@ -65,6 +69,7 @@ export function handleYieldClaimed(event: YieldClaimed): void {
     );
     foundation.save();
 
+    // If the claim is to the treasury, create a Donation
     if (
       vault.treasury !== null &&
       event.params.to.toString() == vault.treasury!.toString() &&
