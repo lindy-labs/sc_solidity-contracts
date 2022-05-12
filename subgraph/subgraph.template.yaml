@@ -74,3 +74,27 @@ dataSources:
           handler: handleRearrangeDeposit
         - event: RearrangeRedeemOperation(indexed address,indexed address,indexed uint256)
           handler: handleRearrangeRedeem
+
+  - name: Donations
+    kind: ethereum/contract
+    network: {{network}}
+    source:
+      abi: Donations
+      {{#donations}}
+        address: "{{donations}}"
+      {{/donations}}
+      startBlock: {{startBlock}}
+    mapping: &mapping
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      file: ./src/mappings/donations.ts
+    entities:
+      - Donation
+    abis:
+      - name: Donations
+        file: ../artifacts/contracts/Donations.sol/Donations.json
+    eventHandlers:
+      - event: DonationMinted
+        handlers: handleDonationMinted
+
