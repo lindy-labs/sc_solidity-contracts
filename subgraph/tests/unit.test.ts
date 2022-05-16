@@ -715,6 +715,8 @@ test('handleYieldClaimed reduces shares from Deposits and creates Donations', ()
   event.parameters.push(newI32('amount', 150));
   event.parameters.push(newI32('burnedShares', 75));
   event.parameters.push(newI32('perfFee', 0));
+  event.parameters.push(newI32('totalUnderlying', 300));
+  event.parameters.push(newI32('totalShares', 150));
 
   handleYieldClaimed(event);
 
@@ -768,6 +770,8 @@ test('handleYieldClaimed takes the performance fee into account', () => {
   event.parameters.push(newI32('amount', 120));
   event.parameters.push(newI32('burnedShares', 75));
   event.parameters.push(newI32('perfFee', 30));
+  event.parameters.push(newI32('totalUnderlying', 300));
+  event.parameters.push(newI32('totalShares', 150));
 
   handleYieldClaimed(event);
 
@@ -823,6 +827,8 @@ test("handleYieldClaimed doesn't create donations if the deposits are not to the
   event.parameters.push(newI32('amount', 150));
   event.parameters.push(newI32('burnedShares', 75));
   event.parameters.push(newI32('perfFee', 0));
+  event.parameters.push(newI32('totalUnderlying', 300));
+  event.parameters.push(newI32('totalShares', 150));
 
   handleYieldClaimed(event);
 

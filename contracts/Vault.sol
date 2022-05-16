@@ -163,7 +163,6 @@ contract Vault is
         perfFeePct = _perfFeePct;
         lossTolerancePct = _lossTolerancePct;
 
-
         rebalanceMinimum = 10 * 10**underlying.decimals();
 
         _addPools(_swapPools);
@@ -296,6 +295,9 @@ contract Vault is
 
         if (yield == 0) return;
 
+        uint256 _totalUnderlyingMinusSponsored = totalUnderlyingMinusSponsored();
+        uint256 _totalShares = totalShares;
+
         accumulatedPerfFee += fee;
 
         underlying.safeTransfer(_to, yield);
@@ -303,7 +305,15 @@ contract Vault is
         claimer[msg.sender].totalShares -= shares;
         totalShares -= shares;
 
-        emit YieldClaimed(msg.sender, _to, yield, shares, fee);
+        emit YieldClaimed(
+            msg.sender,
+            _to,
+            yield,
+            shares,
+            fee,
+            _totalUnderlyingMinusSponsored,
+            _totalShares
+        );
     }
 
     /// @inheritdoc IVault

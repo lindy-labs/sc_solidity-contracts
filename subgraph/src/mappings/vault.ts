@@ -31,7 +31,6 @@ export function handleYieldClaimed(event: YieldClaimed): void {
   let totalClaimedShares = new BigInt(0);
 
   // The price per share s the event's claimed amount divided by the burned shares.
-  const pricePerSare = claimedAmount.div(event.params.burnedShares);
 
   for (let i = 0; i < claimer.depositsIds.length; i++) {
     const deposit = Deposit.load(claimer.depositsIds[i]);
@@ -45,12 +44,13 @@ export function handleYieldClaimed(event: YieldClaimed): void {
     // The deposit's claimed amount it the same as the deposit's yield.
     // Which is the difference between the deposit's amount and what its shares are worth right now.
     const depositClaimedAmount = deposit.shares
-      .times(pricePerSare)
+      .times(event.params.totalUnderlying)
+      .div(event.params.totalShares)
       .minus(deposit.amount);
 
     const depositClaimedShares = depositClaimedAmount
-      .times(event.params.burnedShares)
-      .div(claimedAmount);
+      .times(event.params.totalShares)
+      .div(event.params.totalUnderlying);
 
     totalClaimedShares = totalClaimedShares.plus(depositClaimedShares);
 

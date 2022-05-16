@@ -10,6 +10,16 @@ export function newI32(name: string, value: i32): ethereum.EventParam {
   return new ethereum.EventParam(name, ethereum.Value.fromI32(value));
 }
 
+export function newI32FromBigInt(
+  name: string,
+  value: string,
+): ethereum.EventParam {
+  return new ethereum.EventParam(
+    name,
+    ethereum.Value.fromUnsignedBigInt(BigInt.fromString(value)),
+  );
+}
+
 export function newBool(name: string, value: bool): ethereum.EventParam {
   return new ethereum.EventParam(name, ethereum.Value.fromBoolean(value));
 }
