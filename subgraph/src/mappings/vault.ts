@@ -30,8 +30,6 @@ export function handleYieldClaimed(event: YieldClaimed): void {
   const claimedAmount = event.params.amount.plus(event.params.perfFee);
   let totalClaimedShares = new BigInt(0);
 
-  // The price per share s the event's claimed amount divided by the burned shares.
-
   for (let i = 0; i < claimer.depositsIds.length; i++) {
     const deposit = Deposit.load(claimer.depositsIds[i]);
 
