@@ -20,6 +20,7 @@ contract Donations is ERC721, AccessControl {
         address owner;
         IERC20 token;
         uint256 amount;
+        string donationId;
     }
 
     struct Metadata {
@@ -148,7 +149,8 @@ contract Donations is ERC721, AccessControl {
                 _params[i].token,
                 expiry,
                 _params[i].amount,
-                _params[i].owner
+                _params[i].owner,
+                _params[i].donationId,
             );
         }
 
