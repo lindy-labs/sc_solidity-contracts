@@ -6,5 +6,8 @@
   },
   "strategy": {
     "address": "0x1c8967Af415b1516c96c08880aA0E87e82161b9a"
+  },
+  "donations": {
+    "address": "0x470B125472930374AE711dE53B9D4221889Fe131"
   }
 }
