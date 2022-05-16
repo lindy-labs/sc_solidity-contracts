@@ -151,7 +151,7 @@ contract Donations is ERC721, AccessControl {
                 expiry,
                 _params[i].amount,
                 _params[i].owner,
-                _params[i].donationId,
+                _params[i].donationId
             );
         }
 
