@@ -37,7 +37,8 @@ contract Donations is ERC721, AccessControl {
         IERC20 token,
         uint256 expiry,
         uint256 amount,
-        address owner
+        address owner,
+        string donationId
     );
 
     event DonationBurned(uint256 indexed id);
