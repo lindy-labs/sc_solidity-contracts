@@ -9,7 +9,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   const { get } = env.deployments;
   const [owner, alice, bob, treasury] = await ethers.getSigners();
 
-  const mockUST = await get('MockUST');
+  const mockUST = await get('UST');
   const underlying = await ethers.getContractAt('MockERC20', mockUST.address);
 
   const mockaUSTDeployment = await get('aUST');

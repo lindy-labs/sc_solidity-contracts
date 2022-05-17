@@ -49,6 +49,11 @@ type Donation @entity {
   destination: Bytes!
 }
 
+type DonationMint @entity {
+  id: ID!
+  burned: Boolean!
+}
+
 type Sponsor @entity {
   id: ID!
   depositor: Bytes!

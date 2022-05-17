@@ -7,7 +7,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   const { get } = env.deployments;
   const [owner, alice, bob, treasury] = await ethers.getSigners();
 
-  const USTDeployment = await get('MockUST');
+  const USTDeployment = await get('UST');
   const UST = await ethers.getContractAt('MockERC20', USTDeployment.address);
 
   const vaultDeployment = await get('Vault_UST');
@@ -22,13 +22,8 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     donationsDeployment.address,
   );
 
-  console.log('treasury address', treasury.address);
-
   const yieldClaimedFilter = vault.filters.YieldClaimed(null, treasury.address);
-
   const yieldClaimedEvents = await vault.queryFilter(yieldClaimedFilter);
-
-  console.log('yieldClaimedEvents', yieldClaimedEvents);
 
   const { transactionHash, args } = yieldClaimedEvents[0];
 
@@ -40,14 +35,17 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     donationId: '0',
   };
 
-  await (await donations.mint(transactionHash, 0, [donationParams])).wait();
+  await donations.mint(transactionHash, 0, [donationParams]);
 
-  process.exit(1);
+  // const donationMintedFilter = donations.filters.DonationMinted();
+  // const donationMintedEvents = await donations.queryFilter(donationMintedFilter);
+
+  // console.log('donationMintedEvents', donationMintedEvents);
 };
 
 func.id = 'donations_fixture';
 func.tags = ['donations_fixture'];
-func.dependencies = ['donations', 'vaults', 'fixtures', 'fixture_deployments'];
+func.dependencies = ['dev_setup', 'donations', 'vaults', 'fixtures', 'fixture_deployments'];
 
 // Deploy only to hardhat
 func.skip = async (hre: HardhatRuntimeEnvironment) =>
