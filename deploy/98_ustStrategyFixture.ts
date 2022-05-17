@@ -9,7 +9,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   const { get } = env.deployments;
   const [owner, alice, bob, treasury] = await ethers.getSigners();
 
-  const mockUST = await get('UST');
+  const mockUST = await get('MockUST');
   const underlying = await ethers.getContractAt('MockERC20', mockUST.address);
 
   const mockaUSTDeployment = await get('aUST');
@@ -17,8 +17,6 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     'MockERC20',
     mockaUSTDeployment.address,
   );
-
-  console.log('Deployed UST strategy dependencies');
 
   const vaultDeployment = await get('Vault_UST');
   const vault = await ethers.getContractAt('Vault', vaultDeployment.address);
@@ -57,7 +55,6 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
   await setChainlinkData(1);
 
-  console.log('StrategyUpdated Event triggered, calling updateInvested');
   await mockEthAnchorRouter.addPendingOperator(ethAnchorOperator);
   const updateInvestedTx = await vault.connect(owner).updateInvested();
   await updateInvestedTx.wait();
@@ -67,7 +64,6 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     parseUnits('2812', 18)
   );
 
-  console.log('Stable Deposit finished');
   await anchorStrategy.finishDepositStable('0');
 
   await setChainlinkData(2);
