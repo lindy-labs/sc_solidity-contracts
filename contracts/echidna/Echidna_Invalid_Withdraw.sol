@@ -8,7 +8,7 @@ contract Echidna_Invalid_Withdraw is Helper,ERC721Holder {
 
     uint256 amount;
     uint64 lockDuration;
-    uint256[] depositIds;
+    uint256[] depositIds = [0];
     uint256 time;
     bool init = false;
 
@@ -36,26 +36,58 @@ contract Echidna_Invalid_Withdraw is Helper,ERC721Holder {
         init = true;
     }
 
-    // changes the deposit
-    function add_deposit(IVault.DepositParams memory _params) public {
-
-        _params.lockDuration = 2 weeks + (_params.lockDuration % (22 weeks));
-        emit Log("lockDuration", _params.lockDuration);
-
-        _params.amount = Helper.one_to_max_uint64(_params.amount);
-        emit Log("amount", _params.amount);
-
-        Helper.mint_helper(address(this), _params.amount);
-
-        populate_claims(10000, _params.claims);
-        deposit_should_succeed(_params);
-    }
-
     // withdraw with less than was deposited should always succeed if
     // lockduration has passed, else always revert
     function withdraw_all() public {
 
         if (!init) {
+            withdraw_should_revert(address(this), depositIds);
+            return;
+        }
+
+        emit Log("amount", amount);
+        emit Log("lockDuration", lockDuration);
+        emit Log("time", time);
+
+        uint256 balance_this_before = underlying.balanceOf(address(this));
+        uint256 balance_vault_before = vault.totalUnderlying();
+
+        emit Log("balance of this before", balance_this_before);
+        emit Log("balance of vault before", balance_vault_before);
+
+        uint256 totalshares_vault_before = vault.totalShares();
+        emit Log("totalShares of vault before", totalshares_vault_before);
+
+        uint256 totalprincipal_vault_before = vault.totalPrincipal();
+        emit Log("totalPrincipal of vault before", totalprincipal_vault_before);
+
+        if (block.timestamp > time + lockDuration) {
+            withdraw_should_succeed(address(this), depositIds);
+            init = false;
+
+            uint256 balance_this_after = underlying.balanceOf(address(this));
+            uint256 balance_vault_after = vault.totalUnderlying();
+
+            emit Log("balance of this after", balance_this_after);
+            emit Log("balance of vault after", balance_vault_after);
+
+            assert(balance_vault_after == balance_vault_before - amount);
+            assert(balance_this_after == balance_this_before + amount);
+
+            emit Log("totalShares of vault after", vault.totalShares());
+            assert(vault.totalShares() == totalshares_vault_before - (amount * (10**18)));
+
+            emit Log("totalPrincipal of vault after", vault.totalPrincipal());
+            assert(vault.totalPrincipal() == totalprincipal_vault_before - amount);
+        } else {
+            withdraw_should_revert(address(this), depositIds);
+        }
+    }
+
+    function force_withdraw_all() public {
+
+        if (!init) {
+            withdraw_should_revert(address(this), depositIds);
             return;
         }
 
@@ -70,7 +102,12 @@ contract Echidna_Invalid_Withdraw is Helper,ERC721Holder {
         emit Log("balance of vault before", balance_vault_before);
 
         if (block.timestamp > time + lockDuration) {
-            withdraw_should_succeed(address(this), depositIds);
+            try vault.forceWithdraw(address(this), depositIds) {
+                assert(true);
+            } catch {
+                assert(false);
+            }
+
             init = false;
 
             uint256 balance_this_after = underlying.balanceOf(address(this));
@@ -82,7 +119,11 @@ contract Echidna_Invalid_Withdraw is Helper,ERC721Holder {
             assert(balance_vault_after == balance_vault_before - amount);
             assert(balance_this_after == balance_this_before + amount);
         } else {
-            withdraw_should_revert(address(this), depositIds);
+            try vault.forceWithdraw(address(this), depositIds) {
+                assert(false);
+            } catch {
+                assert(true);
+            }
         }
     }
 }

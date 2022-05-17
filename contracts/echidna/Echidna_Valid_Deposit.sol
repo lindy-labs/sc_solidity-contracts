@@ -2,9 +2,8 @@
 pragma solidity =0.8.10;
 import "./Helper.sol";
 import {IVault} from "../vault/IVault.sol";
-import {ERC721Holder} from "@openzeppelin/contracts/token/ERC721/utils/ERC721Holder.sol";
 
-contract Echidna_Valid_Deposit is Helper,ERC721Holder {
+contract Echidna_Valid_Deposit is Helper {
 
     // deposit with valid params should always succeed 
     function deposit_valid_params(IVault.DepositParams memory _params) public {
@@ -15,12 +14,20 @@ contract Echidna_Valid_Deposit is Helper,ERC721Holder {
         _params.amount = Helper.one_to_max_uint64(_params.amount); 
         emit Log("amount", _params.amount);
 
+        _params.inputToken = address(underlying);
+
         Helper.mint_helper(address(this), _params.amount);
 
         uint256 balance_this_before = underlying.balanceOf(address(this));
         uint256 balance_vault_before = vault.totalUnderlying();
         emit Log("balance of this before", balance_this_before);
         emit Log("balance of vault before", balance_vault_before);
+
+        uint256 totalshares_vault_before = vault.totalShares();
+        emit Log("totalShares of vault before", totalshares_vault_before);
+
+        uint256 totalprincipal_vault_before = vault.totalPrincipal();
+        emit Log("totalPrincipal of vault before", totalprincipal_vault_before);
 
         populate_claims(10000, _params.claims);
 
@@ -34,5 +41,11 @@ contract Echidna_Valid_Deposit is Helper,ERC721Holder {
 
         assert(balance_vault_after == balance_vault_before + _params.amount);
         assert(balance_this_after == balance_this_before - _params.amount);
+
+        emit Log("totalShares of vault after", vault.totalShares());
+        assert(vault.totalShares() == totalshares_vault_before + (_params.amount * (10**18)));
+
+        emit Log("totalPrincipal of vault after", vault.totalPrincipal());
+        assert(vault.totalPrincipal() == totalprincipal_vault_before + _params.amount);
     }
 }
