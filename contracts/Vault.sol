@@ -699,13 +699,11 @@ contract Vault is
             emit Unsponsored(tokenId);
         }
 
-        uint256 sponsorToTransfer = sponsorAmount;
-
-        if (sponsorToTransfer > totalUnderlying()) revert VaultNotEnoughFunds();
+        if (sponsorAmount > totalUnderlying()) revert VaultNotEnoughFunds();
 
         totalSponsored -= sponsorAmount;
 
-        underlying.safeTransfer(_to, sponsorToTransfer);
+        underlying.safeTransfer(_to, sponsorAmount);
     }
 
     /**
