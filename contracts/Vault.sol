@@ -244,11 +244,11 @@ contract Vault is
         whenNotPaused
         returns (uint256[] memory depositIds)
     {
-        depositGroupIdOwner[_depositGroupIds] = msg.sender;
+        uint256 depositGroupId = _depositGroupIds;
+        _depositGroupIds = depositGroupId + 1;
 
-        depositIds = _doDeposit(_depositGroupIds, _params);
-
-        ++_depositGroupIds;
+        depositGroupIdOwner[depositGroupId] = msg.sender;
+        depositIds = _doDeposit(depositGroupId, _params);
     }
 
     function _doDeposit(uint256 _groupId, DepositParams calldata _params)
