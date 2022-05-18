@@ -163,7 +163,6 @@ contract Vault is
         perfFeePct = _perfFeePct;
         lossTolerancePct = _lossTolerancePct;
 
-
         rebalanceMinimum = 10 * 10**underlying.decimals();
 
         _addPools(_swapPools);
@@ -313,6 +312,9 @@ contract Vault is
         nonReentrant
     {
         if (_to == address(0)) revert VaultDestinationCannotBe0Address();
+
+        if (totalPrincipal > totalUnderlyingMinusSponsored())
+            revert VaultCannotWithdrawWhenYieldNegative();
 
         _withdrawAll(_to, _ids, false);
     }
@@ -895,8 +897,7 @@ contract Vault is
                 _totalUnderlyingMinusSponsored
             );
 
-        bool lostMoney = depositShares > _deposit.shares ||
-            depositShares > _claim.totalShares;
+        bool lostMoney = totalPrincipal > totalUnderlyingMinusSponsored();
 
         // _force is only allowed in full withdrawals, not partials, so this will
         // implicitly be false essentially preventing "partial withdrawals at a loss"

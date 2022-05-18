@@ -1612,7 +1612,7 @@ describe('Vault', () => {
       const action = vault.connect(alice).withdraw(alice.address, [1]);
 
       await expect(action).to.be.revertedWith(
-        'VaultCannotWithdrawMoreThanAvailable',
+        'VaultCannotWithdrawWhenYieldNegative',
       );
     });
   });
