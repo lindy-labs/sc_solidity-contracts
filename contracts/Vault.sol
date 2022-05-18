@@ -66,7 +66,7 @@ contract Vault is
     uint64 public constant MAX_DEPOSIT_LOCK_DURATION = 24 weeks;
 
     /// Helper constant for computing shares without losing precision
-    uint256 public constant SHARES_MULTIPLIER = 10**18;
+    uint256 public constant SHARES_MULTIPLIER = 1e18;
 
     //
     // State
