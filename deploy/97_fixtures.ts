@@ -90,6 +90,12 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
 
   console.log('The treasury claims');
   await vault.connect(treasury).claimYield(treasury.address);
+
+  console.log('2000 yield is generated');
+  await underlying.mint(vault.address, parseUnits('2000', 18));
+
+  console.log('Alice claims to treasury');
+  await vault.connect(alice).claimYield(treasury.address);
 };
 
 func.id = 'fixtures';

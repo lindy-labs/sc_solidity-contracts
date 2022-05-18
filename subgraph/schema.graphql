@@ -4,7 +4,7 @@ type Vault @entity {
   totalShares: BigInt!
   foundations: [Foundation!]! @derivedFrom(field: "vault")
   claimers: [Claimer!]! @derivedFrom(field: "vault")
-  treasury: Bytes
+  treasury: String
 }
 
 type Foundation @entity {
@@ -48,6 +48,8 @@ type Donation @entity {
   owner: Bytes!
   destination: Bytes!
   minted: Boolean!
+  burned: Boolean!
+  nftId: BigInt
 }
 
 type Sponsor @entity {

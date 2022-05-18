@@ -97,3 +97,5 @@ dataSources:
       eventHandlers:
         - event: DonationMinted(indexed uint256,indexed uint128,indexed bytes32,address,uint256,uint256,address,string)
           handler: handleDonationMinted
+        - event: DonationBurned(indexed uint256,string)
+          handler: handleDonationBurned

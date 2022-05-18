@@ -55,7 +55,7 @@ export function handleYieldClaimed(event: YieldClaimed): void {
 
     if (
       vault.treasury !== null &&
-      event.params.to.toString() == vault.treasury!.toString() &&
+      event.params.to.toHexString() == vault.treasury! &&
       claimedShares.gt(BigInt.fromI32(0))
     ) {
       const id =
@@ -73,6 +73,7 @@ export function handleYieldClaimed(event: YieldClaimed): void {
       donation.owner = deposit.depositor;
       donation.destination = deposit.data;
       donation.minted = false;
+      donation.burned = false;
 
       donation.save();
     }
@@ -150,7 +151,7 @@ export function handleTreasuryUpdated(event: TreasuryUpdated): void {
   createVault(vaultId);
   const vault = Vault.load(vaultId)!;
 
-  vault.treasury = event.params.treasury;
+  vault.treasury = event.params.treasury.toHexString();
 
   vault.save();
 }
