@@ -72,6 +72,7 @@ export function handleYieldClaimed(event: YieldClaimed): void {
         .div(event.params.burnedShares);
       donation.owner = deposit.depositor;
       donation.destination = deposit.data;
+      donation.minted = false;
 
       donation.save();
     }

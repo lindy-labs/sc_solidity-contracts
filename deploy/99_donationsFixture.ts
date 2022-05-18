@@ -11,10 +11,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   const UST = await ethers.getContractAt('MockERC20', USTDeployment.address);
 
   const vaultDeployment = await get('Vault_UST');
-  const vault = await ethers.getContractAt(
-    'Vault',
-    vaultDeployment.address,
-  );
+  const vault = await ethers.getContractAt('Vault', vaultDeployment.address);
 
   const donationsDeployment = await get('Donations');
   const donations = await ethers.getContractAt(
@@ -32,7 +29,10 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     owner: args.claimerId,
     token: UST.address,
     amount: args.amount,
-    donationId: '0',
+    // donationId is is the id generated for the donation record by the
+    // subgraph handler for YieldClaimed event
+    donationId:
+      '0xc21191fcea1d9acbfbe513a5ca5993c82500a4be541f419d191c1017ed374d66-1-0',
   };
 
   await donations.mint(transactionHash, 0, [donationParams]);
@@ -45,7 +45,13 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
 func.id = 'donations_fixture';
 func.tags = ['donations_fixture'];
-func.dependencies = ['dev_setup', 'donations', 'vaults', 'fixtures', 'fixture_deployments'];
+func.dependencies = [
+  'dev_setup',
+  'donations',
+  'vaults',
+  'fixtures',
+  'fixture_deployments',
+];
 
 // Deploy only to hardhat
 func.skip = async (hre: HardhatRuntimeEnvironment) =>

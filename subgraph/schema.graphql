@@ -47,11 +47,7 @@ type Donation @entity {
   amount: BigInt!
   owner: Bytes!
   destination: Bytes!
-}
-
-type DonationMint @entity {
-  id: ID!
-  burned: Boolean!
+  minted: Boolean!
 }
 
 type Sponsor @entity {
