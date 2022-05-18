@@ -755,6 +755,7 @@ contract Vault is
         for (uint256 i; i < locals.claimsLen; ++i) {
             ClaimParams memory data = claims[i];
             if (data.pct == 0) revert VaultClaimPercentageCannotBe0();
+            if (data.beneficiary == address(0)) revert VaultNotDeposit();
             // if it's the last claim, just grab all remaining amount, instead
             // of relying on percentages
             uint256 localAmount = i == locals.claimsLen - 1
