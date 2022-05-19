@@ -24,7 +24,6 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
   await donations.mint(transactionHash, 0, [
     {
-      // destinationId: 123123,
       destinationId: 9,
       owner: args.claimerId,
       token: UST.address,
@@ -40,7 +39,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
   await donations.mint(transactionHash, 1, [
     {
-      destinationId: 123124,
+      destinationId: 10,
       owner: args.claimerId,
       token: UST.address,
       amount: args.amount,
