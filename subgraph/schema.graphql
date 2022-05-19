@@ -4,7 +4,7 @@ type Vault @entity {
   totalShares: BigInt!
   foundations: [Foundation!]! @derivedFrom(field: "vault")
   claimers: [Claimer!]! @derivedFrom(field: "vault")
-  treasury: String
+  treasury: Bytes
 }
 
 type Foundation @entity {
