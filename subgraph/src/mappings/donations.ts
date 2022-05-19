@@ -14,10 +14,10 @@ export function handleDonationMinted(event: DonationMinted): void {
   donation.save();
 }
 
-// export function handleDonationBurned(event: DonationBurned): void {
-//   const donation = Donation.load(event.params.donationId)!;
-// 
-//   donation.burned = true;
-// 
-//   donation.save();
-// }
+export function handleDonationBurned(event: DonationBurned): void {
+  const donation = Donation.load(event.params.donationId)!;
+
+  donation.burned = true;
+
+  donation.save();
+}
