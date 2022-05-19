@@ -66,7 +66,7 @@ contract Vault is
     uint64 public constant MAX_DEPOSIT_LOCK_DURATION = 24 weeks;
 
     /// Helper constant for computing shares without losing precision
-    uint256 public constant SHARES_MULTIPLIER = 10**18;
+    uint256 public constant SHARES_MULTIPLIER = 1e18;
 
     //
     // State
@@ -244,11 +244,11 @@ contract Vault is
         whenNotPaused
         returns (uint256[] memory depositIds)
     {
-        depositGroupIdOwner[_depositGroupIds] = msg.sender;
+        uint256 depositGroupId = _depositGroupIds;
+        _depositGroupIds = depositGroupId + 1;
 
-        depositIds = _doDeposit(_depositGroupIds, _params);
-
-        ++_depositGroupIds;
+        depositGroupIdOwner[depositGroupId] = msg.sender;
+        depositIds = _doDeposit(depositGroupId, _params);
     }
 
     function _doDeposit(uint256 _groupId, DepositParams calldata _params)

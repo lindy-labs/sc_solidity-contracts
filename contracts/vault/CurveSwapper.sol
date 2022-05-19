@@ -83,7 +83,8 @@ abstract contract CurveSwapper {
         internal
         returns (uint256 amount)
     {
-        if (_token == getUnderlying()) {
+        address underlyingToken = getUnderlying();
+        if (_token == underlyingToken) {
             // same token, nothing to do
             return _amount;
         }
@@ -107,7 +108,7 @@ abstract contract CurveSwapper {
             minAmount
         );
 
-        emit Swap(_token, getUnderlying(), _amount, amount);
+        emit Swap(_token, underlyingToken, _amount, amount);
     }
 
     /// Swaps a given amount of Underlying into a given token
