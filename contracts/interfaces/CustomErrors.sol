@@ -87,6 +87,9 @@ interface CustomErrors {
     // Vault: claim percentage cannot be 0
     error VaultClaimPercentageCannotBe0();
 
+    // Vault: claimer cannot be address 0
+    error VaultClaimerCannotBe0();
+
     // Vault: claims don't add up to 100%
     error VaultClaimsDontAddUp();
 
