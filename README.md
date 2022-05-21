@@ -13,11 +13,9 @@ Two contracts make up Sandclock's core: vault and strategy. The vault is the con
 
 Each vault can only have one strategy, but any contract can be a strategy as long as it implements the required interface. We can replace the strategy at any moment by withdrawing all the funds to the vault, updating the address of the strategy, and rebalancing the vault.
 
-At the moment, the only strategy we have is written on top of Anchor Protocol, but more will follow. For the purposes of this audit, the strategy contract pertains solely to EthAnchor.
+Our strategy uses USDC. As such, we use USDC as the underlying for the vault, allowing us to save on conversion fees and create more predictability for our users. Still, the underlying could be almost any other ERC20 that is also a stable coin.
 
-Anchor uses UST. As such, we use UST as the underlying for the vault, allowing us to save on conversion fees and create more predictability for our users. Still, the underlying could be almost any other ERC20 that is also a stable coin.
-
-Because of Anchor’s asynchronous nature, our strategy is also asynchronous, and requires a backend to finish some operations: when the vault transfers underlying to the strategy, the strategy starts a deposit operation on Anchor, but later on, someone has to call the finish operation for the deposit to take effect. The backend handles these calls. The same applies to withdrawals. These operations could also be “finished” manually by anyone, but the backend helps automate the process.
+Because of our strategy's asynchronous nature, our strategy is also asynchronous, and requires a backend to finish some operations: when the vault transfers underlying to the strategy, the strategy starts a deposit operation on our strategy, but later on, someone has to call the finish operation for the deposit to take effect. The backend handles these calls. The same applies to withdrawals. These operations could also be “finished” manually by anyone, but the backend helps automate the process.
 
 ### Vault
 
@@ -28,7 +26,7 @@ The vault is the centerpiece of the system. It,
 - applies the performance fee to the yield;
 - handles most administrative tasks.
 
-Regular users will interact with the vault by depositing/creating a “Metavault,” withdrawing, and claiming yield. While the current vault uses UST as the underlying, users can deposit in other currencies. Underneath, we use Curve to convert those deposits to UST. The same doesn’t apply to withdrawals, which are always in UST.
+Regular users will interact with the vault by depositing/creating a “Metavault,” withdrawing, and claiming yield. While the current vault uses USDC as the underlying, users can deposit in other currencies. Underneath, we use Curve to convert those deposits to USDC. The same doesn’t apply to withdrawals, which are always in USDC.
 
 Besides depositing and withdrawing funds, depositors can specify where they want to send their yield. This is one of the most significant innovations of Sandclock: you can deposit money and assign the yield it generates to anyone. Yield can be assigned to the depositor, another account, or Sandclocks’ treasury in case of a donation which requires centralized infrastructure.
 
@@ -36,9 +34,9 @@ Besides depositing and withdrawing funds, depositors can specify where they want
 
 In other applications, similar to Sandclock, you would deposit your money into a vault and get back receipt tokens that represent the funds deposited. You can typically burn these tokens and get your funds back. Ideally, the tokens would have gained value which meant you got even more money back. This is important because Sandclock doesn't work like that at all. We have the concept of shares that increase/decrease in value, but they don't mean anything to our users, and no one owns any fixed amount of shares. You cannot sell or transfer shares, and the number of shares assigned to an account might change at any time.
 
-For instance, when you deposit 100 UST, your deposit will be assigned an initial 100 x 10^18 shares, before the strategy starts doing its thing and the conversation rate changes. Before any operation, we use this number to check if your deposit is safe or not: if 100 x 10^18 shares are worth less than 100 UST, the vault enters loss mode (more on this later).
+For instance, when you deposit 100 USDC, your deposit will be assigned an initial 100 x 10^18 shares, before the strategy starts doing its thing and the conversation rate changes. Before any operation, we use this number to check if your deposit is safe or not: if 100 x 10^18 shares are worth less than 100 USDC, the vault enters loss mode (more on this later).
 
-From the claimer’s point of view, a deposit of 100 UST will add 100 principal and 100 x 10^18 shares to the claimer’s global counters. At any moment, the difference between the principal and what the shares are worth is the claimer’s yield.
+From the claimer’s point of view, a deposit of 100 USDC will add 100 principal and 100 x 10^18 shares to the claimer’s global counters. At any moment, the difference between the principal and what the shares are worth is the claimer’s yield.
 
 To claim the yield, we,
 
@@ -70,7 +68,7 @@ The concept of a Metavault may appear at the front-end level, but it doesn't tra
 
 #### Partial withdrawals
 
-Ideally, a depositor will make a deposit, have it generate yield, and eventually withdraw that deposit. But Anchor works asynchronously, so our strategy is also asynchronous, meaning users can't withdraw funds directly from the strategy. Because of that, the vault keeps some funds, let’s say 5% of the TVL, to handle withdrawals and claims. The vault and strategy regularly rebalance to ensure those 5% percent are in the vault.
+Ideally, a depositor will make a deposit, have it generate yield, and eventually withdraw that deposit. But our strategy works asynchronously, so our strategy is also asynchronous, meaning users can't withdraw funds directly from the strategy. Because of that, the vault keeps some funds, let’s say 5% of the TVL, to handle withdrawals and claims. The vault and strategy regularly rebalance to ensure those 5% percent are in the vault.
 
 The issue with the approach above is that any deposit worth more than 5% of the TVL cannot be withdrawn. We solve that with partial withdrawals that allow a depositor to reduce the size of the deposit, taking into account the funds available in the vault. Sure, they will have to wait for the vault and strategy to rebalance to withdraw for more funds to be available, but that's part of the deal.
 
@@ -82,13 +80,13 @@ The vault supports sponsors: users who deposit but forfeit their yield to the cl
 
 The vault enters loss mode when all the shares are worth less than all the deposits (the principal), which is the same as saying that the underlying is lower than the deposits. This means that the strategy has lost funds beyond the initial deposits, and is now indebted to its depositors. No one can claim or deposit when this happens, and only withdrawals at a loss are allowed. Keep in mind that you will not find any restrictions to prevent claims or withdrawals; these limitations are part of the design.
 
-In a loss scenario, the vault tries to distribute loss evenly amongst depositors: if the vault lost 10%, then every withdrawal will take a 10% hit, *kind of*. In a 10% loss scenario, a deposit of 100 UST may be worth more or less than 90 UST depending on how much of the yield the claimer of that deposit didn't claim. We need to look at the math to understand how it works.
+In a loss scenario, the vault tries to distribute loss evenly amongst depositors: if the vault lost 10%, then every withdrawal will take a 10% hit, *kind of*. In a 10% loss scenario, a deposit of 100 USDC may be worth more or less than 90 USDC depending on how much of the yield the claimer of that deposit didn't claim. We need to look at the math to understand how it works.
 
 The vault keeps track of each claimer's total principal and total shares (we have explained these in a section above, but the total principal of a claimer is the sum of all the deposits to that claimer). To calculate how much a deposit is worth during a loss scenario, the vault takes the size of your deposit and divides it by the total principal of the claimer. The result of this operation is a percentage that is then multiplied by the total shares of that claimer. You convert the resulting shares to underlying, and this is how much your deposit is worth. You already know that the shares are worth less than the principal; otherwise, we would not be in a loss scenario.
 
-In the explanation above, we need to pay attention to the details. While in theory, two claimers with a total principal of 100 UST each may have the same number of shares, this is very unlikely. A deposit of 20 UST to claimer 1 may be worth more (or less) than another deposit of 20 UST to claimer 2, depending on the total number of shares of that claimer! And how come those two claimers can have a different number of shares? It's simple: *unclaimed yield*.
+In the explanation above, we need to pay attention to the details. While in theory, two claimers with a total principal of 100 USDC each may have the same number of shares, this is very unlikely. A deposit of 20 USDC to claimer 1 may be worth more (or less) than another deposit of 20 USDC to claimer 2, depending on the total number of shares of that claimer! And how come those two claimers can have a different number of shares? It's simple: *unclaimed yield*.
 
-You deposited 100 UST at a conversion rate of 1 UST = 2 shares, buying yourself 200 shares. Later, someone else deposits 100 UST at a rate of 1 UST = 1 share, buying 100 shares. Your deposit is worth twice as many shares as theirs because half of your shares are yield. You'll burn half the shares if you claim, and your 100 UST deposit is also worth 100 shares like the other depositor. But, if you don't claim and the vault suddenly drops into a loss, you own twice as many shares as the other depositor, and therefore your loss will be smaller than theirs. This math can be messy when there are multiple depositors to the same claimer, but the same principle applies: more unclaimed yield will usually result in smaller losses.
+You deposited 100 USDC at a conversion rate of 1 USDC = 2 shares, buying yourself 200 shares. Later, someone else deposits 100 USDC at a rate of 1 USDC = 1 share, buying 100 shares. Your deposit is worth twice as many shares as theirs because half of your shares are yield. You'll burn half the shares if you claim, and your 100 USDC deposit is also worth 100 shares like the other depositor. But, if you don't claim and the vault suddenly drops into a loss, you own twice as many shares as the other depositor, and therefore your loss will be smaller than theirs. This math can be messy when there are multiple depositors to the same claimer, but the same principle applies: more unclaimed yield will usually result in smaller losses.
 
 #### Forced Withdrawal
 
@@ -96,7 +94,7 @@ You have to perform a forced withdrawal in order to withdraw during a loss scena
 
 #### Temporary Loss-Mode
 
-Because Anchor takes a fee for deposits, we could temporarily enter loss mode while the strategy is investing the funds. It is unlikely to happen after the initial phase. Still, to account for that, the vault allows for a tolerance fee determined by the strategy before it enters loss mode.
+If a given strategy were to take a fee for deposits, we could temporarily enter loss mode while the strategy is investing the funds. It is unlikely to happen after the initial phase. Still, to account for that, the vault allows for a tolerance fee determined by the strategy before it enters loss mode.
 
 ## Build
 
