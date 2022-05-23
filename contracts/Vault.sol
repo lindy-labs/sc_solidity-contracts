@@ -19,6 +19,8 @@ import {PercentMath} from "./lib/PercentMath.sol";
 import {IStrategy} from "./strategy/IStrategy.sol";
 import {CustomErrors} from "./interfaces/CustomErrors.sol";
 
+import "hardhat/console.sol";
+
 /**
  * A vault where other accounts can deposit an underlying token
  * currency and set distribution params for their principal and yield
@@ -813,6 +815,15 @@ contract Vault is
             tokenId: _depositTokenIds.current()
         });
 
+        // Checks if the user is not already in debt
+        if (
+            _computeShares(
+                _applyLossTolerance(claimer[locals.claimerId].totalPrincipal),
+                _localTotalShares,
+                _localTotalPrincipal
+            ) > claimer[locals.claimerId].totalShares
+        ) revert VaultCannotDepositWhenClaimerInDebt();
+
         claimer[locals.claimerId].totalShares += locals.newShares;
         claimer[locals.claimerId].totalPrincipal += _amount;
 
@@ -876,44 +887,30 @@ contract Vault is
 
         if (_deposit.lockedUntil > block.timestamp) revert VaultDepositLocked();
         if (_deposit.claimerId == address(0)) revert VaultNotDeposit();
+        if (_deposit.amount < _amount)
+            revert VaultCannotWithdrawMoreThanAvailable();
 
         bool isFull = _deposit.amount == _amount;
 
-        // total amount of shares this deposit is currently worth
-        // computed only to check if we're currently at a loss
-        uint256 depositShares = _computeShares(
-            _deposit.amount,
+        // Amount of shares the _amount is worth
+        uint256 amountShares = _computeShares(
+            _amount,
             _totalShares,
             _totalUnderlyingMinusSponsored
         );
 
-        // for full withdrawals, sharesToBurn is the same as depositShares.
-        // otherwise we compute the partian number of shares to burn
-        uint256 sharesToBurn = isFull
-            ? depositShares
-            : _computeShares(
-                _amount,
-                _totalShares,
-                _totalUnderlyingMinusSponsored
-            );
+        // Amount of shares the _amount is worth taking in the claimer's
+        // totalShares and totalPrincipal
+        uint256 claimerShares = (_amount * _claim.totalShares) /
+            _claim.totalPrincipal;
 
-        bool lostMoney = totalPrincipal > totalUnderlyingMinusSponsored();
-
-        // _force is only allowed in full withdrawals, not partials, so this will
-        // implicitly be false essentially preventing "partial withdrawals at a loss"
-        // which would mess up the whole math
-        if (isFull && _force && lostMoney) {
-            // When there's a loss it means that a deposit is now worth more
-            // shares than before. In that scenario, we cannot allow the
-            // depositor to withdraw all her money. Instead, the depositor gets
-            // a number of shares that are equivalent to the percentage of this
-            // deposit in the total deposits for this claimer.
-            sharesToBurn =
-                (_amount * _claim.totalShares) /
-                _claim.totalPrincipal;
-        } else if (lostMoney) {
+        if (!_force && amountShares > claimerShares)
             revert VaultCannotWithdrawMoreThanAvailable();
-        }
+
+        uint256 sharesToBurn = amountShares;
+
+        if (_force && amountShares > claimerShares)
+            sharesToBurn = claimerShares;
 
         claimer[_deposit.claimerId].totalShares -= sharesToBurn;
         claimer[_deposit.claimerId].totalPrincipal -= _amount;

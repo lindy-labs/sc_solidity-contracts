@@ -84,7 +84,7 @@ describe('Integration', () => {
       aUstToken.address,
     );
   });
-  describe.only('Vault / PPS manipulation', () => {
+  describe('Vault / PPS manipulation', () => {
     it('price per share can be manipulated', async () => {
       await addUnderlyingBalance(alice, '10000');
       await underlying.mint(bob.address, parseUnits('10000'));

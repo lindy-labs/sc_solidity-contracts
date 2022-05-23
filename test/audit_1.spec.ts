@@ -102,13 +102,8 @@ describe('Integration', () => {
     );
   });
 
-  it.only('two deposits, single claimer. should fair for depositors', async () => {
-    try {
-      await wrongCase();
-    } catch (e) {
-      return;
-    }
-    throw new Error('wrong case should throw');
+  it('two deposits, single claimer. should fair for depositors', async () => {
+    await wrongCase();
   });
 
   async function wrongCase() {
@@ -202,13 +197,19 @@ describe('Integration', () => {
     expect(await underlying.balanceOf(depositor1.address)).to.eq(
       parseUnits('0'),
     );
-    await vault.connect(depositor1).withdraw(depositor1.address, [1]);
+
+    await expect(
+      vault.connect(depositor1).withdraw(depositor1.address, [1]),
+    ).to.revertedWith('VaultCannotWithdrawWhenYieldNegative'); // FIXED!
+
+    await vault.connect(depositor1).forceWithdraw(depositor1.address, [1]);
+
     expect(await underlying.balanceOf(vault.address)).to.eq(
-      parseUnits('70000').add(2),
-    ); // vault: 170001 -> 70002  (sub 100000 - 1)
+      parseUnits('85000').add(1),
+    ); // vault: 170001 -> 70002  (sub 100000 - 1) FIXED!!!
     expect(await underlying.balanceOf(depositor1.address)).to.eq(
-      parseUnits('100000').sub(1),
-    ); // depositor1: 0 -> 100000 - 1 (add 100000 - 1)
+      parseUnits('85000'),
+    ); // depositor1: 0 -> 100000 - 1 (add 100000 - 1) FIXED!!!
 
     // ## depositor2 withdraw
     expect(await underlying.balanceOf(depositor2.address)).to.eq(
@@ -217,8 +218,8 @@ describe('Integration', () => {
     await vault.connect(depositor2).forceWithdraw(depositor2.address, [2]);
     expect(await underlying.balanceOf(vault.address)).to.eq(parseUnits('0')); // vault: 70002 -> 0 (sub 70002)
     expect(await underlying.balanceOf(depositor2.address)).to.eq(
-      parseUnits('70000').add(2),
-    ); // depositor2: 0 -> 70002 (add 70002)
+      parseUnits('85000').add(1),
+    ); // depositor2: 0 -> 70002 (add 70002) FIXED!!!
   }
 
   function addYieldToVault(amount: string) {
