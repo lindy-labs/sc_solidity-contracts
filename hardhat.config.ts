@@ -9,6 +9,7 @@ import "@typechain/hardhat";
 import "hardhat-deploy";
 import "hardhat-gas-reporter";
 import "solidity-coverage";
+import "@tenderly/hardhat-tenderly";
 
 const devMnemonic =
   process.env.MNEMONIC ||
@@ -96,6 +97,10 @@ const config: HardhatUserConfig = {
       ropsten: process.env.ETHERSCAN_KEY || "missing-key",
     },
   },
+  tenderly: {
+      project: "project",
+      username: "rin",
+  }
 };
 
 export default config;
