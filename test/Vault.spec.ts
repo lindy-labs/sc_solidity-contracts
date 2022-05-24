@@ -1174,6 +1174,28 @@ describe('Vault', () => {
       await expect(action).to.be.revertedWith('VaultClaimPercentageCannotBe0');
     });
 
+    it('fails if the claimer is address 0', async () => {
+      await vault.connect(alice).deposit(
+        depositParams.build({
+          amount: parseUnits('100'),
+          inputToken: underlying.address,
+          claims: [claimParams.percent(100).to(bob.address).build()],
+        }),
+      );
+
+      const params = depositParams.build({
+        amount: parseUnits('100'),
+        inputToken: underlying.address,
+        claims: [
+          claimParams.percent(100).to('0x0000000000000000000000000000000000000000').build()
+        ],
+      });
+
+      const action = vault.connect(alice).depositForGroupId(0, params);
+
+      await expect(action).to.be.revertedWith('VaultClaimerCannotBe0');
+    });
+
     it('fails if the amount is 0', async () => {
       await vault.connect(alice).deposit(
         depositParams.build({
@@ -1354,6 +1376,20 @@ describe('Vault', () => {
       const action = vault.connect(alice).deposit(params);
 
       await expect(action).to.be.revertedWith('VaultClaimPercentageCannotBe0');
+    });
+
+    it('fails if the claimer is address 0', async () => {
+      const params = depositParams.build({
+        amount: parseUnits('100'),
+        inputToken: underlying.address,
+        claims: [
+          claimParams.percent(100).to('0x0000000000000000000000000000000000000000').build()
+        ],
+      });
+
+      const action = vault.connect(alice).deposit(params);
+
+      await expect(action).to.be.revertedWith('VaultClaimerCannotBe0');
     });
 
     it('fails if the amount is 0', async () => {
