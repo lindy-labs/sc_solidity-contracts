@@ -863,7 +863,6 @@ describe('Vault', () => {
       const deposit = await vault.deposits(1);
       expect(deposit.amount).to.be.equals(parseUnits('500'));
       expect(deposit.lockedUntil).to.be.equal(currentTime.add(TWO_WEEKS));
-      expect(deposit.shares).to.be.equal(0);
     });
 
     it('transfers underlying from user at sponsor', async () => {
@@ -1643,11 +1642,9 @@ describe('Vault', () => {
 
       const deposit = await vault.deposits(1);
       expect(deposit.amount).to.eq(parseUnits('25'));
-      expect(deposit.shares).to.eq(parseUnits('37.5').mul(SHARES_MULTIPLIER));
 
       const deposit2 = await vault.deposits(2);
       expect(deposit2.amount).to.eq(parseUnits('20'));
-      expect(deposit2.shares).to.eq(parseUnits('35').mul(SHARES_MULTIPLIER));
     });
 
     it("reduces the claimer's totalShares and totalPrincipal", async () => {
@@ -1698,9 +1695,7 @@ describe('Vault', () => {
       const deposit = await vault.deposits(2);
 
       expect(deposit.amount).to.eq(0);
-      //expect(deposit.claimerId).to.eq(0);
       expect(deposit.lockedUntil).to.eq(0);
-      expect(deposit.shares).to.eq(0);
     });
 
     it('fails if the vault lost funds', async () => {
@@ -2216,18 +2211,12 @@ describe('Vault', () => {
       expect(deposit1.lockedUntil).to.be.equal(
         currentTime.add(params.lockDuration),
       );
-      expect(deposit1.shares).to.be.equal(
-        parseUnits('0.4').mul(SHARES_MULTIPLIER),
-      );
 
       const deposit2 = await vault.deposits(2);
       expect(deposit2.amount).to.be.equal(parseUnits('0.6'));
       expect(deposit2.claimerId).to.be.equal(carol.address);
       expect(deposit2.lockedUntil).to.be.equal(
         currentTime.add(params.lockDuration),
-      );
-      expect(deposit2.shares).to.be.equal(
-        parseUnits('0.6').mul(SHARES_MULTIPLIER),
       );
     });
   });

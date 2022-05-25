@@ -443,8 +443,7 @@ contract Vault is
             underlyingAmount,
             msg.sender,
             address(0),
-            lockedUntil,
-            0
+            lockedUntil
         );
         totalSponsored += underlyingAmount;
 
@@ -834,8 +833,7 @@ contract Vault is
             _amount,
             msg.sender,
             locals.claimerId,
-            _lockedUntil,
-            locals.newShares
+            _lockedUntil
         );
 
         emit DepositMinted(
@@ -890,8 +888,6 @@ contract Vault is
         if (_deposit.amount < _amount)
             revert VaultCannotWithdrawMoreThanAvailable();
 
-        bool isFull = _deposit.amount == _amount;
-
         // Amount of shares the _amount is worth
         uint256 amountShares = _computeShares(
             _amount,
@@ -918,10 +914,11 @@ contract Vault is
         totalShares -= sharesToBurn;
         totalPrincipal -= _amount;
 
+        bool isFull = _deposit.amount == _amount;
+
         if (isFull) {
             delete deposits[_tokenId];
         } else {
-            deposits[_tokenId].shares -= sharesToBurn;
             deposits[_tokenId].amount -= _amount;
         }
 
