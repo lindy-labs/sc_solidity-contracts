@@ -7,8 +7,6 @@ import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import "hardhat/console.sol";
-
 /**
  * A contract to store donations before they are transferred to the charities.
  */
@@ -130,9 +128,7 @@ contract Donations is ERC721, AccessControl {
         );
 
         uint64 expiry = _getBlockTimestamp() + ttl;
-
         uint256 length = _params.length;
-
         uint256 _metadataId = metadataId;
 
         for (uint256 i = 0; i < length; ++i) {
