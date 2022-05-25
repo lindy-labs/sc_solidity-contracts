@@ -98,7 +98,7 @@ const config: HardhatUserConfig = {
     },
   },
   tenderly: {
-      project: "project",
+      project: "Project",
       username: "rin",
   }
 };

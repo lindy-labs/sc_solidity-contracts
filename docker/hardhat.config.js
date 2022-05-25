@@ -34,7 +34,7 @@ module.exports = {
     },
   },
   tenderly: {
-      project: "project",
-      username: "rin",
+    project: "Project",
+    username: "rin",
   }
 };

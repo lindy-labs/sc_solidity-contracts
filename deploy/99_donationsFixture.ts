@@ -31,7 +31,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
       // donationId is is the id generated for the donation record by the
       // subgraph handler for YieldClaimed event
       donationId:
-        '0xc21191fcea1d9acbfbe513a5ca5993c82500a4be541f419d191c1017ed374d66-1-1',
+        '0xc21191fcea1d9acbfbe513a5ca5993c82500a4be541f419d191c1017ed374d66-1-0',
     },
   ]);
 
