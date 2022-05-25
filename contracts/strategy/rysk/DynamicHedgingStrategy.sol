@@ -3,4 +3,7 @@ pragma solidity =0.8.10;
 
 import {IStrategy} from "../IStrategy.sol";
 
-contract DynamicHedgingStrategy is IStrategy {}
+contract DynamicHedgingStrategy is IStrategy {
+
+}
+// deposit, redeem, initiateWithdraw, completeWithdraw
