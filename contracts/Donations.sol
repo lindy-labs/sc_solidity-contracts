@@ -124,31 +124,19 @@ contract Donations is ERC721, AccessControl {
     ) external onlyRole(WORKER_ROLE) {
         bytes32 groupId = keccak256(abi.encodePacked(_txHash, _batchNr));
 
-        console.log("a");
-
         require(
             !processedDonationsGroups[groupId],
             "Donations: already processed"
         );
 
-        console.log("b");
-
         uint64 expiry = _getBlockTimestamp() + ttl;
-
-        console.log("c");
 
         uint256 length = _params.length;
 
-        console.log("d");
-
         uint256 _metadataId = metadataId;
-
-        console.log("e");
 
         for (uint256 i = 0; i < length; ++i) {
             ++_metadataId;
-
-            console.log("f");
 
             metadata[_metadataId] = Metadata({
                 destinationId: _params[i].destinationId,
@@ -157,11 +145,7 @@ contract Donations is ERC721, AccessControl {
                 amount: _params[i].amount
             });
 
-            console.log("g");
-
             _mint(_params[i].owner, _metadataId);
-
-            console.log("h");
 
             emit DonationMinted(
                 _metadataId,
@@ -175,11 +159,7 @@ contract Donations is ERC721, AccessControl {
             );
         }
 
-        console.log("i");
-
         metadataId = _metadataId;
-
-        console.log("j");
 
         processedDonationsGroups[groupId] = true;
     }
