@@ -3,7 +3,6 @@ import { time } from '@openzeppelin/test-helpers';
 import { ethers, deployments } from 'hardhat';
 import { expect } from 'chai';
 import { Contract, BigNumber } from 'ethers';
-import { Decimal } from 'decimal.js';
 
 import {
   Vault,
