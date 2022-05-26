@@ -37,7 +37,7 @@ dataSources:
           handler: handleSponsored
         - event: Unsponsored(indexed uint256)
           handler: handleUnsponsored
-        - event: YieldClaimed(address,indexed address,uint256,uint256,uint256)
+        - event: YieldClaimed(address,indexed address,uint256,uint256,uint256,uint256,uint256)
           handler: handleYieldClaimed
         - event: TreasuryUpdated(indexed address)
           handler: handleTreasuryUpdated

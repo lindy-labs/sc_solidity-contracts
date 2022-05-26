@@ -74,7 +74,9 @@ interface IVault {
         address indexed to,
         uint256 amount,
         uint256 burnedShares,
-        uint256 perfFee
+        uint256 perfFee,
+        uint256 totalUnderlying,
+        uint256 totalShares
     );
 
     event FeeWithdrawn(uint256 amount);
