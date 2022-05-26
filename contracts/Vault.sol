@@ -297,6 +297,10 @@ contract Vault is
 
         accumulatedPerfFee += fee;
 
+        if (totalUnderlying() < yield) {
+            strategy.withdrawToVault(yield - totalUnderlying());
+        }
+
         underlying.safeTransfer(_to, yield);
 
         claimer[msg.sender].totalShares -= shares;
@@ -329,15 +333,15 @@ contract Vault is
         _withdrawAll(_to, _ids, true);
     }
 
-    function partialWithdraw(
-        address _to,
-        uint256[] calldata _ids,
-        uint256[] calldata _amounts
-    ) external nonReentrant {
-        if (_to == address(0)) revert VaultDestinationCannotBe0Address();
-
-        _withdrawPartial(_to, _ids, _amounts);
-    }
+    // function partialWithdraw(
+    //     address _to,
+    //     uint256[] calldata _ids,
+    //     uint256[] calldata _amounts
+    // ) external nonReentrant {
+    //     if (_to == address(0)) revert VaultDestinationCannotBe0Address();
+    //
+    //     _withdrawPartial(_to, _ids, _amounts);
+    // }
 
     /// @inheritdoc IVault
     function investState()
@@ -636,35 +640,39 @@ contract Vault is
             );
         }
 
-        underlying.safeTransfer(_to, amount);
-    }
-
-    function _withdrawPartial(
-        address _to,
-        uint256[] calldata _ids,
-        uint256[] calldata _amounts
-    ) internal {
-        uint256 localTotalShares = totalShares;
-        uint256 localTotalPrincipal = totalUnderlyingMinusSponsored();
-        uint256 amount;
-        uint256 idsLen = _ids.length;
-
-        for (uint256 i; i < idsLen; ++i) {
-            if (_amounts[i] > deposits[_ids[i]].amount)
-                revert VaultAmountTooLarge();
-
-            amount += _withdrawSingle(
-                _ids[i],
-                localTotalShares,
-                localTotalPrincipal,
-                _to,
-                false,
-                _amounts[i]
-            );
+        if (totalUnderlying() < amount) {
+            strategy.withdrawToVault(amount - totalUnderlying());
         }
 
         underlying.safeTransfer(_to, amount);
     }
+
+    // function _withdrawPartial(
+    //     address _to,
+    //     uint256[] calldata _ids,
+    //     uint256[] calldata _amounts
+    // ) internal {
+    //     uint256 localTotalShares = totalShares;
+    //     uint256 localTotalPrincipal = totalUnderlyingMinusSponsored();
+    //     uint256 amount;
+    //     uint256 idsLen = _ids.length;
+    //
+    //     for (uint256 i; i < idsLen; ++i) {
+    //         if (_amounts[i] > deposits[_ids[i]].amount)
+    //             revert VaultAmountTooLarge();
+    //
+    //         amount += _withdrawSingle(
+    //             _ids[i],
+    //             localTotalShares,
+    //             localTotalPrincipal,
+    //             _to,
+    //             false,
+    //             _amounts[i]
+    //         );
+    //     }
+    //
+    //     underlying.safeTransfer(_to, amount);
+    // }
 
     /**
      * Withdraws the sponsored amount for the deposits with the ids provided
@@ -705,6 +713,10 @@ contract Vault is
         if (sponsorToTransfer > totalUnderlying()) revert VaultNotEnoughFunds();
 
         totalSponsored -= sponsorAmount;
+
+        if (totalUnderlying() < sponsorToTransfer) {
+            strategy.withdrawToVault(sponsorToTransfer - totalUnderlying());
+        }
 
         underlying.safeTransfer(_to, sponsorToTransfer);
     }
