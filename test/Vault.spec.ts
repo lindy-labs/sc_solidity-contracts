@@ -1213,6 +1213,74 @@ describe('Vault', () => {
       await vault.connect(owner).unpause();
     });
 
+    it('applies the loss tolerance before preventing a deposit', async () => {
+      await vault.connect(alice).deposit(
+        depositParams.build({
+          lockDuration: TWO_WEEKS,
+          amount: parseUnits('100'),
+          inputToken: underlying.address,
+          claims: [
+            claimParams.percent(50).to(carol.address).build(),
+            claimParams.percent(50).to(bob.address).build(),
+          ],
+          name: 'Deposit - Emits Different groupId',
+        }),
+      );
+
+      await removeUnderlyingFromVault('2');
+
+      await expect(
+        vault.connect(alice).deposit(
+          depositParams.build({
+            lockDuration: TWO_WEEKS,
+            amount: parseUnits('100'),
+            inputToken: underlying.address,
+            claims: [
+              claimParams.percent(50).to(carol.address).build(),
+              claimParams.percent(50).to(bob.address).build(),
+            ],
+            name: 'Deposit - Emits Different groupId',
+          }),
+        ),
+      ).not.to.be.reverted;
+    });
+
+    it('prevents deposits when the claimer is already in debt', async () => {
+      await vault.connect(alice).deposit(
+        depositParams.build({
+          lockDuration: TWO_WEEKS,
+          amount: parseUnits('100'),
+          inputToken: underlying.address,
+          claims: [
+            claimParams.percent(50).to(carol.address).build(),
+            claimParams.percent(50).to(bob.address).build(),
+          ],
+          name: 'Deposit - Emits Different groupId',
+        }),
+      );
+
+      await addYieldToVault('100');
+
+      await vault.connect(carol).claimYield(carol.address);
+
+      await removeUnderlyingFromVault('50');
+
+      await expect(
+        vault.connect(alice).deposit(
+          depositParams.build({
+            lockDuration: TWO_WEEKS,
+            amount: parseUnits('100'),
+            inputToken: underlying.address,
+            claims: [
+              claimParams.percent(50).to(carol.address).build(),
+              claimParams.percent(50).to(bob.address).build(),
+            ],
+            name: 'Deposit - Emits Different groupId',
+          }),
+        ),
+      ).to.be.revertedWith('VaultCannotDepositWhenClaimerInDebt');
+    });
+
     it('emits events', async () => {
       const params = depositParams.build({
         lockDuration: TWO_WEEKS,
