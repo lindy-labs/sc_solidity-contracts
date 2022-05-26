@@ -5,16 +5,11 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   const { deployer } = await env.getNamedAccounts();
   const { deploy } = env.deployments;
 
-  const deployment = await deploy('ChainlinkPriceFeed', {
+  await deploy('ChainlinkPriceFeed', {
     contract: 'MockChainlinkPriceFeed',
     from: deployer,
     log: true,
     args: [18],
-  });
-
-  await env.tenderly.persistArtifacts({
-      name: 'ChainlinkPriceFeed',
-      address: deployment.address,
   });
 };
 

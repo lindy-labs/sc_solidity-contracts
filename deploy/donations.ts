@@ -19,11 +19,6 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
     args,
   });
 
-  await env.tenderly.persistArtifacts({
-      name: 'Donations',
-      address: donationsDeployment.address,
-  });
-
   if (env.network.config.chainId === 1 || env.network.config.chainId === 3) {
     try {
       await env.run('verify:verify', {

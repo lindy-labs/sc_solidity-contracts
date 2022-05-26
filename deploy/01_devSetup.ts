@@ -28,17 +28,12 @@ async function deployDevToken(
   const isDeployed = await getOrNull(name);
 
   if (!isDeployed) {
-    const deployment = await deploy(name, {
+    await deploy(name, {
       contract,
       from: deployer,
       args: [0],
       log: true,
     });
-
-    await env.tenderly.persistArtifacts({
-        name,
-        address: deployment.address,
-    })
 
     if (process.env.NODE_ENV !== 'test') {
       for (let account of [deployer, alice, bob, carol]) {
