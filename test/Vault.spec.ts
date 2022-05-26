@@ -1834,6 +1834,8 @@ describe('Vault', () => {
           parseUnits('49'),
           parseUnits('25').mul(SHARES_MULTIPLIER),
           parseUnits('1'),
+          parseUnits('200'),
+          parseUnits('100').mul(SHARES_MULTIPLIER),
         );
     });
 
