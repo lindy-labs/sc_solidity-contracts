@@ -1,4 +1,4 @@
-import { ethereum, Address, Bytes, BigInt } from "@graphprotocol/graph-ts";
+import { log, ethereum, Address, Bytes, BigInt } from "@graphprotocol/graph-ts";
 import {
   test,
   assert,
@@ -36,7 +36,7 @@ import {
   Claimer,
   Foundation,
   DepositOperation,
-  RedeemOperation,
+  RedeemOperation
 } from "../src/types/schema";
 import {
   FinishDepositStable,
