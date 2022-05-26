@@ -28,12 +28,17 @@ async function deployDevToken(
   const isDeployed = await getOrNull(name);
 
   if (!isDeployed) {
-    await deploy(name, {
+    const deployment = await deploy(name, {
       contract,
       from: deployer,
       args: [0],
     });
 
+    await env.tenderly.persistArtifacts({
+        name,
+        address: deployment.address,
+    })
+    
     if (process.env.NODE_ENV !== 'test') {
       for (let account of [deployer, alice, bob, carol]) {
         const decimals = await read(name, 'decimals');
