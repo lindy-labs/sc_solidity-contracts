@@ -15,6 +15,9 @@ import {
   newString,
   donationId,
   createDeposit,
+  MOCK_ADDRESS_1,
+  MOCK_ADDRESS_2,
+  TREASURY_ADDRESS,
 } from './helpers';
 
 import {
@@ -30,10 +33,6 @@ import {
 } from '../src/types/Vault/IVault';
 
 import { Vault, Claimer, Foundation } from '../src/types/schema';
-
-const MOCK_ADDRESS_1 = '0xC80B3caAd6d2DE80Ac76a41d5F0072E36D2519Cd'.toLowerCase();
-const MOCK_ADDRESS_2 = '0xE80B3caAd6d2DE80Ac76a41d5F0072E36D2519Ce'.toLowerCase();
-const TREASURY_ADDRESS = '0x4940c6e628da11ac0bdcf7f82be8579b4696fa33';
 
 test('handles scenarios with rounding matters', () => {
   clearStore();
