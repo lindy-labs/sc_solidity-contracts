@@ -19,7 +19,7 @@ import { moveForwardTwoWeeks, generateNewAddress } from './shared';
 const { parseUnits } = ethers.utils;
 const { MaxUint256, WeiPerEther } = ethers.constants;
 
-describe('wrong withdraw', () => {
+describe('Audit Tests 3', () => {
   let owner: SignerWithAddress;
   let depositor1: SignerWithAddress;
   let depositor2: SignerWithAddress;
@@ -129,6 +129,7 @@ describe('wrong withdraw', () => {
         claims: [claimParams.percent(100).to(claimer1.address).build()],
       }),
     );
+
     // ## depositor2 deposits
     await vault.connect(depositor2).deposit(
       depositParams.build({
@@ -137,6 +138,7 @@ describe('wrong withdraw', () => {
         claims: [claimParams.percent(100).to(claimer1.address).build()],
       }),
     );
+
     // ## depositor3 deposits
     await vault.connect(depositor3).deposit(
       depositParams.build({
@@ -145,6 +147,7 @@ describe('wrong withdraw', () => {
         claims: [claimParams.percent(100).to(claimer2.address).build()],
       }),
     );
+
     // ## depositor4 deposits
     await vault.connect(depositor4).deposit(
       depositParams.build({
@@ -153,6 +156,7 @@ describe('wrong withdraw', () => {
         claims: [claimParams.percent(100).to(claimer2.address).build()],
       }),
     );
+
     expect(await underlying.balanceOf(vault.address)).to.eq(
       parseUnits('400000'),
     ); // vault: 400k
@@ -197,6 +201,7 @@ describe('wrong withdraw', () => {
     expect(await underlying.balanceOf(depositor4.address)).to.eq(
       parseUnits('0'),
     );
+
     // ## depositor1 withdraw
     await vault.connect(depositor1).forceWithdraw(depositor1.address, [1]);
     // expect depositor1 forceWithdraw 96k but:

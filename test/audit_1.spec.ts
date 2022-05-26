@@ -22,7 +22,7 @@ import {
 const { parseUnits } = ethers.utils;
 const { MaxUint256 } = ethers.constants;
 
-describe('Integration', () => {
+describe('Audit Tests 1', () => {
   let owner: SignerWithAddress;
   let alice: SignerWithAddress;
   let bob: SignerWithAddress;
@@ -103,10 +103,6 @@ describe('Integration', () => {
   });
 
   it('two deposits, single claimer. should fair for depositors', async () => {
-    await wrongCase();
-  });
-
-  async function wrongCase() {
     const [claimer, depositor1, depositor2] = [alice, bob, charlie];
 
     await addUnderlyingBalance(depositor1, '100000');
@@ -114,10 +110,10 @@ describe('Integration', () => {
 
     expect(await underlying.balanceOf(depositor1.address)).to.eq(
       parseUnits('100000'),
-    ); // depositor1 has 100000 underlying
+    );
     expect(await underlying.balanceOf(depositor2.address)).to.eq(
       parseUnits('100000'),
-    ); // depositor2 has 100000 underlying
+    );
 
     // ## depositor1 deposits
     await vault.connect(depositor1).deposit(
@@ -200,16 +196,16 @@ describe('Integration', () => {
 
     await expect(
       vault.connect(depositor1).withdraw(depositor1.address, [1]),
-    ).to.revertedWith('VaultCannotWithdrawWhenYieldNegative'); // FIXED!
+    ).to.revertedWith('VaultCannotWithdrawWhenYieldNegative');
 
     await vault.connect(depositor1).forceWithdraw(depositor1.address, [1]);
 
     expect(await underlying.balanceOf(vault.address)).to.eq(
       parseUnits('85000').add(1),
-    ); // vault: 170001 -> 70002  (sub 100000 - 1) FIXED!!!
+    );
     expect(await underlying.balanceOf(depositor1.address)).to.eq(
       parseUnits('85000'),
-    ); // depositor1: 0 -> 100000 - 1 (add 100000 - 1) FIXED!!!
+    );
 
     // ## depositor2 withdraw
     expect(await underlying.balanceOf(depositor2.address)).to.eq(
@@ -219,8 +215,8 @@ describe('Integration', () => {
     expect(await underlying.balanceOf(vault.address)).to.eq(parseUnits('0')); // vault: 70002 -> 0 (sub 70002)
     expect(await underlying.balanceOf(depositor2.address)).to.eq(
       parseUnits('85000').add(1),
-    ); // depositor2: 0 -> 70002 (add 70002) FIXED!!!
-  }
+    );
+  });
 
   function addYieldToVault(amount: string) {
     return underlying.mint(vault.address, parseUnits(amount));
