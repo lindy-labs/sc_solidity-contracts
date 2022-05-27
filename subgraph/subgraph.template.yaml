@@ -4,13 +4,13 @@ schema:
 dataSources:
   - name: Vault
     kind: ethereum/contract
+    {{#vault}}
     network: {{network}}
     source:
       abi: Vault
-      {{#vault}}
       address: "{{address}}"
-      {{/vault}}
       startBlock: {{startBlock}}
+    {{/vault}}
     mapping: &mapping
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -44,13 +44,13 @@ dataSources:
 
   - name: Strategy
     kind: ethereum/contract
+    {{#strategy}}
     network: {{network}}
     source:
       abi: AnchorStrategy
-      {{#strategy}}
       address: "{{address}}"
-      {{/strategy}}
       startBlock: {{startBlock}}
+    {{/strategy}}
     mapping: &mapping
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -77,20 +77,20 @@ dataSources:
 
   - name: Donations
     kind: ethereum/contract
+    {{#donations}}
     network: {{network}}
     source:
       abi: Donations
-      {{#donations}}
       address: "{{address}}"
-      {{/donations}}
       startBlock: {{startBlock}}
+    {{/donations}}
     mapping: &mapping
       kind: ethereum/events
       apiVersion: 0.0.6
       language: wasm/assemblyscript
       file: ./src/mappings/donations.ts
       entities:
-        - Donation
+        - DonationMint
       abis:
         - name: Donations
           file: ../artifacts/contracts/Donations.sol/Donations.json

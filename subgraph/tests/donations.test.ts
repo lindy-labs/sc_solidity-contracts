@@ -13,32 +13,20 @@ import {
   DonationBurned,
   DonationMinted,
 } from '../src/types/Donations/Donations';
-import { Donation } from '../src/types/schema';
+import { Donation, DonationMint } from '../src/types/schema';
 import {
   donationId,
-  MOCK_ADDRESS_1,
   newAddress,
   newI32,
   newString,
 } from './helpers';
 
-test('DonationMinted event sets Donation record minted field to true', () => {
+test('DonationMinted event creates DonationMint record', () => {
   clearStore();
 
   let mockDonation = newMockEvent();
 
   const donationID = donationId(mockDonation, '0');
-
-  const donation = new Donation(donationID);
-  donation.txHash = Bytes.fromUTF8('some-tx-hash');
-  donation.amount = BigInt.fromString('495000000000000000000');
-  donation.owner = Address.fromUTF8(MOCK_ADDRESS_1);
-  donation.destination = Bytes.fromUTF8('some-destination');
-  donation.minted = false;
-  donation.burned = false;
-  donation.save();
-
-  assert.fieldEquals('Donation', donationID, 'minted', 'false');
 
   const donationEvent = new DonationMinted(
     mockDonation.address,
@@ -64,31 +52,27 @@ test('DonationMinted event sets Donation record minted field to true', () => {
 
   handleDonationMinted(donationEvent);
 
-  assert.fieldEquals('Donation', donationID, 'minted', 'true');
+  assert.fieldEquals('DonationMint', donationID, 'id', donationID);
+  assert.fieldEquals('DonationMint', donationID, 'nftId', '0');
+  assert.fieldEquals('DonationMint', donationID, 'burned', 'false');
 
   clearStore();
 });
 
-test('DonationBurned event sets Donation record burned field to true', () => {
+test('DonationBurned event sets DonationMint record burned field to true', () => {
   clearStore();
 
   let mockDonation = newMockEvent();
 
   const donationID = donationId(mockDonation, '0');
 
-  const donation = new Donation(donationID);
-  donation.txHash = Bytes.fromUTF8('some-tx-hash');
-  donation.amount = BigInt.fromString('495000000000000000000');
-  donation.owner = Address.fromUTF8(MOCK_ADDRESS_1);
-  donation.destination = Bytes.fromUTF8('some-destination');
-  donation.minted = true;
+  const donation = new DonationMint(donationID);
   donation.burned = false;
   donation.nftId = BigInt.fromString('0');
   donation.save();
 
-  assert.fieldEquals('Donation', donationID, 'minted', 'true');
-  assert.fieldEquals('Donation', donationID, 'burned', 'false');
-  assert.fieldEquals('Donation', donationID, 'nftId', '0');
+  assert.fieldEquals('DonationMint', donationID, 'burned', 'false');
+  assert.fieldEquals('DonationMint', donationID, 'nftId', '0');
 
   const donationEvent = new DonationBurned(
     mockDonation.address,
@@ -106,9 +90,8 @@ test('DonationBurned event sets Donation record burned field to true', () => {
 
   handleDonationBurned(donationEvent);
 
-  assert.fieldEquals('Donation', donationID, 'minted', 'true');
-  assert.fieldEquals('Donation', donationID, 'burned', 'true');
-  assert.fieldEquals('Donation', donationID, 'nftId', '0');
+  assert.fieldEquals('DonationMint', donationID, 'burned', 'true');
+  assert.fieldEquals('DonationMint', donationID, 'nftId', '0');
 
   clearStore();
 });

@@ -49,7 +49,10 @@ type Donation @entity {
   amount: BigInt!
   owner: Bytes!
   destination: Bytes!
-  minted: Boolean!
+}
+
+type DonationMint @entity {
+  id: ID!
   burned: Boolean!
   nftId: BigInt
 }
