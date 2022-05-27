@@ -31,14 +31,14 @@ const func = async function (env: HardhatRuntimeEnvironment) {
       // donationId is is the id generated for the donation record by the
       // subgraph handler for YieldClaimed event
       donationId:
-        '0xc21191fcea1d9acbfbe513a5ca5993c82500a4be541f419d191c1017ed374d66-1-0',
+        '0x8945ff0b4e5a4ff57c0021a33bef8276cb41f422b0288b24a3933a6619f1d38b-1-0',
     }, {
       destinationId: 10,
       owner: args.claimerId,
       token: UST.address,
       amount: args.amount,
       donationId:
-        '0xc21191fcea1d9acbfbe513a5ca5993c82500a4be541f419d191c1017ed374d66-1-1',
+        '0x8945ff0b4e5a4ff57c0021a33bef8276cb41f422b0288b24a3933a6619f1d38b-1-1',
     },
   ]);
 
@@ -48,7 +48,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   await ethers.provider.send("evm_increaseTime", [1.6e7]);
   await ethers.provider.send("evm_mine", []);
 
-  await donations.burn(1, '0xc21191fcea1d9acbfbe513a5ca5993c82500a4be541f419d191c1017ed374d66-1-1');
+  await donations.burn(1, '0x8945ff0b4e5a4ff57c0021a33bef8276cb41f422b0288b24a3933a6619f1d38b-1-0');
 };
 
 func.id = 'donations_fixture';
