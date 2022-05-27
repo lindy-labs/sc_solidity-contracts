@@ -1,4 +1,4 @@
-import { Address, BigInt, Bytes } from '@graphprotocol/graph-ts';
+import { BigInt } from '@graphprotocol/graph-ts';
 import {
   test,
   assert,
@@ -13,7 +13,7 @@ import {
   DonationBurned,
   DonationMinted,
 } from '../src/types/Donations/Donations';
-import { Donation, DonationMint } from '../src/types/schema';
+import { DonationMint } from '../src/types/schema';
 import {
   donationId,
   newAddress,
