@@ -298,7 +298,16 @@ contract Vault is
         accumulatedPerfFee += fee;
 
         if (totalUnderlying() < yield) {
-            strategy.withdrawToVault(yield - totalUnderlying());
+            uint256 missingAmount = yield - totalUnderlying();
+
+            (
+                uint256 maxInvestableAmount,
+                uint256 alreadyInvested
+            ) = investState();
+
+            uint256 rebalanceAmount = alreadyInvested - maxInvestableAmount;
+
+            strategy.withdrawToVault(missingAmount + rebalanceAmount);
         }
 
         underlying.safeTransfer(_to, yield);
@@ -641,7 +650,16 @@ contract Vault is
         }
 
         if (totalUnderlying() < amount) {
-            strategy.withdrawToVault(amount - totalUnderlying());
+            uint256 missingAmount = amount - totalUnderlying();
+
+            (
+                uint256 maxInvestableAmount,
+                uint256 alreadyInvested
+            ) = investState();
+
+            uint256 rebalanceAmount = alreadyInvested - maxInvestableAmount;
+
+            strategy.withdrawToVault(missingAmount + rebalanceAmount);
         }
 
         underlying.safeTransfer(_to, amount);
@@ -715,7 +733,16 @@ contract Vault is
         totalSponsored -= sponsorAmount;
 
         if (totalUnderlying() < sponsorToTransfer) {
-            strategy.withdrawToVault(sponsorToTransfer - totalUnderlying());
+            uint256 missingAmount = sponsorToTransfer - totalUnderlying();
+
+            (
+                uint256 maxInvestableAmount,
+                uint256 alreadyInvested
+            ) = investState();
+
+            uint256 rebalanceAmount = alreadyInvested - maxInvestableAmount;
+
+            strategy.withdrawToVault(missingAmount + rebalanceAmount);
         }
 
         underlying.safeTransfer(_to, sponsorToTransfer);
