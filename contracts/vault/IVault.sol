@@ -31,8 +31,6 @@ interface IVault {
         address claimerId;
         /// when can the deposit be withdrawn
         uint256 lockedUntil;
-        /// the number of shares issued for this deposit
-        uint256 shares;
     }
 
     struct Claimer {
