@@ -18,3 +18,4 @@ subgraph/tests/.bin/*
 crytic-export/
 corpus/
 subgraph/subgraph.yaml
+tenderly.yaml

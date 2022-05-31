@@ -7,7 +7,7 @@ WORKDIR /app
 ADD docker/hardhat.entrypoint.sh /app/entrypoint.sh
 ADD docker/hardhat.config.js /app/hardhat.config.js
 
-RUN npm init -y && npm install hardhat @nomiclabs/hardhat-waffle @tenderly/hardhat-tenderly
+RUN npm init -y && npm install hardhat@2.9.2 @nomiclabs/hardhat-waffle @tenderly/hardhat-tenderly
 
 RUN chmod +x /app/entrypoint.sh
 
