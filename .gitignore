@@ -19,3 +19,4 @@ crytic-export/
 corpus/
 subgraph/subgraph.yaml
 tenderly.yaml
+docker/tenderly.yaml
