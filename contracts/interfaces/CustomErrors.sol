@@ -51,6 +51,12 @@ interface CustomErrors {
     // Vault: cannot deposit when yield is negative
     error VaultCannotDepositWhenYieldNegative();
 
+    // Vault: cannot deposit when the claimer is in debt
+    error VaultCannotDepositWhenClaimerInDebt();
+
+    // Vault: cannot deposit when yield is negative
+    error VaultCannotWithdrawWhenYieldNegative();
+
     // Vault: nothing to do
     error VaultNothingToDo();
 
