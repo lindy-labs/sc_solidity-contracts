@@ -49,7 +49,7 @@ func.id = 'deploy_ust_anchor_strategy';
 func.tags = ['strategies', 'ust'];
 func.dependencies = ['deploy_ust_vault', 'mock_price_feed'];
 
-// don't deploy to local networks
+// deploy only to mainnet or ropsten
 func.skip = async (hre) =>
   hre.network.config.chainId != 1 && hre.network.config.chainId != 3;
 

@@ -17,7 +17,10 @@ func.id = 'deploy_mock_price_feed';
 func.tags = ['mock_price_feed'];
 func.dependencies = ['deploy_ust_vault'];
 
-// don't deploy to mainnet
-func.skip = async (hre) => hre.network.config.chainId === 1;
+// don't deploy to mainnet or polygon networks
+func.skip = async (hre) =>
+  hre.network.config.chainId === 1 ||
+  hre.network.config.chainId === 137 ||
+  hre.network.config.chainId === 80001;
 
 export default func;
