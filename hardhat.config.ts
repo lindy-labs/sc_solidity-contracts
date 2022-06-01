@@ -65,6 +65,20 @@ const config: HardhatUserConfig = {
         mnemonic: process.env.TESTNET_MNEMONIC || "TODO",
       },
     },
+    mumbai: {
+      url: process.env.MUMBAI_RPC,
+      chainId: 80001,
+      accounts: {
+        mnemonic: process.env.TESTNET_MNEMONIC || "TODO",
+      },
+    },
+    polygon: {
+      url: process.env.POLYGON_RPC,
+      chainId: 137,
+      accounts: {
+        mnemonic: process.env.TESTNET_MNEMONIC || "TODO",
+      },
+    },
   },
   namedAccounts: {
     deployer: 0,
