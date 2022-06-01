@@ -12,6 +12,11 @@ on:
 jobs:
   analyze:
     runs-on: ubuntu-latest
+
+    env:
+      POLYGON_RPC: some-rpc-endpoint
+      MUMBAI_RPC: some-rpc-endpoint
+
     permissions:
       contents: read
       security-events: write
