@@ -2,8 +2,7 @@
 
 cd docker
 
-file=./tenderly.yaml
-if [ ! -e "$file" ]; then
+if [ ! -e ./tenderly.yaml ]; then
     echo "Initiating Tenderly..."
     tenderly export init
 fi
