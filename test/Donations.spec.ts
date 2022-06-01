@@ -118,12 +118,13 @@ describe('Donations', () => {
           amount: parseUnits('100'),
           owner: alice.address,
           token: underlying.address,
+          donationId: 'some-donation-id-1',
         }),
       ]);
 
       // burn donations
-      await donations.connect(alice).burn(1);
-      await donations.connect(alice).burn(2);
+      await donations.connect(alice).burn(1, 'some-donation-id');
+      await donations.connect(alice).burn(2, 'some-donation-id-1');
 
       // donate
       await donations.donate(CHARITY_ID, underlying.address, bob.address);
@@ -148,7 +149,7 @@ describe('Donations', () => {
       ]);
 
       // burn donations
-      await donations.connect(alice).burn(1);
+      await donations.connect(alice).burn(1, 'some-donation-id');
 
       // donate
       await donations.donate(CHARITY_ID, underlying.address, bob.address);
@@ -175,7 +176,7 @@ describe('Donations', () => {
       ]);
 
       // burn donations
-      await donations.connect(alice).burn(1);
+      await donations.connect(alice).burn(1, 'some-donation-id');
 
       const tx = donations.donate(CHARITY_ID, underlying.address, bob.address);
 
@@ -214,7 +215,7 @@ describe('Donations', () => {
         await donations.transferableAmounts(underlying.address, CHARITY_ID),
       ).to.equal(0);
 
-      await donations.connect(alice).burn(1);
+      await donations.connect(alice).burn(1, 'some-donation-id');
 
       expect(
         await donations.transferableAmounts(underlying.address, CHARITY_ID),
@@ -231,7 +232,7 @@ describe('Donations', () => {
         }),
       ]);
 
-      await donations.connect(alice).burn(1);
+      await donations.connect(alice).burn(1, 'some-donation-id');
 
       expect(
         await donations.transferableAmounts(underlying.address, CHARITY_ID),
@@ -253,7 +254,7 @@ describe('Donations', () => {
 
       await moveForwardTwoWeeks();
 
-      await donations.connect(bob).burn(1);
+      await donations.connect(bob).burn(1, 'some-donation-id');
 
       expect(
         await donations.transferableAmounts(underlying.address, CHARITY_ID),
@@ -275,7 +276,7 @@ describe('Donations', () => {
 
       await moveForwardTwoWeeks();
 
-      await expect(donations.connect(owner).burn(1)).to.be.revertedWith(
+      await expect(donations.connect(owner).burn(1, 'some-donation-id')).to.be.revertedWith(
         'Donations: not allowed',
       );
     });
@@ -290,9 +291,9 @@ describe('Donations', () => {
         }),
       ]);
 
-      const tx = donations.connect(alice).burn(1);
+      const tx = donations.connect(alice).burn(1, 'some-donation-id');
 
-      await expect(tx).to.emit(donations, 'DonationBurned').withArgs(1);
+      await expect(tx).to.emit(donations, 'DonationBurned').withArgs(1, 'some-donation-id');
     });
 
     it('fails if the caller is not the owner nor the admin', async () => {
@@ -305,7 +306,7 @@ describe('Donations', () => {
         }),
       ]);
 
-      await expect(donations.connect(bob).burn(1)).to.be.revertedWith(
+      await expect(donations.connect(bob).burn(1, 'some-donation-id')).to.be.revertedWith(
         'Donations: not allowed',
       );
     });
@@ -345,7 +346,7 @@ describe('Donations', () => {
 
       await moveForwardTwoWeeks();
 
-      await donations.connect(owner).burnBatch([1, 2, 3]);
+      await donations.connect(owner).burnBatch([1, 2, 3], ['some-donation-id', 'some-donation-id-1','some-donation-id-2']);
 
       expect(
         await donations.transferableAmounts(underlying.address, CHARITY_ID),
@@ -365,6 +366,7 @@ describe('Donations', () => {
         amount: parseUnits('1000'),
         owner: bob.address,
         token: underlying.address,
+        donationId: 'some-donation-id-1',
       });
 
       let carolDonation = donationParams.build({
@@ -372,6 +374,7 @@ describe('Donations', () => {
         amount: parseUnits('10000'),
         owner: carol.address,
         token: underlying.address,
+        donationId: 'some-donation-id-2',
       });
 
       const ttl = BigNumber.from(time.duration.days(14).toNumber());
@@ -385,7 +388,11 @@ describe('Donations', () => {
 
       await moveForwardDays(10);
 
-      await donations.connect(carol).burnBatch([1, 2, 3]);
+      await donations.connect(carol).burnBatch([1, 2, 3], [
+        'some-donation-id',
+        'some-donation-id-1',
+        'some-donation-id-2',
+      ]);
 
       expect(
         await donations.transferableAmounts(underlying.address, CHARITY_ID),
@@ -474,6 +481,7 @@ describe('Donations', () => {
           expiry,
           parseUnits('1'),
           owner.address,
+          'some-donation-id',
         );
     });
 
