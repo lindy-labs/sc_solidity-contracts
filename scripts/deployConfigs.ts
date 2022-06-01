@@ -2,13 +2,13 @@ import { network, getNamedAccounts } from "hardhat";
 import { Address } from "hardhat-deploy/types";
 
 interface Config {
-  investPct: number;
-  perfFeePct: number;
-  lossTolerancePct: number;
+  investPct?: number;
+  perfFeePct?: number;
+  lossTolerancePct?: number;
   multisig: string;
-  minLockPeriod: number;
-  ethAnchorRouter: string;
-  AUstToUstPriceFeed: string;
+  minLockPeriod?: number;
+  ethAnchorRouter?: string;
+  AUstToUstPriceFeed?: string;
 }
 
 const networkConfigs: Record<number, Config> = {
@@ -54,6 +54,16 @@ const networkConfigs: Record<number, Config> = {
     minLockPeriod: 1, // 1 second
     ethAnchorRouter: "TODO",
     AUstToUstPriceFeed: "TODO",
+  },
+
+  // polygon mumbai
+  80001: {
+    multisig: "deployer",
+  },
+  
+  // polygon mainnet
+  137: {
+    multisig: "deployer",
   },
 };
 

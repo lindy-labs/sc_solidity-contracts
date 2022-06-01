@@ -19,7 +19,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
     args,
   });
 
-  if (env.network.config.chainId === 1 || env.network.config.chainId === 3) {
+  if (env.network.config.chainId === 80001 || env.network.config.chainId === 137) {
     try {
       await env.run('verify:verify', {
         address: donationsDeployment.address,
