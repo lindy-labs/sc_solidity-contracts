@@ -5,7 +5,7 @@
     "ethereum:prep:local": "mustache ./config/local.json ethereum/subgraph.template.yaml > ethereum/subgraph.yaml",
     "polygon:prep:local": "mustache ./config/local.json polygon/subgraph.template.yaml > polygon/subgraph.yaml",
     "ethereum:prep:staging": "mustache ./config/staging.json ethereum/subgraph.template.yaml > ethereum/subgraph.yaml",
-    "polygon:prep:staging": "mustache ./config/staging.json ethereum/subgraph.template.yaml > polygon/subgraph.yaml",
+    "polygon:prep:staging": "mustache ./config/staging.json polygon/subgraph.template.yaml > polygon/subgraph.yaml",
     "ethereum:codegen": "cd ethereum && graph codegen --output-dir src/types",
     "polygon:codegen": "cd polygon && graph codegen --output-dir src/types",
     "ethereum:build": "cd ethereum && graph build",
