@@ -3,7 +3,7 @@
   "license": "UNLICENSED",
   "scripts": {
     "prep:local": "mustache ./config/local.json subgraph.template.yaml > subgraph.yaml",
-    "prep:ropsten": "mustache ./config/staging.json subgraph.template.yaml > subgraph.yaml",
+    "prep:staging": "mustache ./config/staging.json subgraph.template.yaml > subgraph.yaml",
     "codegen": "graph codegen --output-dir src/types",
     "build": "graph build",
     "deploy": "graph deploy --node https://api.studio.thegraph.com/deploy/ sandclock-eth",
