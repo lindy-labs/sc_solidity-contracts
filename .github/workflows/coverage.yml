@@ -20,8 +20,6 @@ jobs:
 
     env:
       ALCHEMY_API_ENDPOINT: ${{ secrets.ALCHEMY_API_ENDPOINT }}
-      POLYGON_RPC: some-rpc-endpoint
-      MUMBAI_RPC: some-rpc-endpoint
       NODE_ENV: test
 
     steps:

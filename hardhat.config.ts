@@ -66,14 +66,14 @@ const config: HardhatUserConfig = {
       },
     },
     mumbai: {
-      url: process.env.MUMBAI_RPC,
+      url: process.env.MUMBAI_RPC || "missing-rpc-endpoint",
       chainId: 80001,
       accounts: {
         mnemonic: process.env.TESTNET_MNEMONIC || "TODO",
       },
     },
     polygon: {
-      url: process.env.POLYGON_RPC,
+      url: process.env.POLYGON_RPC || "missing-rpc-endpoint",
       chainId: 137,
       accounts: {
         mnemonic: process.env.TESTNET_MNEMONIC || "TODO",
