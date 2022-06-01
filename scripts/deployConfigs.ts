@@ -1,21 +1,15 @@
 import { network, getNamedAccounts } from 'hardhat';
 import { Address } from 'hardhat-deploy/types';
 
-interface VaultConfig {
-  investPct: number;
-  perfFeePct: number;
-  lossTolerancePct: number;
+interface Config {
+  investPct?: number;
+  perfFeePct?: number;
+  lossTolerancePct?: number;
   multisig: string;
-  minLockPeriod: number;
-  ethAnchorRouter: string;
-  AUstToUstPriceFeed: string;
+  minLockPeriod?: number;
+  ethAnchorRouter?: string;
+  AUstToUstPriceFeed?: string;
 }
-
-interface DonationsConfig {
-  multisig: string;
-}
-
-type Config = VaultConfig | DonationsConfig;
 
 const networkConfigs: Record<number, Config> = {
   // mainnet

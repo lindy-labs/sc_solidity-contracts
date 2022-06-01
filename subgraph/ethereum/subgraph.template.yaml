@@ -1,0 +1,76 @@
+specVersion: 0.0.2
+schema:
+  file: ../schema.graphql
+dataSources:
+  - name: Vault
+    kind: ethereum/contract
+    {{#vault}}
+    network: {{network}}
+    source:
+      abi: Vault
+      address: "{{address}}"
+      startBlock: {{startBlock}}
+    {{/vault}}
+    mapping: &mapping
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      file: ../src/mappings/vault.ts
+      entities:
+        - Vault
+        - Foundation
+      abis:
+        - name: Vault
+          file: ../../artifacts/contracts/Vault.sol/Vault.json
+        - name: IVault
+          file: ../../artifacts/contracts/vault/IVault.sol/IVault.json
+        - name: IVaultSponsoring
+          file: ../../artifacts/contracts/vault/IVaultSponsoring.sol/IVaultSponsoring.json
+        - name: IVaultSettings
+          file: ../../artifacts/contracts/vault/IVaultSettings.sol/IVaultSettings.json
+      eventHandlers:
+        - event: DepositMinted(indexed uint256,uint256,uint256,uint256,indexed address,indexed address,address,uint64,bytes,string)
+          handler: handleDepositMinted
+        - event: DepositWithdrawn(indexed uint256,uint256,uint256,indexed address,bool)
+          handler: handleDepositWithdrawn
+        - event: Sponsored(indexed uint256,uint256,indexed address,uint256)
+          handler: handleSponsored
+        - event: Unsponsored(indexed uint256)
+          handler: handleUnsponsored
+        - event: YieldClaimed(address,indexed address,uint256,uint256,uint256,uint256,uint256)
+          handler: handleYieldClaimed
+        - event: TreasuryUpdated(indexed address)
+          handler: handleTreasuryUpdated
+
+  - name: Strategy
+    kind: ethereum/contract
+    {{#strategy}}
+    network: {{network}}
+    source:
+      abi: AnchorStrategy
+      address: "{{address}}"
+      startBlock: {{startBlock}}
+    {{/strategy}}
+    mapping: &mapping
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      file: ../src/mappings/strategy.ts
+      entities:
+        - Operation
+      abis:
+        - name: AnchorStrategy
+          file: ../../artifacts/contracts/strategy/anchor/AnchorStrategy.sol/AnchorStrategy.json
+      eventHandlers:
+        - event: InitDepositStable(indexed address,indexed uint256,uint256,uint256)
+          handler: handleInitDeposit
+        - event: InitRedeemStable(indexed address,indexed uint256,uint256)
+          handler: handleInitRedeem
+        - event: FinishDepositStable(indexed address,uint256,uint256)
+          handler: handleFinishDeposit
+        - event: FinishRedeemStable(indexed address,uint256,uint256,uint256)
+          handler: handleFinishRedeem
+        - event: RearrangeDepositOperation(indexed address,indexed address,indexed uint256)
+          handler: handleRearrangeDeposit
+        - event: RearrangeRedeemOperation(indexed address,indexed address,indexed uint256)
+          handler: handleRearrangeRedeem

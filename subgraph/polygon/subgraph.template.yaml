@@ -1,0 +1,28 @@
+specVersion: 0.0.2
+schema:
+  file: ../schema.graphql
+dataSources:
+  - name: Donations
+    kind: ethereum/contract
+    {{#donations}}
+    network: {{network}}
+    source:
+      abi: Donations
+      address: "{{address}}"
+      startBlock: {{startBlock}}
+    {{/donations}}
+    mapping: &mapping
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      file: ../src/mappings/donations.ts
+      entities:
+        - DonationMint
+      abis:
+        - name: Donations
+          file: ../../artifacts/contracts/Donations.sol/Donations.json
+      eventHandlers:
+        - event: DonationMinted(indexed uint256,indexed uint128,indexed bytes32,address,uint256,uint256,address,string)
+          handler: handleDonationMinted
+        - event: DonationBurned(indexed uint256,string)
+          handler: handleDonationBurned

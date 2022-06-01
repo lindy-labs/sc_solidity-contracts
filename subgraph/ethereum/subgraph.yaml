@@ -1,33 +1,31 @@
 specVersion: 0.0.2
 schema:
-  file: ./schema.graphql
+  file: ../schema.graphql
 dataSources:
   - name: Vault
     kind: ethereum/contract
-    {{#vault}}
-    network: {{network}}
+    network: mainnet
     source:
       abi: Vault
-      address: "{{address}}"
-      startBlock: {{startBlock}}
-    {{/vault}}
+      address: "0x07F269C684E0d1152C2C24eb798DD826a1021656"
+      startBlock: 0
     mapping: &mapping
       kind: ethereum/events
       apiVersion: 0.0.6
       language: wasm/assemblyscript
-      file: ./src/mappings/vault.ts
+      file: ../src/mappings/vault.ts
       entities:
         - Vault
         - Foundation
       abis:
         - name: Vault
-          file: ../artifacts/contracts/Vault.sol/Vault.json
+          file: ../../artifacts/contracts/Vault.sol/Vault.json
         - name: IVault
-          file: ../artifacts/contracts/vault/IVault.sol/IVault.json
+          file: ../../artifacts/contracts/vault/IVault.sol/IVault.json
         - name: IVaultSponsoring
-          file: ../artifacts/contracts/vault/IVaultSponsoring.sol/IVaultSponsoring.json
+          file: ../../artifacts/contracts/vault/IVaultSponsoring.sol/IVaultSponsoring.json
         - name: IVaultSettings
-          file: ../artifacts/contracts/vault/IVaultSettings.sol/IVaultSettings.json
+          file: ../../artifacts/contracts/vault/IVaultSettings.sol/IVaultSettings.json
       eventHandlers:
         - event: DepositMinted(indexed uint256,uint256,uint256,uint256,indexed address,indexed address,address,uint64,bytes,string)
           handler: handleDepositMinted
@@ -44,23 +42,21 @@ dataSources:
 
   - name: Strategy
     kind: ethereum/contract
-    {{#strategy}}
-    network: {{network}}
+    network: mainnet
     source:
       abi: AnchorStrategy
-      address: "{{address}}"
-      startBlock: {{startBlock}}
-    {{/strategy}}
+      address: "0x1c8967Af415b1516c96c08880aA0E87e82161b9a"
+      startBlock: 0
     mapping: &mapping
       kind: ethereum/events
       apiVersion: 0.0.6
       language: wasm/assemblyscript
-      file: ./src/mappings/strategy.ts
+      file: ../src/mappings/strategy.ts
       entities:
         - Operation
       abis:
         - name: AnchorStrategy
-          file: ../artifacts/contracts/strategy/anchor/AnchorStrategy.sol/AnchorStrategy.json
+          file: ../../artifacts/contracts/strategy/anchor/AnchorStrategy.sol/AnchorStrategy.json
       eventHandlers:
         - event: InitDepositStable(indexed address,indexed uint256,uint256,uint256)
           handler: handleInitDeposit
@@ -74,28 +70,3 @@ dataSources:
           handler: handleRearrangeDeposit
         - event: RearrangeRedeemOperation(indexed address,indexed address,indexed uint256)
           handler: handleRearrangeRedeem
-
-  - name: Donations
-    kind: ethereum/contract
-    {{#donations}}
-    network: {{network}}
-    source:
-      abi: Donations
-      address: "{{address}}"
-      startBlock: {{startBlock}}
-    {{/donations}}
-    mapping: &mapping
-      kind: ethereum/events
-      apiVersion: 0.0.6
-      language: wasm/assemblyscript
-      file: ./src/mappings/donations.ts
-      entities:
-        - DonationMint
-      abis:
-        - name: Donations
-          file: ../artifacts/contracts/Donations.sol/Donations.json
-      eventHandlers:
-        - event: DonationMinted(indexed uint256,indexed uint128,indexed bytes32,address,uint256,uint256,address,string)
-          handler: handleDonationMinted
-        - event: DonationBurned(indexed uint256,string)
-          handler: handleDonationBurned

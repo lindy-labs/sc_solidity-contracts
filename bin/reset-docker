@@ -7,4 +7,4 @@ docker-compose up --detach
 
 npx hardhat deploy --network docker --reset
 
-cd subgraph && yarn all-local
+cd subgraph && yarn ethereum:all-local && yarn polygon:all-local
