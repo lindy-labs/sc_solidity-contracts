@@ -20,3 +20,4 @@ corpus/
 subgraph/subgraph.yaml
 tenderly.yaml
 docker/tenderly.yaml
+package-lock.json
