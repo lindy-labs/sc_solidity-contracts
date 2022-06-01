@@ -151,26 +151,18 @@ First you need to create a [tenderly account](https://dashboard.tenderly.co/regi
 
 Then if not installed already, [install tenderly-cli](https://github.com/Tenderly/tenderly-cli#installation) and log in.
 
-To debug any transaction, you need to be inside the docker folder first.
+To debug any transaction, just run:
 
 ```
-$ cd docker
-```
-
-Then run
-
-```
-$ tenderly export init
-```
-
-```
-$ tenderly export <tx-hash>
+$ bin/tenderly-debug <tx-hash>
 ```
 
 with the tx-hash of the respective transaction you want to debug.
 
-<img width="1049" alt="Tenderly example" src="https://user-images.githubusercontent.com/47485188/171374395-04966c15-4e96-4905-a360-418fdfe93ea7.png">
-
 ### Deployed contracts
 
 Check the [deployments folder](./deployments)
+
+```
+
+```
