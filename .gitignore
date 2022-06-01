@@ -17,4 +17,5 @@ subgraph/generated
 subgraph/tests/.bin/*
 crytic-export/
 corpus/
-subgraph/subgraph.yaml
+subgraph/ethereum/subgraph.yaml
+subgraph/polygon/subgraph.yaml
