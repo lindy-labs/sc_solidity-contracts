@@ -18,7 +18,7 @@ import {
   MOCK_ADDRESS_1,
   MOCK_ADDRESS_2,
   TREASURY_ADDRESS,
-} from './helpers';
+} from '../../tests/helpers';
 
 import {
   handleDepositMinted,

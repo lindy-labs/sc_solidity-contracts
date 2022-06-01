@@ -1,6 +1,6 @@
 import { ethereum, Address, Bytes, BigInt } from '@graphprotocol/graph-ts';
 
-import { Deposit } from '../src/types/schema';
+import { Deposit } from '../ethereum/src/types/schema';
 
 export const MOCK_ADDRESS_1 = '0xC80B3caAd6d2DE80Ac76a41d5F0072E36D2519Cd'.toLowerCase();
 export const MOCK_ADDRESS_2 = '0xE80B3caAd6d2DE80Ac76a41d5F0072E36D2519Ce'.toLowerCase();

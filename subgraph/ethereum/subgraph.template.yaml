@@ -15,7 +15,7 @@ dataSources:
       kind: ethereum/events
       apiVersion: 0.0.6
       language: wasm/assemblyscript
-      file: ../src/mappings/vault.ts
+      file: ./src/mappings/vault.ts
       entities:
         - Vault
         - Foundation
@@ -55,7 +55,7 @@ dataSources:
       kind: ethereum/events
       apiVersion: 0.0.6
       language: wasm/assemblyscript
-      file: ../src/mappings/strategy.ts
+      file: ./src/mappings/strategy.ts
       entities:
         - Operation
       abis:

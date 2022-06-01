@@ -19,7 +19,7 @@ import {
   newAddress,
   newI32,
   newString,
-} from './helpers';
+} from '../../tests/helpers';
 
 test('DonationMinted event creates DonationMint record', () => {
   clearStore();

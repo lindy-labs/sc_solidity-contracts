@@ -20,7 +20,9 @@
     "polygon:deploy-local": "cd polygon && graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 sandclock-polygon",
     "ethereum:all-local": "yarn ethereum:prep:local && yarn ethereum:codegen && yarn ethereum:build && yarn ethereum:create-local && yarn ethereum:deploy-local --version-label v0.0.1",
     "polygon:all-local": "yarn polygon:prep:local && yarn polygon:codegen && yarn polygon:build && yarn polygon:create-local && yarn polygon:deploy-local --version-label v0.0.1",
-    "test": "graph test"
+    "ethereum:test": "yarn ethereum:prep:local && cd ethereum && graph test",
+    "polygon:test": "yarn polygon:prep:local && cd polygon && graph test",
+    "test": "yarn ethereum:test && yarn polygon:test"
   },
   "dependencies": {
     "@graphprotocol/graph-cli": "0.25.1",
