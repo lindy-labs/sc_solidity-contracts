@@ -19,7 +19,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      ALCHEMY_API_ENDPOINT: ${{ secrets.ALCHEMY_API_ENDPOINT }}
+      ALCHEMY_RPC: ${{ secrets.ALCHEMY_RPC }}
       NODE_ENV: test
 
     steps:
