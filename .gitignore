@@ -19,6 +19,8 @@ crytic-export/
 corpus/
 subgraph/ethereum/subgraph.yaml
 subgraph/polygon/subgraph.yaml
+subgraph/ethereum/tests/.bin/*
+subgraph/polygon/tests/.bin/*
 subgraph/ethereum/src/types/*
 subgraph/polygon/src/types/*
 yarn-error.log
