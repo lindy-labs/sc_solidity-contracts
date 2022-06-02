@@ -1,0 +1,10 @@
+#!/bin/bash -ue
+
+cd docker
+
+if [ ! -e ./tenderly.yaml ]; then
+    echo "Initiating Tenderly..."
+    tenderly export init
+fi
+
+tenderly export $1

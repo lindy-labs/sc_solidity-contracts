@@ -24,3 +24,7 @@ subgraph/polygon/tests/.bin/*
 subgraph/ethereum/src/types/*
 subgraph/polygon/src/types/*
 yarn-error.log
+subgraph/subgraph.yaml
+tenderly.yaml
+docker/tenderly.yaml
+package-lock.json

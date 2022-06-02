@@ -22,7 +22,12 @@ async function deployMockCurvePool(
     return;
   }
 
-  await deploy(name, { contract: 'MockCurve', from: deployer, args: [] });
+  const deployment = await deploy(name, { contract: 'MockCurve', from: deployer, args: [] });
+
+  await env.tenderly.persistArtifacts({
+      name: 'MockCurve',
+      address: deployment.address,
+  });
 
   await execute(name, { from: deployer }, 'addToken', 0, underlying.address);
 
