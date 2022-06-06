@@ -90,14 +90,17 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
 
   console.log('The treasury claims');
   await vault.connect(treasury).claimYield(treasury.address);
+
+  console.log('Bob claims to treasury');
+  await vault.connect(bob).claimYield(treasury.address);
 };
 
 func.id = 'fixtures';
 func.tags = ['fixtures'];
 func.dependencies = ['vaults', 'strategies', 'fixture_deployments'];
 
-// don't deploy to live & testnet
-func.skip = async (hre) =>
-  hre.network.config.chainId === 1 || hre.network.config.chainId === 3;
+// Deploy only to hardhat
+func.skip = async (hre: HardhatRuntimeEnvironment) =>
+  hre.network.config.chainId != 31337;
 
 export default func;

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity =0.8.10;
 
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
-import {Context} from "@openzeppelin/contracts/utils/Context.sol";
-import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
+import { Context } from "@openzeppelin/contracts/utils/Context.sol";
+import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * A contract to store donations before they are transferred to the charities.
@@ -20,6 +20,7 @@ contract Donations is ERC721, AccessControl {
         address owner;
         IERC20 token;
         uint256 amount;
+        string donationId;
     }
 
     struct Metadata {
@@ -36,10 +37,11 @@ contract Donations is ERC721, AccessControl {
         IERC20 token,
         uint256 expiry,
         uint256 amount,
-        address owner
+        address owner,
+        string donationId
     );
 
-    event DonationBurned(uint256 indexed id);
+    event DonationBurned(uint256 indexed id, string donationId);
 
     event DonationsSent(
         uint128 indexed destinationId,
@@ -148,7 +150,8 @@ contract Donations is ERC721, AccessControl {
                 _params[i].token,
                 expiry,
                 _params[i].amount,
-                _params[i].owner
+                _params[i].owner,
+                _params[i].donationId
             );
         }
 
@@ -162,7 +165,7 @@ contract Donations is ERC721, AccessControl {
      *
      * @param _id ID of the NFT.
      */
-    function burn(uint256 _id) external {
+    function burn(uint256 _id, string calldata donationId) external {
         bool isOwner = ownerOf(_id) == _msgSender();
 
         Metadata storage data = metadata[_id];
@@ -175,7 +178,7 @@ contract Donations is ERC721, AccessControl {
 
         _burn(_id);
 
-        emit DonationBurned(_id);
+        emit DonationBurned(_id, donationId);
     }
 
     /**
@@ -184,7 +187,7 @@ contract Donations is ERC721, AccessControl {
      *
      * @param _ids IDs of the NFTs.
      */
-    function burnBatch(uint256[] calldata _ids) external {
+    function burnBatch(uint256[] calldata _ids, string[] calldata donationIds) external {
         uint256 _id;
         Metadata storage data;
         bool expired;
@@ -205,7 +208,7 @@ contract Donations is ERC721, AccessControl {
 
                 _burn(_id);
 
-                emit DonationBurned(_id);
+                emit DonationBurned(_id, donationIds[i]);
             }
         }
     }

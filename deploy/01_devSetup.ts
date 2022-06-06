@@ -6,10 +6,6 @@ import deployMockCurvePool from './helpers/mockPool';
 const { parseUnits } = ethers.utils;
 
 const func = async function (env: HardhatRuntimeEnvironment) {
-  if (env.network.live) {
-    return;
-  }
-
   await deployDevToken(env, 'DAI', 'MockDAI');
   await deployDevToken(env, 'USDC', 'MockUSDC');
   await deployDevToken(env, 'UST', 'MockUST');
@@ -32,6 +28,7 @@ async function deployDevToken(
       contract,
       from: deployer,
       args: [0],
+      log: true,
     });
 
     await env.tenderly.persistArtifacts({
@@ -53,6 +50,10 @@ async function deployDevToken(
     }
   }
 }
+
+// Deploy only to hardhat
+func.skip = async (hre: HardhatRuntimeEnvironment) =>
+  hre.network.config.chainId != 31337;
 
 func.id = 'dev_setup';
 func.tags = ['dev_setup'];

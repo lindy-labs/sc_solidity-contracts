@@ -1,16 +1,16 @@
 specVersion: 0.0.2
 schema:
-  file: ./schema.graphql
+  file: ../schema.graphql
 dataSources:
   - name: Vault
     kind: ethereum/contract
+    {{#vault}}
     network: {{network}}
     source:
       abi: Vault
-      {{#vault}}
       address: "{{address}}"
-      {{/vault}}
       startBlock: {{startBlock}}
+    {{/vault}}
     mapping: &mapping
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -21,13 +21,13 @@ dataSources:
         - Foundation
       abis:
         - name: Vault
-          file: ../artifacts/contracts/Vault.sol/Vault.json
+          file: ../../artifacts/contracts/Vault.sol/Vault.json
         - name: IVault
-          file: ../artifacts/contracts/vault/IVault.sol/IVault.json
+          file: ../../artifacts/contracts/vault/IVault.sol/IVault.json
         - name: IVaultSponsoring
-          file: ../artifacts/contracts/vault/IVaultSponsoring.sol/IVaultSponsoring.json
+          file: ../../artifacts/contracts/vault/IVaultSponsoring.sol/IVaultSponsoring.json
         - name: IVaultSettings
-          file: ../artifacts/contracts/vault/IVaultSettings.sol/IVaultSettings.json
+          file: ../../artifacts/contracts/vault/IVaultSettings.sol/IVaultSettings.json
       eventHandlers:
         - event: DepositMinted(indexed uint256,uint256,uint256,uint256,indexed address,indexed address,address,uint64,bytes,string)
           handler: handleDepositMinted
@@ -44,13 +44,13 @@ dataSources:
 
   - name: Strategy
     kind: ethereum/contract
+    {{#strategy}}
     network: {{network}}
     source:
       abi: AnchorStrategy
-      {{#strategy}}
       address: "{{address}}"
-      {{/strategy}}
       startBlock: {{startBlock}}
+    {{/strategy}}
     mapping: &mapping
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -60,7 +60,7 @@ dataSources:
         - Operation
       abis:
         - name: AnchorStrategy
-          file: ../artifacts/contracts/strategy/anchor/AnchorStrategy.sol/AnchorStrategy.json
+          file: ../../artifacts/contracts/strategy/anchor/AnchorStrategy.sol/AnchorStrategy.json
       eventHandlers:
         - event: InitDepositStable(indexed address,indexed uint256,uint256,uint256)
           handler: handleInitDeposit

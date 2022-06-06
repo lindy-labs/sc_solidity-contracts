@@ -14,7 +14,7 @@ import {
   newString,
   donationId,
   createDeposit,
-} from './helpers';
+} from '../../tests/helpers';
 
 import {
   handleDepositMinted,

@@ -75,6 +75,10 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   }
 };
 
+// don't deploy to polygon networks
+func.skip = async (hre) =>
+  hre.network.config.chainId === 137 || hre.network.config.chainId === 80001;
+
 func.id = 'deploy_ust_vault';
 func.tags = ['vaults', 'ust'];
 func.dependencies = ['dev_setup'];

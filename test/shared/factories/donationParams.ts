@@ -9,6 +9,7 @@ interface DonationParams {
   destinationId: BigNumberish;
   owner: string;
   token: string;
+  donationId: string;
 }
 
 export const donationParams = Factory.define<DonationParams>(() => {
@@ -17,5 +18,6 @@ export const donationParams = Factory.define<DonationParams>(() => {
     destinationId: parseUnits('1'),
     owner: '0x000000000000000000000000000000000000dEaD',
     token: '0x000000000000000000000000000000000000dEaD',
+    donationId: 'some-donation-id',
   };
 });

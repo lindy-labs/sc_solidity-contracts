@@ -24,7 +24,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
       address: donationsDeployment.address,
   });
 
-  if (env.network.config.chainId === 1 || env.network.config.chainId === 3) {
+  if (env.network.config.chainId === 80001 || env.network.config.chainId === 137) {
     try {
       await env.run('verify:verify', {
         address: donationsDeployment.address,
@@ -35,6 +35,12 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
     }
   }
 };
+
+// deploy to polygon mainnet, polygon mumbai and local node only
+func.skip = async (hre) =>
+  hre.network.config.chainId != 137 &&
+  hre.network.config.chainId != 80001 &&
+  hre.network.config.chainId != 31337;
 
 func.id = 'deploy_donations';
 func.tags = ['donations'];

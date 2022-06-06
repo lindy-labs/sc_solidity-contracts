@@ -51,6 +51,12 @@ type Donation @entity {
   destination: Bytes!
 }
 
+type DonationMint @entity {
+  id: ID!
+  burned: Boolean!
+  nftId: BigInt
+}
+
 type Sponsor @entity {
   id: ID!
   depositor: Bytes!

@@ -1,6 +1,10 @@
 import { ethereum, Address, Bytes, BigInt } from '@graphprotocol/graph-ts';
 
-import { Deposit } from '../src/types/schema';
+import { Deposit } from '../ethereum/src/types/schema';
+
+export const MOCK_ADDRESS_1 = '0xC80B3caAd6d2DE80Ac76a41d5F0072E36D2519Cd'.toLowerCase();
+export const MOCK_ADDRESS_2 = '0xE80B3caAd6d2DE80Ac76a41d5F0072E36D2519Ce'.toLowerCase();
+export const TREASURY_ADDRESS = '0x4940c6e628da11ac0bdcf7f82be8579b4696fa33';
 
 export function newBytes(name: string, value: Bytes): ethereum.EventParam {
   return new ethereum.EventParam(name, ethereum.Value.fromBytes(value));

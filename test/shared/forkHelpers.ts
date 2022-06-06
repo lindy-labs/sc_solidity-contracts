@@ -4,7 +4,7 @@ import { BigNumber } from 'ethers';
 import type { Contract } from 'ethers';
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import 'dotenv/config';
-assert(process.env.ALCHEMY_API_ENDPOINT);
+assert(process.env.ALCHEMY_RPC);
 
 export async function forkToMainnet(block?: number) {
   await network.provider.request({
@@ -12,7 +12,7 @@ export async function forkToMainnet(block?: number) {
     params: [
       {
         forking: {
-          jsonRpcUrl: process.env.ALCHEMY_API_ENDPOINT!,
+          jsonRpcUrl: process.env.ALCHEMY_RPC!,
           blockNumber: block,
         },
       },

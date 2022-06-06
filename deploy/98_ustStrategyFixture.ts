@@ -18,8 +18,6 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     mockaUSTDeployment.address,
   );
 
-  console.log('Deployed UST strategy dependencies');
-
   const vaultDeployment = await get('Vault_UST');
   const vault = await ethers.getContractAt('Vault', vaultDeployment.address);
   const mockEthAnchorRouterDeployment = await get('MockEthAnchorRouter');
@@ -57,7 +55,6 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
   await setChainlinkData(1);
 
-  console.log('StrategyUpdated Event triggered, calling updateInvested');
   await mockEthAnchorRouter.addPendingOperator(ethAnchorOperator);
   const updateInvestedTx = await vault.connect(owner).updateInvested();
   await updateInvestedTx.wait();
@@ -67,7 +64,6 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     parseUnits('2812', 18)
   );
 
-  console.log('Stable Deposit finished');
   await anchorStrategy.finishDepositStable('0');
 
   await setChainlinkData(2);
