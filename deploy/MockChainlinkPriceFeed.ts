@@ -12,10 +12,11 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
     args: [18],
   });
 
-  await env.tenderly.persistArtifacts({
+  if (process.env.NODE_ENV !== 'test')
+    await env.tenderly.persistArtifacts({
       name: 'ChainlinkPriceFeed',
       address: deployment.address,
-  });
+    });
 };
 
 func.id = 'deploy_mock_price_feed';
