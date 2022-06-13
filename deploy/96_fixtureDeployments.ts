@@ -22,10 +22,11 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     args: [mockUST.address, mockaUST.address],
   });
 
-  await env.tenderly.persistArtifacts({
+  if (process.env.NODE_ENV !== 'test')
+    await env.tenderly.persistArtifacts({
       name: 'MockEthAnchorRouter',
       address: mockEthAnchorRouterDeployment.address,
-  });
+    });
 
   const vaultDeployment = await get('Vault_UST');
   const vault = await ethers.getContractAt('Vault', vaultDeployment.address);
@@ -39,10 +40,11 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     },
   );
 
-  await env.tenderly.persistArtifacts({
+  if (process.env.NODE_ENV !== 'test')
+    await env.tenderly.persistArtifacts({
       name: 'MockChainlinkPriceFeed',
       address: mockChainlinkPriceFeedDeployment.address,
-  });
+    });
 
   const anchorStrategyDeployment = await deploy('AnchorStrategy', {
     contract: 'AnchorStrategy',
@@ -58,10 +60,11 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     log: true,
   });
 
-  await env.tenderly.persistArtifacts({
+  if (process.env.NODE_ENV !== 'test')
+    await env.tenderly.persistArtifacts({
       name: 'AnchorStrategy',
       address: anchorStrategyDeployment.address,
-  });
+    });
 
   const anchorStrategy = await ethers.getContractAt(
     'AnchorStrategy',
