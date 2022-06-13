@@ -398,7 +398,7 @@ describe('Donations', () => {
       await donations
         .connect(carol)
         .burnBatch(
-          [1, 2, 3],
+          [0, 1, 2],
           ['some-donation-id', 'some-donation-id-1', 'some-donation-id-2'],
         );
 
