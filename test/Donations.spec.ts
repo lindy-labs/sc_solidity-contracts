@@ -123,8 +123,8 @@ describe('Donations', () => {
       ]);
 
       // burn donations
-      await donations.connect(alice).burn(1, 'some-donation-id');
-      await donations.connect(alice).burn(2, 'some-donation-id-1');
+      await donations.connect(alice).burn(0, 'some-donation-id');
+      await donations.connect(alice).burn(1, 'some-donation-id-1');
 
       // donate
       await donations.donate(CHARITY_ID, underlying.address, bob.address);
@@ -149,7 +149,7 @@ describe('Donations', () => {
       ]);
 
       // burn donations
-      await donations.connect(alice).burn(1, 'some-donation-id');
+      await donations.connect(alice).burn(0, 'some-donation-id');
 
       // donate
       await donations.donate(CHARITY_ID, underlying.address, bob.address);
@@ -176,7 +176,7 @@ describe('Donations', () => {
       ]);
 
       // burn donations
-      await donations.connect(alice).burn(1, 'some-donation-id');
+      await donations.connect(alice).burn(0, 'some-donation-id');
 
       const tx = donations.donate(CHARITY_ID, underlying.address, bob.address);
 
