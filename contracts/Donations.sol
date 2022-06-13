@@ -132,8 +132,6 @@ contract Donations is ERC721A, AccessControl {
         uint256 _metadataId = metadataId;
 
         for (uint256 i = 0; i < length; ++i) {
-            ++_metadataId;
-
             metadata[_metadataId] = Metadata({
                 destinationId: _params[i].destinationId,
                 token: _params[i].token,
@@ -153,6 +151,8 @@ contract Donations is ERC721A, AccessControl {
                 _params[i].owner,
                 _params[i].donationId
             );
+
+            ++_metadataId;
         }
 
         metadataId = _metadataId;
