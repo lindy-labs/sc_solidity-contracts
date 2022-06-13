@@ -57,6 +57,8 @@ interface IStrategy {
         uint256 amount;
     }
 
+    function isSync() external view returns (bool);
+
     /**
      * The vault linked to this stragegy
      *

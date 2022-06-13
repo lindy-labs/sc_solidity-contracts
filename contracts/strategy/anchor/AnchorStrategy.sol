@@ -114,6 +114,10 @@ contract AnchorStrategy is IStrategy, AccessControl, CustomErrors {
     // IStrategy
     //
 
+    function isSync() external view returns (bool) {
+        return false;
+    }
+
     /**
      * Request withdrawal from EthAnchor
      *

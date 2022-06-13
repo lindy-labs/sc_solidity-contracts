@@ -19,6 +19,8 @@ import {PercentMath} from "./lib/PercentMath.sol";
 import {IStrategy} from "./strategy/IStrategy.sol";
 import {CustomErrors} from "./interfaces/CustomErrors.sol";
 
+import "hardhat/console.sol";
+
 /**
  * A vault where other accounts can deposit an underlying token
  * currency and set distribution params for their principal and yield
@@ -299,6 +301,18 @@ contract Vault is
         uint256 _totalShares = totalShares;
 
         accumulatedPerfFee += fee;
+
+        if (underlying.balanceOf(address(this)) < yield && strategy.isSync()) {
+            uint256 reserve = (totalUnderlying() - yield).pctOf(
+                10000 - investPct
+            );
+
+            uint256 disinvestAmount = yield -
+                underlying.balanceOf(address(this)) +
+                reserve;
+
+            strategy.withdrawToVault(disinvestAmount);
+        }
 
         underlying.safeTransfer(_to, yield);
 
