@@ -46,6 +46,7 @@
     "web3": "^1.6.1"
   },
   "dependencies": {
-    "@codechecks/client": "^0.1.12"
+    "@codechecks/client": "^0.1.12",
+    "erc721a": "^4.0.0"
   }
 }

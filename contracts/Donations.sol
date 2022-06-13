@@ -3,14 +3,14 @@ pragma solidity =0.8.10;
 
 import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
 import { Context } from "@openzeppelin/contracts/utils/Context.sol";
-import { ERC721 } from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import { ERC721A } from "erc721a/contracts/ERC721A.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 /**
  * A contract to store donations before they are transferred to the charities.
  */
-contract Donations is ERC721, AccessControl {
+contract Donations is ERC721A, AccessControl {
     using SafeERC20 for IERC20;
 
     bytes32 public constant WORKER_ROLE = keccak256("WORKER_ROLE");
@@ -67,7 +67,7 @@ contract Donations is ERC721, AccessControl {
     /**
      * @param _owner Account that will receive the admin role.
      */
-    constructor(address _owner) ERC721("Sandclock Donation", "Donations") {
+    constructor(address _owner) ERC721A("Sandclock Donation", "Donations") {
         require(_owner != address(0x0), "Vault: owner cannot be 0x0");
 
         _setupRole(DEFAULT_ADMIN_ROLE, _owner);
@@ -141,7 +141,7 @@ contract Donations is ERC721, AccessControl {
                 amount: _params[i].amount
             });
 
-            _mint(_params[i].owner, _metadataId);
+            _mint(_params[i].owner, 1);
 
             emit DonationMinted(
                 _metadataId,
@@ -221,7 +221,7 @@ contract Donations is ERC721, AccessControl {
         public
         view
         virtual
-        override(AccessControl, ERC721)
+        override(AccessControl, ERC721A)
         returns (bool)
     {
         return super.supportsInterface(interfaceId);
