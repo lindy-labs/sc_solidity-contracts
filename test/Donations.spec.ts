@@ -215,7 +215,7 @@ describe('Donations', () => {
         await donations.transferableAmounts(underlying.address, CHARITY_ID),
       ).to.equal(0);
 
-      await donations.connect(alice).burn(1, 'some-donation-id');
+      await donations.connect(alice).burn(0, 'some-donation-id');
 
       expect(
         await donations.transferableAmounts(underlying.address, CHARITY_ID),
@@ -232,7 +232,7 @@ describe('Donations', () => {
         }),
       ]);
 
-      await donations.connect(alice).burn(1, 'some-donation-id');
+      await donations.connect(alice).burn(0, 'some-donation-id');
 
       expect(
         await donations.transferableAmounts(underlying.address, CHARITY_ID),
@@ -254,7 +254,7 @@ describe('Donations', () => {
 
       await moveForwardTwoWeeks();
 
-      await donations.connect(bob).burn(1, 'some-donation-id');
+      await donations.connect(bob).burn(0, 'some-donation-id');
 
       expect(
         await donations.transferableAmounts(underlying.address, CHARITY_ID),
@@ -277,7 +277,7 @@ describe('Donations', () => {
       await moveForwardTwoWeeks();
 
       await expect(
-        donations.connect(owner).burn(1, 'some-donation-id'),
+        donations.connect(owner).burn(0, 'some-donation-id'),
       ).to.be.revertedWith('Donations: not allowed');
     });
 
@@ -291,11 +291,11 @@ describe('Donations', () => {
         }),
       ]);
 
-      const tx = donations.connect(alice).burn(1, 'some-donation-id');
+      const tx = donations.connect(alice).burn(0, 'some-donation-id');
 
       await expect(tx)
         .to.emit(donations, 'DonationBurned')
-        .withArgs(1, 'some-donation-id');
+        .withArgs(0, 'some-donation-id');
     });
 
     it('fails if the caller is not the owner nor the admin', async () => {
@@ -309,7 +309,7 @@ describe('Donations', () => {
       ]);
 
       await expect(
-        donations.connect(bob).burn(1, 'some-donation-id'),
+        donations.connect(bob).burn(0, 'some-donation-id'),
       ).to.be.revertedWith('Donations: not allowed');
     });
   });
@@ -351,7 +351,7 @@ describe('Donations', () => {
       await donations
         .connect(owner)
         .burnBatch(
-          [1, 2, 3],
+          [0, 1, 2],
           ['some-donation-id', 'some-donation-id-1', 'some-donation-id-2'],
         );
 
