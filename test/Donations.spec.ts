@@ -44,7 +44,7 @@ describe('Donations', () => {
   });
 
   describe('supportsInterface', () => {
-    it('supprots the ERC721 interface', async () => {
+    it('supports the ERC721 interface', async () => {
       expect(await donations.supportsInterface('0x80ac58cd')).to.eq(true);
     });
 

@@ -187,7 +187,9 @@ contract Donations is ERC721A, AccessControl {
      *
      * @param _ids IDs of the NFTs.
      */
-    function burnBatch(uint256[] calldata _ids, string[] calldata donationIds) external {
+    function burnBatch(uint256[] calldata _ids, string[] calldata donationIds)
+        external
+    {
         uint256 _id;
         Metadata storage data;
         bool expired;
@@ -224,6 +226,8 @@ contract Donations is ERC721A, AccessControl {
         override(AccessControl, ERC721A)
         returns (bool)
     {
-        return super.supportsInterface(interfaceId);
+        return
+            AccessControl.supportsInterface(interfaceId) ||
+            ERC721A.supportsInterface(interfaceId);
     }
 }
