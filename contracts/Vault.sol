@@ -302,17 +302,7 @@ contract Vault is
 
         accumulatedPerfFee += fee;
 
-        if (underlying.balanceOf(address(this)) < yield && strategy.isSync()) {
-            uint256 reserve = (totalUnderlying() - yield).pctOf(
-                10000 - investPct
-            );
-
-            uint256 disinvestAmount = yield -
-                underlying.balanceOf(address(this)) +
-                reserve;
-
-            strategy.withdrawToVault(disinvestAmount);
-        }
+        _rebalanceBeforeTransfer(yield);
 
         underlying.safeTransfer(_to, yield);
 
@@ -661,6 +651,8 @@ contract Vault is
             );
         }
 
+        _rebalanceBeforeTransfer(amount);
+
         underlying.safeTransfer(_to, amount);
     }
 
@@ -688,7 +680,34 @@ contract Vault is
             );
         }
 
+        _rebalanceBeforeTransfer(amount);
+
         underlying.safeTransfer(_to, amount);
+    }
+
+    /**
+     * Rebalances the vault's funds to cover the transfer of funds from the vault
+     * by disinvesting from the strategy. After the rebalance the vault is left
+     * with 10% of the total underlying as reserves.
+     *
+     * @notice this will have effect only for sync strategies.
+     *
+     * @param _amount Funds to be transferred from the vault.
+     */
+    function _rebalanceBeforeTransfer(uint256 _amount) internal {
+        if (
+            _amount > underlying.balanceOf(address(this)) && strategy.isSync()
+        ) {
+            uint256 reserve = (totalUnderlying() - _amount).pctOf(
+                10000 - investPct
+            );
+
+            uint256 disinvestAmount = _amount +
+                reserve -
+                underlying.balanceOf(address(this));
+
+            strategy.withdrawToVault(disinvestAmount);
+        }
     }
 
     /**

@@ -28,7 +28,7 @@ contract MockSyncStrategy is IStrategy, AccessControl, CustomErrors {
         underlying = _underlying;
     }
 
-    function isSync() external view returns (bool) {
+    function isSync() external pure override(IStrategy) returns (bool) {
         return true;
     }
 
@@ -43,11 +43,11 @@ contract MockSyncStrategy is IStrategy, AccessControl, CustomErrors {
         underlying.transfer(vault, amount);
     }
 
-    function investedAssets() external view returns (uint256) {
+    function investedAssets() external view override(IStrategy) returns (uint256) {
         return underlying.balanceOf(address(this));
     }
 
-    function hasAssets() external view returns (bool) {
+    function hasAssets() external view override(IStrategy) returns (bool) {
         return underlying.balanceOf(address(this)) > 0;
     }
 }

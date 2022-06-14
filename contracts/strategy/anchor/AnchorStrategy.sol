@@ -114,7 +114,7 @@ contract AnchorStrategy is IStrategy, AccessControl, CustomErrors {
     // IStrategy
     //
 
-    function isSync() external view returns (bool) {
+    function isSync() external pure returns (bool) {
         return false;
     }
 
