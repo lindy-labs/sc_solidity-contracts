@@ -75,6 +75,19 @@ contract Donations is ERC721A, AccessControl {
     }
 
     /**
+     * Returns the starting token ID.
+     */
+    function _startTokenId()
+        internal
+        view
+        virtual
+        override(ERC721A)
+        returns (uint256)
+    {
+        return 1;
+    }
+
+    /**
      * Changes the TTL for new donations.
      *
      * @param _ttl the new TTL.
@@ -132,6 +145,8 @@ contract Donations is ERC721A, AccessControl {
         uint256 _metadataId = metadataId;
 
         for (uint256 i = 0; i < length; ++i) {
+            ++_metadataId;
+
             metadata[_metadataId] = Metadata({
                 destinationId: _params[i].destinationId,
                 token: _params[i].token,
@@ -151,8 +166,6 @@ contract Donations is ERC721A, AccessControl {
                 _params[i].owner,
                 _params[i].donationId
             );
-
-            ++_metadataId;
         }
 
         metadataId = _metadataId;
