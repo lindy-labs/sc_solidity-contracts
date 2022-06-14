@@ -76,7 +76,6 @@ describe('AnchorStrategy Mainnet fork', () => {
 
       strategy = await AnchorStrategyFactory.deploy(
         vault.address,
-        config.ethAnchorRouter,
         config.aUstUstFeed,
         ustToken.address,
         aUstToken.address,
@@ -132,7 +131,6 @@ describe('AnchorStrategy Mainnet fork', () => {
         depositOperations.operator,
         expectAUstReceive,
       );
-      await strategy.finishDepositStable(0);
       expect(await strategy.pendingDeposits()).to.be.equal('0');
       expect(await aUstToken.balanceOf(vault.address)).to.be.equal('0');
       expect(await aUstToken.balanceOf(strategy.address)).to.be.equal(
@@ -192,7 +190,6 @@ describe('AnchorStrategy Mainnet fork', () => {
       );
       aUstBalance = aUstBalance.add(expectAUstReceive);
 
-      await strategy.finishDepositStable(0);
       expect(await strategy.pendingDeposits()).to.be.equal('0');
       expect(await aUstToken.balanceOf(vault.address)).to.be.equal('0');
       expect(await aUstToken.balanceOf(strategy.address)).to.be.equal(
@@ -233,7 +230,6 @@ describe('AnchorStrategy Mainnet fork', () => {
 
       strategy = await AnchorStrategyFactory.deploy(
         vault.address,
-        config.ethAnchorRouter,
         mockAUstUstFeed.address,
         ustToken.address,
         aUstToken.address,
@@ -291,7 +287,6 @@ describe('AnchorStrategy Mainnet fork', () => {
         depositOperations.operator,
         expectAUstReceive,
       );
-      await strategy.finishDepositStable(0);
       expect(await strategy.pendingDeposits()).to.be.equal('0');
       expect(await aUstToken.balanceOf(vault.address)).to.be.equal('0');
       expect(await aUstToken.balanceOf(strategy.address)).to.be.equal(
@@ -344,7 +339,6 @@ describe('AnchorStrategy Mainnet fork', () => {
       );
       aUstBalance = aUstBalance.add(expectAUstReceive);
 
-      await strategy.finishDepositStable(0);
       expect(await strategy.pendingDeposits()).to.be.equal('0');
       expect(await aUstToken.balanceOf(vault.address)).to.be.equal('0');
       expect(await aUstToken.balanceOf(strategy.address)).to.be.equal(

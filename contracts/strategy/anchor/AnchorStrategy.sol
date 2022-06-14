@@ -10,7 +10,6 @@ import {PercentMath} from "../../lib/PercentMath.sol";
 import {ERC165Query} from "../../lib/ERC165Query.sol";
 import {IVault} from "../../vault/IVault.sol";
 import {IStrategy} from "../IStrategy.sol";
-import {IEthAnchorRouter} from "./IEthAnchorRouter.sol";
 import {CustomErrors} from "../../interfaces/CustomErrors.sol";
 
 /**
@@ -34,23 +33,8 @@ contract AnchorStrategy is IStrategy, AccessControl, CustomErrors {
     // aUST token address (wrapped Anchor UST, received to accrue interest for an Anchor deposit)
     IERC20 public immutable aUstToken;
 
-    // Router contract to interact with EthAnchor
-    IEthAnchorRouter public ethAnchorRouter;
-
     // Chainlink aUST / UST price feed
     AggregatorV3Interface public immutable aUstToUstFeed;
-
-    // amount currently pending in deposits to EthAnchor
-    uint256 public pendingDeposits;
-
-    // amount currently pending redeemption from EthAnchor
-    uint256 public pendingRedeems;
-
-    // deposit operations history
-    Operation[] public depositOperations;
-
-    // redeem operations history
-    Operation[] public redeemOperations;
 
     // Multiplier of aUST / UST feed
     uint256 internal _aUstToUstFeedMultiplier;
@@ -63,7 +47,6 @@ contract AnchorStrategy is IStrategy, AccessControl, CustomErrors {
      * @notice Vault will be automatically set to Manager Role to handle underlyings
      *
      * @param _vault Vault address
-     * @param _ethAnchorRouter EthAnchorRouter address
      * @param _aUstToUstFeed aUST / UST chainlink feed address
      * @param _ustToken UST token address
      * @param _aUstToken aUST token address
@@ -71,15 +54,12 @@ contract AnchorStrategy is IStrategy, AccessControl, CustomErrors {
      */
     constructor(
         address _vault,
-        address _ethAnchorRouter,
         AggregatorV3Interface _aUstToUstFeed,
         IERC20 _ustToken,
         IERC20 _aUstToken,
         address _owner
     ) {
         if (_owner == address(0)) revert StrategyOwnerCannotBe0Address();
-        if (_ethAnchorRouter == address(0))
-            revert StrategyRouterCannotBe0Address();
         if (address(_ustToken) == address(0))
             revert StrategyUnderlyingCannotBe0Address();
         if (address(_aUstToken) == address(0))
@@ -91,7 +71,6 @@ contract AnchorStrategy is IStrategy, AccessControl, CustomErrors {
         _setupRole(MANAGER_ROLE, _vault);
 
         vault = _vault;
-        ethAnchorRouter = IEthAnchorRouter(_ethAnchorRouter);
         aUstToUstFeed = _aUstToUstFeed;
         ustToken = _ustToken;
         aUstToken = _aUstToken;
@@ -114,21 +93,12 @@ contract AnchorStrategy is IStrategy, AccessControl, CustomErrors {
     // IStrategy
     //
 
-    function isSync() external view returns (bool) {
-        return false;
-    }
-
     /**
      * Request withdrawal from EthAnchor
      *
      * @notice since EthAnchor uses an asynchronous model, we can only request withdrawal for whole aUST
      */
-    function withdrawAllToVault() external override(IStrategy) onlyManager {
-        uint256 aUstBalance = _getAUstBalance();
-        if (aUstBalance != 0) {
-            initRedeemStable(aUstBalance);
-        }
-    }
+    function withdrawAllToVault() external override(IStrategy) onlyManager {}
 
     /**
      * Withdraws a specified amount back to the vault
@@ -143,11 +113,6 @@ contract AnchorStrategy is IStrategy, AccessControl, CustomErrors {
         onlyManager
     {
         if (amount == 0) revert StrategyAmountZero();
-        uint256 _aUstToWithdraw = _estimateUstAmountInAUst(amount);
-
-        if (pendingRedeems < _aUstToWithdraw) {
-            initRedeemStable(_aUstToWithdraw - pendingRedeems);
-        }
     }
 
     /**
@@ -165,145 +130,20 @@ contract AnchorStrategy is IStrategy, AccessControl, CustomErrors {
         override(IStrategy)
         returns (uint256)
     {
-        return pendingDeposits + _estimateAUstBalanceInUst();
+        return 0;
     }
 
     /// @inheritdoc IStrategy
-    function invest() external virtual override(IStrategy) onlyManager {
-        uint256 ustBalance = _getUstBalance();
-        if (ustBalance == 0) revert StrategyNoUST();
-        pendingDeposits += ustBalance;
-
-        ustToken.safeIncreaseAllowance(address(ethAnchorRouter), ustBalance);
-        address operator = ethAnchorRouter.initDepositStable(ustBalance);
-        depositOperations.push(
-            Operation({operator: operator, amount: ustBalance})
-        );
-
-        _allRedeemed = false;
-
-        emit InitDepositStable(
-            operator,
-            depositOperations.length - 1,
-            ustBalance,
-            ustBalance
-        );
-    }
-
-    /**
-     * Calls EthAnchor with a pending deposit ID, and attempts to finish it.
-     *
-     * @notice Must be called some time after `_initDepositStable()`. Will only work if
-     * the EthAnchor bridge has finished processing the deposit.
-     *
-     * @param idx Id of the pending deposit operation
-     */
-    function finishDepositStable(uint256 idx) external onlyManager {
-        if (depositOperations.length <= idx) revert StrategyNotRunning();
-        Operation storage operation = depositOperations[idx];
-        address operator = operation.operator;
-        uint256 aUstBalanceBefore = _getAUstBalance();
-
-        ethAnchorRouter.finishDepositStable(operator);
-        uint256 newAUst = _getAUstBalance() - aUstBalanceBefore;
-        if (newAUst == 0) revert StrategyNoAUSTReturned();
-
-        uint256 ustAmount = operation.amount;
-        pendingDeposits -= ustAmount;
-
-        if (idx < depositOperations.length - 1) {
-            Operation memory lastOperation = depositOperations[
-                depositOperations.length - 1
-            ];
-
-            emit RearrangeDepositOperation(
-                lastOperation.operator,
-                operation.operator,
-                idx
-            );
-
-            operation.operator = lastOperation.operator;
-            operation.amount = lastOperation.amount;
-        }
-
-        depositOperations.pop();
-
-        emit FinishDepositStable(operator, ustAmount, newAUst);
-    }
-
-    /**
-     * Initiates a withdrawal of UST from EthAnchor
-     *
-     * @notice since EthAnchor uses an asynchronous model, this function
-     * only starts the redeem process, but does not finish it.
-     *
-     * @param amount Amount of aUST to redeem
-     */
-    function initRedeemStable(uint256 amount) public onlyManager {
-        if (amount == 0) revert StrategyAmountZero();
-        if (pendingDeposits == 0 && _getAUstBalance() == amount) {
-            _allRedeemed = true;
-        }
-        pendingRedeems += amount;
-
-        aUstToken.safeIncreaseAllowance(address(ethAnchorRouter), amount);
-        address operator = ethAnchorRouter.initRedeemStable(amount);
-
-        redeemOperations.push(Operation({operator: operator, amount: amount}));
-
-        emit InitRedeemStable(operator, redeemOperations.length - 1, amount);
-    }
-
-    /**
-     * Calls EthAnchor with a pending redeem ID, and attempts to finish it.
-     *
-     * @notice Must be called some time after `initRedeemStable()`. Will only work if
-     * the EthAnchor bridge has finished processing the deposit.
-     *
-     * @dev division by `aUstBalance` was not deemed worthy of a zero-check
-     *   (https://github.com/code-423n4/2022-01-sandclock-findings/issues/95)
-     *
-     * @param idx Id of the pending redeem operation
-     */
-    function finishRedeemStable(uint256 idx) external virtual onlyManager {
-        if (redeemOperations.length <= idx) revert StrategyNotRunning();
-        Operation storage operation = redeemOperations[idx];
-
-        uint256 aUstAmount = operation.amount;
-        address operator = operation.operator;
-
-        ethAnchorRouter.finishRedeemStable(operator);
-
-        uint256 ustAmount = _getUstBalance();
-        if (ustAmount == 0) revert StrategyNothingRedeemed();
-
-        pendingRedeems -= aUstAmount;
-
-        if (idx < redeemOperations.length - 1) {
-            Operation memory lastOperation = redeemOperations[
-                redeemOperations.length - 1
-            ];
-
-            emit RearrangeRedeemOperation(
-                lastOperation.operator,
-                operation.operator,
-                idx
-            );
-
-            operation.operator = lastOperation.operator;
-            operation.amount = lastOperation.amount;
-        }
-
-        redeemOperations.pop();
-
-        ustToken.safeTransfer(vault, _getUnderlyingBalance());
-
-        emit FinishRedeemStable(operator, aUstAmount, ustAmount, ustAmount);
-    }
+    function invest() external virtual override(IStrategy) onlyManager {}
 
     /// @inheritdoc IStrategy
     function hasAssets() external view override returns (bool) {
-        return _allRedeemed == false || pendingRedeems != 0;
+        return true;
+    }
+
+    /// @inheritdoc IStrategy
+    function isSync() external view returns (bool) {
+        return false;
     }
 
     //
@@ -332,20 +172,6 @@ contract AnchorStrategy is IStrategy, AccessControl, CustomErrors {
     }
 
     /**
-     * @return Length of pending deposit operations
-     */
-    function depositOperationLength() external view returns (uint256) {
-        return depositOperations.length;
-    }
-
-    /**
-     * @return Length of pending redeem operations
-     */
-    function redeemOperationLength() external view returns (uint256) {
-        return redeemOperations.length;
-    }
-
-    /**
      * @return AUST value of UST amount
      */
     function _estimateUstAmountInAUst(uint256 ustAmount)
@@ -366,15 +192,7 @@ contract AnchorStrategy is IStrategy, AccessControl, CustomErrors {
      * @return UST value of current aUST balance (+ pending redeems)
      */
     function _estimateAUstBalanceInUst() internal view returns (uint256) {
-        uint256 aUstBalance = _getAUstBalance() + pendingRedeems;
-
-        if (aUstBalance == 0) {
-            return 0;
-        }
-
-        uint256 aUstPrice = _aUstToUstExchangeRate();
-
-        return ((aUstPrice * aUstBalance) / _aUstToUstFeedMultiplier);
+        return 0;
     }
 
     /**

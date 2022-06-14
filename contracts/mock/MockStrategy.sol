@@ -11,14 +11,12 @@ contract MockStrategy is AnchorStrategy {
 
     constructor(
         address _vault,
-        address _ethAnchorRouter,
         AggregatorV3Interface _aUstToUstFeed,
         IERC20 _ustToken,
         IERC20 _aUstToken
     )
         AnchorStrategy(
             _vault,
-            _ethAnchorRouter,
             _aUstToUstFeed,
             _ustToken,
             _aUstToken,
@@ -28,18 +26,12 @@ contract MockStrategy is AnchorStrategy {
 
     function invest() external override(AnchorStrategy) onlyManager {}
 
-    function withdrawToVault(uint256 amount)
-        external
-        override
-        onlyManager
-    {
+    function withdrawToVault(uint256 amount) external override onlyManager {
         ustToken.safeTransfer(vault, amount);
     }
 
     function investedAssets() external view override returns (uint256) {
-        uint256 underlyingBalance = _getUnderlyingBalance() + pendingDeposits;
-
-        return underlyingBalance + _estimateAUstBalanceInUst();
+        return 0;
     }
 
     function setAllRedeemed(bool __allRedeemed) external {
