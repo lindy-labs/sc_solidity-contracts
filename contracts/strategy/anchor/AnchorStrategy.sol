@@ -114,7 +114,10 @@ contract AnchorStrategy is IStrategy, AccessControl, CustomErrors {
     // IStrategy
     //
 
-    function isSync() external pure returns (bool) {
+    /**
+     * Returns false since strategy is asynchronous.
+    */
+    function isSync() external pure override(IStrategy) returns (bool) {
         return false;
     }
 

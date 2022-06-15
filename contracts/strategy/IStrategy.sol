@@ -57,6 +57,14 @@ interface IStrategy {
         uint256 amount;
     }
 
+    /**
+     * Provides information about wether the strategy is synchronous or asynchronous.
+     * 
+     * @notice Synchronous strategies support instant withdrawals and deposits, 
+     * while asynchronous strategies impose a delay before withdrawals and deposits can be made.
+     *
+     * @return true if the strategy is synchronous, false otherwise
+     */
     function isSync() external view returns (bool);
 
     /**

@@ -695,19 +695,20 @@ contract Vault is
      * @param _amount Funds to be transferred from the vault.
      */
     function _rebalanceBeforeTransfer(uint256 _amount) internal {
-        if (
-            _amount > underlying.balanceOf(address(this)) && strategy.isSync()
-        ) {
-            uint256 reserve = (totalUnderlying() - _amount).pctOf(
-                10000 - investPct
-            );
+        uint256 vaultBalance = underlying.balanceOf(address(this));
 
-            uint256 disinvestAmount = _amount +
-                reserve -
-                underlying.balanceOf(address(this));
+        if (_amount <= vaultBalance) return;
+        if (!strategy.isSync()) return;
 
-            strategy.withdrawToVault(disinvestAmount);
-        }
+        uint256 expectedReserves = (totalUnderlying() - _amount).pctOf(
+            10000 - investPct
+        );
+
+        // we want to withdraw the from the strategy only what is needed
+        // to cover the transfer and leave the vault with the expected reserves
+        uint256 needed = _amount + expectedReserves - vaultBalance;
+
+        strategy.withdrawToVault(needed);
     }
 
     /**
