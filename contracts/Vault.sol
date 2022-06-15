@@ -688,7 +688,7 @@ contract Vault is
     /**
      * Rebalances the vault's funds to cover the transfer of funds from the vault
      * by disinvesting from the strategy. After the rebalance the vault is left
-     * with 10% of the total underlying as reserves.
+     * with a set percentage (100% - invest%) of the total underlying as reserves.
      *
      * @notice this will have effect only for sync strategies.
      *
