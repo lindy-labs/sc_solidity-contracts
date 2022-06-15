@@ -22,22 +22,12 @@ contract TestAnchorUSTStrategy is AnchorStrategy {
      */
     constructor(
         address _vault,
-        address _ethAnchorRouter,
         AggregatorV3Interface _aUstToUstFeed,
         IExchangeRateFeeder _exchangeRateFeeder,
         IERC20 _ustToken,
         IERC20 _aUstToken,
         address _owner
-    )
-        AnchorStrategy(
-            _vault,
-            _ethAnchorRouter,
-            _aUstToUstFeed,
-            _ustToken,
-            _aUstToken,
-            _owner
-        )
-    {
+    ) AnchorStrategy(_vault, _aUstToUstFeed, _ustToken, _aUstToken, _owner) {
         exchangeRateFeeder = _exchangeRateFeeder;
         _aUstToUstFeedMultiplier = 1e18;
     }

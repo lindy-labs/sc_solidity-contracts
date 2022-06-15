@@ -34,7 +34,6 @@ describe('Vault', () => {
   let carol: SignerWithAddress;
   let newAccount: SignerWithAddress;
 
-  let mockEthAnchorRouter: Contract;
   let mockAUstUstFeed: Contract;
 
   let underlying: MockUST;
@@ -82,14 +81,6 @@ describe('Vault', () => {
     let Vault = await ethers.getContractFactory('Vault');
     let MockStrategy = await ethers.getContractFactory('MockStrategy');
 
-    const MockEthAnchorRouterFactory = await ethers.getContractFactory(
-      'MockEthAnchorRouter',
-    );
-    mockEthAnchorRouter = await MockEthAnchorRouterFactory.deploy(
-      underlying.address,
-      aUstToken.address,
-    );
-
     const MockChainlinkPriceFeedFactory = await ethers.getContractFactory(
       'MockChainlinkPriceFeed',
     );
@@ -113,7 +104,6 @@ describe('Vault', () => {
 
     strategy = await MockStrategy.deploy(
       vault.address,
-      mockEthAnchorRouter.address,
       mockAUstUstFeed.address,
       underlying.address,
       aUstToken.address,
@@ -703,7 +693,6 @@ describe('Vault', () => {
 
       const newStrategy = await MockStrategy.deploy(
         vault.address,
-        mockEthAnchorRouter.address,
         mockAUstUstFeed.address,
         underlying.address,
         aUstToken.address,
@@ -724,7 +713,6 @@ describe('Vault', () => {
 
       const newStrategy = await MockStrategy.deploy(
         vault.address,
-        mockEthAnchorRouter.address,
         mockAUstUstFeed.address,
         underlying.address,
         aUstToken.address,
@@ -1186,7 +1174,10 @@ describe('Vault', () => {
         amount: parseUnits('100'),
         inputToken: underlying.address,
         claims: [
-          claimParams.percent(100).to('0x0000000000000000000000000000000000000000').build()
+          claimParams
+            .percent(100)
+            .to('0x0000000000000000000000000000000000000000')
+            .build(),
         ],
       });
 
@@ -1450,7 +1441,10 @@ describe('Vault', () => {
         amount: parseUnits('100'),
         inputToken: underlying.address,
         claims: [
-          claimParams.percent(100).to('0x0000000000000000000000000000000000000000').build()
+          claimParams
+            .percent(100)
+            .to('0x0000000000000000000000000000000000000000')
+            .build(),
         ],
       });
 

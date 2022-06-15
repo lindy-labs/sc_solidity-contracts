@@ -26,7 +26,6 @@ describe('Audit Tests 2', () => {
   let bob: SignerWithAddress;
   let charlie: SignerWithAddress;
 
-  let mockEthAnchorRouter: Contract;
   let mockAUstUstFeed: Contract;
 
   let underlying: MockUST;
@@ -57,13 +56,7 @@ describe('Audit Tests 2', () => {
     [owner, alice, bob, charlie] = await ethers.getSigners();
     let Vault = await ethers.getContractFactory('Vault');
     let MockStrategy = await ethers.getContractFactory('MockStrategy');
-    const MockEthAnchorRouterFactory = await ethers.getContractFactory(
-      'MockEthAnchorRouter',
-    );
-    mockEthAnchorRouter = await MockEthAnchorRouterFactory.deploy(
-      underlying.address,
-      aUstToken.address,
-    );
+
     const MockChainlinkPriceFeedFactory = await ethers.getContractFactory(
       'MockChainlinkPriceFeed',
     );
@@ -85,7 +78,6 @@ describe('Audit Tests 2', () => {
     underlying.connect(charlie).approve(vault.address, MaxUint256);
     strategy = await MockStrategy.deploy(
       vault.address,
-      mockEthAnchorRouter.address,
       mockAUstUstFeed.address,
       underlying.address,
       aUstToken.address,

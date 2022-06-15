@@ -4,8 +4,6 @@ import { ethers } from 'hardhat';
 const { parseUnits } = ethers.utils;
 
 const func = async function (env: HardhatRuntimeEnvironment) {
-  const { ethAnchorOperator, ethAnchorOperator1 } =
-    await env.getNamedAccounts();
   const { get } = env.deployments;
   const [owner, alice, bob, treasury] = await ethers.getSigners();
 
@@ -20,16 +18,10 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
   const vaultDeployment = await get('Vault_UST');
   const vault = await ethers.getContractAt('Vault', vaultDeployment.address);
-  const mockEthAnchorRouterDeployment = await get('MockEthAnchorRouter');
   const mockChainlinkPriceFeedDeployment = await get('MockChainlinkPriceFeed');
   const mockChainlinkPriceFeed = await ethers.getContractAt(
     'MockChainlinkPriceFeed',
     mockChainlinkPriceFeedDeployment.address,
-  );
-
-  const mockEthAnchorRouter = await ethers.getContractAt(
-    'MockEthAnchorRouter',
-    mockEthAnchorRouterDeployment.address,
   );
 
   const anchorStrategyDeployment = await get('AnchorStrategy');
@@ -49,22 +41,10 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     ),
   );
 
-  await mockaUST
-    .connect(owner)
-    .approve(mockEthAnchorRouter.address, parseUnits('5000', 18));
-
   await setChainlinkData(1);
 
-  await mockEthAnchorRouter.addPendingOperator(ethAnchorOperator);
   const updateInvestedTx = await vault.connect(owner).updateInvested();
   await updateInvestedTx.wait();
-
-  await mockEthAnchorRouter.notifyDepositResult(
-    ethAnchorOperator,
-    parseUnits('2812', 18)
-  );
-
-  await anchorStrategy.finishDepositStable('0');
 
   await setChainlinkData(2);
 
@@ -82,13 +62,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     name: "Bob's Foundation - 2",
   });
 
-  await mockEthAnchorRouter.addPendingOperator(ethAnchorOperator1);
   await (await vault.connect(owner).updateInvested()).wait();
-
-  await mockEthAnchorRouter.notifyDepositResult(
-    ethAnchorOperator1,
-    parseUnits('1500', 18),
-  );
 
   async function setChainlinkData(round: number) {
     await mockChainlinkPriceFeed.setLatestRoundData(
