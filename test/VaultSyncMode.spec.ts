@@ -91,17 +91,14 @@ describe('Vault in sync mode', () => {
   });
 
   describe('#claimYield when there are not enough funds in the vault', () => {
-    beforeEach(async () => {
+    it('claims the yield from the strategy', async () => {
       const params = depositParams.build({
         amount: parseUnits('100'),
         inputToken: underlying.address,
         claims: [claimParams.percent(100).to(alice.address).build()],
       });
-
       await vault.connect(alice).deposit(params);
-    });
 
-    it('claims the yield from the strategy', async () => {
       await addYieldToVault('50');
       await vault.connect(owner).updateInvested();
 
@@ -113,6 +110,13 @@ describe('Vault in sync mode', () => {
     });
 
     it('claims part of the yield from the strategy', async () => {
+      const params = depositParams.build({
+        amount: parseUnits('100'),
+        inputToken: underlying.address,
+        claims: [claimParams.percent(100).to(alice.address).build()],
+      });
+      await vault.connect(alice).deposit(params);
+
       await addYieldToVault('40');
       await vault.connect(owner).updateInvested();
       await addYieldToVault('10');
@@ -125,6 +129,13 @@ describe('Vault in sync mode', () => {
     });
 
     it("rebalances the Vault's reserves when yield > reserves", async () => {
+      const params = depositParams.build({
+        amount: parseUnits('100'),
+        inputToken: underlying.address,
+        claims: [claimParams.percent(100).to(alice.address).build()],
+      });
+      await vault.connect(alice).deposit(params);
+
       await addYieldToVault('50');
       await vault.connect(owner).updateInvested();
 
@@ -138,7 +149,14 @@ describe('Vault in sync mode', () => {
       );
     });
 
-    it("doesn't rebalance the Vault's reserves when claim <= reserves", async () => {
+    it("doesn't rebalance the Vault's reserves when yield = reserves", async () => {
+      const params = depositParams.build({
+        amount: parseUnits('100'),
+        inputToken: underlying.address,
+        claims: [claimParams.percent(100).to(alice.address).build()],
+      });
+      await vault.connect(alice).deposit(params);
+
       await addYieldToVault('50');
       await vault.connect(owner).updateInvested();
 
@@ -157,20 +175,45 @@ describe('Vault in sync mode', () => {
         parseUnits('135'),
       );
     });
-  });
 
-  describe('#withdraw when there are not enough funds in the vault', () => {
-    beforeEach(async () => {
+    it("doesn't rebalance the Vault's reserves when yield < reserves", async () => {
       const params = depositParams.build({
         amount: parseUnits('100'),
         inputToken: underlying.address,
         claims: [claimParams.percent(100).to(alice.address).build()],
       });
-
       await vault.connect(alice).deposit(params);
-    });
 
+      await addYieldToVault('50');
+      await vault.connect(owner).updateInvested();
+
+      // bob's deposit is more than enough to cover alice's claim
+      const bobsDeposit = depositParams.build({
+        amount: parseUnits('100'),
+        inputToken: underlying.address,
+        claims: [claimParams.percent(100).to(bob.address).build()],
+      });
+      await vault.connect(bob).deposit(bobsDeposit);
+
+      await vault.connect(alice).claimYield(alice.address);
+
+      // vault had 115 before the claim, and 49 was claimed, so it should have 115 - 49 = 66
+      expect(await underlying.balanceOf(vault.address)).to.eq(parseUnits('66'));
+      expect(await underlying.balanceOf(strategy.address)).to.eq(
+        parseUnits('135'),
+      );
+    });
+  });
+
+  describe('#withdraw when there are not enough funds in the vault', () => {
     it('withdraws the amount from the strategy', async () => {
+      const params = depositParams.build({
+        amount: parseUnits('100'),
+        inputToken: underlying.address,
+        claims: [claimParams.percent(100).to(alice.address).build()],
+      });
+      await vault.connect(alice).deposit(params);
+
       await addYieldToVault('50');
       await vault.connect(owner).updateInvested();
 
@@ -183,6 +226,13 @@ describe('Vault in sync mode', () => {
     });
 
     it('withdraws part of the amount from the strategy', async () => {
+      const params = depositParams.build({
+        amount: parseUnits('100'),
+        inputToken: underlying.address,
+        claims: [claimParams.percent(100).to(alice.address).build()],
+      });
+      await vault.connect(alice).deposit(params);
+
       await addYieldToVault('30');
       await vault.connect(owner).updateInvested();
       await addYieldToVault('20');
@@ -196,25 +246,37 @@ describe('Vault in sync mode', () => {
     });
 
     it("rebalances the Vault's reserves when withdraw amount > reserves", async () => {
+      const params = depositParams.build({
+        amount: parseUnits('100'),
+        inputToken: underlying.address,
+        claims: [claimParams.percent(100).to(alice.address).build()],
+      });
+      await vault.connect(alice).deposit(params);
+
       await addYieldToVault('50');
       await vault.connect(owner).updateInvested();
 
       await moveForwardTwoWeeks();
       await vault.connect(alice).withdraw(alice.address, [1]);
 
-      expect(await underlying.balanceOf(vault.address)).to.eq(
-        '5000000000000000000',
-      );
+      expect(await underlying.balanceOf(vault.address)).to.eq(parseUnits('5'));
       expect(await underlying.balanceOf(strategy.address)).to.eq(
         '45000000000000000001',
       );
     });
 
-    it("doesn't rebalance the Vault's reserves when withdraw amount <= reserves", async () => {
+    it("doesn't rebalance the Vault's reserves when withdraw amount = reserves", async () => {
+      const params = depositParams.build({
+        amount: parseUnits('100'),
+        inputToken: underlying.address,
+        claims: [claimParams.percent(100).to(alice.address).build()],
+      });
+      await vault.connect(alice).deposit(params);
+
       await addYieldToVault('50');
       await vault.connect(owner).updateInvested();
 
-      // bob's deposit is exactly enough to cover alice's claim and leave valut with 0 balance
+      // bob's deposit is exactly enough to cover alice's withdrawal and leave the valut with ~0 balance
       const bobsDeposit = depositParams.build({
         amount: parseUnits('85'),
         inputToken: underlying.address,
@@ -230,20 +292,48 @@ describe('Vault in sync mode', () => {
         parseUnits('135'),
       );
     });
-  });
 
-  describe('#partialWithdraw when there are not enough funds in the vault', () => {
-    beforeEach(async () => {
+    it("doesn't rebalance the Vault's reserves when withdraw amount < reserves", async () => {
       const params = depositParams.build({
         amount: parseUnits('100'),
         inputToken: underlying.address,
         claims: [claimParams.percent(100).to(alice.address).build()],
       });
-
       await vault.connect(alice).deposit(params);
-    });
 
+      await addYieldToVault('50');
+      await vault.connect(owner).updateInvested();
+
+      // bob's deposit is more than enough to cover alice's withdrawal
+      const bobsDeposit = depositParams.build({
+        amount: parseUnits('100'),
+        inputToken: underlying.address,
+        claims: [claimParams.percent(100).to(bob.address).build()],
+      });
+      await vault.connect(bob).deposit(bobsDeposit);
+
+      await moveForwardTwoWeeks();
+      await vault.connect(alice).withdraw(alice.address, [1]);
+
+      // vault had 115 before the withdrawal, and 100 was withdrawn, so it should have 115 - 100 = 15
+      expect(await underlying.balanceOf(vault.address)).to.eq(
+        '15000000000000000001'.toString(),
+      );
+      expect(await underlying.balanceOf(strategy.address)).to.eq(
+        parseUnits('135'),
+      );
+    });
+  });
+
+  describe('#partialWithdraw when there are not enough funds in the vault', () => {
     it('withdraws the amount from the strategy', async () => {
+      const params = depositParams.build({
+        amount: parseUnits('100'),
+        inputToken: underlying.address,
+        claims: [claimParams.percent(100).to(alice.address).build()],
+      });
+      await vault.connect(alice).deposit(params);
+
       await addYieldToVault('50');
       await vault.connect(owner).updateInvested();
 
@@ -257,7 +347,36 @@ describe('Vault in sync mode', () => {
       );
     });
 
+    it('withdraws part of the amount from the strategy', async () => {
+      const params = depositParams.build({
+        amount: parseUnits('100'),
+        inputToken: underlying.address,
+        claims: [claimParams.percent(100).to(alice.address).build()],
+      });
+      await vault.connect(alice).deposit(params);
+
+      await addYieldToVault('30');
+      await vault.connect(owner).updateInvested();
+      await addYieldToVault('20');
+
+      await moveForwardTwoWeeks();
+      await vault
+        .connect(alice)
+        .partialWithdraw(alice.address, [1], [parseUnits('50')]);
+
+      expect(await underlying.balanceOf(alice.address)).to.eq(
+        '949999999999999999999',
+      );
+    });
+
     it("rebalances the Vault's reserves when withdraw amount > reserves", async () => {
+      const params = depositParams.build({
+        amount: parseUnits('100'),
+        inputToken: underlying.address,
+        claims: [claimParams.percent(100).to(alice.address).build()],
+      });
+      await vault.connect(alice).deposit(params);
+
       await addYieldToVault('50');
       await vault.connect(owner).updateInvested();
 
@@ -269,6 +388,69 @@ describe('Vault in sync mode', () => {
       expect(await underlying.balanceOf(vault.address)).to.eq(parseUnits('10'));
       expect(await underlying.balanceOf(strategy.address)).to.eq(
         '90000000000000000001',
+      );
+    });
+
+    it("doesn't rebalance the Vault's reserves when withdraw amount = reserves", async () => {
+      const params = depositParams.build({
+        amount: parseUnits('100'),
+        inputToken: underlying.address,
+        claims: [claimParams.percent(100).to(alice.address).build()],
+      });
+      await vault.connect(alice).deposit(params);
+
+      await addYieldToVault('50');
+      await vault.connect(owner).updateInvested();
+
+      // bob's deposit is exactly enough to cover alice's withdrawal and leave the valut with ~0 balance
+      const bobsDeposit = depositParams.build({
+        amount: parseUnits('35'),
+        inputToken: underlying.address,
+        claims: [claimParams.percent(100).to(bob.address).build()],
+      });
+      await vault.connect(bob).deposit(bobsDeposit);
+
+      await moveForwardTwoWeeks();
+      await vault
+        .connect(alice)
+        .partialWithdraw(alice.address, [1], [parseUnits('50')]);
+
+      expect(await underlying.balanceOf(vault.address)).to.eq('1');
+      expect(await underlying.balanceOf(strategy.address)).to.eq(
+        parseUnits('135'),
+      );
+    });
+
+    it("doesn't rebalance the Vault's reserves when withdraw amount < reserves", async () => {
+      const params = depositParams.build({
+        amount: parseUnits('100'),
+        inputToken: underlying.address,
+        claims: [claimParams.percent(100).to(alice.address).build()],
+      });
+      await vault.connect(alice).deposit(params);
+
+      await addYieldToVault('50');
+      await vault.connect(owner).updateInvested();
+
+      // bob's deposit is more than enough to cover alice's withdrawal
+      const bobsDeposit = depositParams.build({
+        amount: parseUnits('100'),
+        inputToken: underlying.address,
+        claims: [claimParams.percent(100).to(bob.address).build()],
+      });
+      await vault.connect(bob).deposit(bobsDeposit);
+
+      await moveForwardTwoWeeks();
+      await vault
+        .connect(alice)
+        .partialWithdraw(alice.address, [1], [parseUnits('50')]);
+
+      // vault had 115 before the withdrawal, and 50 was withdrawn, so it should have 115 - 50 = 65
+      expect(await underlying.balanceOf(vault.address)).to.eq(
+        '65000000000000000001'.toString(),
+      );
+      expect(await underlying.balanceOf(strategy.address)).to.eq(
+        parseUnits('135'),
       );
     });
   });
