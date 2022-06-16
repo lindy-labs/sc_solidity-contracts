@@ -740,49 +740,6 @@ describe('AnchorStrategy', () => {
     });
   });
 
-  describe('#withdrawAllToVault function', () => {
-    const underlyingAmount0 = utils.parseUnits('100', 18);
-    const aUstAmount0 = utils.parseUnits('80', 18);
-
-    beforeEach(async () => {
-      const operator0 = await registerNewTestOperator();
-
-      await depositVault(underlyingAmount0);
-      await vault.connect(owner).updateInvested();
-
-      await notifyDepositReturnAmount(operator0, aUstAmount0);
-      await strategy.connect(manager).finishDepositStable(0);
-    });
-
-    it('Revert if msg.sender is not manager', async () => {
-      await expect(
-        strategy.connect(alice).withdrawAllToVault(),
-      ).to.be.revertedWith('StrategyCallerNotManager');
-    });
-
-    it('Should init redeem all aUST', async () => {
-      let aUstRate = utils.parseEther('1.1');
-      await setAUstRate(aUstRate);
-
-      const operator = await registerNewTestOperator();
-
-      const tx = await strategy.connect(manager).withdrawAllToVault();
-
-      expect(await underlying.balanceOf(strategy.address)).equal(0);
-      expect(await aUstToken.balanceOf(strategy.address)).equal(0);
-      expect(await strategy.pendingRedeems()).equal(aUstAmount0);
-
-      const operation = await strategy.redeemOperations(0);
-      expect(operation.operator).equal(operator);
-      expect(operation.amount).equal(aUstAmount0);
-      expect(await strategy.redeemOperationLength()).equal(1);
-
-      await expect(tx)
-        .to.emit(strategy, 'InitRedeemStable')
-        .withArgs(operator, 0, aUstAmount0);
-    });
-  });
-
   describe('#investedAssets function', () => {
     let underlyingAmount = utils.parseEther('100');
     let aUstAmount = utils.parseEther('80');
@@ -922,7 +879,7 @@ describe('AnchorStrategy', () => {
     });
   });
 
-  describe('withdrawToVault', () => {
+  describe('#withdrawToVault function', () => {
     it('reverts if msg.sender is not manager', async () => {
       await expect(
         strategy.connect(alice).withdrawToVault(1),
@@ -977,6 +934,22 @@ describe('AnchorStrategy', () => {
       expect(await strategy.pendingRedeems()).to.be.equal(
         utils.parseEther('40'),
       );
+    });
+
+    it.only('can deduct all the funds from strategy', async () => {
+      var amount = utils.parseEther('100');
+      await aUstToken.mint(strategy.address, amount);
+
+      await registerNewTestOperator();
+      await strategy.connect(manager).initRedeemStable(amount);
+      await registerNewTestOperator();
+
+      await setAUstRate(utils.parseEther('1.1'));
+
+      await strategy.connect(manager).withdrawToVault(amount);
+
+      expect(await aUstToken.balanceOf(strategy.address)).to.be.equal('0');
+      expect(await strategy.pendingRedeems()).to.be.equal(amount);
     });
   });
 

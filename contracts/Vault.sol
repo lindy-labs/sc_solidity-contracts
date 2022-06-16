@@ -19,8 +19,6 @@ import {PercentMath} from "./lib/PercentMath.sol";
 import {IStrategy} from "./strategy/IStrategy.sol";
 import {CustomErrors} from "./interfaces/CustomErrors.sol";
 
-import "hardhat/console.sol";
-
 /**
  * A vault where other accounts can deposit an underlying token
  * currency and set distribution params for their principal and yield

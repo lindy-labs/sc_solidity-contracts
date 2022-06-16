@@ -34,11 +34,6 @@ contract MockSyncStrategy is IStrategy, AccessControl, CustomErrors {
 
     function invest() external virtual override(IStrategy) {}
 
-    // WE MAY WANT TO REMOVE THIS
-    function withdrawAllToVault() external override(IStrategy) {
-        underlying.transfer(vault, underlying.balanceOf(address(this)));
-    }
-
     function withdrawToVault(uint256 amount) external override(IStrategy) {
         underlying.transfer(vault, amount);
     }
