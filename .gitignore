@@ -1,6 +1,6 @@
 /node_modules
-!/subgraph/node_modules/.gitkeep
 /subgraph/node_modules/*
+!/subgraph/node_modules/.gitkeep
 
 #Hardhat files
 cache
