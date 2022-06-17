@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity =0.8.10;
 
-import "../strategy/anchor/IExchangeRateFeeder.sol";
+import "./anchor/IExchangeRateFeeder.sol";
 
 contract MockExchangeRateFeeder is IExchangeRateFeeder {
     uint256 internal exchangeRate;
