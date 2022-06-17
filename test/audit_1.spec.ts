@@ -7,7 +7,7 @@ import { Contract, BigNumber } from 'ethers';
 import {
   Vault,
   MockUST,
-  MockStrategy,
+  MockAnchorStrategy,
   MockAUST__factory,
   MockUST__factory,
   Vault__factory,
@@ -34,7 +34,7 @@ describe('Audit Tests 1', () => {
   let underlying: MockUST;
   let aUstToken: Contract;
   let vault: Vault;
-  let strategy: MockStrategy;
+  let strategy: MockAnchorStrategy;
 
   const TWO_WEEKS = BigNumber.from(time.duration.weeks(2).toNumber());
   const TREASURY = generateNewAddress();
@@ -62,7 +62,9 @@ describe('Audit Tests 1', () => {
     [owner, alice, bob, charlie] = await ethers.getSigners();
 
     let Vault = await ethers.getContractFactory('Vault');
-    let MockStrategy = await ethers.getContractFactory('MockStrategy');
+    let MockAnchorStrategy = await ethers.getContractFactory(
+      'MockAnchorStrategy',
+    );
 
     const MockEthAnchorRouterFactory = await ethers.getContractFactory(
       'MockEthAnchorRouter',
@@ -93,7 +95,7 @@ describe('Audit Tests 1', () => {
     underlying.connect(bob).approve(vault.address, MaxUint256);
     underlying.connect(charlie).approve(vault.address, MaxUint256);
 
-    strategy = await MockStrategy.deploy(
+    strategy = await MockAnchorStrategy.deploy(
       vault.address,
       mockEthAnchorRouter.address,
       mockAUstUstFeed.address,

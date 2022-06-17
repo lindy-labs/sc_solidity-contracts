@@ -10,7 +10,7 @@ import {
   MockAUST__factory,
   MockUST,
   MockAUST,
-  MockStrategy,
+  MockAnchorStrategy,
   Vault__factory,
 } from '../typechain';
 
@@ -40,7 +40,7 @@ describe('Vault', () => {
   let underlying: MockUST;
   let aUstToken: MockAUST;
   let vault: Vault;
-  let strategy: MockStrategy;
+  let strategy: MockAnchorStrategy;
   const TWO_WEEKS = BigNumber.from(time.duration.weeks(2).toNumber());
   const MAX_DEPOSIT_LOCK_DURATION = BigNumber.from(
     time.duration.weeks(24).toNumber(),
@@ -80,7 +80,9 @@ describe('Vault', () => {
     [owner, alice, bob, carol, newAccount] = await ethers.getSigners();
 
     let Vault = await ethers.getContractFactory('Vault');
-    let MockStrategy = await ethers.getContractFactory('MockStrategy');
+    let MockAnchorStrategy = await ethers.getContractFactory(
+      'MockAnchorStrategy',
+    );
 
     const MockEthAnchorRouterFactory = await ethers.getContractFactory(
       'MockEthAnchorRouter',
@@ -111,7 +113,7 @@ describe('Vault', () => {
     underlying.connect(bob).approve(vault.address, MaxUint256);
     underlying.connect(carol).approve(vault.address, MaxUint256);
 
-    strategy = await MockStrategy.deploy(
+    strategy = await MockAnchorStrategy.deploy(
       vault.address,
       mockEthAnchorRouter.address,
       mockAUstUstFeed.address,
@@ -699,9 +701,11 @@ describe('Vault', () => {
       expect(await strategy.investedAssets()).to.not.eq('0');
       expect(await strategy.hasAssets()).to.equal(false);
 
-      let MockStrategy = await ethers.getContractFactory('MockStrategy');
+      let MockAnchorStrategy = await ethers.getContractFactory(
+        'MockAnchorStrategy',
+      );
 
-      const newStrategy = await MockStrategy.deploy(
+      const newStrategy = await MockAnchorStrategy.deploy(
         vault.address,
         mockEthAnchorRouter.address,
         mockAUstUstFeed.address,
@@ -720,9 +724,11 @@ describe('Vault', () => {
       await vault.connect(owner).setStrategy(strategy.address);
 
       await strategy.setAllRedeemed(false); // This will force hasAssets function to return true;
-      let MockStrategy = await ethers.getContractFactory('MockStrategy');
+      let MockAnchorStrategy = await ethers.getContractFactory(
+        'MockAnchorStrategy',
+      );
 
-      const newStrategy = await MockStrategy.deploy(
+      const newStrategy = await MockAnchorStrategy.deploy(
         vault.address,
         mockEthAnchorRouter.address,
         mockAUstUstFeed.address,
@@ -1186,7 +1192,10 @@ describe('Vault', () => {
         amount: parseUnits('100'),
         inputToken: underlying.address,
         claims: [
-          claimParams.percent(100).to('0x0000000000000000000000000000000000000000').build()
+          claimParams
+            .percent(100)
+            .to('0x0000000000000000000000000000000000000000')
+            .build(),
         ],
       });
 
@@ -1450,7 +1459,10 @@ describe('Vault', () => {
         amount: parseUnits('100'),
         inputToken: underlying.address,
         claims: [
-          claimParams.percent(100).to('0x0000000000000000000000000000000000000000').build()
+          claimParams
+            .percent(100)
+            .to('0x0000000000000000000000000000000000000000')
+            .build(),
         ],
       });
 
