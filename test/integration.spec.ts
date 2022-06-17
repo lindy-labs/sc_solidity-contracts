@@ -12,6 +12,8 @@ import {
   MockUST__factory,
   Vault__factory,
 } from '../typechain';
+
+import createVaultHelpers from './shared/vault';
 import { depositParams, claimParams } from './shared/factories';
 import {
   moveForwardTwoWeeks,
@@ -37,6 +39,13 @@ describe('Integration', () => {
   let aUstToken: Contract;
   let vault: Vault;
   let strategy: MockStrategy;
+
+  let addUnderlyingBalance: (
+    account: SignerWithAddress,
+    amount: string,
+  ) => Promise<BigNumber>;
+  let addYieldToVault: (amount: string) => Promise<BigNumber>;
+  let removeUnderlyingFromVault: (amount: string) => Promise<BigNumber>;
 
   const TWO_WEEKS = BigNumber.from(time.duration.weeks(2).toNumber());
   const TREASURY = generateNewAddress();
@@ -103,6 +112,15 @@ describe('Integration', () => {
       underlying.address,
       aUstToken.address,
     );
+
+    ({
+      addUnderlyingBalance,
+      addYieldToVault,
+      removeUnderlyingFromVault,
+    } = createVaultHelpers({
+      vault,
+      underlying,
+    }));
   });
 
   describe('single deposit, single sponsor and single claimer', () => {
@@ -130,9 +148,13 @@ describe('Integration', () => {
       await vault.connect(alice).withdraw(alice.address, [2]);
       await vault.connect(bob).unsponsor(bob.address, [1]);
 
-      expect(await underlyingBalanceOf(bob)).to.eq(parseUnits('1000'));
-      expect(await underlyingBalanceOf(alice)).to.eq(parseUnits('1000'));
-      expect(await underlyingBalanceOf(carol)).to.eq(parseUnits('2000'));
+      expect(await underlying.balanceOf(bob.address)).to.eq(parseUnits('1000'));
+      expect(await underlying.balanceOf(alice.address)).to.eq(
+        parseUnits('1000'),
+      );
+      expect(await underlying.balanceOf(carol.address)).to.eq(
+        parseUnits('2000'),
+      );
     });
 
     it('ensures the sponsored amount is protected when the vault is underperforming', async () => {
@@ -140,12 +162,12 @@ describe('Integration', () => {
       await addUnderlyingBalance(bob, '1000');
       await vault.connect(owner).grantRole(SPONSOR_ROLE, bob.address);
 
-      expect(await underlyingBalanceOf(bob)).to.eq(parseUnits('1000'));
+      expect(await underlying.balanceOf(bob.address)).to.eq(parseUnits('1000'));
       await vault
         .connect(bob)
         .sponsor(underlying.address, parseUnits('500'), TWO_WEEKS);
 
-      expect(await underlyingBalanceOf(bob)).to.eq(parseUnits('500'));
+      expect(await underlying.balanceOf(bob.address)).to.eq(parseUnits('500'));
 
       await vault.connect(alice).deposit(
         depositParams.build({
@@ -166,9 +188,11 @@ describe('Integration', () => {
       ).to.be.revertedWith('VaultCannotWithdrawWhenYieldNegative');
       await vault.connect(bob).unsponsor(bob.address, [1]);
 
-      expect(await underlyingBalanceOf(bob)).to.eq(parseUnits('1000'));
-      expect(await underlyingBalanceOf(alice)).to.eq(parseUnits('500'));
-      expect(await underlyingBalanceOf(carol)).to.eq(parseUnits('0'));
+      expect(await underlying.balanceOf(bob.address)).to.eq(parseUnits('1000'));
+      expect(await underlying.balanceOf(alice.address)).to.eq(
+        parseUnits('500'),
+      );
+      expect(await underlying.balanceOf(carol.address)).to.eq(parseUnits('0'));
     });
 
     it('ensures the sponsored amount and the deposit are protected when the vault has no yield', async () => {
@@ -194,9 +218,11 @@ describe('Integration', () => {
       await vault.connect(alice).withdraw(alice.address, [2]);
       await vault.connect(bob).unsponsor(bob.address, [1]);
 
-      expect(await underlyingBalanceOf(bob)).to.eq(parseUnits('1000'));
-      expect(await underlyingBalanceOf(alice)).to.eq(parseUnits('1000'));
-      expect(await underlyingBalanceOf(carol)).to.eq(parseUnits('0'));
+      expect(await underlying.balanceOf(bob.address)).to.eq(parseUnits('1000'));
+      expect(await underlying.balanceOf(alice.address)).to.eq(
+        parseUnits('1000'),
+      );
+      expect(await underlying.balanceOf(carol.address)).to.eq(parseUnits('0'));
     });
   });
 
@@ -233,31 +259,41 @@ describe('Integration', () => {
 
       // alice claims her share
       await vault.connect(alice).claimYield(alice.address);
-      expect(await underlyingBalanceOf(alice)).to.eq(parseUnits('500'));
+      expect(await underlying.balanceOf(alice.address)).to.eq(
+        parseUnits('500'),
+      );
 
       // the vault generates yield
       await addYieldToVault('1500');
 
       // alice withdraws the deposit
       await vault.connect(alice).withdraw(alice.address, [3, 4]);
-      expect(await underlyingBalanceOf(alice)).to.eq(parseUnits('1500'));
+      expect(await underlying.balanceOf(alice.address)).to.eq(
+        parseUnits('1500'),
+      );
 
       // alice and bob unsponsor
       await vault.connect(alice).unsponsor(alice.address, [1]);
-      expect(await underlyingBalanceOf(alice)).to.eq(parseUnits('2000'));
+      expect(await underlying.balanceOf(alice.address)).to.eq(
+        parseUnits('2000'),
+      );
 
       await vault.connect(bob).unsponsor(bob.address, [2]);
-      expect(await underlyingBalanceOf(bob)).to.eq(parseUnits('1000'));
+      expect(await underlying.balanceOf(bob.address)).to.eq(parseUnits('1000'));
 
       // the vault generates yield
       await addYieldToVault('2000');
 
       // alice and carol claim the remaning yield
       await vault.connect(alice).claimYield(alice.address);
-      expect(await underlyingBalanceOf(alice)).to.eq(parseUnits('3000'));
+      expect(await underlying.balanceOf(alice.address)).to.eq(
+        parseUnits('3000'),
+      );
 
       await vault.connect(carol).claimYield(carol.address);
-      expect(await underlyingBalanceOf(carol)).to.eq(parseUnits('3000'));
+      expect(await underlying.balanceOf(carol.address)).to.eq(
+        parseUnits('3000'),
+      );
     });
   });
 
@@ -339,8 +375,10 @@ describe('Integration', () => {
       await vault.connect(carol).claimYield(carol.address);
       await vault.connect(bob).claimYield(bob.address);
 
-      expect(await underlyingBalanceOf(bob)).to.eq(parseUnits('100'));
-      expect(await underlyingBalanceOf(carol)).to.eq(parseUnits('100'));
+      expect(await underlying.balanceOf(bob.address)).to.eq(parseUnits('100'));
+      expect(await underlying.balanceOf(carol.address)).to.eq(
+        parseUnits('100'),
+      );
     });
 
     it('allows the yield to value after the principal is claiemd', async () => {
@@ -362,8 +400,10 @@ describe('Integration', () => {
       await vault.connect(carol).claimYield(carol.address);
       await vault.connect(bob).claimYield(bob.address);
 
-      expect(await underlyingBalanceOf(bob)).to.eq(parseUnits('100'));
-      expect(await underlyingBalanceOf(carol)).to.eq(parseUnits('150'));
+      expect(await underlying.balanceOf(bob.address)).to.eq(parseUnits('100'));
+      expect(await underlying.balanceOf(carol.address)).to.eq(
+        parseUnits('150'),
+      );
     });
   });
 
@@ -394,10 +434,14 @@ describe('Integration', () => {
       await moveForwardTwoWeeks();
 
       await vault.connect(alice).forceWithdraw(alice.address, [1]);
-      expect(await underlyingBalanceOf(alice)).to.eq(parseUnits('99').sub(1));
+      expect(await underlying.balanceOf(alice.address)).to.eq(
+        parseUnits('99').sub(1),
+      );
 
       await vault.connect(bob).forceWithdraw(bob.address, [2]);
-      expect(await underlyingBalanceOf(bob)).to.eq(parseUnits('99').add(1));
+      expect(await underlying.balanceOf(bob.address)).to.eq(
+        parseUnits('99').add(1),
+      );
     });
 
     it('it distributes the loss evenly when sending yield to the same person', async () => {
@@ -424,10 +468,12 @@ describe('Integration', () => {
       await moveForwardTwoWeeks();
 
       await vault.connect(alice).forceWithdraw(alice.address, [1]);
-      expect(await underlyingBalanceOf(alice)).to.eq(parseUnits('500'));
+      expect(await underlying.balanceOf(alice.address)).to.eq(
+        parseUnits('500'),
+      );
 
       await vault.connect(bob).forceWithdraw(bob.address, [2]);
-      expect(await underlyingBalanceOf(bob)).to.eq(parseUnits('1000'));
+      expect(await underlying.balanceOf(bob.address)).to.eq(parseUnits('1000'));
     });
 
     it('it distributes the loss evenly when sending yield to different people', async () => {
@@ -454,10 +500,12 @@ describe('Integration', () => {
       await moveForwardTwoWeeks();
 
       await vault.connect(alice).forceWithdraw(alice.address, [1]);
-      expect(await underlyingBalanceOf(alice)).to.eq(parseUnits('500'));
+      expect(await underlying.balanceOf(alice.address)).to.eq(
+        parseUnits('500'),
+      );
 
       await vault.connect(bob).forceWithdraw(bob.address, [2]);
-      expect(await underlyingBalanceOf(bob)).to.eq(parseUnits('1000'));
+      expect(await underlying.balanceOf(bob.address)).to.eq(parseUnits('1000'));
     });
 
     it('takes unclaimed yield into account when distributing loss', async () => {
@@ -485,7 +533,9 @@ describe('Integration', () => {
       await addYieldToVault('3000');
 
       await vault.connect(carol).claimYield(carol.address);
-      expect(await underlyingBalanceOf(carol)).to.eq(parseUnits('2000'));
+      expect(await underlying.balanceOf(carol.address)).to.eq(
+        parseUnits('2000'),
+      );
 
       await removeUnderlyingFromVault('3000');
       expect(await underlying.balanceOf(vault.address)).to.eq(
@@ -493,10 +543,12 @@ describe('Integration', () => {
       );
 
       await vault.connect(alice).forceWithdraw(alice.address, [1]);
-      expect(await underlyingBalanceOf(alice)).to.eq(parseUnits('500'));
+      expect(await underlying.balanceOf(alice.address)).to.eq(
+        parseUnits('500'),
+      );
 
       await vault.connect(bob).forceWithdraw(bob.address, [2]);
-      expect(await underlyingBalanceOf(bob)).to.eq(parseUnits('500'));
+      expect(await underlying.balanceOf(bob.address)).to.eq(parseUnits('500'));
     });
   });
 
@@ -527,7 +579,9 @@ describe('Integration', () => {
       await moveForwardTwoWeeks();
       await vault.connect(alice).withdraw(alice.address, [2]);
 
-      expect(await underlyingBalanceOf(alice)).to.eq(parseUnits('875'));
+      expect(await underlying.balanceOf(alice.address)).to.eq(
+        parseUnits('875'),
+      );
     });
 
     it('allows withdraws at different times', async () => {
@@ -561,8 +615,10 @@ describe('Integration', () => {
       await vault.connect(carol).claimYield(carol.address);
       await vault.connect(bob).claimYield(bob.address);
 
-      expect(await underlyingBalanceOf(bob)).to.eq(parseUnits('50'));
-      expect(await underlyingBalanceOf(carol)).to.eq(parseUnits('250'));
+      expect(await underlying.balanceOf(bob.address)).to.eq(parseUnits('50'));
+      expect(await underlying.balanceOf(carol.address)).to.eq(
+        parseUnits('250'),
+      );
     });
 
     it('compounds the yield of the first deposit', async () => {
@@ -594,8 +650,10 @@ describe('Integration', () => {
       await vault.connect(carol).claimYield(carol.address);
       await vault.connect(bob).claimYield(bob.address);
 
-      expect(await underlyingBalanceOf(bob)).to.eq(parseUnits('50'));
-      expect(await underlyingBalanceOf(carol)).to.eq(parseUnits('350'));
+      expect(await underlying.balanceOf(bob.address)).to.eq(parseUnits('50'));
+      expect(await underlying.balanceOf(carol.address)).to.eq(
+        parseUnits('350'),
+      );
     });
   });
 
@@ -645,8 +703,10 @@ describe('Integration', () => {
       expect(await vault.totalPrincipal()).to.eq(0);
       expect(await underlying.balanceOf(vault.address)).to.eq(0);
       expect(await vault.totalShares()).to.eq(0);
-      expect(await underlyingBalanceOf(alice)).to.eq(parseUnits('1100'));
-      expect(await underlyingBalanceOf(bob)).to.eq(parseUnits('900'));
+      expect(await underlying.balanceOf(alice.address)).to.eq(
+        parseUnits('1100'),
+      );
+      expect(await underlying.balanceOf(bob.address)).to.eq(parseUnits('900'));
     });
 
     it('allows for claiming yield after a partial withdraw', async () => {
@@ -678,7 +738,9 @@ describe('Integration', () => {
 
       await vault.connect(alice).claimYield(alice.address);
 
-      expect(await underlyingBalanceOf(alice)).to.eq(parseUnits('1025'));
+      expect(await underlying.balanceOf(alice.address)).to.eq(
+        parseUnits('1025'),
+      );
 
       await vault
         .connect(bob)
@@ -686,7 +748,7 @@ describe('Integration', () => {
 
       await vault.connect(bob).claimYield(bob.address);
 
-      expect(await underlyingBalanceOf(bob)).to.eq(parseUnits('1050'));
+      expect(await underlying.balanceOf(bob.address)).to.eq(parseUnits('1050'));
 
       await vault
         .connect(alice)
@@ -696,8 +758,10 @@ describe('Integration', () => {
         .connect(bob)
         .partialWithdraw(bob.address, [2], [parseUnits('50')]);
 
-      expect(await underlyingBalanceOf(alice)).to.eq(parseUnits('1100'));
-      expect(await underlyingBalanceOf(bob)).to.eq(parseUnits('1100'));
+      expect(await underlying.balanceOf(alice.address)).to.eq(
+        parseUnits('1100'),
+      );
+      expect(await underlying.balanceOf(bob.address)).to.eq(parseUnits('1100'));
     });
 
     it('allows for loss scenarios', async () => {
@@ -726,7 +790,9 @@ describe('Integration', () => {
       // alice claims
       await vault.connect(alice).claimYield(alice.address);
 
-      expect(await underlyingBalanceOf(alice)).to.eq(parseUnits('1000'));
+      expect(await underlying.balanceOf(alice.address)).to.eq(
+        parseUnits('1000'),
+      );
 
       // bob claims and partial withraws
       await vault
@@ -735,7 +801,7 @@ describe('Integration', () => {
 
       await vault.connect(bob).claimYield(bob.address);
 
-      expect(await underlyingBalanceOf(bob)).to.eq(parseUnits('1050'));
+      expect(await underlying.balanceOf(bob.address)).to.eq(parseUnits('1050'));
 
       // there's loss
       await removeUnderlyingFromVault('15');
@@ -745,7 +811,7 @@ describe('Integration', () => {
 
       // bob force withdraws with a loss of 5
       await vault.connect(bob).forceWithdraw(bob.address, [2]);
-      expect(await underlyingBalanceOf(bob)).to.eq(parseUnits('1095'));
+      expect(await underlying.balanceOf(bob.address)).to.eq(parseUnits('1095'));
 
       // there's yiled
       await addYieldToVault('10');
@@ -755,31 +821,16 @@ describe('Integration', () => {
         .connect(alice)
         .partialWithdraw(alice.address, [1], [parseUnits('40')]);
 
-      expect(await underlyingBalanceOf(alice)).to.eq(parseUnits('1040'));
+      expect(await underlying.balanceOf(alice.address)).to.eq(
+        parseUnits('1040'),
+      );
 
       // alice withdraws
       await vault.connect(alice).withdraw(alice.address, [1]);
 
-      expect(await underlyingBalanceOf(alice)).to.eq(parseUnits('1100'));
+      expect(await underlying.balanceOf(alice.address)).to.eq(
+        parseUnits('1100'),
+      );
     });
   });
-
-  function addYieldToVault(amount: string) {
-    return underlying.mint(vault.address, parseUnits(amount));
-  }
-
-  function removeUnderlyingFromVault(amount: string) {
-    return underlying.burn(vault.address, parseUnits(amount));
-  }
-
-  async function addUnderlyingBalance(
-    account: SignerWithAddress,
-    amount: string,
-  ) {
-    await underlying.mint(account.address, parseUnits(amount));
-  }
-
-  function underlyingBalanceOf(account: SignerWithAddress) {
-    return underlying.balanceOf(account.address);
-  }
 });

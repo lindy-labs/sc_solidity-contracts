@@ -936,7 +936,7 @@ describe('AnchorStrategy', () => {
       );
     });
 
-    it.only('can deduct all the funds from strategy', async () => {
+    it('can deduct all the funds from strategy', async () => {
       var amount = utils.parseEther('100');
       await aUstToken.mint(strategy.address, amount);
 

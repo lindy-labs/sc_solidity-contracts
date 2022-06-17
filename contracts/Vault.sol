@@ -555,7 +555,7 @@ contract Vault is
         if (_strategy == address(0)) revert VaultStrategyNotSet();
         if (IStrategy(_strategy).vault() != address(this))
             revert VaultInvalidVault();
-        if (address(strategy) != address(0) && strategy.hasAssets() == true)
+        if (address(strategy) != address(0) && strategy.hasAssets())
             revert VaultStrategyHasInvestedFunds();
 
         strategy = IStrategy(_strategy);
