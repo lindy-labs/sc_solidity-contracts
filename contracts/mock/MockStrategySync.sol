@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity =0.8.10;
+
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
@@ -7,7 +8,7 @@ import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {IStrategy} from "../strategy/IStrategy.sol";
 import {CustomErrors} from "../interfaces/CustomErrors.sol";
 
-contract MockSyncStrategy is IStrategy, AccessControl, CustomErrors {
+contract MockStrategySync is IStrategy, AccessControl, CustomErrors {
     using SafeERC20 for IERC20;
 
     bytes32 public constant MANAGER_ROLE =
@@ -28,7 +29,7 @@ contract MockSyncStrategy is IStrategy, AccessControl, CustomErrors {
         underlying = _underlying;
     }
 
-    function isSync() external pure override(IStrategy) returns (bool) {
+    function isSync() external pure virtual override(IStrategy) returns (bool) {
         return true;
     }
 

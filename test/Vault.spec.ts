@@ -8,7 +8,7 @@ import {
   Vault,
   MockUST__factory,
   MockUST,
-  MockSyncStrategy,
+  MockStrategySync,
   Vault__factory,
 } from '../typechain';
 
@@ -35,7 +35,7 @@ describe('Vault', () => {
 
   let underlying: MockUST;
   let vault: Vault;
-  let strategy: MockSyncStrategy;
+  let strategy: MockStrategySync;
 
   let addUnderlyingBalance: (
     account: SignerWithAddress,
@@ -44,7 +44,7 @@ describe('Vault', () => {
   let addYieldToVault: (amount: string) => Promise<BigNumber>;
   let removeUnderlyingFromVault: (amount: string) => Promise<BigNumber>;
 
-  const MOCK_STRATEGY = 'MockSyncStrategy';
+  const MOCK_STRATEGY = 'MockStrategySync';
   const TWO_WEEKS = BigNumber.from(time.duration.weeks(2).toNumber());
   const MAX_DEPOSIT_LOCK_DURATION = BigNumber.from(
     time.duration.weeks(24).toNumber(),

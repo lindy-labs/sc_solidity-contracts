@@ -8,7 +8,7 @@ import {
   Vault,
   MockUST__factory,
   MockUST,
-  MockStrategySync,
+  MockStrategyAsync,
 } from '../typechain';
 
 import { depositParams, claimParams } from './shared/factories';
@@ -19,14 +19,14 @@ import { moveForwardTwoWeeks, generateNewAddress } from './shared';
 const { parseUnits } = ethers.utils;
 const { MaxUint256 } = ethers.constants;
 
-describe('Vault in sync mode', () => {
+describe('Vault in async mode', () => {
   let owner: SignerWithAddress;
   let alice: SignerWithAddress;
   let bob: SignerWithAddress;
 
   let underlying: MockUST;
   let vault: Vault;
-  let strategy: MockStrategySync;
+  let strategy: MockStrategyAsync;
 
   let addUnderlyingBalance: (
     account: SignerWithAddress,
@@ -57,7 +57,7 @@ describe('Vault in sync mode', () => {
     [owner, alice, bob] = await ethers.getSigners();
 
     let Vault = await ethers.getContractFactory('Vault');
-    let MockStrategy = await ethers.getContractFactory('MockStrategySync');
+    let MockStrategy = await ethers.getContractFactory('MockStrategyAsync');
 
     vault = await Vault.deploy(
       underlying.address,
@@ -87,8 +87,8 @@ describe('Vault in sync mode', () => {
     await addUnderlyingBalance(bob, '1000');
   });
 
-  describe('#claimYield', () => {
-    it('claims the yield from the strategy', async () => {
+  describe("#claimYield doesn't rebalance the Vault's funds", () => {
+    it('reverts when yield > reserves', async () => {
       const params = depositParams.build({
         amount: parseUnits('100'),
         inputToken: underlying.address,
@@ -99,54 +99,12 @@ describe('Vault in sync mode', () => {
       await addYieldToVault('50');
       await vault.connect(owner).updateInvested();
 
-      await vault.connect(alice).claimYield(alice.address);
-
-      expect(await underlying.balanceOf(alice.address)).to.eq(
-        parseUnits('949'),
-      );
+      await expect(
+        vault.connect(alice).claimYield(alice.address),
+      ).to.be.revertedWith('VaultNotEnoughFunds');
     });
 
-    it('claims part of the yield from the strategy', async () => {
-      const params = depositParams.build({
-        amount: parseUnits('100'),
-        inputToken: underlying.address,
-        claims: [claimParams.percent(100).to(alice.address).build()],
-      });
-      await vault.connect(alice).deposit(params);
-
-      await addYieldToVault('40');
-      await vault.connect(owner).updateInvested();
-      await addYieldToVault('10');
-
-      await vault.connect(alice).claimYield(alice.address);
-
-      expect(await underlying.balanceOf(alice.address)).to.eq(
-        parseUnits('949'),
-      );
-    });
-
-    it("rebalances the Vault's reserves when yield > reserves", async () => {
-      const params = depositParams.build({
-        amount: parseUnits('100'),
-        inputToken: underlying.address,
-        claims: [claimParams.percent(100).to(alice.address).build()],
-      });
-      await vault.connect(alice).deposit(params);
-
-      await addYieldToVault('50');
-      await vault.connect(owner).updateInvested();
-
-      await vault.connect(alice).claimYield(alice.address);
-
-      expect(await underlying.balanceOf(vault.address)).to.eq(
-        (101e17).toString(),
-      );
-      expect(await underlying.balanceOf(strategy.address)).to.eq(
-        (909e17).toString(),
-      );
-    });
-
-    it("doesn't rebalance the Vault's reserves when yield = reserves", async () => {
+    it("doesn't revert and withdraws funds from the Vault when yield = reserves", async () => {
       const params = depositParams.build({
         amount: parseUnits('100'),
         inputToken: underlying.address,
@@ -165,7 +123,8 @@ describe('Vault in sync mode', () => {
       });
       await vault.connect(bob).deposit(bobsDeposit);
 
-      await vault.connect(alice).claimYield(alice.address);
+      await expect(vault.connect(alice).claimYield(alice.address)).to.not.be
+        .reverted;
 
       expect(await underlying.balanceOf(vault.address)).to.eq('0');
       expect(await underlying.balanceOf(strategy.address)).to.eq(
@@ -173,7 +132,7 @@ describe('Vault in sync mode', () => {
       );
     });
 
-    it("doesn't rebalance the Vault's reserves when yield < reserves", async () => {
+    it("doesn't revert and withdraws funds from the Vault when yield < reserves", async () => {
       const params = depositParams.build({
         amount: parseUnits('100'),
         inputToken: underlying.address,
@@ -192,7 +151,8 @@ describe('Vault in sync mode', () => {
       });
       await vault.connect(bob).deposit(bobsDeposit);
 
-      await vault.connect(alice).claimYield(alice.address);
+      await expect(vault.connect(alice).claimYield(alice.address)).to.not.be
+        .reverted;
 
       // vault had 115 before the claim, and 49 was claimed, so it should have 115 - 49 = 66
       expect(await underlying.balanceOf(vault.address)).to.eq(parseUnits('66'));
@@ -202,8 +162,8 @@ describe('Vault in sync mode', () => {
     });
   });
 
-  describe('#withdraw', () => {
-    it('withdraws the amount from the strategy', async () => {
+  describe("#withdraw doesn't rebalance the Vault's funds", () => {
+    it('reverts when amount > reserves', async () => {
       const params = depositParams.build({
         amount: parseUnits('100'),
         inputToken: underlying.address,
@@ -215,54 +175,12 @@ describe('Vault in sync mode', () => {
       await vault.connect(owner).updateInvested();
 
       await moveForwardTwoWeeks();
-      await vault.connect(alice).withdraw(alice.address, [1]);
-
-      expect(await underlying.balanceOf(alice.address)).to.eq(
-        '999999999999999999999',
-      );
+      await expect(
+        vault.connect(alice).withdraw(alice.address, [1]),
+      ).to.be.revertedWith('VaultNotEnoughFunds');
     });
 
-    it('withdraws part of the amount from the strategy', async () => {
-      const params = depositParams.build({
-        amount: parseUnits('100'),
-        inputToken: underlying.address,
-        claims: [claimParams.percent(100).to(alice.address).build()],
-      });
-      await vault.connect(alice).deposit(params);
-
-      await addYieldToVault('30');
-      await vault.connect(owner).updateInvested();
-      await addYieldToVault('20');
-
-      await moveForwardTwoWeeks();
-      await vault.connect(alice).withdraw(alice.address, [1]);
-
-      expect(await underlying.balanceOf(alice.address)).to.eq(
-        '999999999999999999999',
-      );
-    });
-
-    it("rebalances the Vault's reserves when withdraw amount > reserves", async () => {
-      const params = depositParams.build({
-        amount: parseUnits('100'),
-        inputToken: underlying.address,
-        claims: [claimParams.percent(100).to(alice.address).build()],
-      });
-      await vault.connect(alice).deposit(params);
-
-      await addYieldToVault('50');
-      await vault.connect(owner).updateInvested();
-
-      await moveForwardTwoWeeks();
-      await vault.connect(alice).withdraw(alice.address, [1]);
-
-      expect(await underlying.balanceOf(vault.address)).to.eq(parseUnits('5'));
-      expect(await underlying.balanceOf(strategy.address)).to.eq(
-        '45000000000000000001',
-      );
-    });
-
-    it("doesn't rebalance the Vault's reserves when withdraw amount = reserves", async () => {
+    it("doesn't revert and withdraws funds from the Vault when amount = reserves", async () => {
       const params = depositParams.build({
         amount: parseUnits('100'),
         inputToken: underlying.address,
@@ -282,7 +200,9 @@ describe('Vault in sync mode', () => {
       await vault.connect(bob).deposit(bobsDeposit);
 
       await moveForwardTwoWeeks();
-      await vault.connect(alice).withdraw(alice.address, [1]);
+
+      await expect(vault.connect(alice).withdraw(alice.address, [1])).to.not.be
+        .reverted;
 
       expect(await underlying.balanceOf(vault.address)).to.eq('1');
       expect(await underlying.balanceOf(strategy.address)).to.eq(
@@ -290,7 +210,7 @@ describe('Vault in sync mode', () => {
       );
     });
 
-    it("doesn't rebalance the Vault's reserves when withdraw amount < reserves", async () => {
+    it("doesn't revert and withdraws funds from the Vault when amount < reserves", async () => {
       const params = depositParams.build({
         amount: parseUnits('100'),
         inputToken: underlying.address,
@@ -310,7 +230,9 @@ describe('Vault in sync mode', () => {
       await vault.connect(bob).deposit(bobsDeposit);
 
       await moveForwardTwoWeeks();
-      await vault.connect(alice).withdraw(alice.address, [1]);
+
+      await expect(vault.connect(alice).withdraw(alice.address, [1])).to.not.be
+        .reverted;
 
       // vault had 115 before the withdrawal, and 100 was withdrawn, so it should have 115 - 100 = 15
       expect(await underlying.balanceOf(vault.address)).to.eq(
@@ -322,8 +244,8 @@ describe('Vault in sync mode', () => {
     });
   });
 
-  describe('#partialWithdraw', () => {
-    it('withdraws the amount from the strategy', async () => {
+  describe("#partialWithdraw doesn't rebalance the Vault's funds", () => {
+    it('reverts when amount > reserves', async () => {
       const params = depositParams.build({
         amount: parseUnits('100'),
         inputToken: underlying.address,
@@ -335,60 +257,15 @@ describe('Vault in sync mode', () => {
       await vault.connect(owner).updateInvested();
 
       await moveForwardTwoWeeks();
-      await vault
-        .connect(alice)
-        .partialWithdraw(alice.address, [1], [parseUnits('50')]);
 
-      expect(await underlying.balanceOf(alice.address)).to.eq(
-        '949999999999999999999',
-      );
+      await expect(
+        vault
+          .connect(alice)
+          .partialWithdraw(alice.address, [1], [parseUnits('50')]),
+      ).to.be.revertedWith('VaultNotEnoughFunds');
     });
 
-    it('withdraws part of the amount from the strategy', async () => {
-      const params = depositParams.build({
-        amount: parseUnits('100'),
-        inputToken: underlying.address,
-        claims: [claimParams.percent(100).to(alice.address).build()],
-      });
-      await vault.connect(alice).deposit(params);
-
-      await addYieldToVault('30');
-      await vault.connect(owner).updateInvested();
-      await addYieldToVault('20');
-
-      await moveForwardTwoWeeks();
-      await vault
-        .connect(alice)
-        .partialWithdraw(alice.address, [1], [parseUnits('50')]);
-
-      expect(await underlying.balanceOf(alice.address)).to.eq(
-        '949999999999999999999',
-      );
-    });
-
-    it("rebalances the Vault's reserves when withdraw amount > reserves", async () => {
-      const params = depositParams.build({
-        amount: parseUnits('100'),
-        inputToken: underlying.address,
-        claims: [claimParams.percent(100).to(alice.address).build()],
-      });
-      await vault.connect(alice).deposit(params);
-
-      await addYieldToVault('50');
-      await vault.connect(owner).updateInvested();
-
-      await moveForwardTwoWeeks();
-      await vault
-        .connect(alice)
-        .partialWithdraw(alice.address, [1], [parseUnits('50')]);
-
-      expect(await underlying.balanceOf(vault.address)).to.eq(parseUnits('10'));
-      expect(await underlying.balanceOf(strategy.address)).to.eq(
-        '90000000000000000001',
-      );
-    });
-
-    it("doesn't rebalance the Vault's reserves when withdraw amount = reserves", async () => {
+    it("doesn't revert and withdraws funds from the Vault when amount = reserves", async () => {
       const params = depositParams.build({
         amount: parseUnits('100'),
         inputToken: underlying.address,
@@ -406,11 +283,13 @@ describe('Vault in sync mode', () => {
         claims: [claimParams.percent(100).to(bob.address).build()],
       });
       await vault.connect(bob).deposit(bobsDeposit);
-
       await moveForwardTwoWeeks();
-      await vault
-        .connect(alice)
-        .partialWithdraw(alice.address, [1], [parseUnits('50')]);
+
+      await expect(
+        vault
+          .connect(alice)
+          .partialWithdraw(alice.address, [1], [parseUnits('50')]),
+      ).to.not.be.reverted;
 
       expect(await underlying.balanceOf(vault.address)).to.eq('1');
       expect(await underlying.balanceOf(strategy.address)).to.eq(
@@ -418,7 +297,7 @@ describe('Vault in sync mode', () => {
       );
     });
 
-    it("doesn't rebalance the Vault's reserves when withdraw amount < reserves", async () => {
+    it("doesn't revert and withdraws funds from the Vault when amount < reserves", async () => {
       const params = depositParams.build({
         amount: parseUnits('100'),
         inputToken: underlying.address,
@@ -436,11 +315,13 @@ describe('Vault in sync mode', () => {
         claims: [claimParams.percent(100).to(bob.address).build()],
       });
       await vault.connect(bob).deposit(bobsDeposit);
-
       await moveForwardTwoWeeks();
-      await vault
-        .connect(alice)
-        .partialWithdraw(alice.address, [1], [parseUnits('50')]);
+
+      await expect(
+        vault
+          .connect(alice)
+          .partialWithdraw(alice.address, [1], [parseUnits('50')]),
+      ).to.not.be.reverted;
 
       // vault had 115 before the withdrawal, and 50 was withdrawn, so it should have 115 - 50 = 65
       expect(await underlying.balanceOf(vault.address)).to.eq(

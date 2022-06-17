@@ -696,7 +696,7 @@ contract Vault is
         uint256 vaultBalance = underlying.balanceOf(address(this));
 
         if (_amount <= vaultBalance) return;
-        if (!strategy.isSync()) return;
+        if (!strategy.isSync()) revert VaultNotEnoughFunds();
 
         uint256 expectedReserves = (totalUnderlying() - _amount).pctOf(
             10000 - investPct
