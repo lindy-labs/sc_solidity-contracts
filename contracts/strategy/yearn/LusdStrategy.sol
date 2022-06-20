@@ -64,7 +64,7 @@ contract LusdStrategy is IStrategy, AccessControl, CustomErrors {
         override(IStrategy)
         returns (bool)
     {
-        return _getSharesBalance() > 0;
+        return _getShares() > 0;
     }
 
     /**
@@ -79,7 +79,7 @@ contract LusdStrategy is IStrategy, AccessControl, CustomErrors {
         override(IStrategy)
         returns (uint256)
     {
-        return _sharesToUnderlying(_getSharesBalance());
+        return _sharesToUnderlying(_getShares());
     }
 
     /**
@@ -108,7 +108,7 @@ contract LusdStrategy is IStrategy, AccessControl, CustomErrors {
                 amount - uninvestedUnderlying
             );
 
-            if (_sharesToWithdraw > _getSharesBalance())
+            if (_sharesToWithdraw > _getShares())
                 revert StrategyNotEnoughShares();
 
             // burn shares and withdraw required underlying to strategy
@@ -126,7 +126,7 @@ contract LusdStrategy is IStrategy, AccessControl, CustomErrors {
         override(IStrategy)
         onlyManager
     {
-        uint256 sharesBalance = _getSharesBalance();
+        uint256 sharesBalance = _getShares();
         if (sharesBalance == 0) revert StrategyNotEnoughShares();
         // burn shares and withdraw required underlying to strategy
         yVault.withdraw(sharesBalance, vault, 1);
@@ -142,7 +142,7 @@ contract LusdStrategy is IStrategy, AccessControl, CustomErrors {
     /**
      * @return yLusd balance of strategy
      */
-    function _getSharesBalance() internal view returns (uint256) {
+    function _getShares() internal view returns (uint256) {
         return yVault.balanceOf(address(this));
     }
 
