@@ -707,6 +707,8 @@ contract Vault is
         uint256 needed = _amount + expectedReserves - vaultBalance;
 
         strategy.withdrawToVault(needed);
+
+        emit Disinvested(needed);
     }
 
     /**

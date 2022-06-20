@@ -146,6 +146,26 @@ describe('Vault in sync mode', () => {
       );
     });
 
+    it("emits Disinvested event on rebalancing Vault's funds", async () => {
+      const params = depositParams.build({
+        amount: parseUnits('100'),
+        inputToken: underlying.address,
+        claims: [claimParams.percent(100).to(alice.address).build()],
+      });
+      await vault.connect(alice).deposit(params);
+
+      await addYieldToVault('50');
+      await vault.connect(owner).updateInvested();
+
+      const investedBefore = await underlying.balanceOf(strategy.address);
+      const tx = await vault.connect(alice).claimYield(alice.address);
+      const investedAfter = await underlying.balanceOf(strategy.address);
+
+      await expect(tx)
+        .to.emit(vault, 'Disinvested')
+        .withArgs(investedBefore.sub(investedAfter));
+    });
+
     it("doesn't rebalance the Vault's reserves when yield = reserves", async () => {
       const params = depositParams.build({
         amount: parseUnits('100'),
@@ -165,12 +185,13 @@ describe('Vault in sync mode', () => {
       });
       await vault.connect(bob).deposit(bobsDeposit);
 
-      await vault.connect(alice).claimYield(alice.address);
+      const tx = await vault.connect(alice).claimYield(alice.address);
 
       expect(await underlying.balanceOf(vault.address)).to.eq('0');
       expect(await underlying.balanceOf(strategy.address)).to.eq(
         parseUnits('135'),
       );
+      await expect(tx).to.not.emit(vault, 'Disinvested');
     });
 
     it("doesn't rebalance the Vault's reserves when yield < reserves", async () => {
@@ -262,6 +283,27 @@ describe('Vault in sync mode', () => {
       );
     });
 
+    it("emits Disinvested event on rebalancing Vault's funds", async () => {
+      const params = depositParams.build({
+        amount: parseUnits('100'),
+        inputToken: underlying.address,
+        claims: [claimParams.percent(100).to(alice.address).build()],
+      });
+      await vault.connect(alice).deposit(params);
+
+      await addYieldToVault('50');
+      await vault.connect(owner).updateInvested();
+      await moveForwardTwoWeeks();
+
+      const investedBefore = await underlying.balanceOf(strategy.address);
+      const tx = await vault.connect(alice).withdraw(alice.address, [1]);
+      const investedAfter = await underlying.balanceOf(strategy.address);
+
+      await expect(tx)
+        .to.emit(vault, 'Disinvested')
+        .withArgs(investedBefore.sub(investedAfter));
+    });
+
     it("doesn't rebalance the Vault's reserves when withdraw amount = reserves", async () => {
       const params = depositParams.build({
         amount: parseUnits('100'),
@@ -282,12 +324,13 @@ describe('Vault in sync mode', () => {
       await vault.connect(bob).deposit(bobsDeposit);
 
       await moveForwardTwoWeeks();
-      await vault.connect(alice).withdraw(alice.address, [1]);
+      const tx = await vault.connect(alice).withdraw(alice.address, [1]);
 
       expect(await underlying.balanceOf(vault.address)).to.eq('1');
       expect(await underlying.balanceOf(strategy.address)).to.eq(
         parseUnits('135'),
       );
+      await expect(tx).to.not.emit(vault, 'Disinvested');
     });
 
     it("doesn't rebalance the Vault's reserves when withdraw amount < reserves", async () => {
@@ -388,6 +431,29 @@ describe('Vault in sync mode', () => {
       );
     });
 
+    it("emits Disinvested event on rebalancing Vault's funds", async () => {
+      const params = depositParams.build({
+        amount: parseUnits('100'),
+        inputToken: underlying.address,
+        claims: [claimParams.percent(100).to(alice.address).build()],
+      });
+      await vault.connect(alice).deposit(params);
+
+      await addYieldToVault('50');
+      await vault.connect(owner).updateInvested();
+      await moveForwardTwoWeeks();
+
+      const investedBefore = await underlying.balanceOf(strategy.address);
+      const tx = await vault
+        .connect(alice)
+        .partialWithdraw(alice.address, [1], [parseUnits('50')]);
+      const investedAfter = await underlying.balanceOf(strategy.address);
+
+      await expect(tx)
+        .to.emit(vault, 'Disinvested')
+        .withArgs(investedBefore.sub(investedAfter));
+    });
+
     it("doesn't rebalance the Vault's reserves when withdraw amount = reserves", async () => {
       const params = depositParams.build({
         amount: parseUnits('100'),
@@ -408,7 +474,7 @@ describe('Vault in sync mode', () => {
       await vault.connect(bob).deposit(bobsDeposit);
 
       await moveForwardTwoWeeks();
-      await vault
+      const tx = await vault
         .connect(alice)
         .partialWithdraw(alice.address, [1], [parseUnits('50')]);
 
@@ -416,6 +482,7 @@ describe('Vault in sync mode', () => {
       expect(await underlying.balanceOf(strategy.address)).to.eq(
         parseUnits('135'),
       );
+      await expect(tx).to.not.emit(vault, 'Disinvested');
     });
 
     it("doesn't rebalance the Vault's reserves when withdraw amount < reserves", async () => {
