@@ -10,6 +10,7 @@ import {PercentMath} from "../../lib/PercentMath.sol";
 import {ERC165Query} from "../../lib/ERC165Query.sol";
 import {IVault} from "../../vault/IVault.sol";
 import {IAnchorStrategy} from "./IAnchorStrategy.sol";
+import {IStrategy} from "../../strategy/IStrategy.sol";
 import {IEthAnchorRouter} from "./IEthAnchorRouter.sol";
 import {CustomErrors} from "../../interfaces/CustomErrors.sol";
 
@@ -17,7 +18,12 @@ import {CustomErrors} from "../../interfaces/CustomErrors.sol";
  * Base eth anchor strategy that handles UST tokens and invests them via the EthAnchor
  * protocol (https://docs.anchorprotocol.com/ethanchor/ethanchor)
  */
-contract AnchorStrategy is IAnchorStrategy, AccessControl, CustomErrors {
+contract AnchorStrategy is
+    IAnchorStrategy,
+    IStrategy,
+    AccessControl,
+    CustomErrors
+{
     using SafeERC20 for IERC20;
     using PercentMath for uint256;
     using ERC165Query for address;
@@ -25,8 +31,8 @@ contract AnchorStrategy is IAnchorStrategy, AccessControl, CustomErrors {
     bytes32 public constant MANAGER_ROLE =
         0x241ecf16d79d0f8dbfb92cbc07fe17840425976cf0667f022fe9877caa831b08; // keccak256("MANAGER_ROLE");
 
-    /// @inheritdoc IAnchorStrategy
-    address public immutable override(IAnchorStrategy) vault;
+    /// @inheritdoc IStrategy
+    address public immutable override(IStrategy) vault;
 
     // UST token address
     IERC20 public immutable ustToken;
@@ -111,7 +117,7 @@ contract AnchorStrategy is IAnchorStrategy, AccessControl, CustomErrors {
     }
 
     //
-    // IAnchorStrategy
+    // IStrategy
     //
 
     /**
@@ -119,11 +125,7 @@ contract AnchorStrategy is IAnchorStrategy, AccessControl, CustomErrors {
      *
      * @notice since EthAnchor uses an asynchronous model, we can only request withdrawal for whole aUST
      */
-    function withdrawAllToVault()
-        external
-        override(IAnchorStrategy)
-        onlyManager
-    {
+    function withdrawAllToVault() external override(IStrategy) onlyManager {
         uint256 aUstBalance = _getAUstBalance();
         if (aUstBalance != 0) {
             initRedeemStable(aUstBalance);
@@ -134,12 +136,12 @@ contract AnchorStrategy is IAnchorStrategy, AccessControl, CustomErrors {
      * Withdraws a specified amount back to the vault
      *
      * @notice since EthAnchor uses an asynchronous model, and there is no underlying amount
-     * in the strategy, this function do nothing at all, However override interface of IAnchorStrategy.
+     * in the strategy, this function do nothing at all, However override interface of IStrategy.
      */
     function withdrawToVault(uint256 amount)
         external
         virtual
-        override(IAnchorStrategy)
+        override(IStrategy)
         onlyManager
     {
         if (amount == 0) revert StrategyAmountZero();
@@ -162,14 +164,14 @@ contract AnchorStrategy is IAnchorStrategy, AccessControl, CustomErrors {
         external
         view
         virtual
-        override(IAnchorStrategy)
+        override(IStrategy)
         returns (uint256)
     {
         return pendingDeposits + _estimateAUstBalanceInUst();
     }
 
-    /// @inheritdoc IAnchorStrategy
-    function invest() external virtual override(IAnchorStrategy) onlyManager {
+    /// @inheritdoc IStrategy
+    function invest() external virtual override(IStrategy) onlyManager {
         uint256 ustBalance = _getUstBalance();
         if (ustBalance == 0) revert StrategyNoUST();
         pendingDeposits += ustBalance;
@@ -301,7 +303,7 @@ contract AnchorStrategy is IAnchorStrategy, AccessControl, CustomErrors {
         emit FinishRedeemStable(operator, aUstAmount, ustAmount, ustAmount);
     }
 
-    /// @inheritdoc IAnchorStrategy
+    /// @inheritdoc IStrategy
     function hasAssets() external view override returns (bool) {
         return _allRedeemed == false || pendingRedeems != 0;
     }
