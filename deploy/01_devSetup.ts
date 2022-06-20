@@ -31,11 +31,12 @@ async function deployDevToken(
       log: true,
     });
 
-    await env.tenderly.persistArtifacts({
+    if (process.env.NODE_ENV !== 'test')
+      await env.tenderly.persistArtifacts({
         name,
         address: deployment.address,
-    })
-    
+      });
+
     if (process.env.NODE_ENV !== 'test') {
       for (let account of [deployer, alice, bob, carol]) {
         const decimals = await read(name, 'decimals');
