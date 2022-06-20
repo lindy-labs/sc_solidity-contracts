@@ -57,13 +57,7 @@ interface IStrategy {
     function hasAssets() external view returns (bool);
 
     /**
-     * Initiates a deposit of all the currently held UST into EthAnchor
-     *
-     * @notice since EthAnchor uses an asynchronous model, this function
-     * only starts the deposit process, but does not finish it.
-     * Each EthAnchor deposit is handled by a different operator, so we store
-     * an operator address to finish later.
-     * We need to increase pendingDeposits to track correct underlying assets.
+     * deposits of all the currently held underlying by the strategy contract into the respective vault/strategy
      */
     function invest() external;
 }
