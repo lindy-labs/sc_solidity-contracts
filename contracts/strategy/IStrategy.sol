@@ -60,8 +60,8 @@ interface IStrategy {
     /**
      * Provides information about wether the strategy is synchronous or asynchronous.
      * 
-     * @notice Synchronous strategies support instant withdrawals and deposits, 
-     * while asynchronous strategies impose a delay before withdrawals and deposits can be made.
+     * @notice Synchronous strategies support instant withdrawals, 
+     * while asynchronous strategies impose a delay before withdrawals can be made.
      *
      * @return true if the strategy is synchronous, false otherwise
      */
