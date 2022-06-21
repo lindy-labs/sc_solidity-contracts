@@ -689,7 +689,7 @@ describe('Vault', () => {
 
       let MockStrategy = await ethers.getContractFactory(MOCK_STRATEGY);
 
-      const newStrategy = await MockAnchorStrategy.deploy(
+      const newStrategy = await MockStrategy.deploy(
         vault.address,
         underlying.address,
       );
@@ -710,7 +710,7 @@ describe('Vault', () => {
 
       let MockStrategy = await ethers.getContractFactory(MOCK_STRATEGY);
 
-      const newStrategy = await MockAnchorStrategy.deploy(
+      const newStrategy = await MockStrategy.deploy(
         vault.address,
         underlying.address,
       );
