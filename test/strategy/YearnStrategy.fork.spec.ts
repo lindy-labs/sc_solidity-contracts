@@ -21,7 +21,7 @@ const FORK_BLOCK = 14988444;
 const YEARN_VAULT = '0x378cb52b00F9D0921cb46dFc099CFf73b42419dC';
 const LUSD = '0x5f98805A4E8be255a32880FDeC7F6728C6568bA0';
 
-describe('Yearn Strategy (fork tests)', () => {
+describe('Yearn Strategy (mainnet fork tests)', () => {
   let owner: SignerWithAddress;
   let alice: SignerWithAddress;
   let bob: SignerWithAddress;
@@ -79,7 +79,7 @@ describe('Yearn Strategy (fork tests)', () => {
     );
   });
 
-  it('receives ERC20 from yearn', async () => {
+  it('deposits underlying from our Vault to the YearnVault', async () => {
     await ForkHelpers.mintToken(
       lusdToken,
       vault.address,
