@@ -5,8 +5,8 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
-import {AnchorStrategy} from "../../strategy/anchor/AnchorStrategy.sol";
-import {IExchangeRateFeeder} from "../../strategy/anchor/IExchangeRateFeeder.sol";
+import {AnchorStrategy} from "../../mock/anchor/AnchorStrategy.sol";
+import {IExchangeRateFeeder} from "../../mock/anchor/IExchangeRateFeeder.sol";
 
 /**
  * AnchorUSTStrategy for testnet.

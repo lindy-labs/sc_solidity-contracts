@@ -9,7 +9,8 @@ import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/Ag
 import {PercentMath} from "../../lib/PercentMath.sol";
 import {ERC165Query} from "../../lib/ERC165Query.sol";
 import {IVault} from "../../vault/IVault.sol";
-import {IStrategy} from "../IStrategy.sol";
+import {IAnchorStrategy} from "./IAnchorStrategy.sol";
+import {IStrategy} from "../../strategy/IStrategy.sol";
 import {IEthAnchorRouter} from "./IEthAnchorRouter.sol";
 import {CustomErrors} from "../../interfaces/CustomErrors.sol";
 
@@ -17,7 +18,12 @@ import {CustomErrors} from "../../interfaces/CustomErrors.sol";
  * Base eth anchor strategy that handles UST tokens and invests them via the EthAnchor
  * protocol (https://docs.anchorprotocol.com/ethanchor/ethanchor)
  */
-contract AnchorStrategy is IStrategy, AccessControl, CustomErrors {
+contract AnchorStrategy is
+    IAnchorStrategy,
+    IStrategy,
+    AccessControl,
+    CustomErrors
+{
     using SafeERC20 for IERC20;
     using PercentMath for uint256;
     using ERC165Query for address;

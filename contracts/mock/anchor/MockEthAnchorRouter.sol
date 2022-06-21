@@ -3,7 +3,7 @@ pragma solidity =0.8.10;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import "../strategy/anchor/IEthAnchorRouter.sol";
+import "./IEthAnchorRouter.sol";
 
 contract MockEthAnchorRouter is IEthAnchorRouter {
     using SafeERC20 for IERC20;

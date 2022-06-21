@@ -11,52 +11,6 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  * @notice It's up to the vault to decide how much to invest from the total pool
  */
 interface IStrategy {
-    //
-    // Events
-    //
-
-    event InitDepositStable(
-        address indexed operator,
-        uint256 indexed idx,
-        uint256 underlyingAmount,
-        uint256 ustAmount
-    );
-    event FinishDepositStable(
-        address indexed operator,
-        uint256 ustAmount,
-        uint256 aUstAmount
-    );
-    event RearrangeDepositOperation(
-        address indexed operatorFrom,
-        address indexed operatorTo,
-        uint256 indexed newIdx
-    );
-    event InitRedeemStable(
-        address indexed operator,
-        uint256 indexed idx,
-        uint256 aUstAmount
-    );
-    event FinishRedeemStable(
-        address indexed operator,
-        uint256 aUstAmount,
-        uint256 ustAmount,
-        uint256 underlyingAmount
-    );
-    event RearrangeRedeemOperation(
-        address indexed operatorFrom,
-        address indexed operatorTo,
-        uint256 indexed newIdx
-    );
-
-    //
-    // Structs
-    //
-
-    struct Operation {
-        address operator;
-        uint256 amount;
-    }
-
     /**
      * Provides information about wether the strategy is synchronous or asynchronous.
      * 
@@ -104,13 +58,7 @@ interface IStrategy {
     function hasAssets() external view returns (bool);
 
     /**
-     * Initiates a deposit of all the currently held UST into EthAnchor
-     *
-     * @notice since EthAnchor uses an asynchronous model, this function
-     * only starts the deposit process, but does not finish it.
-     * Each EthAnchor deposit is handled by a different operator, so we store
-     * an operator address to finish later.
-     * We need to increase pendingDeposits to track correct underlying assets.
+     * deposits of all the currently held underlying by the strategy contract into the respective vault/strategy
      */
     function invest() external;
 }

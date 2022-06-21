@@ -35,6 +35,7 @@ describe('Vault', () => {
 
   let underlying: MockUST;
   let vault: Vault;
+
   let strategy: MockStrategySync;
 
   let addUnderlyingBalance: (
@@ -78,6 +79,7 @@ describe('Vault', () => {
     [owner, alice, bob, carol, newAccount] = await ethers.getSigners();
 
     let Vault = await ethers.getContractFactory('Vault');
+
     let MockStrategy = await ethers.getContractFactory(MOCK_STRATEGY);
 
     vault = await Vault.deploy(
@@ -98,14 +100,11 @@ describe('Vault', () => {
 
     strategy = await MockStrategy.deploy(vault.address, underlying.address);
 
-    ({
-      addUnderlyingBalance,
-      addYieldToVault,
-      removeUnderlyingFromVault,
-    } = createVaultHelpers({
-      vault,
-      underlying,
-    }));
+    ({ addUnderlyingBalance, addYieldToVault, removeUnderlyingFromVault } =
+      createVaultHelpers({
+        vault,
+        underlying,
+      }));
 
     await addUnderlyingBalance(alice, '1000');
     await addUnderlyingBalance(bob, '1000');
