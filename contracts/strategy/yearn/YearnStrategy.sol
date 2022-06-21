@@ -94,7 +94,11 @@ contract YearnStrategy is IStrategy, AccessControl, CustomErrors {
         return _getShares() > 0;
     }
 
-    /// @inheritdoc IStrategy
+    /**
+     * Amount, expressed in the underlying currency, currently in the strategy
+     *
+     * @return The total amount of underlying invested into yearn vault
+     */
     function investedAssets()
         external
         view
@@ -102,7 +106,8 @@ contract YearnStrategy is IStrategy, AccessControl, CustomErrors {
         override(IStrategy)
         returns (uint256)
     {
-        return _sharesToUnderlying(_getShares());
+        return
+            _sharesToUnderlying(_getShares()) + _getUnderlyingBalance();
     }
 
     /// @inheritdoc IStrategy
@@ -138,7 +143,9 @@ contract YearnStrategy is IStrategy, AccessControl, CustomErrors {
         }
 
         // transfer underlying to vault
-        underlying.safeTransfer(vault, amount);
+
+        underlying.safeIncreaseAllowance(address(this), amount);
+        underlying.safeTransferFrom(address(this), vault, amount);
 
         emit StrategyWithdrawn(amount);
     }
