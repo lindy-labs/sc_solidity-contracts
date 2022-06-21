@@ -115,15 +115,10 @@ contract AnchorStrategy is IStrategy, AccessControl, CustomErrors {
     //
 
     /**
-     * Request withdrawal from EthAnchor
-     *
-     * @notice since EthAnchor uses an asynchronous model, we can only request withdrawal for whole aUST
-     */
-    function withdrawAllToVault() external override(IStrategy) onlyManager {
-        uint256 aUstBalance = _getAUstBalance();
-        if (aUstBalance != 0) {
-            initRedeemStable(aUstBalance);
-        }
+     * Returns false since strategy is asynchronous.
+    */
+    function isSync() external pure override(IStrategy) returns (bool) {
+        return false;
     }
 
     /**

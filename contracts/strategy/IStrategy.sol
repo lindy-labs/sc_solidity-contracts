@@ -58,6 +58,16 @@ interface IStrategy {
     }
 
     /**
+     * Provides information about wether the strategy is synchronous or asynchronous.
+     * 
+     * @notice Synchronous strategies support instant withdrawals, 
+     * while asynchronous strategies impose a delay before withdrawals can be made.
+     *
+     * @return true if the strategy is synchronous, false otherwise
+     */
+    function isSync() external view returns (bool);
+
+    /**
      * The vault linked to this stragegy
      *
      * @return The vault's address
@@ -65,16 +75,7 @@ interface IStrategy {
     function vault() external view returns (address);
 
     /**
-     * Withdraws all underlying back to vault.
-     *
-     * @notice If underlying is currently invested, this also starts the
-     * cross-chain process to redeem it. After that is done, this function
-     * should be called a second time to finish the withdrawal of that portion.
-     */
-    function withdrawAllToVault() external;
-
-    /**
-     * Withdraws a specified amount back to the vault
+     * Withdraws the specified amount back to the vault
      *
      * @notice Unlike `withdrawToVault`, this function only considers the
      * amount currently not invested, but only what is currently held by the
