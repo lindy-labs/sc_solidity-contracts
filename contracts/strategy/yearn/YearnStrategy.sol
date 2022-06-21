@@ -12,7 +12,7 @@ import {CustomErrors} from "../../interfaces/CustomErrors.sol";
 import {IYearnVault} from "../../interfaces/yearn/IYearnVault.sol";
 import {IVault} from "../../vault/IVault.sol";
 
-contract LusdStrategy is IStrategy, AccessControl, CustomErrors {
+contract YearnStrategy is IStrategy, AccessControl, CustomErrors {
     using SafeERC20 for IERC20;
     using PercentMath for uint256;
     using ERC165Query for address;
