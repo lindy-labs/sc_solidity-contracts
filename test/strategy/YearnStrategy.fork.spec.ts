@@ -4,7 +4,7 @@ import { ethers } from 'hardhat';
 import { expect } from 'chai';
 import { time } from '@openzeppelin/test-helpers';
 
-import { ForkHelpers, generateNewAddress } from './shared';
+import { ForkHelpers, generateNewAddress } from '../shared';
 
 import {
   Vault,
@@ -13,7 +13,7 @@ import {
   IYearnVault,
   IYearnVault__factory,
   LusdStrategy,
-} from '../typechain';
+} from '../../typechain';
 
 const { formatUnits, parseUnits } = ethers.utils;
 
