@@ -58,10 +58,11 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
     args,
   });
 
-  await env.tenderly.persistArtifacts({
+  if (process.env.NODE_ENV !== 'test')
+    await env.tenderly.persistArtifacts({
       name: 'Vault_UST',
       address: vaultDeployment.address,
-  });
+    });
 
   if (env.network.config.chainId === 1 || env.network.config.chainId === 3) {
     try {

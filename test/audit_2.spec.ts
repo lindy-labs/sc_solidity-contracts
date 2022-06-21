@@ -326,14 +326,6 @@ describe('Audit Tests 2', () => {
     });
   });
 
-  function addYieldToVault(amount: string) {
-    return underlying.mint(vault.address, parseUnits(amount));
-  }
-
-  function removeUnderlyingFromVault(amount: string) {
-    return underlying.burn(vault.address, parseUnits(amount));
-  }
-
   async function addUnderlyingBalance(
     account: SignerWithAddress,
     amount: string,

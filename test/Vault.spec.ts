@@ -1,19 +1,18 @@
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { time } from '@openzeppelin/test-helpers';
-import { Contract, utils, BigNumber, constants, Signer } from 'ethers';
+import { utils, BigNumber, constants } from 'ethers';
 import { ethers, deployments } from 'hardhat';
 import { expect } from 'chai';
 
 import {
   Vault,
   MockUST__factory,
-  MockAUST__factory,
   MockUST,
-  MockAUST,
-  MockAnchorStrategy,
+  MockStrategySync,
   Vault__factory,
 } from '../typechain';
 
+import createVaultHelpers from './shared/vault';
 import { depositParams, claimParams } from './shared/factories';
 import {
   getLastBlockTimestamp,
@@ -34,13 +33,19 @@ describe('Vault', () => {
   let carol: SignerWithAddress;
   let newAccount: SignerWithAddress;
 
-  let mockEthAnchorRouter: Contract;
-  let mockAUstUstFeed: Contract;
-
   let underlying: MockUST;
-  let aUstToken: MockAUST;
   let vault: Vault;
-  let strategy: MockAnchorStrategy;
+
+  let strategy: MockStrategySync;
+
+  let addUnderlyingBalance: (
+    account: SignerWithAddress,
+    amount: string,
+  ) => Promise<BigNumber>;
+  let addYieldToVault: (amount: string) => Promise<BigNumber>;
+  let removeUnderlyingFromVault: (amount: string) => Promise<BigNumber>;
+
+  const MOCK_STRATEGY = 'MockStrategySync';
   const TWO_WEEKS = BigNumber.from(time.duration.weeks(2).toNumber());
   const MAX_DEPOSIT_LOCK_DURATION = BigNumber.from(
     time.duration.weeks(24).toNumber(),
@@ -59,19 +64,13 @@ describe('Vault', () => {
   const fixtures = deployments.createFixture(async ({ deployments }) => {
     await deployments.fixture(['vaults']);
 
-    [owner, alice, bob, carol] = await ethers.getSigners();
+    [owner] = await ethers.getSigners();
 
     const ustDeployment = await deployments.get('UST');
-    const austDeployment = await deployments.get('aUST');
     const ustVaultDeployment = await deployments.get('Vault_UST');
 
-    aUstToken = MockAUST__factory.connect(austDeployment.address, owner);
     underlying = MockUST__factory.connect(ustDeployment.address, owner);
     vault = Vault__factory.connect(ustVaultDeployment.address, owner);
-
-    await addUnderlyingBalance(alice, '1000');
-    await addUnderlyingBalance(bob, '1000');
-    await addUnderlyingBalance(carol, '1000');
   });
 
   beforeEach(() => fixtures());
@@ -80,22 +79,8 @@ describe('Vault', () => {
     [owner, alice, bob, carol, newAccount] = await ethers.getSigners();
 
     let Vault = await ethers.getContractFactory('Vault');
-    let MockAnchorStrategy = await ethers.getContractFactory(
-      'MockAnchorStrategy',
-    );
 
-    const MockEthAnchorRouterFactory = await ethers.getContractFactory(
-      'MockEthAnchorRouter',
-    );
-    mockEthAnchorRouter = await MockEthAnchorRouterFactory.deploy(
-      underlying.address,
-      aUstToken.address,
-    );
-
-    const MockChainlinkPriceFeedFactory = await ethers.getContractFactory(
-      'MockChainlinkPriceFeed',
-    );
-    mockAUstUstFeed = await MockChainlinkPriceFeedFactory.deploy(18);
+    let MockStrategy = await ethers.getContractFactory(MOCK_STRATEGY);
 
     vault = await Vault.deploy(
       underlying.address,
@@ -113,13 +98,17 @@ describe('Vault', () => {
     underlying.connect(bob).approve(vault.address, MaxUint256);
     underlying.connect(carol).approve(vault.address, MaxUint256);
 
-    strategy = await MockAnchorStrategy.deploy(
-      vault.address,
-      mockEthAnchorRouter.address,
-      mockAUstUstFeed.address,
-      underlying.address,
-      aUstToken.address,
-    );
+    strategy = await MockStrategy.deploy(vault.address, underlying.address);
+
+    ({ addUnderlyingBalance, addYieldToVault, removeUnderlyingFromVault } =
+      createVaultHelpers({
+        vault,
+        underlying,
+      }));
+
+    await addUnderlyingBalance(alice, '1000');
+    await addUnderlyingBalance(bob, '1000');
+    await addUnderlyingBalance(carol, '1000');
   });
 
   describe('codearena', () => {
@@ -660,7 +649,7 @@ describe('Vault', () => {
       let Vault = await ethers.getContractFactory('Vault');
 
       const anotherVault = await Vault.deploy(
-        aUstToken.address,
+        underlying.address,
         TWO_WEEKS,
         INVEST_PCT,
         TREASURY,
@@ -693,28 +682,21 @@ describe('Vault', () => {
         .withArgs(strategy.address);
     });
 
-    it('set strategy if no asset invested even there is griefing attack', async () => {
+    it('set strategy if no asset invested even if there is a griefing attack', async () => {
       await vault.connect(owner).setStrategy(strategy.address);
 
-      await aUstToken.mint(strategy.address, utils.parseEther('2'));
-      await setAUstRate(utils.parseEther('1'));
-      expect(await strategy.investedAssets()).to.not.eq('0');
-      expect(await strategy.hasAssets()).to.equal(false);
+      expect(await strategy.hasAssets()).to.be.false;
 
-      let MockAnchorStrategy = await ethers.getContractFactory(
-        'MockAnchorStrategy',
-      );
+      let MockStrategy = await ethers.getContractFactory(MOCK_STRATEGY);
 
       const newStrategy = await MockAnchorStrategy.deploy(
         vault.address,
-        mockEthAnchorRouter.address,
-        mockAUstUstFeed.address,
         underlying.address,
-        aUstToken.address,
       );
 
       const tx = await vault.connect(owner).setStrategy(newStrategy.address);
 
+      expect(await vault.strategy()).to.equal(newStrategy.address);
       await expect(tx)
         .to.emit(vault, 'StrategyUpdated')
         .withArgs(newStrategy.address);
@@ -722,18 +704,15 @@ describe('Vault', () => {
 
     it('reverts if strategy has invested funds', async () => {
       await vault.connect(owner).setStrategy(strategy.address);
+      await underlying.mint(strategy.address, parseUnits('100'));
 
-      await strategy.setAllRedeemed(false); // This will force hasAssets function to return true;
-      let MockAnchorStrategy = await ethers.getContractFactory(
-        'MockAnchorStrategy',
-      );
+      expect(await strategy.hasAssets()).to.be.true;
+
+      let MockStrategy = await ethers.getContractFactory(MOCK_STRATEGY);
 
       const newStrategy = await MockAnchorStrategy.deploy(
         vault.address,
-        mockEthAnchorRouter.address,
-        mockAUstUstFeed.address,
         underlying.address,
-        aUstToken.address,
       );
 
       await expect(
@@ -2345,33 +2324,11 @@ describe('Vault', () => {
         getRoleErrorMsg(alice, DEFAULT_ADMIN_ROLE),
       );
     });
+
     it('reverts(unpause) if not DEFAULT_ADMIN_ROLE', async () => {
       await expect(vault.connect(alice).unpause()).to.be.revertedWith(
         getRoleErrorMsg(alice, DEFAULT_ADMIN_ROLE),
       );
     });
   });
-
-  async function addYieldToVault(amount: string) {
-    await underlying.mint(vault.address, parseUnits(amount));
-    return parseUnits(amount);
-  }
-
-  async function addUnderlyingBalance(
-    account: SignerWithAddress,
-    amount: string,
-  ) {
-    await underlying.mint(account.address, parseUnits(amount));
-    return underlying
-      .connect(account)
-      .approve(vault.address, parseUnits(amount));
-  }
-
-  function removeUnderlyingFromVault(amount: string) {
-    return underlying.burn(vault.address, parseUnits(amount));
-  }
-
-  const setAUstRate = async (rate: BigNumber) => {
-    await mockAUstUstFeed.setLatestRoundData(1, rate, 1000, 1000, 1);
-  };
 });

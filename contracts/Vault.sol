@@ -300,6 +300,8 @@ contract Vault is
 
         accumulatedPerfFee += fee;
 
+        _rebalanceBeforeWithdrawing(yield);
+
         underlying.safeTransfer(_to, yield);
 
         claimer[msg.sender].totalShares -= shares;
@@ -553,7 +555,7 @@ contract Vault is
         if (_strategy == address(0)) revert VaultStrategyNotSet();
         if (IStrategy(_strategy).vault() != address(this))
             revert VaultInvalidVault();
-        if (address(strategy) != address(0) && strategy.hasAssets() == true)
+        if (address(strategy) != address(0) && strategy.hasAssets())
             revert VaultStrategyHasInvestedFunds();
 
         strategy = IStrategy(_strategy);
@@ -647,6 +649,8 @@ contract Vault is
             );
         }
 
+        _rebalanceBeforeWithdrawing(amount);
+
         underlying.safeTransfer(_to, amount);
     }
 
@@ -674,7 +678,37 @@ contract Vault is
             );
         }
 
+        _rebalanceBeforeWithdrawing(amount);
+
         underlying.safeTransfer(_to, amount);
+    }
+
+    /**
+     * Rebalances the vault's funds to cover the transfer of funds from the vault
+     * by disinvesting from the strategy. After the rebalance the vault is left
+     * with a set percentage (100% - invest%) of the total underlying as reserves.
+     *
+     * @notice this will have effect only for sync strategies.
+     *
+     * @param _amount Funds to be transferred from the vault.
+     */
+    function _rebalanceBeforeWithdrawing(uint256 _amount) internal {
+        uint256 vaultBalance = underlying.balanceOf(address(this));
+
+        if (_amount <= vaultBalance) return;
+        if (!strategy.isSync()) revert VaultNotEnoughFunds();
+
+        uint256 expectedReserves = (totalUnderlying() - _amount).pctOf(
+            10000 - investPct
+        );
+
+        // we want to withdraw the from the strategy only what is needed
+        // to cover the transfer and leave the vault with the expected reserves
+        uint256 needed = _amount + expectedReserves - vaultBalance;
+
+        strategy.withdrawToVault(needed);
+
+        emit Disinvested(needed);
     }
 
     /**
