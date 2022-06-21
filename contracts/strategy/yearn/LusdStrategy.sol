@@ -67,11 +67,7 @@ contract LusdStrategy is IStrategy, AccessControl, CustomErrors {
         return _getShares() > 0;
     }
 
-    /**
-     * Amount, expressed in the underlying currency, currently in the strategy
-     *
-     * @return The total amount of underlying invested into yearn vault
-     */
+    /// @inheritdoc IStrategy
     function investedAssets()
         external
         view
@@ -82,9 +78,7 @@ contract LusdStrategy is IStrategy, AccessControl, CustomErrors {
         return _sharesToUnderlying(_getShares());
     }
 
-    /**
-     * @notice deposits all the currently held lusd by the contract into yearn's lusd vault
-     */
+    /// @inheritdoc IStrategy
     function invest() external virtual override(IStrategy) onlyManager {
         uint256 balance = _getUnderlyingBalance();
         if (balance == 0) revert StrategyNoUnderlying();
