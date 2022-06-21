@@ -300,7 +300,7 @@ contract Vault is
 
         accumulatedPerfFee += fee;
 
-        _rebalanceBeforeTransfer(yield);
+        _rebalanceBeforeWithdrawing(yield);
 
         underlying.safeTransfer(_to, yield);
 
@@ -649,7 +649,7 @@ contract Vault is
             );
         }
 
-        _rebalanceBeforeTransfer(amount);
+        _rebalanceBeforeWithdrawing(amount);
 
         underlying.safeTransfer(_to, amount);
     }
@@ -678,7 +678,7 @@ contract Vault is
             );
         }
 
-        _rebalanceBeforeTransfer(amount);
+        _rebalanceBeforeWithdrawing(amount);
 
         underlying.safeTransfer(_to, amount);
     }
@@ -692,7 +692,7 @@ contract Vault is
      *
      * @param _amount Funds to be transferred from the vault.
      */
-    function _rebalanceBeforeTransfer(uint256 _amount) internal {
+    function _rebalanceBeforeWithdrawing(uint256 _amount) internal {
         uint256 vaultBalance = underlying.balanceOf(address(this));
 
         if (_amount <= vaultBalance) return;
