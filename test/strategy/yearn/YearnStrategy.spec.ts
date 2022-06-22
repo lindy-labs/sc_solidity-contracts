@@ -64,6 +64,11 @@ describe('YearnStrategy', () => {
       'YearnStrategy',
     );
 
-    // strategy = await YearnStrategyFactory.deploy(vault.address, owner.address);
+    strategy = await YearnStrategyFactory.deploy(
+      vault.address,
+      owner.address,
+      yVault.address,
+      underlying.address,
+    );
   });
 });
