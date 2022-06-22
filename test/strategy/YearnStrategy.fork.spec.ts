@@ -154,4 +154,65 @@ describe('Yearn Strategy (mainnet fork tests)', () => {
 
     await vault.connect(alice).withdraw(alice.address, [1]);
   });
+
+  it('user can claim yield when yearn vault performs', async () => {
+    const alicesInitialBalance = await lusd.balanceOf(alice.address);
+    await vault.connect(alice).deposit(
+      depositParams.build({
+        amount: parseUnits('1000'),
+        inputToken: lusd.address,
+        claims: [claimParams.percent(100).to(alice.address).build()],
+      }),
+    );
+
+    await vault.updateInvested();
+
+    // increase YearnVault's lusd balance by 10% to simulate increase of funds
+    const yVaultBalance = await lusd.balanceOf(yearnVault.address);
+    await ForkHelpers.mintToken(
+      lusd,
+      yearnVault.address,
+      yVaultBalance.div(BigNumber.from('10')),
+    );
+
+    await moveForwardTwoWeeks();
+
+    await vault.connect(alice).claimYield(alice.address);
+    await vault.connect(alice).withdraw(alice.address, [1]);
+
+    const alicesEndBalance = await lusd.balanceOf(alice.address);
+    expect(alicesEndBalance).gt(alicesInitialBalance);
+  });
+
+  it('user can do only force withdrawal when YearnVault underperforms', async () => {
+    const alicesInitialBalance = await lusd.balanceOf(alice.address);
+    await vault.connect(alice).deposit(
+      depositParams.build({
+        amount: parseUnits('1000'),
+        inputToken: lusd.address,
+        claims: [claimParams.percent(100).to(alice.address).build()],
+      }),
+    );
+
+    await vault.updateInvested();
+
+    // reduce YearnVault's lusd balance by 10% to simulate loss of funds
+    const yVaultBalance = await lusd.balanceOf(yearnVault.address);
+    await ForkHelpers.setTokenBalance(
+      lusd,
+      yearnVault,
+      yVaultBalance.sub(yVaultBalance.div(BigNumber.from('10'))),
+    );
+
+    await moveForwardTwoWeeks();
+
+    await expect(
+      vault.connect(alice).withdraw(alice.address, [1]),
+    ).to.be.revertedWith('VaultCannotWithdrawWhenYieldNegative');
+
+    await vault.connect(alice).forceWithdraw(alice.address, [1]);
+
+    const alicesEndBalance = await lusd.balanceOf(alice.address);
+    expect(alicesInitialBalance).gt(alicesEndBalance);
+  });
 });
