@@ -21,7 +21,7 @@ import {
 
 import { depositParams, claimParams } from '../shared/factories';
 
-const { formatUnits, parseUnits } = ethers.utils;
+const { parseUnits } = ethers.utils;
 const { MaxUint256 } = ethers.constants;
 
 const FORK_BLOCK = 14988444;
@@ -32,7 +32,6 @@ const W_LUSD = '0x378cb52b00f9d0921cb46dfc099cff73b42419dc';
 describe('Yearn Strategy (mainnet fork tests)', () => {
   let owner: SignerWithAddress;
   let alice: SignerWithAddress;
-  let bob: SignerWithAddress;
 
   let vault: Vault;
   let yearnVault: IYearnVault;
@@ -49,7 +48,7 @@ describe('Yearn Strategy (mainnet fork tests)', () => {
   beforeEach(async () => {
     await ForkHelpers.forkToMainnet(FORK_BLOCK);
 
-    [owner, alice, bob] = await ethers.getSigners();
+    [owner, alice] = await ethers.getSigners();
 
     yearnVault = IYearnVault__factory.connect(YEARN_VAULT, owner);
 
@@ -81,12 +80,6 @@ describe('Yearn Strategy (mainnet fork tests)', () => {
     );
 
     await vault.setStrategy(strategy.address);
-
-    await ForkHelpers.mintToken(
-      lusd,
-      alice,
-      parseUnits('1000', await lusd.decimals()),
-    );
 
     lusd.connect(owner).approve(vault.address, MaxUint256);
     lusd.connect(alice).approve(vault.address, MaxUint256);
@@ -155,7 +148,13 @@ describe('Yearn Strategy (mainnet fork tests)', () => {
     await vault.connect(alice).withdraw(alice.address, [1]);
   });
 
-  it('user can claim yield when yearn vault performs', async () => {
+  it('allows user to claim yield when yearn vault performs', async () => {
+    await ForkHelpers.mintToken(
+      lusd,
+      alice,
+      parseUnits('1000', await lusd.decimals()),
+    );
+
     await vault.connect(alice).deposit(
       depositParams.build({
         amount: parseUnits('1000'),
@@ -166,12 +165,12 @@ describe('Yearn Strategy (mainnet fork tests)', () => {
 
     await vault.updateInvested();
 
-    // increase Yearn total assets by 10%
-    const yVaultBalance = await yearnVault.totalAssets();
+    // increase Yearn Vault total assets by 10%
+    const yVaultTotalAssets = await yearnVault.totalAssets();
     await ForkHelpers.mintToken(
       lusd,
       yearnVault.address,
-      yVaultBalance.div(BigNumber.from('10')),
+      yVaultTotalAssets.div(BigNumber.from('10')),
     );
 
     await moveForwardTwoWeeks();
@@ -180,12 +179,16 @@ describe('Yearn Strategy (mainnet fork tests)', () => {
     await vault.connect(alice).withdraw(alice.address, [1]);
 
     const aliceBalance = await lusd.balanceOf(alice.address);
-
     expect(aliceBalance).to.eq('1089999999999999999174');
   });
 
-  it('user can do only force withdrawal when YearnVault underperforms', async () => {
-    const alicesInitialBalance = await lusd.balanceOf(alice.address);
+  it('allows user to only do force withdrawal when YearnVault underperforms', async () => {
+    await ForkHelpers.mintToken(
+      lusd,
+      alice,
+      parseUnits('1000', await lusd.decimals()),
+    );
+
     await vault.connect(alice).deposit(
       depositParams.build({
         amount: parseUnits('1000'),
@@ -196,12 +199,13 @@ describe('Yearn Strategy (mainnet fork tests)', () => {
 
     await vault.updateInvested();
 
-    // reduce YearnVault's lusd balance by 10% to simulate loss of funds
+    // decrease Yearn Vault total assets by 5%
     const yVaultBalance = await lusd.balanceOf(yearnVault.address);
+    const yVaultTotalAssets = await yearnVault.totalAssets();
     await ForkHelpers.setTokenBalance(
       lusd,
       yearnVault,
-      yVaultBalance.sub(yVaultBalance.div(BigNumber.from('10'))),
+      yVaultBalance.sub(yVaultTotalAssets.div(BigNumber.from('20'))),
     );
 
     await moveForwardTwoWeeks();
@@ -212,7 +216,7 @@ describe('Yearn Strategy (mainnet fork tests)', () => {
 
     await vault.connect(alice).forceWithdraw(alice.address, [1]);
 
-    const alicesEndBalance = await lusd.balanceOf(alice.address);
-    expect(alicesInitialBalance).gt(alicesEndBalance);
+    const aliceBalance = await lusd.balanceOf(alice.address);
+    expect(aliceBalance).to.eq('954999999999999999171');
   });
 });
