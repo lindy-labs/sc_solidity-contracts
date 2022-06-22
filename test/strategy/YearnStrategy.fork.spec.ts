@@ -44,7 +44,7 @@ describe('Yearn Strategy (mainnet fork tests)', () => {
   const INVEST_PCT = 9000; // set 100% for test
   const INVESTMENT_FEE_PCT = 1000; // set 100% for test
   const TREASURY = generateNewAddress();
-  const PERFORMANCE_FEE_PCT = BigNumber.from('200');
+  const PERFORMANCE_FEE_PCT = BigNumber.from('0');
 
   beforeEach(async () => {
     await ForkHelpers.forkToMainnet(FORK_BLOCK);
@@ -156,7 +156,6 @@ describe('Yearn Strategy (mainnet fork tests)', () => {
   });
 
   it('user can claim yield when yearn vault performs', async () => {
-    const alicesInitialBalance = await lusd.balanceOf(alice.address);
     await vault.connect(alice).deposit(
       depositParams.build({
         amount: parseUnits('1000'),
@@ -167,8 +166,8 @@ describe('Yearn Strategy (mainnet fork tests)', () => {
 
     await vault.updateInvested();
 
-    // increase YearnVault's lusd balance by 10% to simulate increase of funds
-    const yVaultBalance = await lusd.balanceOf(yearnVault.address);
+    // increase Yearn total assets by 10%
+    const yVaultBalance = await yearnVault.totalAssets();
     await ForkHelpers.mintToken(
       lusd,
       yearnVault.address,
@@ -180,8 +179,9 @@ describe('Yearn Strategy (mainnet fork tests)', () => {
     await vault.connect(alice).claimYield(alice.address);
     await vault.connect(alice).withdraw(alice.address, [1]);
 
-    const alicesEndBalance = await lusd.balanceOf(alice.address);
-    expect(alicesEndBalance).gt(alicesInitialBalance);
+    const aliceBalance = await lusd.balanceOf(alice.address);
+
+    expect(aliceBalance).to.eq('1089999999999999999174');
   });
 
   it('user can do only force withdrawal when YearnVault underperforms', async () => {
