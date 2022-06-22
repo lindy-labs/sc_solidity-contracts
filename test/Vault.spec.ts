@@ -1223,6 +1223,19 @@ describe('Vault', () => {
       await vault.connect(owner).unpause();
     });
 
+    it('reverts if provided MetaVault name is too short', async () => {
+      const params = depositParams.build({
+        lockDuration: TWO_WEEKS,
+        amount: parseUnits('100'),
+        inputToken: underlying.address,
+        claims: [],
+        name: 'abc', // three utf8 characters
+      });
+      await expect(vault.connect(owner).deposit(params)).to.be.revertedWith(
+        'VaultDepositNameTooShort()',
+      );
+    });
+
     it('applies the loss tolerance before preventing a deposit', async () => {
       await vault.connect(alice).deposit(
         depositParams.build({

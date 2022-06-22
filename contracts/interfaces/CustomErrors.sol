@@ -111,6 +111,9 @@ interface CustomErrors {
     // Vault: cannot compute shares when there's no principal
     error VaultCannotComputeSharesWithoutPrincipal();
 
+    // Vault: deposit name for MetaVault too short
+    error VaultDepositNameTooShort();
+
     //
     // Strategy Errors
     //
