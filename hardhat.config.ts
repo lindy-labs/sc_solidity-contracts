@@ -10,6 +10,7 @@ import 'hardhat-deploy';
 import 'hardhat-gas-reporter';
 import 'solidity-coverage';
 import '@tenderly/hardhat-tenderly';
+import '@nomiclabs/hardhat-vyper';
 
 const devMnemonic =
   process.env.MNEMONIC ||
@@ -67,17 +68,17 @@ const config: HardhatUserConfig = {
       },
     },
     mumbai: {
-      url: process.env.MUMBAI_RPC || "missing-rpc-endpoint",
+      url: process.env.MUMBAI_RPC || 'missing-rpc-endpoint',
       chainId: 80001,
       accounts: {
-        mnemonic: process.env.TESTNET_MNEMONIC || "TODO",
+        mnemonic: process.env.TESTNET_MNEMONIC || 'TODO',
       },
     },
     polygon: {
-      url: process.env.POLYGON_RPC || "missing-rpc-endpoint",
+      url: process.env.POLYGON_RPC || 'missing-rpc-endpoint',
       chainId: 137,
       accounts: {
-        mnemonic: process.env.TESTNET_MNEMONIC || "TODO",
+        mnemonic: process.env.TESTNET_MNEMONIC || 'TODO',
       },
     },
   },
@@ -108,8 +109,8 @@ const config: HardhatUserConfig = {
   },
   etherscan: {
     apiKey: {
-      ropsten: process.env.ETHERSCAN_KEY || "missing-key",
-      polygonMumbai: process.env.POLYSCAN_KEY || "missing-key",
+      ropsten: process.env.ETHERSCAN_KEY || 'missing-key',
+      polygonMumbai: process.env.POLYSCAN_KEY || 'missing-key',
     },
   },
 };
