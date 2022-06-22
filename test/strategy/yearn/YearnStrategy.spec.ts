@@ -47,6 +47,12 @@ describe('YearnStrategy', () => {
     // deploy yearn lusd vault
     const yVaultFactory = await ethers.getContractFactory('MockYearnVault');
 
+    yVault = await yVaultFactory.deploy(
+      'Yearn LUSD Vault',
+      'yLusd',
+      underlying.address,
+    );
+
     // deploy sandclock vault
     const VaultFactory = await ethers.getContractFactory('Vault');
     vault = await VaultFactory.deploy(
@@ -70,5 +76,15 @@ describe('YearnStrategy', () => {
       yVault.address,
       underlying.address,
     );
+
+    await strategy.connect(owner).grantRole(MANAGER_ROLE, manager.address);
+
+    await vault.setStrategy(strategy.address);
+    await underlying
+      .connect(owner)
+      .approve(vault.address, constants.MaxUint256);
+    await underlying
+      .connect(owner)
+      .approve(yVault.address, constants.MaxUint256);
   });
 });
