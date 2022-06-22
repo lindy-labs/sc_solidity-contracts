@@ -57,6 +57,11 @@ contract YearnStrategy is IStrategy, AccessControl, CustomErrors {
     }
 
     /// @inheritdoc IStrategy
+    function isSync() external pure override(IStrategy) returns (bool) {
+        return true;
+    }
+
+    /// @inheritdoc IStrategy
     function hasAssets()
         external
         view
@@ -110,16 +115,13 @@ contract YearnStrategy is IStrategy, AccessControl, CustomErrors {
         }
 
         // transfer underlying to vault
-        underlying.safeTransferFrom(address(this), vault, amount);
+        underlying.safeTransfer(vault, amount);
     }
 
-    /// @inheritdoc IStrategy
-    function withdrawAllToVault()
-        external
-        virtual
-        override(IStrategy)
-        onlyManager
-    {
+    /**
+     * @dev Withdraws all the underlying to sandclock vault.
+     */
+    function withdrawAllToVault() external virtual onlyManager {
         uint256 sharesBalance = _getShares();
         if (sharesBalance == 0) revert StrategyNotEnoughShares();
         // burn shares and withdraw required underlying to strategy
