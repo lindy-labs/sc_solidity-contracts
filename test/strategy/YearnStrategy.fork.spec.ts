@@ -138,8 +138,8 @@ describe('Yearn Strategy (mainnet fork tests)', () => {
 
     await moveForwardTwoWeeks();
 
-    // because of rounding issues with Yearn Vault's shares
-    // we need to add funds to the strategy for withdrwal to work
+    // we have to generate yield because some underlying was already lost to rounding issues
+    // when depositing on the Yearn vault.
     await ForkHelpers.mintToken(
       lusd,
       strategy.address,
@@ -147,6 +147,9 @@ describe('Yearn Strategy (mainnet fork tests)', () => {
     );
 
     await vault.connect(alice).withdraw(alice.address, [1]);
+
+    const aliceBalance = await lusd.balanceOf(alice.address);
+    expect(aliceBalance).to.eq(parseUnits('1000'));
   });
 
   it('allows user to claim yield when Yearn Vault performs', async () => {
