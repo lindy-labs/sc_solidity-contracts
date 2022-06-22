@@ -85,7 +85,7 @@ describe('Yearn Strategy (mainnet fork tests)', () => {
     lusd.connect(alice).approve(vault.address, MaxUint256);
   });
 
-  it('deposits underlying from our Vault to the YearnVault', async () => {
+  it('deposits underlying from our Vault to the Yearn Vault', async () => {
     await ForkHelpers.mintToken(
       lusd,
       vault.address,
@@ -103,7 +103,7 @@ describe('Yearn Strategy (mainnet fork tests)', () => {
     );
   });
 
-  it('receives wrapped LUSD for the deposit to Yearn', async () => {
+  it('receives wrapped LUSD for the deposit to Yearn Vault', async () => {
     await ForkHelpers.mintToken(
       lusd,
       vault.address,
@@ -117,7 +117,7 @@ describe('Yearn Strategy (mainnet fork tests)', () => {
     expect(await wLusd.balanceOf(strategy.address)).not.to.eq(parseUnits('0'));
   });
 
-  it('withdraws underlying from Yearn', async () => {
+  it('withdraws underlying from Yearn Vault', async () => {
     await ForkHelpers.mintToken(
       lusd,
       alice.address,
@@ -138,7 +138,8 @@ describe('Yearn Strategy (mainnet fork tests)', () => {
 
     await moveForwardTwoWeeks();
 
-    // TODO FIX
+    // because of rounding issues with Yearn Vault's shares
+    // we need to add funds to the strategy for withdrwal to work
     await ForkHelpers.mintToken(
       lusd,
       strategy.address,
@@ -148,7 +149,7 @@ describe('Yearn Strategy (mainnet fork tests)', () => {
     await vault.connect(alice).withdraw(alice.address, [1]);
   });
 
-  it('allows user to claim yield when yearn vault performs', async () => {
+  it('allows user to claim yield when Yearn Vault performs', async () => {
     await ForkHelpers.mintToken(
       lusd,
       alice,
@@ -182,7 +183,7 @@ describe('Yearn Strategy (mainnet fork tests)', () => {
     expect(aliceBalance).to.eq('1089999999999999999174');
   });
 
-  it('allows user to only do force withdrawal when YearnVault underperforms', async () => {
+  it('allows user to only do force withdrawal when Yearn Vault underperforms', async () => {
     await ForkHelpers.mintToken(
       lusd,
       alice,
