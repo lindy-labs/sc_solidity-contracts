@@ -84,6 +84,11 @@ contract YearnStrategy is IStrategy, AccessControl, CustomErrors {
     }
 
     /// @inheritdoc IStrategy
+    function isSync() external pure override(IStrategy) returns (bool) {
+        return true;
+    }
+
+    /// @inheritdoc IStrategy
     function hasAssets()
         external
         view
