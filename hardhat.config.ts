@@ -10,7 +10,6 @@ import 'hardhat-deploy';
 import 'hardhat-gas-reporter';
 import 'solidity-coverage';
 import '@tenderly/hardhat-tenderly';
-import '@nomiclabs/hardhat-vyper';
 
 const devMnemonic =
   process.env.MNEMONIC ||

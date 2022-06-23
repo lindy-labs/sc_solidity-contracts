@@ -254,3 +254,7 @@ describe('YearnStrategy', () => {
     );
   };
 });
+
+// permissions, control tests, only righb accounts can call certain functions,
+// tests for the custom errors, and the custom errors are thrown when certain conditions are met.
+// events are emitted when certain functions are called
