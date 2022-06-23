@@ -137,6 +137,7 @@ describe('YearnStrategy', () => {
     });
 
     it('Check initial values', async () => {
+      expect(await strategy.isSync()).to.be.equal(true);
       expect(
         await strategy.hasRole(DEFAULT_ADMIN_ROLE, owner.address),
       ).to.be.equal(true);
