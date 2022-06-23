@@ -259,7 +259,7 @@ contract Vault is
             _params.lockDuration < minLockPeriod ||
             _params.lockDuration > MAX_DEPOSIT_LOCK_DURATION
         ) revert VaultInvalidLockPeriod();
-        if (bytes(_params.name).length < 4) revert VaultDepositNameTooShort();
+        if (bytes(_params.name).length < 3) revert VaultDepositNameTooShort();
 
         uint256 principalMinusStrategyFee = _applyLossTolerance(totalPrincipal);
         uint256 previousTotalUnderlying = totalUnderlyingMinusSponsored();
