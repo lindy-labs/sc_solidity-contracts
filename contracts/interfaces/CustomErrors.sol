@@ -115,39 +115,30 @@ interface CustomErrors {
     // Strategy Errors
     //
 
-    // AnchorStrategy: owner is 0x
+    // Strategy: owner is 0x
     error StrategyOwnerCannotBe0Address();
 
-    // AnchorStrategy: router is 0x
-    error StrategyRouterCannotBe0Address();
-
-    // AnchorStrategy: ust is 0x
+    // Strategy: ust is 0x
     error StrategyUnderlyingCannotBe0Address();
 
-    // AnchorStrategy: aUST is 0x
+    // Strategy: yield token is 0x
     error StrategyYieldTokenCannotBe0Address();
 
-    // AnchorStrategy: not an IVault
+    // Strategy: not an IVault
     error StrategyNotIVault();
 
-    // AnchorStrategy: caller is not manager
+    // rStrategy: caller is not manager
     error StrategyCallerNotManager();
 
-    // AnchorStrategy: amount is 0
+    // Strategy: amount is 0
     error StrategyAmountZero();
 
-    // AnchorStrategy: no ust exist
-    error StrategyNoUST();
-
-    // AnchorStrategy: not running
+    // Strategy: not running
     error StrategyNotRunning();
 
-    // AnchorStrategy: no aUST returned
-    error StrategyNoAUSTReturned();
+    // Not Enough Underlying Balance in Strategy contract
+    error StrategyNoUnderlying();
 
-    // AnchorStrategy: nothing redeemed
-    error StrategyNothingRedeemed();
-
-    // AnchorStrategy: invalid aUST rate
-    error StrategyInvalidAUSTRate();
+    // Not Enough Shares in Strategy Contract
+    error StrategyNotEnoughShares();
 }

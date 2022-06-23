@@ -81,12 +81,10 @@ describe('YearnStrategy', () => {
     await strategy.connect(owner).grantRole(MANAGER_ROLE, manager.address);
 
     await vault.setStrategy(strategy.address);
+
     await underlying
       .connect(owner)
       .approve(vault.address, constants.MaxUint256);
-    await underlying
-      .connect(owner)
-      .approve(yVault.address, constants.MaxUint256);
   });
 
   describe('#constructor', () => {
@@ -114,7 +112,7 @@ describe('YearnStrategy', () => {
           constants.AddressZero,
           underlying.address,
         ),
-      ).to.be.revertedWith('YearnVaultCannotBe0Address');
+      ).to.be.revertedWith('StrategyYieldTokenCannotBe0Address');
     });
     it('Revert if owner is address(0)', async () => {
       await expect(

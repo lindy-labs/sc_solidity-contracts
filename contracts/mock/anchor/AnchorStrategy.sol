@@ -28,6 +28,17 @@ contract AnchorStrategy is
     using PercentMath for uint256;
     using ERC165Query for address;
 
+    // AnchorStrategy: no ust exist
+    error StrategyNoUST();
+    // AnchorStrategy: no aUST returned
+    error StrategyNoAUSTReturned();
+    // AnchorStrategy: nothing redeemed
+    error StrategyNothingRedeemed();
+    // AnchorStrategy: invalid aUST rate
+    error StrategyInvalidAUSTRate();
+    // AnchorStrategy: router is 0x
+    error StrategyRouterCannotBe0Address();
+
     bytes32 public constant MANAGER_ROLE =
         0x241ecf16d79d0f8dbfb92cbc07fe17840425976cf0667f022fe9877caa831b08; // keccak256("MANAGER_ROLE");
 
@@ -122,7 +133,7 @@ contract AnchorStrategy is
 
     /**
      * Returns false since strategy is asynchronous.
-    */
+     */
     function isSync() external pure override(IStrategy) returns (bool) {
         return false;
     }

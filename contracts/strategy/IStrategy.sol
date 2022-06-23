@@ -11,10 +11,13 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  * @notice It's up to the vault to decide how much to invest from the total pool
  */
 interface IStrategy {
+    event StrategyInvested(uint256 amount);
+    event StrategyWithdrawn(uint256 amount);
+
     /**
      * Provides information about wether the strategy is synchronous or asynchronous.
-     * 
-     * @notice Synchronous strategies support instant withdrawals, 
+     *
+     * @notice Synchronous strategies support instant withdrawals,
      * while asynchronous strategies impose a delay before withdrawals can be made.
      *
      * @return true if the strategy is synchronous, false otherwise
