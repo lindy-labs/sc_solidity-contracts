@@ -11,6 +11,9 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  * @notice It's up to the vault to decide how much to invest/disinvest from the total pool.
  */
 interface IStrategy {
+    event StrategyInvested(uint256 amount);
+    event StrategyWithdrawn(uint256 amount);
+
     /**
      * Emmited when funds are invested by the strategy.
      *
