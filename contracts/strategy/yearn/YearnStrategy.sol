@@ -19,6 +19,10 @@ contract YearnStrategy is IStrategy, AccessControl, CustomErrors {
 
     error StrategyNoUnderlying();
     error StrategyNotEnoughShares();
+    error YearnVaultCannotBe0Address();
+
+    event StrategyInvested(uint256 amount);
+    event StrategyWithdrawn(uint256 amount);
 
     bytes32 public constant MANAGER_ROLE =
         0x241ecf16d79d0f8dbfb92cbc07fe17840425976cf0667f022fe9877caa831b08; // keccak256("MANAGER_ROLE");
@@ -36,6 +40,10 @@ contract YearnStrategy is IStrategy, AccessControl, CustomErrors {
         address _underlying
     ) {
         if (_owner == address(0)) revert StrategyOwnerCannotBe0Address();
+        if (_yVault == address(0)) revert YearnVaultCannotBe0Address();
+        if (_underlying == address(0))
+            revert StrategyUnderlyingCannotBe0Address();
+
         if (!_vault.doesContractImplementInterface(type(IVault).interfaceId))
             revert StrategyNotIVault();
 
@@ -91,6 +99,8 @@ contract YearnStrategy is IStrategy, AccessControl, CustomErrors {
         underlying.safeIncreaseAllowance(address(yVault), balance);
 
         yVault.deposit(balance, address(this));
+
+        emit StrategyInvested(balance);
     }
 
     /// @inheritdoc IStrategy
@@ -98,6 +108,7 @@ contract YearnStrategy is IStrategy, AccessControl, CustomErrors {
         external
         virtual
         override(IStrategy)
+        onlyManager
     {
         if (amount == 0) revert StrategyAmountZero();
         uint256 uninvestedUnderlying = _getUnderlyingBalance();
@@ -116,16 +127,8 @@ contract YearnStrategy is IStrategy, AccessControl, CustomErrors {
 
         // transfer underlying to vault
         underlying.safeTransfer(vault, amount);
-    }
 
-    /**
-     * @dev Withdraws all the underlying to sandclock vault.
-     */
-    function withdrawAllToVault() external virtual onlyManager {
-        uint256 sharesBalance = _getShares();
-        if (sharesBalance == 0) revert StrategyNotEnoughShares();
-        // burn shares and withdraw required underlying to strategy
-        yVault.withdraw(sharesBalance, vault, 1);
+        emit StrategyWithdrawn(amount);
     }
 
     /**

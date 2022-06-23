@@ -42,7 +42,7 @@ contract MockYearnVault is IYearnVault, ERC20 {
     ) public returns (uint256) {
         require(maxShares > 0);
 
-        uint256 value = maxShares * pricePerShare();
+        uint256 value = (maxShares * pricePerShare()) / 1e18;
 
         _burn(msg.sender, maxShares);
 
