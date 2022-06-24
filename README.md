@@ -13,11 +13,11 @@ Two contracts make up Sandclock's core: vault and strategy. The vault is the con
 
 Each vault can only have one strategy, but any contract can be a strategy as long as it implements the required interface. We can replace the strategy at any moment by withdrawing all the funds to the vault, updating the address of the strategy, and rebalancing the vault.
 
-Currently, there are two strategies: one built on the Anchor Protocol and another on top of a Yearn vault. The strategy built on Anchor will not be deployed because the protocol crashed. However, we are keeping it around in the tests as a reference implementation and ensuring that the vault would still work in a similar strategy.
+Every strategy uses the same underlying as the contract it interacts with. For instance, when we deploy a strategy using Yearn’s LUSD Vault, our strategy will use LUSD (Liquidity USD) as the underlying, and the same goes for our vault. However, the vault integrates with Curve to allow our users to deposit in different currencies. The underlying could be almost any other ERC20 that is also a stable coin.
 
-Each strategy uses the same underlying as the contract it interacts with. For instance, when we deploy a strategy using Yearn’s LUSD Vault, our strategy will use LUSD (Liquidity USD) as the underlying, and the same goes for our vault. However, the vault integrates with Curve to allow our users to deposit in different currencies. The underlying could be almost any other ERC20 that is also a stable coin.
+A strategy can be one of two types - synchronous or asynchronous, depending on whether their interactions can have an immediate effect. For instance, when withdrawing from a strategy, can the withdrawal request be fulfilled immediately, or do we have to wait for it to be fulfilled later?
 
-Each strategy can be synchronous or asynchronous, depending on whether their interactions can have an immediate effect. For instance, when withdrawing from a strategy, can the withdrawal request be fulfilled immediately, or do we have to wait for it to be fulfilled later?
+There are currently two strategies implemented: an asynchronous strategy, and a synchronous one.
 
 ##### Synchronous strategies
 
@@ -28,6 +28,8 @@ With a synchronous strategy, our vault can always fulfill an order, even when th
 ##### Asynchronous strategies
 
 An asynchronous strategy is not able to fulfill requests immediately. For instance, when withdrawing from Anchor, our strategy sends a withdrawal request that has to be fulfilled later by our backend or manually. Therefore, when there aren’t enough funds on the vault’s reserves to fulfill a withdrawal, the request will fail, and the users have to wait until the vault and strategy rebalance for more funds to be available.
+
+The strategy built on Anchor will not be deployed because the protocol crashed. However, we are keeping it around in the tests as a reference implementation and ensuring that the vault would still work with a similar strategy.
 
 ### Vault
 
