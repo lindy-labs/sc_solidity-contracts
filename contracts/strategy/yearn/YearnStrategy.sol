@@ -12,20 +12,31 @@ import {CustomErrors} from "../../interfaces/CustomErrors.sol";
 import {IYearnVault} from "../../interfaces/yearn/IYearnVault.sol";
 import {IVault} from "../../vault/IVault.sol";
 
+/**
+ * YearnStrategy generates yield by investing into Yearn vaults.
+ * 
+ * @notice This strategy is syncrhonous (supports immediate withdrawals).
+ */
 contract YearnStrategy is IStrategy, AccessControl, CustomErrors {
     using SafeERC20 for IERC20;
     using PercentMath for uint256;
     using ERC165Query for address;
 
-    bytes32 public constant MANAGER_ROLE =
-        0x241ecf16d79d0f8dbfb92cbc07fe17840425976cf0667f022fe9877caa831b08; // keccak256("MANAGER_ROLE");
-
+    /// role allowed to invest/withdraw from yearn vault
+    bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
+    // underlying ERC20 token
     IERC20 public immutable underlying;
     /// @inheritdoc IStrategy
     address public immutable override(IStrategy) vault;
     // yearn vault that this strategy is interacting with
     IYearnVault public immutable yVault;
 
+    /**
+     * @param _vault address of the vault that will use this strategy
+     * @param _owner address of the owner of this strategy
+     * @param _yVault address of the yearn vault that this strategy is using
+     * @param _underlying address of the underlying token
+     */
     constructor(
         address _vault,
         address _owner,
@@ -57,7 +68,11 @@ contract YearnStrategy is IStrategy, AccessControl, CustomErrors {
         _;
     }
 
-    /// @inheritdoc IStrategy
+    /**
+     * Yearn strategy is synchronous meaning it supports immediate withdrawals.
+     *
+     * @return true always
+     */
     function isSync() external pure override(IStrategy) returns (bool) {
         return true;
     }
@@ -125,21 +140,29 @@ contract YearnStrategy is IStrategy, AccessControl, CustomErrors {
     }
 
     /**
-     * @return LUSD balance of strategy
+     * Get the underlying balance of the strategy.
+     *
+     * @return underlying balance of the strategy
      */
     function _getUnderlyingBalance() internal view returns (uint256) {
         return underlying.balanceOf(address(this));
     }
 
     /**
-     * @return yLusd balance of strategy
+     * Get the number of yearn vault shares owned by the strategy.
+     *
+     * @return shares owned by the strategy
      */
     function _getShares() internal view returns (uint256) {
         return yVault.balanceOf(address(this));
     }
 
     /**
-     * @return convert shares to lusd
+     * Calculates the value of yearn vault shares in underlying.
+     *
+     * @param _shares number of yearn vault shares
+     *
+     * @return underlying value of yearn vault shares
      */
     function _sharesToUnderlying(uint256 _shares)
         internal
@@ -150,7 +173,11 @@ contract YearnStrategy is IStrategy, AccessControl, CustomErrors {
     }
 
     /**
-     * @return convert shares to lusd
+     * Calculates the amount of underlying in number of yearn vault shares.
+     *
+     * @param _underlying amount of underlying
+     *
+     * @return number of yearn vault shares
      */
     function _underlyingToShares(uint256 _underlying)
         internal
