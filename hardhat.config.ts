@@ -24,7 +24,7 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       accounts: {
-        mnemonic: process.env.MNEMONIC,
+        mnemonic: process.env.TESTNET_MNEMONIC,
         accountsBalance: '100000000000000000000000000',
       },
       initialBaseFeePerGas: 0,
@@ -33,7 +33,7 @@ const config: HardhatUserConfig = {
     docker: {
       url: 'http://localhost:8545',
       accounts: {
-        mnemonic: process.env.MNEMONIC,
+        mnemonic: process.env.TESTNET_MNEMONIC,
       },
       initialBaseFeePerGas: 0,
       chainId: 31337,
