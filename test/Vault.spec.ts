@@ -1229,7 +1229,7 @@ describe('Vault', () => {
         amount: parseUnits('100'),
         inputToken: underlying.address,
         claims: [],
-        name: 'abc', // three utf8 characters
+        name: 'ab', // two utf8 characters
       });
       await expect(vault.connect(owner).deposit(params)).to.be.revertedWith(
         'VaultDepositNameTooShort()',
