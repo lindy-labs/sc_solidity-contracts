@@ -320,6 +320,12 @@ describe('Vault', () => {
       expect(await vault.treasury()).to.be.equal(TREASURY);
       expect(await vault.perfFeePct()).to.be.equal(PERFORMANCE_FEE_PCT);
     });
+
+    it('check the emission of the TreasuryUpdate event', async () => {
+      await expect(vault.deployTransaction)
+        .emit(vault, 'TreasuryUpdated')
+        .withArgs(TREASURY);
+    });
   });
 
   describe('setTreasury', () => {
