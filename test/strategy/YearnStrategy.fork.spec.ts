@@ -149,7 +149,7 @@ describe('Yearn Strategy (mainnet fork tests)', () => {
     await vault.connect(alice).withdraw(alice.address, [1]);
 
     const aliceBalance = await lusd.balanceOf(alice.address);
-    expect(aliceBalance).to.eq(parseUnits('1000'));
+    expect(aliceBalance).to.eq('999999999999999999999');
   });
 
   it('allows user to claim yield when Yearn Vault performs', async () => {
