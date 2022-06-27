@@ -13,8 +13,8 @@ import {IYearnVault} from "../../interfaces/yearn/IYearnVault.sol";
 import {IVault} from "../../vault/IVault.sol";
 
 /**
- * YearnStrategy generates yield by investing into Yearn vaults.
- * 
+ * YearnStrategy generates yield by investing into a Yearn vault.
+ *
  * @notice This strategy is syncrhonous (supports immediate withdrawals).
  */
 contract YearnStrategy is IStrategy, AccessControl, CustomErrors {
@@ -53,6 +53,7 @@ contract YearnStrategy is IStrategy, AccessControl, CustomErrors {
 
         _setupRole(DEFAULT_ADMIN_ROLE, _owner);
         _setupRole(MANAGER_ROLE, _vault);
+
         vault = _vault;
         yVault = IYearnVault(_yVault);
         underlying = IERC20(_underlying);

@@ -127,7 +127,7 @@ interface CustomErrors {
     // Strategy: not an IVault
     error StrategyNotIVault();
 
-    // rStrategy: caller is not manager
+    // Strategy: caller is not manager
     error StrategyCallerNotManager();
 
     // Strategy: amount is 0
