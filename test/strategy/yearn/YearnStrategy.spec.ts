@@ -3,6 +3,7 @@ import { ethers } from 'hardhat';
 import { time } from '@openzeppelin/test-helpers';
 import { expect } from 'chai';
 import { BigNumber, utils, constants } from 'ethers';
+
 import {
   Vault,
   MockYearnVault,
@@ -10,7 +11,11 @@ import {
   MockERC20,
   YearnStrategy__factory,
 } from '../../../typechain';
+
 import { generateNewAddress } from '../../shared/';
+import { depositParams, claimParams } from '../../shared/factories';
+
+const { parseEther } = utils;
 
 describe('YearnStrategy', () => {
   let owner: SignerWithAddress;
@@ -19,15 +24,15 @@ describe('YearnStrategy', () => {
   let vault: Vault;
   let yVault: MockYearnVault;
   let strategy: YearnStrategy;
-  let lusd: MockERC20;
   let underlying: MockERC20;
+
+  let YearnStrategyFactory: YearnStrategy__factory;
+
   const TREASURY = generateNewAddress();
   const MIN_LOCK_PERIOD = 1;
-  const TWO_WEEKS = time.duration.days(14).toNumber();
-  const PERFORMANCE_FEE_PCT = BigNumber.from('200');
-  const INVEST_PCT = BigNumber.from('9000');
-  const INVESTMENT_FEE_PCT = BigNumber.from('200');
-  const DENOMINATOR = BigNumber.from('10000');
+  const PERFORMANCE_FEE_PCT = BigNumber.from('0');
+  const INVEST_PCT = BigNumber.from('10000');
+  const INVESTMENT_FEE_PCT = BigNumber.from('0');
 
   const DEFAULT_ADMIN_ROLE = constants.HashZero;
   const MANAGER_ROLE = utils.keccak256(utils.toUtf8Bytes('MANAGER_ROLE'));
@@ -36,26 +41,23 @@ describe('YearnStrategy', () => {
     [owner, alice, manager] = await ethers.getSigners();
 
     const MockERC20 = await ethers.getContractFactory('MockERC20');
-    lusd = await MockERC20.deploy(
+    underlying = await MockERC20.deploy(
       'LUSD',
       'LUSD',
       18,
-      utils.parseEther('1000000000'),
+      parseEther('1000000000'),
     );
 
-    underlying = lusd;
+    const YVaultFactory = await ethers.getContractFactory('MockYearnVault');
 
-    // deploy yearn lusd vault
-    const yVaultFactory = await ethers.getContractFactory('MockYearnVault');
-
-    yVault = await yVaultFactory.deploy(
+    yVault = await YVaultFactory.deploy(
       'Yearn LUSD Vault',
       'yLusd',
       underlying.address,
     );
 
-    // deploy sandclock vault
     const VaultFactory = await ethers.getContractFactory('Vault');
+
     vault = await VaultFactory.deploy(
       underlying.address,
       MIN_LOCK_PERIOD,
@@ -67,9 +69,7 @@ describe('YearnStrategy', () => {
       [],
     );
 
-    const YearnStrategyFactory = await ethers.getContractFactory(
-      'YearnStrategy',
-    );
+    YearnStrategyFactory = await ethers.getContractFactory('YearnStrategy');
 
     strategy = await YearnStrategyFactory.deploy(
       vault.address,
@@ -88,13 +88,7 @@ describe('YearnStrategy', () => {
   });
 
   describe('#constructor', () => {
-    let YearnStrategyFactory: YearnStrategy__factory;
-
-    beforeEach(async () => {
-      YearnStrategyFactory = await ethers.getContractFactory('YearnStrategy');
-    });
-
-    it('Revert if owner is address(0)', async () => {
+    it('reverts if owner is address(0)', async () => {
       await expect(
         YearnStrategyFactory.deploy(
           vault.address,
@@ -104,7 +98,8 @@ describe('YearnStrategy', () => {
         ),
       ).to.be.revertedWith('StrategyOwnerCannotBe0Address');
     });
-    it('Revert if owner is address(0)', async () => {
+
+    it('reverts if yield vault is address(0)', async () => {
       await expect(
         YearnStrategyFactory.deploy(
           vault.address,
@@ -114,7 +109,8 @@ describe('YearnStrategy', () => {
         ),
       ).to.be.revertedWith('StrategyYieldTokenCannotBe0Address');
     });
-    it('Revert if owner is address(0)', async () => {
+
+    it('reverts if underlying is address(0)', async () => {
       await expect(
         YearnStrategyFactory.deploy(
           vault.address,
@@ -125,7 +121,7 @@ describe('YearnStrategy', () => {
       ).to.be.revertedWith('StrategyUnderlyingCannotBe0Address');
     });
 
-    it('Revert if vault does not have IVault interface', async () => {
+    it('reverts if vault does not have IVault interface', async () => {
       await expect(
         YearnStrategyFactory.deploy(
           manager.address,
@@ -136,85 +132,74 @@ describe('YearnStrategy', () => {
       ).to.be.revertedWith('StrategyNotIVault');
     });
 
-    it('Check initial values', async () => {
-      expect(await strategy.isSync()).to.be.equal(true);
-      expect(
-        await strategy.hasRole(DEFAULT_ADMIN_ROLE, owner.address),
-      ).to.be.equal(true);
-      expect(await strategy.hasRole(MANAGER_ROLE, vault.address)).to.be.equal(
-        true,
-      );
-      expect(await strategy.vault()).to.be.equal(vault.address);
-      expect(await strategy.yVault()).to.be.equal(yVault.address);
+    it('checks initial values', async () => {
+      expect(await strategy.isSync()).to.be.true;
+      expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, owner.address)).to.be
+        .true;
+      expect(await strategy.hasRole(MANAGER_ROLE, vault.address)).to.be.true;
+      expect(await strategy.vault()).to.eq(vault.address);
+      expect(await strategy.yVault()).to.eq(yVault.address);
 
-      expect(await strategy.underlying()).to.be.equal(lusd.address);
-      expect(await strategy.hasAssets()).to.be.equal(false);
+      expect(await strategy.underlying()).to.eq(underlying.address);
+      expect(await strategy.hasAssets()).to.be.false;
     });
   });
 
   describe('#invest function', () => {
-    it('Revert if msg.sender is not manager', async () => {
+    it('reverts if msg.sender is not manager', async () => {
       await expect(strategy.connect(alice).invest()).to.be.revertedWith(
         'StrategyCallerNotManager',
       );
     });
 
-    it('Revert if underlying balance is zero', async () => {
+    it('reverts if underlying balance is zero', async () => {
       await expect(strategy.connect(manager).invest()).to.be.revertedWith(
         'StrategyNoUnderlying',
       );
     });
 
-    it('Should deposit stable with all undelrying', async () => {
+    it('deposits underlying from the vault to the yVault', async () => {
       let underlyingAmount = utils.parseUnits('100', 18);
-      await depositVault(underlyingAmount);
+      await depositToVault(underlyingAmount);
 
-      let investAmount = underlyingAmount.mul(INVEST_PCT).div(DENOMINATOR);
+      expect(await vault.totalUnderlying()).to.eq(underlyingAmount);
+      expect(await strategy.investedAssets()).to.eq(0);
+      expect(await strategy.hasAssets()).be.false;
 
-      expect(await vault.totalUnderlying()).equal(underlyingAmount);
-      expect(await strategy.investedAssets()).equal(0);
-      expect(await strategy.hasAssets()).equal(false);
+      await vault.connect(owner).updateInvested();
+
+      expect(await underlying.balanceOf(yVault.address)).to.eq(
+        underlyingAmount,
+      );
+      expect(await underlying.balanceOf(strategy.address)).to.eq(0);
+      expect(await strategy.investedAssets()).to.eq(underlyingAmount);
+      expect(await strategy.hasAssets()).be.true;
+      expect(await vault.totalUnderlying()).to.eq(underlyingAmount);
+    });
+
+    it('emits a StrategyInvested event', async () => {
+      let underlyingAmount = utils.parseUnits('100', 18);
+      await depositToVault(underlyingAmount);
 
       const tx = await vault.connect(owner).updateInvested();
 
-      expect(await underlying.balanceOf(yVault.address)).equal(investAmount);
-      expect(await underlying.balanceOf(strategy.address)).equal(0);
-      expect(await strategy.investedAssets()).equal(investAmount);
-      expect(await strategy.hasAssets()).equal(true);
-      expect(await vault.totalUnderlying()).equal(underlyingAmount);
-
       await expect(tx)
         .to.emit(strategy, 'StrategyInvested')
-        .withArgs(investAmount);
+        .withArgs(underlyingAmount);
     });
 
-    it('Should be able to call deposit multiple times', async () => {
-      let underlyingBalance0 = utils.parseUnits('100', 18);
-      await depositVault(underlyingBalance0);
-
-      let investAmount0 = underlyingBalance0.mul(INVEST_PCT).div(DENOMINATOR);
-
+    it('can be called multiple times', async () => {
+      await depositToVault(utils.parseUnits('100', 18));
       await vault.connect(owner).updateInvested();
 
-      let underlyingBalance1 = utils.parseUnits('50', 18);
-      await depositVault(underlyingBalance1);
-
-      let investAmount1 = underlyingBalance1
-        .add(underlyingBalance0)
-        .mul(INVEST_PCT)
-        .div(DENOMINATOR)
-        .sub(investAmount0);
-
+      await depositToVault(utils.parseUnits('10', 18));
       await vault.connect(owner).updateInvested();
 
-      expect(await underlying.balanceOf(strategy.address)).equal(0);
+      const totalUnderlying = utils.parseUnits('110', 18).sub('37');
 
-      expect(await strategy.investedAssets()).equal(
-        investAmount0.add(investAmount1),
-      );
-      expect(await vault.totalUnderlying()).equal(
-        underlyingBalance0.add(underlyingBalance1),
-      );
+      expect(await underlying.balanceOf(strategy.address)).to.eq(0);
+      expect(await strategy.investedAssets()).to.eq(totalUnderlying);
+      expect(await vault.totalUnderlying()).to.eq(totalUnderlying);
     });
   });
 
@@ -231,44 +216,41 @@ describe('YearnStrategy', () => {
       ).to.be.revertedWith('StrategyAmountZero');
     });
 
-    it('can deduct all invested funds from strategy', async () => {
-      let underlyingAmount = utils.parseEther('100');
-      await depositVault(underlyingAmount);
-
-      let investAmount = underlyingAmount.mul(INVEST_PCT).div(DENOMINATOR);
-
+    it('removes the requested funds from the yVault', async () => {
+      await depositToVault(parseEther('100'));
       await vault.connect(owner).updateInvested();
 
-      expect(await strategy.investedAssets()).to.be.equal(investAmount);
+      const amountToWithdraw = parseEther('30');
 
-      let tx = await strategy.connect(manager).withdrawToVault(investAmount);
+      await strategy.connect(manager).withdrawToVault(amountToWithdraw);
 
-      expect(await yVault.balanceOf(strategy.address)).to.be.equal('0');
-      expect(await strategy.investedAssets()).to.be.equal('0');
+      expect(await yVault.balanceOf(strategy.address)).to.eq(parseEther('70'));
+      expect(await strategy.investedAssets()).to.eq(parseEther('70'));
+    });
+
+    it('emits an event', async () => {
+      await depositToVault(parseEther('100'));
+      await vault.connect(owner).updateInvested();
+
+      const amountToWithdraw = parseEther('30');
+
+      let tx = await strategy
+        .connect(manager)
+        .withdrawToVault(amountToWithdraw);
 
       await expect(tx)
         .to.emit(strategy, 'StrategyWithdrawn')
-        .withArgs(investAmount);
+        .withArgs(amountToWithdraw);
     });
   });
 
-  const depositVault = async (amount: BigNumber) => {
-    await vault.connect(owner).deposit({
-      amount,
-      inputToken: underlying.address,
-      claims: [
-        {
-          pct: DENOMINATOR,
-          beneficiary: owner.address,
-          data: '0x',
-        },
-      ],
-      lockDuration: TWO_WEEKS,
-      name: 'Foundation name',
-    });
+  const depositToVault = async (amount: BigNumber) => {
+    await vault.connect(owner).deposit(
+      depositParams.build({
+        amount,
+        inputToken: underlying.address,
+        claims: [claimParams.percent(100).to(owner.address).build()],
+      }),
+    );
   };
 });
-
-// permissions, control tests, only righb accounts can call certain functions,
-// tests for the custom errors, and the custom errors are thrown when certain conditions are met.
-// events are emitted when certain functions are called
