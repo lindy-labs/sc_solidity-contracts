@@ -11,10 +11,6 @@ import 'hardhat-gas-reporter';
 import 'solidity-coverage';
 import '@tenderly/hardhat-tenderly';
 
-const devMnemonic =
-  process.env.MNEMONIC ||
-  'core tornado motion pigeon kiss dish differ asthma much ritual black foil';
-
 const config: HardhatUserConfig = {
   solidity: {
     version: '0.8.10',
@@ -28,7 +24,7 @@ const config: HardhatUserConfig = {
   networks: {
     hardhat: {
       accounts: {
-        mnemonic: devMnemonic,
+        mnemonic: process.env.MNEMONIC,
         accountsBalance: '100000000000000000000000000',
       },
       initialBaseFeePerGas: 0,
@@ -37,7 +33,7 @@ const config: HardhatUserConfig = {
     docker: {
       url: 'http://localhost:8545',
       accounts: {
-        mnemonic: devMnemonic,
+        mnemonic: process.env.MNEMONIC,
       },
       initialBaseFeePerGas: 0,
       chainId: 31337,
@@ -67,17 +63,17 @@ const config: HardhatUserConfig = {
       },
     },
     mumbai: {
-      url: process.env.MUMBAI_RPC || "missing-rpc-endpoint",
+      url: process.env.MUMBAI_RPC || 'missing-rpc-endpoint',
       chainId: 80001,
       accounts: {
-        mnemonic: process.env.TESTNET_MNEMONIC || "TODO",
+        mnemonic: process.env.TESTNET_MNEMONIC || 'TODO',
       },
     },
     polygon: {
-      url: process.env.POLYGON_RPC || "missing-rpc-endpoint",
+      url: process.env.POLYGON_RPC || 'missing-rpc-endpoint',
       chainId: 137,
       accounts: {
-        mnemonic: process.env.TESTNET_MNEMONIC || "TODO",
+        mnemonic: process.env.TESTNET_MNEMONIC || 'TODO',
       },
     },
   },
@@ -108,8 +104,8 @@ const config: HardhatUserConfig = {
   },
   etherscan: {
     apiKey: {
-      ropsten: process.env.ETHERSCAN_KEY || "missing-key",
-      polygonMumbai: process.env.POLYSCAN_KEY || "missing-key",
+      ropsten: process.env.ETHERSCAN_KEY || 'missing-key',
+      polygonMumbai: process.env.POLYSCAN_KEY || 'missing-key',
     },
   },
 };
