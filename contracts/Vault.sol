@@ -10,6 +10,7 @@ import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
 import {Counters} from "@openzeppelin/contracts/utils/Counters.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 import {IVault} from "./vault/IVault.sol";
 import {IVaultSponsoring} from "./vault/IVaultSponsoring.sol";
@@ -35,6 +36,7 @@ contract Vault is
     AccessControl,
     ReentrancyGuard,
     Pausable,
+    Ownable,
     CustomErrors
 {
     using SafeERC20 for IERC20;
@@ -151,6 +153,8 @@ contract Vault is
         if (_minLockPeriod == 0 || _minLockPeriod > MAX_DEPOSIT_LOCK_DURATION)
             revert VaultInvalidMinLockPeriod();
 
+        _transferOwnership(_owner);
+
         _setupRole(DEFAULT_ADMIN_ROLE, _owner);
         _setupRole(INVESTOR_ROLE, _owner);
         _setupRole(SETTINGS_ROLE, _owner);
@@ -168,6 +172,34 @@ contract Vault is
         _addPools(_swapPools);
 
         emit TreasuryUpdated(_treasury);
+    }
+
+    //
+    // Ownable
+    //
+
+    /**
+     * Transfers ownership of the Vault to another account, 
+     * revoking all of previous owner's roles and setting them up for the new owner.
+     * 
+     * @notice Can only be called by the current owner.
+     *
+     * @param _newOwner The new owner of the contract.
+     */
+    function transferOwnership(address _newOwner) public override(Ownable) onlyOwner {
+        if (_newOwner == address(0x0)) revert VaultOwnerCannotBe0Address();
+
+        _transferOwnership(_newOwner);
+
+        _setupRole(DEFAULT_ADMIN_ROLE, _newOwner);
+        _setupRole(INVESTOR_ROLE, _newOwner);
+        _setupRole(SETTINGS_ROLE, _newOwner);
+        _setupRole(SPONSOR_ROLE, _newOwner);
+
+        _revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _revokeRole(INVESTOR_ROLE, msg.sender);
+        _revokeRole(SETTINGS_ROLE, msg.sender);
+        _revokeRole(SPONSOR_ROLE, msg.sender);
     }
 
     //

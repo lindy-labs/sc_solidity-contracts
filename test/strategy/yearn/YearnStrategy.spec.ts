@@ -145,6 +145,36 @@ describe('YearnStrategy', () => {
     });
   });
 
+  describe('#transferOwnership', () => {
+    it('can only be called by the current owner', async () => {
+      await expect(
+        strategy.connect(alice).transferOwnership(alice.address),
+      ).to.be.revertedWith('Ownable: caller is not the owner');
+    });
+
+    it('reverts if new owner is address(0)', async () => {
+      await expect(
+        strategy.connect(owner).transferOwnership(constants.AddressZero),
+      ).to.be.revertedWith('VaultOwnerCannotBe0Address');
+    });
+
+    it('changes ownership to the new owner', async () => {
+      await strategy.connect(owner).transferOwnership(alice.address);
+
+      expect(await strategy.owner()).to.be.equal(alice.address);
+    });
+
+    it("revokes previous owner's ADMIN role and sets up ADMIN role for the new owner", async () => {
+      await strategy.connect(owner).transferOwnership(alice.address);
+
+      expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, owner.address)).to.be
+        .false;
+
+      expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, alice.address)).to.be
+        .true;
+    });
+  });
+
   describe('#invest function', () => {
     it('reverts if msg.sender is not manager', async () => {
       await expect(strategy.connect(alice).invest()).to.be.revertedWith(

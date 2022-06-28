@@ -3,6 +3,7 @@ pragma solidity =0.8.10;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 
 import {PercentMath} from "../../lib/PercentMath.sol";
@@ -17,7 +18,7 @@ import {IVault} from "../../vault/IVault.sol";
  *
  * @notice This strategy is syncrhonous (supports immediate withdrawals).
  */
-contract YearnStrategy is IStrategy, AccessControl, CustomErrors {
+contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
     using SafeERC20 for IERC20;
     using PercentMath for uint256;
     using ERC165Query for address;
@@ -72,6 +73,28 @@ contract YearnStrategy is IStrategy, AccessControl, CustomErrors {
         if (!hasRole(MANAGER_ROLE, msg.sender))
             revert StrategyCallerNotManager();
         _;
+    }
+
+     //
+    // Ownable
+    //
+
+    /**
+     * Transfers ownership of the Strategy to another account, 
+     * revoking previous owner's ADMIN role and setting up ADMIN role for the new owner.
+     * 
+     * @notice Can only be called by the current owner.
+     *
+     * @param _newOwner The new owner of the contract.
+     */
+    function transferOwnership(address _newOwner) public override(Ownable) onlyOwner {
+        if (_newOwner == address(0x0)) revert VaultOwnerCannotBe0Address();
+
+        _transferOwnership(_newOwner);
+
+        _setupRole(DEFAULT_ADMIN_ROLE, _newOwner);
+
+        _revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
 
     /**

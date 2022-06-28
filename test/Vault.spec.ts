@@ -100,11 +100,14 @@ describe('Vault', () => {
 
     strategy = await MockStrategy.deploy(vault.address, underlying.address);
 
-    ({ addUnderlyingBalance, addYieldToVault, removeUnderlyingFromVault } =
-      createVaultHelpers({
-        vault,
-        underlying,
-      }));
+    ({
+      addUnderlyingBalance,
+      addYieldToVault,
+      removeUnderlyingFromVault,
+    } = createVaultHelpers({
+      vault,
+      underlying,
+    }));
 
     await addUnderlyingBalance(alice, '1000');
     await addUnderlyingBalance(bob, '1000');
@@ -325,6 +328,41 @@ describe('Vault', () => {
       await expect(vault.deployTransaction)
         .emit(vault, 'TreasuryUpdated')
         .withArgs(TREASURY);
+    });
+  });
+
+  describe('transferOwnership', () => {
+    it('can only be called by the current owner', async () => {
+      await expect(
+        vault.connect(alice).transferOwnership(alice.address),
+      ).to.be.revertedWith('Ownable: caller is not the owner');
+    });
+
+    it('reverts if new owner is address(0)', async () => {
+      await expect(
+        vault.connect(owner).transferOwnership(constants.AddressZero),
+      ).to.be.revertedWith('VaultOwnerCannotBe0Address');
+    });
+
+    it('changes ownership to the new owner', async () => {
+      await vault.connect(owner).transferOwnership(alice.address);
+
+      expect(await vault.owner()).to.be.equal(alice.address);
+    });
+
+    it("revokes all previous owner's roles and sets them for the new owner", async () => {
+      await vault.connect(owner).transferOwnership(alice.address);
+
+      expect(await vault.hasRole(DEFAULT_ADMIN_ROLE, owner.address)).to.be
+        .false;
+      expect(await vault.hasRole(INVESTOR_ROLE, owner.address)).to.be.false;
+      expect(await vault.hasRole(SETTINGS_ROLE, owner.address)).to.be.false;
+      expect(await vault.hasRole(SPONSOR_ROLE, owner.address)).to.be.false;
+
+      expect(await vault.hasRole(DEFAULT_ADMIN_ROLE, alice.address)).to.be.true;
+      expect(await vault.hasRole(INVESTOR_ROLE, alice.address)).to.be.true;
+      expect(await vault.hasRole(SETTINGS_ROLE, alice.address)).to.be.true;
+      expect(await vault.hasRole(SPONSOR_ROLE, alice.address)).to.be.true;
     });
   });
 
