@@ -1,6 +1,5 @@
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { ethers } from 'hardhat';
-import { time } from '@openzeppelin/test-helpers';
 import { expect } from 'chai';
 import { BigNumber, utils, constants } from 'ethers';
 
@@ -14,7 +13,6 @@ import {
 
 import { generateNewAddress } from '../../shared/';
 import { depositParams, claimParams } from '../../shared/factories';
-import { parseUnits } from 'ethers/lib/utils';
 
 const { parseEther } = utils;
 
