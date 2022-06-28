@@ -162,7 +162,7 @@ describe('AnchorStrategy', () => {
           constants.AddressZero,
           owner.address,
         ),
-      ).to.be.revertedWith('StrategyYieldTokenCannotBe0Address');
+      ).to.be.revertedWith('StrategyYearnVaultCannotBe0Address');
     });
 
     it('Revert if vault does not have IVault interface', async () => {
