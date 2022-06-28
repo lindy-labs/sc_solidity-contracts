@@ -75,7 +75,7 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
         _;
     }
 
-     //
+    //
     // Ownable
     //
 
