@@ -94,11 +94,7 @@ contract YearnStrategy is IStrategy, AccessControl, CustomErrors {
         return _getShares() > 0;
     }
 
-    /**
-     * Amount, expressed in the underlying currency, currently in the strategy
-     *
-     * @return The total amount of underlying invested into yearn vault
-     */
+    /// @inheritdoc IStrategy
     function investedAssets()
         external
         view
