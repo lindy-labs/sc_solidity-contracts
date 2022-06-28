@@ -99,7 +99,7 @@ describe('YearnStrategy', () => {
       ).to.be.revertedWith('StrategyOwnerCannotBe0Address');
     });
 
-    it('reverts if yield vault is address(0)', async () => {
+    it('reverts if the yearn vault is address(0)', async () => {
       await expect(
         YearnStrategyFactory.deploy(
           vault.address,
@@ -107,7 +107,7 @@ describe('YearnStrategy', () => {
           constants.AddressZero,
           underlying.address,
         ),
-      ).to.be.revertedWith('StrategyYieldTokenCannotBe0Address');
+      ).to.be.revertedWith('StrategyYearnVaultCannotBe0Address');
     });
 
     it('reverts if underlying is address(0)', async () => {

@@ -38,6 +38,8 @@ contract AnchorStrategy is
     error StrategyInvalidAUSTRate();
     // AnchorStrategy: router is 0x
     error StrategyRouterCannotBe0Address();
+    // AnchorStrategy: yield token is 0x
+    error StrategyYieldTokenCannotBe0Address();
 
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
 

@@ -22,6 +22,9 @@ contract YearnStrategy is IStrategy, AccessControl, CustomErrors {
     using PercentMath for uint256;
     using ERC165Query for address;
 
+    // yearn vault is 0x
+    error StrategyYearnVaultCannotBe0Address();
+
     /// role allowed to invest/withdraw from yearn vault
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
     // underlying ERC20 token
@@ -44,7 +47,7 @@ contract YearnStrategy is IStrategy, AccessControl, CustomErrors {
         address _underlying
     ) {
         if (_owner == address(0)) revert StrategyOwnerCannotBe0Address();
-        if (_yVault == address(0)) revert StrategyYieldTokenCannotBe0Address();
+        if (_yVault == address(0)) revert StrategyYearnVaultCannotBe0Address();
         if (_underlying == address(0))
             revert StrategyUnderlyingCannotBe0Address();
 

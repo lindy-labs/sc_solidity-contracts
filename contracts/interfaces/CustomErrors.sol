@@ -118,11 +118,8 @@ interface CustomErrors {
     // Strategy: owner is 0x
     error StrategyOwnerCannotBe0Address();
 
-    // Strategy: ust is 0x
+    // Strategy: underlying is 0x
     error StrategyUnderlyingCannotBe0Address();
-
-    // Strategy: yield token is 0x
-    error StrategyYieldTokenCannotBe0Address();
 
     // Strategy: not an IVault
     error StrategyNotIVault();
