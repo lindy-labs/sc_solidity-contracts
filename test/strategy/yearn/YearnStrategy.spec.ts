@@ -155,7 +155,7 @@ describe('YearnStrategy', () => {
     it('reverts if new owner is address(0)', async () => {
       await expect(
         strategy.connect(owner).transferOwnership(constants.AddressZero),
-      ).to.be.revertedWith('VaultOwnerCannotBe0Address');
+      ).to.be.revertedWith('StrategyOwnerCannotBe0Address');
     });
 
     it('changes ownership to the new owner', async () => {

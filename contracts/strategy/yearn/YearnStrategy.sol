@@ -88,7 +88,7 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
      * @param _newOwner The new owner of the contract.
      */
     function transferOwnership(address _newOwner) public override(Ownable) onlyOwner {
-        if (_newOwner == address(0x0)) revert VaultOwnerCannotBe0Address();
+        if (_newOwner == address(0x0)) revert StrategyOwnerCannotBe0Address();
 
         _transferOwnership(_newOwner);
 
