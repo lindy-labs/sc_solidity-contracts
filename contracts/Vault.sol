@@ -166,6 +166,8 @@ contract Vault is
         rebalanceMinimum = 10 * 10**underlying.decimals();
 
         _addPools(_swapPools);
+
+        emit TreasuryUpdated(_treasury);
     }
 
     //
