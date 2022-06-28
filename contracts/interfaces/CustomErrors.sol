@@ -29,6 +29,9 @@ interface CustomErrors {
 
     // Vault: owner cannot be 0x0
     error VaultOwnerCannotBe0Address();
+    
+    // Vault: cannot transfer ownership to self
+    error VaultCannotTransferOwnershipToSelf();
 
     // Vault: destination address is 0x
     error VaultDestinationCannotBe0Address();
@@ -120,6 +123,9 @@ interface CustomErrors {
 
     // Strategy: owner is 0x
     error StrategyOwnerCannotBe0Address();
+
+    // Strategy: cannot transfer ownership to self
+    error StrategyCannotTransferOwnershipToSelf();
 
     // Strategy: underlying is 0x
     error StrategyUnderlyingCannotBe0Address();

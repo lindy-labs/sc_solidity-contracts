@@ -344,6 +344,12 @@ describe('Vault', () => {
       ).to.be.revertedWith('VaultOwnerCannotBe0Address');
     });
 
+    it('reverts if the new owner is the same as the current one', async () => {
+      await expect(
+        vault.connect(owner).transferOwnership(owner.address),
+      ).to.be.revertedWith('VaultCannotTransferOwnershipToSelf');
+    });
+
     it('changes ownership to the new owner', async () => {
       await vault.connect(owner).transferOwnership(alice.address);
 

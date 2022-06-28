@@ -158,6 +158,12 @@ describe('YearnStrategy', () => {
       ).to.be.revertedWith('StrategyOwnerCannotBe0Address');
     });
 
+    it('reverts if the new owner is the same as the current one', async () => {
+      await expect(
+        strategy.connect(owner).transferOwnership(owner.address),
+      ).to.be.revertedWith('StrategyCannotTransferOwnershipToSelf');
+    });
+
     it('changes ownership to the new owner', async () => {
       await strategy.connect(owner).transferOwnership(alice.address);
 

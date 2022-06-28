@@ -188,6 +188,7 @@ contract Vault is
      */
     function transferOwnership(address _newOwner) public override(Ownable) onlyOwner {
         if (_newOwner == address(0x0)) revert VaultOwnerCannotBe0Address();
+        if (_newOwner == msg.sender) revert VaultCannotTransferOwnershipToSelf();
 
         _transferOwnership(_newOwner);
 
