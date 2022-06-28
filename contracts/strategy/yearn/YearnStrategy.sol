@@ -33,6 +33,8 @@ contract YearnStrategy is IStrategy, AccessControl, CustomErrors {
     address public immutable override(IStrategy) vault;
     // yearn vault that this strategy is interacting with
     IYearnVault public immutable yVault;
+    // uint256 max value
+    uint256 constant MAX_UINT256 = 2**256 - 1;
 
     /**
      * @param _vault address of the vault that will use this strategy
@@ -139,8 +141,6 @@ contract YearnStrategy is IStrategy, AccessControl, CustomErrors {
         }
 
         // transfer underlying to vault
-
-        underlying.safeIncreaseAllowance(address(this), amount);
         underlying.safeTransferFrom(address(this), vault, amount);
 
         emit StrategyWithdrawn(amount);

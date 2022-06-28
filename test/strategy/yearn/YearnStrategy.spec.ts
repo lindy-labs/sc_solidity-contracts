@@ -14,6 +14,7 @@ import {
 
 import { generateNewAddress } from '../../shared/';
 import { depositParams, claimParams } from '../../shared/factories';
+import { parseUnits } from 'ethers/lib/utils';
 
 const { parseEther } = utils;
 
@@ -142,6 +143,9 @@ describe('YearnStrategy', () => {
 
       expect(await strategy.underlying()).to.eq(underlying.address);
       expect(await strategy.hasAssets()).to.be.false;
+      expect(
+        await underlying.allowance(strategy.address, strategy.address),
+      ).to.eq(constants.MaxUint256);
     });
   });
 
