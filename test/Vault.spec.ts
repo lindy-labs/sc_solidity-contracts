@@ -321,7 +321,7 @@ describe('Vault', () => {
       expect(await vault.perfFeePct()).to.be.equal(PERFORMANCE_FEE_PCT);
     });
 
-    it('check the emission of the TreasuryUpdate event', async () => {
+    it('emits a TreasuryUpdated event', async () => {
       await expect(vault.deployTransaction)
         .emit(vault, 'TreasuryUpdated')
         .withArgs(TREASURY);
