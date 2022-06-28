@@ -60,6 +60,8 @@ contract YearnStrategy is IStrategy, AccessControl, CustomErrors {
         vault = _vault;
         yVault = IYearnVault(_yVault);
         underlying = IERC20(_underlying);
+
+        underlying.approve(_yVault, type(uint256).max);
     }
 
     //
@@ -107,8 +109,6 @@ contract YearnStrategy is IStrategy, AccessControl, CustomErrors {
     function invest() external virtual override(IStrategy) onlyManager {
         uint256 balance = _getUnderlyingBalance();
         if (balance == 0) revert StrategyNoUnderlying();
-
-        underlying.safeIncreaseAllowance(address(yVault), balance);
 
         yVault.deposit(balance, address(this));
 
