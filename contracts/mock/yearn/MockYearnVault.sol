@@ -38,7 +38,7 @@ contract MockYearnVault is IYearnVault, ERC20 {
     function withdraw(
         uint256 maxShares,
         address recipient,
-        uint256 maxLoss
+        uint256 /* maxLoss */
     ) public returns (uint256) {
         require(maxShares > 0);
 
