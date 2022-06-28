@@ -4,17 +4,30 @@ pragma solidity =0.8.10;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
- * Strategies can be plugged into vaults to invest and manage their underlying funds
+ * IStrategy defines the interface for pluggable contracts used by vaults to invest funds and generate yield.
  *
- * @notice It's up to the strategy to decide what do to with investable assets provided by a vault
+ * @notice It's up to the strategy to decide what do to with investable assets provided by a vault.
  *
- * @notice It's up to the vault to decide how much to invest from the total pool
+ * @notice It's up to the vault to decide how much to invest/disinvest from the total pool.
  */
 interface IStrategy {
     /**
+     * Emmited when funds are invested by the strategy.
+     *
+     *@param amount amount invested 
+     */
+    event StrategyInvested(uint256 amount);
+    /**
+     * Emmited when funds are withdrawn (disinvested) by the strategy.
+     *
+     *@param amount amount withdrawn  
+     */
+    event StrategyWithdrawn(uint256 amount);
+
+    /**
      * Provides information about wether the strategy is synchronous or asynchronous.
-     * 
-     * @notice Synchronous strategies support instant withdrawals, 
+     *
+     * @notice Synchronous strategies support instant withdrawals,
      * while asynchronous strategies impose a delay before withdrawals can be made.
      *
      * @return true if the strategy is synchronous, false otherwise
@@ -22,25 +35,21 @@ interface IStrategy {
     function isSync() external view returns (bool);
 
     /**
-     * The vault linked to this stragegy
+     * The vault linked to this strategy.
      *
      * @return The vault's address
      */
     function vault() external view returns (address);
 
     /**
-     * Withdraws the specified amount back to the vault
-     *
-     * @notice Unlike `withdrawToVault`, this function only considers the
-     * amount currently not invested, but only what is currently held by the
-     * strategy
+     * Withdraws the specified amount back to the vault (disinvests)
      *
      * @param amount Amount to withdraw
      */
     function withdrawToVault(uint256 amount) external;
 
     /**
-     * Amount, expressed in the underlying currency, currently in the strategy
+     * Amount of the underlying currency currently invested by the strategy.
      *
      * @notice both held and invested amounts are included here, using the
      * latest known exchange rates to the underlying currency
@@ -52,13 +61,13 @@ interface IStrategy {
     /**
      * Indicates if assets are invested into strategy or not.
      *
-     * @notice this will be used when removing this strategy
+     * @notice this will be used when removing the strategy from the vault
      * @return true if assets invested, false if nothing invested.
      */
     function hasAssets() external view returns (bool);
 
     /**
-     * deposits of all the currently held underlying by the strategy contract into the respective vault/strategy
+     * Deposits of all the available underlying into the yield generating protocol.
      */
     function invest() external;
 }
