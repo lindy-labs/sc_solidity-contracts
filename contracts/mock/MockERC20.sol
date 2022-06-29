@@ -41,12 +41,6 @@ contract MockUSDC is MockERC20 {
     constructor(uint256 supply) MockERC20("Mock USDC", "mockUSDC", 6, supply) {}
 }
 
-contract MockUST is MockERC20 {
-    constructor(uint256 supply) MockERC20("Mock UST", "mockUST", 18, supply) {}
-}
-
-contract MockAUST is MockERC20 {
-    constructor(uint256 supply)
-        MockERC20("Mock aUST", "mockaUST", 18, supply)
-    {}
+contract MockLUSD is MockERC20 {
+    constructor(uint256 supply) MockERC20("Mock LUSD", "mockLUSD", 18, supply) {}
 }

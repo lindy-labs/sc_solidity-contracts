@@ -2,6 +2,7 @@ import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 import type { DeployFunction } from 'hardhat-deploy/types';
 import { parseUnits } from '@ethersproject/units';
 import { ethers } from 'hardhat';
+import { utils } from 'ethers';
 
 const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   const { get } = env.deployments;
@@ -10,19 +11,30 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
 
   console.table([alice, bob, treasury]);
 
-  const ust = await get('UST');
-  const underlying = await ethers.getContractAt('MockERC20', ust.address);
+  const lusd = await get('LUSD');
+  const underlying = await ethers.getContractAt('MockERC20', lusd.address);
 
-  const vaultAddress = (await get('Vault_UST')).address;
+  const vaultAddress = (await get('Vault_LUSD')).address;
   const vault = await ethers.getContractAt('Vault', vaultAddress);
+
+  // Configure contract roles
+  console.log('Configuring contract roles');
+  const SPONSOR_ROLE = utils.keccak256(utils.toUtf8Bytes('SPONSOR_ROLE'));
+  await vault.connect(owner).grantRole(SPONSOR_ROLE, treasury.address);
+
+  console.log('Configuring vault strategy, treasury and investPct');
+  await vault.connect(owner).setTreasury(treasury.address);
+  await vault.connect(owner).setInvestPct('8000');
 
   await underlying.mint(alice.address, parseUnits('5000', 18));
   await underlying.mint(bob.address, parseUnits('5000', 18));
 
   await Promise.all(
     [alice, bob, treasury].map((account) =>
-      underlying.connect(account).approve(vault.address, parseUnits('5000', 18))
-    )
+      underlying
+        .connect(account)
+        .approve(vault.address, parseUnits('5000', 18)),
+    ),
   );
 
   console.log('Set treasury');
@@ -36,14 +48,14 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   const lockDuration = await vault.MIN_SPONSOR_LOCK_DURATION();
   await vault
     .connect(treasury)
-    .sponsor(ust.address, parseUnits("1000", 18), lockDuration);
+    .sponsor(lusd.address, parseUnits('1000', 18), lockDuration);
 
   console.log(
     'Alice deposits 1000 with 90% yield to Alice and 10% yield for donations',
   );
   await vault.connect(alice).deposit({
     amount: parseUnits('1000', 18),
-    inputToken: ust.address,
+    inputToken: lusd.address,
     lockDuration: 1,
     claims: [
       {
@@ -65,7 +77,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   );
   await vault.connect(bob).deposit({
     amount: parseUnits('1000', 18),
-    inputToken: ust.address,
+    inputToken: lusd.address,
     lockDuration: 1,
     claims: [
       {
