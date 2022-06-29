@@ -10,7 +10,7 @@ import {ERC165Query} from "../../lib/ERC165Query.sol";
 import {IStrategy} from "../IStrategy.sol";
 import {CustomErrors} from "../../interfaces/CustomErrors.sol";
 import {IVault} from "../../vault/IVault.sol";
-import {IStablilityPool} from "../../interfaces/liquity/IStabilityPool.sol";
+import {IStabilityPool} from "../../interfaces/liquity/IStabilityPool.sol";
 
 /***
  * Gives out LQTY & ETH as rewards
@@ -21,6 +21,7 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
     using ERC165Query for address;
 
     error LiquityStabilityPoolCannotBeAddressZero();
+    error StrategyYieldTokenCannotBe0Address();
 
     bytes32 public constant MANAGER_ROLE =
         0x241ecf16d79d0f8dbfb92cbc07fe17840425976cf0667f022fe9877caa831b08; // keccak256("MANAGER_ROLE");
@@ -41,7 +42,7 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         if (_owner == address(0)) revert StrategyOwnerCannotBe0Address();
         if (_lqty == address(0)) revert StrategyYieldTokenCannotBe0Address();
         if (_stabilityPool == address(0))
-            revert StrategyYieldTokenCannotBe0Address();
+            revert LiquityStabilityPoolCannotBeAddressZero();
         if (_underlying == address(0))
             revert StrategyUnderlyingCannotBe0Address();
 
@@ -52,6 +53,98 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         _setupRole(MANAGER_ROLE, _vault);
         vault = _vault;
         underlying = IERC20(_underlying);
+        stabilityPool = IStabilityPool(_stabilityPool);
         lqty = _lqty;
+    }
+
+    //
+    // Modifiers
+    //
+
+    modifier onlyManager() {
+        if (!hasRole(MANAGER_ROLE, msg.sender))
+            revert StrategyCallerNotManager();
+        _;
+    }
+
+    //
+    // IStrategy
+    //
+
+    /**
+     * Returns false since strategy is asynchronous.
+     */
+    function isSync() external pure override(IStrategy) returns (bool) {
+        return false;
+    }
+
+    /// @inheritdoc IStrategy
+    function hasAssets()
+        external
+        view
+        virtual
+        override(IStrategy)
+        returns (bool)
+    {
+        return investedAssets() > 0;
+    }
+
+    /// @inheritdoc IStrategy
+    function investedAssets()
+        public
+        view
+        virtual
+        override(IStrategy)
+        returns (uint256)
+    {
+        return stabilityPool.getCompoundedLUSDDeposit(address(this));
+    }
+
+    /// @inheritdoc IStrategy
+    function invest() external virtual override(IStrategy) onlyManager {
+        uint256 balance = _getUnderlyingBalance();
+        if (balance == 0) revert StrategyNoUnderlying();
+
+        stabilityPool.provideToSP(balance, address(0));
+
+        emit StrategyInvested(balance);
+    }
+
+    /// @inheritdoc IStrategy
+    function withdrawToVault(uint256 amount)
+        external
+        virtual
+        override(IStrategy)
+        onlyManager
+    {
+        if (amount == 0) revert StrategyAmountZero();
+        uint256 uninvestedUnderlying = _getUnderlyingBalance();
+
+        if (amount > uninvestedUnderlying) {
+            uint256 _lusdToWithdraw = amount - uninvestedUnderlying;
+
+            if (_lusdToWithdraw > investedAssets())
+                revert StrategyNotEnoughShares();
+
+            // withdraw lusd from the stabilityPool to this contract
+            // this will also withdraw the unclaimed lqty & eth rewards
+            stabilityPool.withdrawFromSP(_lusdToWithdraw);
+        }
+
+        // transfer underlying to vault
+        underlying.safeTransfer(vault, amount);
+
+        emit StrategyWithdrawn(amount);
+    }
+
+    /////////////////////////////////// INTERNAL FUNCTIONS ////////////////////////////////////////////
+
+    /**
+     * Get the underlying balance of the strategy.
+     *
+     * @return underlying balance of the strategy
+     */
+    function _getUnderlyingBalance() internal view returns (uint256) {
+        return underlying.balanceOf(address(this));
     }
 }

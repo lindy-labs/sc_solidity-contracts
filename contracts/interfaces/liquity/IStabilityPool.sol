@@ -23,4 +23,34 @@ interface IStabilityPool {
      * If _amount > userDeposit, the user withdraws all of their compounded deposit.
      */
     function withdrawFromSP(uint256 _amount) external;
+
+    /* Calculates the ETH gain earned by the deposit since its last snapshots were taken.
+     * Given by the formula:  E = d0 * (S - S(0))/P(0)
+     * where S(0) and P(0) are the depositor's snapshots of the sum S and product P, respectively.
+     * d0 is the last recorded deposit value.
+     */
+    function getDepositorETHGain(address _depositor)
+        external
+        view
+        returns (uint256);
+
+    /*
+     * Calculate the LQTY gain earned by a deposit since its last snapshots were taken.
+     * Given by the formula:  LQTY = d0 * (G - G(0))/P(0)
+     * where G(0) and P(0) are the depositor's snapshots of the sum G and product P, respectively.
+     * d0 is the last recorded deposit value.
+     */
+    function getDepositorLQTYGain(address _depositor)
+        external
+        view
+        returns (uint256);
+
+    /*
+     * Return the user's compounded deposit. Given by the formula:  d = d0 * P/P(0)
+     * where P(0) is the depositor's snapshot of the product P, taken when they last updated their deposit.
+     */
+    function getCompoundedLUSDDeposit(address _depositor)
+        external
+        view
+        returns (uint256);
 }
