@@ -320,6 +320,12 @@ describe('Vault', () => {
       expect(await vault.treasury()).to.be.equal(TREASURY);
       expect(await vault.perfFeePct()).to.be.equal(PERFORMANCE_FEE_PCT);
     });
+
+    it('emits a TreasuryUpdated event', async () => {
+      await expect(vault.deployTransaction)
+        .emit(vault, 'TreasuryUpdated')
+        .withArgs(TREASURY);
+    });
   });
 
   describe('setTreasury', () => {
@@ -1229,7 +1235,7 @@ describe('Vault', () => {
         amount: parseUnits('100'),
         inputToken: underlying.address,
         claims: [],
-        name: 'abc', // three utf8 characters
+        name: 'ab', // two utf8 characters
       });
       await expect(vault.connect(owner).deposit(params)).to.be.revertedWith(
         'VaultDepositNameTooShort()',
