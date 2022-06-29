@@ -171,6 +171,10 @@ describe('YearnStrategy', () => {
     });
 
     it("revokes previous owner's ADMIN role and sets up ADMIN role for the new owner", async () => {
+      // assert that the owner has the ADMIN role
+      expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, owner.address)).to.be
+        .true;
+
       await strategy.connect(owner).transferOwnership(alice.address);
 
       expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, owner.address)).to.be

@@ -357,6 +357,12 @@ describe('Vault', () => {
     });
 
     it("revokes all previous owner's roles and sets them for the new owner", async () => {
+      // assert that the owner has all the roles
+      expect(await vault.hasRole(DEFAULT_ADMIN_ROLE, owner.address)).to.be.true;
+      expect(await vault.hasRole(INVESTOR_ROLE, owner.address)).to.be.true;
+      expect(await vault.hasRole(SETTINGS_ROLE, owner.address)).to.be.true;
+      expect(await vault.hasRole(SPONSOR_ROLE, owner.address)).to.be.true;
+
       await vault.connect(owner).transferOwnership(alice.address);
 
       expect(await vault.hasRole(DEFAULT_ADMIN_ROLE, owner.address)).to.be
