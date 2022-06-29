@@ -19,11 +19,11 @@ const { formatUnits, parseUnits, getAddress } = ethers.utils;
 const { MaxUint256, HashZero, AddressZero } = ethers.constants;
 
 const FORK_BLOCK = 14449700;
-const UST_ADDRESS = getAddress('0xa47c8bf37f92abed4a126bda807a7b7498661acd');
+const LUSD_ADDRESS = getAddress('0x5f98805A4E8be255a32880FDeC7F6728C6568bA0');
 const USDC_ADDRESS = getAddress('0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48');
 const DAI_ADDRESS = getAddress('0x6b175474e89094c44da98b954eedeac495271d0f');
 const CURVE_UST_3CRV_POOL = getAddress(
-  '0x890f4e345b1daed0367a877a1612f86a1f86985f',
+  '0xEd279fDD11cA84bEef15AF5D39BB4d4bEE23F0cA',
 );
 const TWO_WEEKS = BigNumber.from(time.duration.weeks(2).toNumber());
 const PERFORMANCE_FEE_PCT = BigNumber.from('200');
@@ -43,7 +43,7 @@ describe('Vault (fork tests)', () => {
   let alice: SignerWithAddress;
   let bob: SignerWithAddress;
 
-  let ust: ERC20;
+  let lusd: ERC20;
   let dai: ERC20;
   let usdc: ERC20;
   let curvePool: ICurve;
@@ -55,19 +55,19 @@ describe('Vault (fork tests)', () => {
     await ForkHelpers.forkToMainnet(FORK_BLOCK);
     [owner, alice, bob] = await ethers.getSigners();
 
-    ust = ERC20__factory.connect(UST_ADDRESS, owner);
+    lusd = ERC20__factory.connect(LUSD_ADDRESS, owner);
     dai = ERC20__factory.connect(DAI_ADDRESS, owner);
     usdc = ERC20__factory.connect(USDC_ADDRESS, owner);
     curvePool = ICurve__factory.connect(CURVE_UST_3CRV_POOL, owner);
 
     decimals = {
-      ust: await ust.decimals(),
+      ust: await lusd.decimals(),
       dai: await dai.decimals(),
       usdc: await usdc.decimals(),
     };
 
     vault = await new Vault__factory(owner).deploy(
-      ust.address,
+      lusd.address,
       TWO_WEEKS,
       INVEST_PCT,
       owner.address,
@@ -95,13 +95,13 @@ describe('Vault (fork tests)', () => {
       parseUnits('1000', await usdc.decimals()),
     );
     await ForkHelpers.mintToken(
-      ust,
+      lusd,
       alice,
-      parseUnits('1000', await ust.decimals()),
+      parseUnits('1000', await lusd.decimals()),
     );
     dai.connect(alice).approve(vault.address, MaxUint256);
     usdc.connect(alice).approve(vault.address, MaxUint256);
-    ust.connect(alice).approve(vault.address, MaxUint256);
+    lusd.connect(alice).approve(vault.address, MaxUint256);
   });
 
   describe('addPool', function () {
@@ -168,7 +168,7 @@ describe('Vault (fork tests)', () => {
   });
 
   describe('deposit with DAI', function () {
-    it('automatically swaps into UST and deposits that', async () => {
+    it('automatically swaps into LUSD and deposits that', async () => {
       const action = vault.connect(alice).deposit(
         depositParams.build({
           amount: parseUnits('1000', await dai.decimals()),
@@ -177,13 +177,13 @@ describe('Vault (fork tests)', () => {
         }),
       );
 
-      const expectedUnderlyingAmount = '998093178708890943065';
+      const expectedUnderlyingAmount = '995643944707865674480';
 
       await expect(action)
         .to.emit(vault, 'Swap')
         .withArgs(
           dai.address,
-          ust.address,
+          lusd.address,
           parseUnits('1000', await dai.decimals()),
           expectedUnderlyingAmount,
         );
@@ -229,9 +229,9 @@ describe('Vault (fork tests)', () => {
         .to.emit(vault, 'Swap')
         .withArgs(
           usdc.address,
-          ust.address,
+          lusd.address,
           parseUnits('1000', await usdc.decimals()),
-          '998096860985047176646',
+          '995647617949853706650',
         );
     });
   });

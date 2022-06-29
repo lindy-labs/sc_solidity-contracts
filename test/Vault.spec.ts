@@ -6,10 +6,10 @@ import { expect } from 'chai';
 
 import {
   Vault,
-  MockUST__factory,
-  MockUST,
   MockStrategySync,
   Vault__factory,
+  MockLUSD__factory,
+  MockLUSD,
 } from '../typechain';
 
 import createVaultHelpers from './shared/vault';
@@ -33,7 +33,7 @@ describe('Vault', () => {
   let carol: SignerWithAddress;
   let newAccount: SignerWithAddress;
 
-  let underlying: MockUST;
+  let underlying: MockLUSD;
   let vault: Vault;
 
   let strategy: MockStrategySync;
@@ -66,11 +66,11 @@ describe('Vault', () => {
 
     [owner] = await ethers.getSigners();
 
-    const ustDeployment = await deployments.get('UST');
-    const ustVaultDeployment = await deployments.get('Vault_UST');
+    const lusdDeployment = await deployments.get('LUSD');
+    const lusdVaultDeployment = await deployments.get('Vault_LUSD');
 
-    underlying = MockUST__factory.connect(ustDeployment.address, owner);
-    vault = Vault__factory.connect(ustVaultDeployment.address, owner);
+    underlying = MockLUSD__factory.connect(lusdDeployment.address, owner);
+    vault = Vault__factory.connect(lusdVaultDeployment.address, owner);
   });
 
   beforeEach(() => fixtures());

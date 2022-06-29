@@ -6,9 +6,9 @@ import { expect } from 'chai';
 
 import {
   Vault,
-  MockUST__factory,
-  MockUST,
   MockStrategyAsync,
+  MockLUSD,
+  MockLUSD__factory,
 } from '../typechain';
 
 import { depositParams, claimParams } from './shared/factories';
@@ -24,7 +24,7 @@ describe('Vault in async mode', () => {
   let alice: SignerWithAddress;
   let bob: SignerWithAddress;
 
-  let underlying: MockUST;
+  let underlying: MockLUSD;
   let vault: Vault;
   let strategy: MockStrategyAsync;
 
@@ -46,9 +46,9 @@ describe('Vault in async mode', () => {
 
     [owner] = await ethers.getSigners();
 
-    const ustDeployment = await deployments.get('UST');
+    const lusdDeployment = await deployments.get('LUSD');
 
-    underlying = MockUST__factory.connect(ustDeployment.address, owner);
+    underlying = MockLUSD__factory.connect(lusdDeployment.address, owner);
   });
 
   beforeEach(() => fixtures());

@@ -6,10 +6,8 @@ import { Contract, BigNumber } from 'ethers';
 
 import {
   Vault,
-  MockUST,
-  MockAnchorStrategy,
-  MockAUST__factory,
-  MockUST__factory,
+  MockLUSD,
+  MockLUSD__factory,
   Vault__factory,
 } from '../typechain';
 import { depositParams, claimParams } from './shared/factories';
@@ -28,13 +26,8 @@ describe('Audit Tests 1', () => {
   let bob: SignerWithAddress;
   let charlie: SignerWithAddress;
 
-  let mockEthAnchorRouter: Contract;
-  let mockAUstUstFeed: Contract;
-
-  let underlying: MockUST;
-  let aUstToken: Contract;
+  let underlying: MockLUSD;
   let vault: Vault;
-  let strategy: MockAnchorStrategy;
 
   const TWO_WEEKS = BigNumber.from(time.duration.weeks(2).toNumber());
   const TREASURY = generateNewAddress();
@@ -47,13 +40,11 @@ describe('Audit Tests 1', () => {
 
     [owner] = await ethers.getSigners();
 
-    const ustDeployment = await deployments.get('UST');
-    const austDeployment = await deployments.get('aUST');
-    const ustVaultDeployment = await deployments.get('Vault_UST');
+    const lusdDeployment = await deployments.get('LUSD');
+    const lusdVaultDeployment = await deployments.get('Vault_LUSD');
 
-    aUstToken = MockAUST__factory.connect(austDeployment.address, owner);
-    underlying = MockUST__factory.connect(ustDeployment.address, owner);
-    vault = Vault__factory.connect(ustVaultDeployment.address, owner);
+    underlying = MockLUSD__factory.connect(lusdDeployment.address, owner);
+    vault = Vault__factory.connect(lusdVaultDeployment.address, owner);
   });
 
   beforeEach(() => fixtures());
@@ -62,22 +53,6 @@ describe('Audit Tests 1', () => {
     [owner, alice, bob, charlie] = await ethers.getSigners();
 
     let Vault = await ethers.getContractFactory('Vault');
-    let MockAnchorStrategy = await ethers.getContractFactory(
-      'MockAnchorStrategy',
-    );
-
-    const MockEthAnchorRouterFactory = await ethers.getContractFactory(
-      'MockEthAnchorRouter',
-    );
-    mockEthAnchorRouter = await MockEthAnchorRouterFactory.deploy(
-      underlying.address,
-      aUstToken.address,
-    );
-
-    const MockChainlinkPriceFeedFactory = await ethers.getContractFactory(
-      'MockChainlinkPriceFeed',
-    );
-    mockAUstUstFeed = await MockChainlinkPriceFeedFactory.deploy(18);
 
     vault = await Vault.deploy(
       underlying.address,
@@ -94,14 +69,6 @@ describe('Audit Tests 1', () => {
     underlying.connect(alice).approve(vault.address, MaxUint256);
     underlying.connect(bob).approve(vault.address, MaxUint256);
     underlying.connect(charlie).approve(vault.address, MaxUint256);
-
-    strategy = await MockAnchorStrategy.deploy(
-      vault.address,
-      mockEthAnchorRouter.address,
-      mockAUstUstFeed.address,
-      underlying.address,
-      aUstToken.address,
-    );
   });
 
   it('two deposits, single claimer. should fair for depositors', async () => {
