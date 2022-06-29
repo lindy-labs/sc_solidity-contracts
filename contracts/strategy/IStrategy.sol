@@ -25,19 +25,6 @@ interface IStrategy {
     event StrategyWithdrawn(uint256 amount);
 
     /**
-     * Emmited when funds are invested by the strategy.
-     *
-     *@param amount amount invested 
-     */
-    event StrategyInvested(uint256 amount);
-    /**
-     * Emmited when funds are withdrawn (disinvested) by the strategy.
-     *
-     *@param amount amount withdrawn  
-     */
-    event StrategyWithdrawn(uint256 amount);
-
-    /**
      * Provides information about wether the strategy is synchronous or asynchronous.
      *
      * @notice Synchronous strategies support instant withdrawals,

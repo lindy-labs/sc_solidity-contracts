@@ -141,8 +141,8 @@ contract YearnStrategy is IStrategy, AccessControl, CustomErrors {
         }
 
         // transfer underlying to vault
-        underlying.safeTransferFrom(address(this), vault, amount);
-
+        underlying.safeTransfer(vault, amount);
+        
         emit StrategyWithdrawn(amount);
     }
 
