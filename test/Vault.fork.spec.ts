@@ -49,8 +49,6 @@ describe('Vault (fork tests)', () => {
   let curvePool: ICurve;
   let vault: Vault;
 
-  let decimals: Record<string, number>;
-
   beforeEach(async () => {
     await ForkHelpers.forkToMainnet(FORK_BLOCK);
     [owner, alice, bob] = await ethers.getSigners();
@@ -59,12 +57,6 @@ describe('Vault (fork tests)', () => {
     dai = ERC20__factory.connect(DAI_ADDRESS, owner);
     usdc = ERC20__factory.connect(USDC_ADDRESS, owner);
     curvePool = ICurve__factory.connect(CURVE_UST_3CRV_POOL, owner);
-
-    decimals = {
-      ust: await lusd.decimals(),
-      dai: await dai.decimals(),
-      usdc: await usdc.decimals(),
-    };
 
     vault = await new Vault__factory(owner).deploy(
       lusd.address,
