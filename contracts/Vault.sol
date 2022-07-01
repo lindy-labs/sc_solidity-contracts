@@ -962,7 +962,7 @@ contract Vault is
         if (_deposit.claimerId == address(0)) revert VaultNotDeposit();
         if (_deposit.amount < _amount)
             revert VaultCannotWithdrawMoreThanAvailable();
-            
+
         // Amount of shares the _amount is worth
         uint256 amountShares = _computeShares(
             _amount,
