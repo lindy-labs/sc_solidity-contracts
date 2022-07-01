@@ -701,9 +701,6 @@ contract Vault is
         uint256 idsLen = _ids.length;
 
         for (uint256 i; i < idsLen; ++i) {
-            if (_amounts[i] > deposits[_ids[i]].amount)
-                revert VaultAmountTooLarge();
-
             amount += _withdrawSingle(
                 _ids[i],
                 localTotalShares,
@@ -965,7 +962,7 @@ contract Vault is
         if (_deposit.claimerId == address(0)) revert VaultNotDeposit();
         if (_deposit.amount < _amount)
             revert VaultCannotWithdrawMoreThanAvailable();
-
+            
         // Amount of shares the _amount is worth
         uint256 amountShares = _computeShares(
             _amount,
