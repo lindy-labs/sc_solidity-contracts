@@ -15,4 +15,6 @@ interface IYearnVault is IERC20 {
         address recipient,
         uint256 maxLoss
     ) external returns (uint256);
+
+    function totalAssets() external view returns (uint256);
 }

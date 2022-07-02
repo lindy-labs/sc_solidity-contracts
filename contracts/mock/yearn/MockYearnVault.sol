@@ -51,6 +51,10 @@ contract MockYearnVault is IYearnVault, ERC20 {
         return value;
     }
 
+    function totalAssets() external view returns (uint256) {
+        return underlying.balanceOf(address(this));
+    }
+
     ///////////////// INTERNAL FUNCTIONS //////////////////////////////
 
     function _issueSharesForAmount(address to, uint256 amount)

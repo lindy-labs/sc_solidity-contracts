@@ -1,6 +1,5 @@
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { ethers } from 'hardhat';
-import { time } from '@openzeppelin/test-helpers';
 import { expect } from 'chai';
 import { BigNumber, utils, constants } from 'ethers';
 
@@ -142,6 +141,9 @@ describe('YearnStrategy', () => {
 
       expect(await strategy.underlying()).to.eq(underlying.address);
       expect(await strategy.hasAssets()).to.be.false;
+      expect(
+        await underlying.allowance(strategy.address, yVault.address),
+      ).to.eq(constants.MaxUint256);
     });
   });
 
