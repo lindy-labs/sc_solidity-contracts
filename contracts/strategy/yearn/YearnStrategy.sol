@@ -191,3 +191,9 @@ contract YearnStrategy is IStrategy, AccessControl, CustomErrors {
         return (_underlying * 1e18) / yVault.pricePerShare();
     }
 }
+
+// TODO:
+// 1. Finish the investedAssets() function
+//      a. Track the unclaimed eth rewards (use chainlink oracle to convert them to lusd)
+//      b. Track the unclaimed lqty rewards (use chainlink oracle to convert them to lusd)
+//      c. Track the usdc deposited (use chainlink oracle or uniswap oracle to convert it in lusd terms or maybe just assume a ratio of 1:1 between lusd & usdc)
