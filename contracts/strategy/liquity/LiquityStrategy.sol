@@ -30,17 +30,20 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
     /// @inheritdoc IStrategy
     address public immutable override(IStrategy) vault;
     IStabilityPool public immutable stabilityPool;
-    address public immutable lqty; // reward token
+    IERC20 public immutable lqty; // reward token
+    IERC20 public immutable usdc;
 
     constructor(
         address _vault,
         address _owner,
         address _stabilityPool,
         address _lqty,
+        address _usdc,
         address _underlying
     ) {
         if (_owner == address(0)) revert StrategyOwnerCannotBe0Address();
         if (_lqty == address(0)) revert StrategyYieldTokenCannotBe0Address();
+        if (_usdc == address(0)) revert StrategyYieldTokenCannotBe0Address();
         if (_stabilityPool == address(0))
             revert LiquityStabilityPoolCannotBeAddressZero();
         if (_underlying == address(0))
@@ -54,7 +57,8 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         vault = _vault;
         underlying = IERC20(_underlying);
         stabilityPool = IStabilityPool(_stabilityPool);
-        lqty = _lqty;
+        lqty = IERC20(_lqty);
+        usdc = IERC20(_usdc);
     }
 
     //
@@ -72,10 +76,10 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
     //
 
     /**
-     * Returns false since strategy is asynchronous.
+     * Returns true since strategy is synchronous.
      */
     function isSync() external pure override(IStrategy) returns (bool) {
-        return false;
+        return true;
     }
 
     /// @inheritdoc IStrategy
@@ -90,6 +94,9 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
     }
 
     /// @inheritdoc IStrategy
+    /// @notice lusd deposited into strategy + lusd held by strategy + usdc held after eth/lqty=>usdc swap
+    /// @dev eth & lqty rewards of the strategy in the lqty pool or withdrawn and held by the strategy are not calculated as rewards
+    /// untill that eth/lqty is harvested and converted to usdc/lusd.
     function investedAssets()
         public
         view
@@ -97,7 +104,11 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         override(IStrategy)
         returns (uint256)
     {
-        return stabilityPool.getCompoundedLUSDDeposit(address(this));
+        return
+            stabilityPool.getCompoundedLUSDDeposit(address(this)) +
+            stabilityPool.getDepositorETHGain(address(this)) +
+            stabilityPool.getDepositorLQTYGain(address(this)) +
+            usdc.balanceOf(address(this));
     }
 
     /// @inheritdoc IStrategy
@@ -118,18 +129,12 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         onlyManager
     {
         if (amount == 0) revert StrategyAmountZero();
-        uint256 uninvestedUnderlying = _getUnderlyingBalance();
 
-        if (amount > uninvestedUnderlying) {
-            uint256 _lusdToWithdraw = amount - uninvestedUnderlying;
+        if (amount > investedAssets()) revert StrategyNotEnoughShares();
 
-            if (_lusdToWithdraw > investedAssets())
-                revert StrategyNotEnoughShares();
-
-            // withdraw lusd from the stabilityPool to this contract
-            // this will also withdraw the unclaimed lqty & eth rewards
-            stabilityPool.withdrawFromSP(_lusdToWithdraw);
-        }
+        // withdraw lusd from the stabilityPool to this contract
+        // this will also withdraw the unclaimed lqty & eth rewards
+        stabilityPool.withdrawFromSP(amount);
 
         // transfer underlying to vault
         underlying.safeTransfer(vault, amount);
