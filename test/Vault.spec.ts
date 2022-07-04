@@ -100,14 +100,11 @@ describe('Vault', () => {
 
     strategy = await MockStrategy.deploy(vault.address, underlying.address);
 
-    ({
-      addUnderlyingBalance,
-      addYieldToVault,
-      removeUnderlyingFromVault,
-    } = createVaultHelpers({
-      vault,
-      underlying,
-    }));
+    ({ addUnderlyingBalance, addYieldToVault, removeUnderlyingFromVault } =
+      createVaultHelpers({
+        vault,
+        underlying,
+      }));
 
     await addUnderlyingBalance(alice, '1000');
     await addUnderlyingBalance(bob, '1000');
@@ -572,7 +569,7 @@ describe('Vault', () => {
     });
 
     describe('invest scenario', () => {
-      it('reverts if invest amount < 10 UST', async () => {
+      it('reverts if invest amount < 10 underlying', async () => {
         await vault.connect(owner).setStrategy(strategy.address);
         await vault.connect(owner).setInvestPct('8000');
         await addYieldToVault('10');
@@ -606,7 +603,7 @@ describe('Vault', () => {
     });
 
     describe('disinvest scenario', () => {
-      it('reverts if disinvest amount < 10 UST', async () => {
+      it('reverts if disinvest amount < 10 underlying', async () => {
         await vault.connect(owner).setStrategy(strategy.address);
         await addYieldToVault('10');
         await underlying.mint(strategy.address, parseUnits('150'));
@@ -2299,7 +2296,6 @@ describe('Vault', () => {
       // deposit 1 unit
       await vault.connect(bob).deposit(params);
 
-      // total shares must be 2 units
       expect(await vault.totalShares()).to.equal(
         amount.mul(2).mul(SHARES_MULTIPLIER),
       );

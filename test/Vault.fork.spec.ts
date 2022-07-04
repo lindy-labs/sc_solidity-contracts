@@ -15,21 +15,20 @@ import {
 import { ForkHelpers, getRoleErrorMsg, arrayFromTo } from './shared';
 import { depositParams, claimParams } from './shared/factories';
 
-const { formatUnits, parseUnits, getAddress } = ethers.utils;
+const { parseUnits, getAddress } = ethers.utils;
 const { MaxUint256, HashZero, AddressZero } = ethers.constants;
 
 const FORK_BLOCK = 14449700;
 const LUSD_ADDRESS = getAddress('0x5f98805A4E8be255a32880FDeC7F6728C6568bA0');
 const USDC_ADDRESS = getAddress('0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48');
 const DAI_ADDRESS = getAddress('0x6b175474e89094c44da98b954eedeac495271d0f');
-const CURVE_UST_3CRV_POOL = getAddress(
+const CURVE_LUSD_3CRV_POOL = getAddress(
   '0xEd279fDD11cA84bEef15AF5D39BB4d4bEE23F0cA',
 );
 const TWO_WEEKS = BigNumber.from(time.duration.weeks(2).toNumber());
 const PERFORMANCE_FEE_PCT = BigNumber.from('200');
 const INVEST_PCT = BigNumber.from('9000');
 const INVESTMENT_FEE_PCT = BigNumber.from('200');
-const DENOMINATOR = BigNumber.from('10000');
 const DEFAULT_ADMIN_ROLE = HashZero;
 
 const curveIndexes = {
@@ -56,7 +55,7 @@ describe('Vault (fork tests)', () => {
     lusd = ERC20__factory.connect(LUSD_ADDRESS, owner);
     dai = ERC20__factory.connect(DAI_ADDRESS, owner);
     usdc = ERC20__factory.connect(USDC_ADDRESS, owner);
-    curvePool = ICurve__factory.connect(CURVE_UST_3CRV_POOL, owner);
+    curvePool = ICurve__factory.connect(CURVE_LUSD_3CRV_POOL, owner);
 
     vault = await new Vault__factory(owner).deploy(
       lusd.address,
