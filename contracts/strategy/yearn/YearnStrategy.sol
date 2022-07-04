@@ -148,19 +148,13 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
         onlyManager
     {
         if (amount == 0) revert StrategyAmountZero();
-        uint256 uninvestedUnderlying = _getUnderlyingBalance();
 
-        if (amount > uninvestedUnderlying) {
-            uint256 _sharesToWithdraw = _underlyingToShares(
-                amount - uninvestedUnderlying
-            );
+        uint256 _sharesToWithdraw = _underlyingToShares(amount);
 
-            if (_sharesToWithdraw > _getShares())
-                revert StrategyNotEnoughShares();
+        if (_sharesToWithdraw > _getShares()) revert StrategyNotEnoughShares();
 
-            // burn shares and withdraw required underlying to strategy
-            yVault.withdraw(_sharesToWithdraw, address(this), 1);
-        }
+        // burn shares and withdraw required underlying to strategy
+        yVault.withdraw(_sharesToWithdraw, address(this), 1);
 
         // transfer underlying to vault
         underlying.safeTransfer(vault, amount);
