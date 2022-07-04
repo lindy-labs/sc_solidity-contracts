@@ -115,7 +115,7 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
         override(IStrategy)
         returns (bool)
     {
-        return _getShares() > 0;
+        return _getShares() != 0;
     }
 
     /// @inheritdoc IStrategy
