@@ -150,7 +150,7 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
         if (amount == 0) revert StrategyAmountZero();
 
         uint256 _sharesToWithdraw = _underlyingToShares(amount);
-        
+
         if (_sharesToWithdraw > _getShares()) revert StrategyNotEnoughShares();
 
         // burn shares and withdraw required underlying to strategy

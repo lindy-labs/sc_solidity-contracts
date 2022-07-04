@@ -142,7 +142,7 @@ describe('Yearn Strategy (mainnet fork tests)', () => {
     // when depositing on the Yearn vault.
     await ForkHelpers.mintToken(
       lusd,
-      strategy.address,
+      yearnVault.address,
       parseUnits('1', await lusd.decimals()),
     );
 
