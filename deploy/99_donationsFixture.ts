@@ -5,7 +5,6 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   const { get } = env.deployments;
   const [_owner, _alice, _bob, treasury] = await ethers.getSigners();
 
-  const LUSDDeployment = await get('LUSD');
   const LUSD = await ethers.getContractAt(
     'MockERC20',
     (

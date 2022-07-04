@@ -1,7 +1,6 @@
 import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 
 import { ethers } from 'hardhat';
-import deployMockCurvePool from './helpers/mockPool';
 
 const { parseUnits } = ethers.utils;
 
@@ -9,10 +8,6 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   await deployDevToken(env, 'DAI', 'MockDAI');
   await deployDevToken(env, 'USDC', 'MockUSDC');
   await deployDevToken(env, 'LUSD', 'MockLUSD');
-  await deployMockCurvePool(env, 'CurvePool-LUSD-3CRV', 'LUSD', [
-    'DAI',
-    'USDC',
-  ]);
 };
 
 async function deployDevToken(

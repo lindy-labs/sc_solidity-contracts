@@ -12,8 +12,11 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   const dai = await get('DAI');
   const usdc = await get('USDC');
 
-  // Deploy mock pool for ropsten only
-  if (env.network.config.chainId === 3) {
+  // Deploy mock pool for ropsten and local only
+  if (
+    env.network.config.chainId === 3 ||
+    env.network.config.chainId === 31337
+  ) {
     await deployMockCurvePool(env, 'CurvePool-LUSD-3CRV', 'LUSD', [
       'DAI',
       'USDC',

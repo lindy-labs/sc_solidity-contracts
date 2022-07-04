@@ -2,7 +2,6 @@ import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 import type { DeployFunction } from 'hardhat-deploy/types';
 import { parseUnits } from '@ethersproject/units';
 import { ethers } from 'hardhat';
-import { utils } from 'ethers';
 
 const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   const { get } = env.deployments;
@@ -16,11 +15,6 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
 
   const vaultAddress = (await get('Vault_LUSD')).address;
   const vault = await ethers.getContractAt('Vault', vaultAddress);
-
-  // Configure contract roles
-  console.log('Configuring contract roles');
-  const SPONSOR_ROLE = utils.keccak256(utils.toUtf8Bytes('SPONSOR_ROLE'));
-  await vault.connect(owner).grantRole(SPONSOR_ROLE, treasury.address);
 
   console.log('Configuring vault strategy, treasury and investPct');
   await vault.connect(owner).setTreasury(treasury.address);
