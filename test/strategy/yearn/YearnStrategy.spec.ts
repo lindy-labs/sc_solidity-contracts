@@ -284,6 +284,17 @@ describe('YearnStrategy', () => {
         .to.emit(strategy, 'StrategyWithdrawn')
         .withArgs(amountToWithdraw);
     });
+
+    it('fails if the requested funds from the yVault are greater than available', async () => {
+      await depositToVault(parseEther('100'));
+      await vault.connect(owner).updateInvested();
+
+      const amountToWithdraw = parseEther('101');
+
+      await expect(
+        strategy.connect(manager).withdrawToVault(amountToWithdraw),
+      ).to.be.revertedWith('StrategyNotEnoughShares');
+    });
   });
 
   const depositToVault = async (amount: BigNumber) => {

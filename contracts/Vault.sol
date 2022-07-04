@@ -672,7 +672,7 @@ contract Vault is
         uint256 amount;
         uint256 idsLen = _ids.length;
 
-        for (uint256 i; i < idsLen; ++i) {
+        for (uint256 i = 0; i < idsLen; ++i) {
             uint256 depositAmount = deposits[_ids[i]].amount;
 
             amount += _withdrawSingle(
@@ -700,10 +700,7 @@ contract Vault is
         uint256 amount;
         uint256 idsLen = _ids.length;
 
-        for (uint256 i; i < idsLen; ++i) {
-            if (_amounts[i] > deposits[_ids[i]].amount)
-                revert VaultAmountTooLarge();
-
+        for (uint256 i = 0; i < idsLen; ++i) {
             amount += _withdrawSingle(
                 _ids[i],
                 localTotalShares,
@@ -834,7 +831,7 @@ contract Vault is
 
         uint256[] memory result = new uint256[](locals.claimsLen);
 
-        for (uint256 i; i < locals.claimsLen; ++i) {
+        for (uint256 i = 0; i < locals.claimsLen; ++i) {
             ClaimParams memory data = claims[i];
             if (data.pct == 0) revert VaultClaimPercentageCannotBe0();
             if (data.beneficiary == address(0)) revert VaultClaimerCannotBe0();

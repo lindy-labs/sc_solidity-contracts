@@ -474,6 +474,20 @@ describe('Vault', () => {
     });
   });
 
+  describe('totalUnderlyingMinusSponsored', async () => {
+    it('returns 0 when the total underlying is less than total sponsored + accumulated performance fee', async () => {
+      await addUnderlyingBalance(owner, '500');
+      await vault
+        .connect(owner)
+        .sponsor(underlying.address, parseUnits('500'), TWO_WEEKS);
+
+      // force total underlying minus sponsored to be 0
+      await removeUnderlyingFromVault('100');
+
+      expect(await vault.totalUnderlyingMinusSponsored()).to.be.equal('0');
+    });
+  });
+
   describe('totalUnderlying', () => {
     it('returns underlying balance if strategy is not set', async () => {
       expect(await vault.totalUnderlying()).to.be.equal(0);
@@ -1781,6 +1795,39 @@ describe('Vault', () => {
   });
 
   describe('partialWithdraw', () => {
+    it('fails when address to withdraw is address(0)', async () => {
+      const params = depositParams.build({
+        amount: parseUnits('100'),
+        inputToken: underlying.address,
+        claims: [claimParams.percent(100).to(alice.address).build()],
+      });
+
+      await vault.connect(alice).deposit(params);
+
+      await expect(
+        vault
+          .connect(alice)
+          .partialWithdraw(constants.AddressZero, [1], [parseUnits('50')]),
+      ).to.be.revertedWith('VaultDestinationCannotBe0Address');
+    });
+
+    it('fails when amount to withdraw is too large', async () => {
+      const params = depositParams.build({
+        amount: parseUnits('100'),
+        inputToken: underlying.address,
+        claims: [claimParams.percent(100).to(alice.address).build()],
+      });
+
+      await vault.connect(alice).deposit(params);
+      moveForwardTwoWeeks();
+
+      await expect(
+        vault
+          .connect(alice)
+          .partialWithdraw(alice.address, [1], [parseUnits('101')]),
+      ).to.be.revertedWith('VaultCannotWithdrawMoreThanAvailable');
+    });
+
     it("reduces the deposits' shares and amount", async () => {
       const params = depositParams.build({
         amount: parseUnits('100'),
@@ -1931,6 +1978,31 @@ describe('Vault', () => {
           alice.address,
           false,
         );
+    });
+
+    it('fails to compute shares when total underlying minus sponsored is 0', async () => {
+      await addUnderlyingBalance(owner, '500');
+      await vault
+        .connect(owner)
+        .sponsor(underlying.address, parseUnits('500'), TWO_WEEKS);
+
+      const params = depositParams.build({
+        amount: parseUnits('100'),
+        inputToken: underlying.address,
+        claims: [claimParams.percent(100).to(alice.address).build()],
+      });
+
+      await vault.connect(alice).deposit(params);
+      moveForwardTwoWeeks();
+
+      // force total underlying minus sponsored to be 0
+      await removeUnderlyingFromVault('100');
+
+      await expect(
+        vault
+          .connect(alice)
+          .partialWithdraw(alice.address, [2], [parseUnits('25')]),
+      ).to.be.revertedWith('VaultCannotComputeSharesWithoutPrincipal');
     });
   });
 

@@ -75,9 +75,6 @@ interface CustomErrors {
     // Vault: not enough funds
     error VaultNotEnoughFunds();
 
-    // Vault: amount too large
-    error VaultAmountTooLarge();
-
     // Vault: you are not allowed
     error VaultNotAllowed();
 
