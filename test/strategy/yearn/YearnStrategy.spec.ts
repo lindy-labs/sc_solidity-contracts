@@ -1,6 +1,5 @@
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { ethers } from 'hardhat';
-import { time } from '@openzeppelin/test-helpers';
 import { expect } from 'chai';
 import { BigNumber, utils, constants } from 'ethers';
 
@@ -142,6 +141,49 @@ describe('YearnStrategy', () => {
 
       expect(await strategy.underlying()).to.eq(underlying.address);
       expect(await strategy.hasAssets()).to.be.false;
+      expect(
+        await underlying.allowance(strategy.address, yVault.address),
+      ).to.eq(constants.MaxUint256);
+    });
+  });
+
+  describe('#transferOwnership', () => {
+    it('can only be called by the current owner', async () => {
+      await expect(
+        strategy.connect(alice).transferOwnership(alice.address),
+      ).to.be.revertedWith('Ownable: caller is not the owner');
+    });
+
+    it('reverts if new owner is address(0)', async () => {
+      await expect(
+        strategy.connect(owner).transferOwnership(constants.AddressZero),
+      ).to.be.revertedWith('StrategyOwnerCannotBe0Address');
+    });
+
+    it('reverts if the new owner is the same as the current one', async () => {
+      await expect(
+        strategy.connect(owner).transferOwnership(owner.address),
+      ).to.be.revertedWith('StrategyCannotTransferOwnershipToSelf');
+    });
+
+    it('changes ownership to the new owner', async () => {
+      await strategy.connect(owner).transferOwnership(alice.address);
+
+      expect(await strategy.owner()).to.be.equal(alice.address);
+    });
+
+    it("revokes previous owner's ADMIN role and sets up ADMIN role for the new owner", async () => {
+      // assert that the owner has the ADMIN role
+      expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, owner.address)).to.be
+        .true;
+
+      await strategy.connect(owner).transferOwnership(alice.address);
+
+      expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, owner.address)).to.be
+        .false;
+
+      expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, alice.address)).to.be
+        .true;
     });
   });
 
