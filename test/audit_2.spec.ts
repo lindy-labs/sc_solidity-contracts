@@ -2,21 +2,15 @@ import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { time } from '@openzeppelin/test-helpers';
 import { ethers, deployments } from 'hardhat';
 import { expect } from 'chai';
-import { Contract, BigNumber } from 'ethers';
+import { BigNumber } from 'ethers';
 import {
   Vault,
-  MockUST,
-  MockAnchorStrategy,
-  MockAUST__factory,
-  MockUST__factory,
   Vault__factory,
+  MockLUSD,
+  MockLUSD__factory,
 } from '../typechain';
 import { depositParams, claimParams } from './shared/factories';
-import {
-  moveForwardTwoWeeks,
-  SHARES_MULTIPLIER,
-  generateNewAddress,
-} from './shared';
+import { generateNewAddress } from './shared';
 const { parseUnits } = ethers.utils;
 const { MaxUint256 } = ethers.constants;
 
@@ -26,15 +20,9 @@ describe('Audit Tests 2', () => {
   let bob: SignerWithAddress;
   let charlie: SignerWithAddress;
 
-  let mockEthAnchorRouter: Contract;
-  let mockAUstUstFeed: Contract;
-
-  let underlying: MockUST;
-  let aUstToken: Contract;
+  let underlying: MockLUSD;
   let vault: Vault;
-  let strategy: MockAnchorStrategy;
 
-  const TWO_WEEKS = BigNumber.from(time.duration.weeks(2).toNumber());
   const TREASURY = generateNewAddress();
   const PERFORMANCE_FEE_PCT = BigNumber.from('00');
   const INVESTMENT_FEE_PCT = BigNumber.from('200');
@@ -43,12 +31,10 @@ describe('Audit Tests 2', () => {
   const fixtures = deployments.createFixture(async ({ deployments }) => {
     await deployments.fixture(['vaults']);
     [owner] = await ethers.getSigners();
-    const ustDeployment = await deployments.get('UST');
-    const austDeployment = await deployments.get('aUST');
-    const ustVaultDeployment = await deployments.get('Vault_UST');
-    aUstToken = MockAUST__factory.connect(austDeployment.address, owner);
-    underlying = MockUST__factory.connect(ustDeployment.address, owner);
-    vault = Vault__factory.connect(ustVaultDeployment.address, owner);
+    const lusdDeployment = await deployments.get('LUSD');
+    const lusdVaultDeployment = await deployments.get('Vault_LUSD');
+    underlying = MockLUSD__factory.connect(lusdDeployment.address, owner);
+    vault = Vault__factory.connect(lusdVaultDeployment.address, owner);
   });
 
   beforeEach(() => fixtures());
@@ -56,23 +42,8 @@ describe('Audit Tests 2', () => {
   beforeEach(async () => {
     [owner, alice, bob, charlie] = await ethers.getSigners();
     let Vault = await ethers.getContractFactory('Vault');
-    let MockAnchorStrategy = await ethers.getContractFactory(
-      'MockAnchorStrategy',
-    );
-    const MockEthAnchorRouterFactory = await ethers.getContractFactory(
-      'MockEthAnchorRouter',
-    );
-    mockEthAnchorRouter = await MockEthAnchorRouterFactory.deploy(
-      underlying.address,
-      aUstToken.address,
-    );
-    const MockChainlinkPriceFeedFactory = await ethers.getContractFactory(
-      'MockChainlinkPriceFeed',
-    );
-    mockAUstUstFeed = await MockChainlinkPriceFeedFactory.deploy(18);
     vault = await Vault.deploy(
       underlying.address,
-      // TWO_WEEKS,
       1,
       INVEST_PCT,
       TREASURY,
@@ -85,13 +56,6 @@ describe('Audit Tests 2', () => {
     underlying.connect(alice).approve(vault.address, MaxUint256);
     underlying.connect(bob).approve(vault.address, MaxUint256);
     underlying.connect(charlie).approve(vault.address, MaxUint256);
-    strategy = await MockAnchorStrategy.deploy(
-      vault.address,
-      mockEthAnchorRouter.address,
-      mockAUstUstFeed.address,
-      underlying.address,
-      aUstToken.address,
-    );
   });
 
   describe('Vault / PPS manipulation', () => {
@@ -184,7 +148,6 @@ describe('Audit Tests 2', () => {
       );
 
       await vault.connect(charlie).withdraw(charlie.address, [5]);
-      const newBalance = await underlying.balanceOf(charlie.address);
 
       expect(await underlying.balanceOf(charlie.address)).to.eq(
         oldBalance.sub(1),
@@ -318,7 +281,6 @@ describe('Audit Tests 2', () => {
       );
 
       await vault.connect(charlie).withdraw(charlie.address, [4]);
-      const newBalance = await underlying.balanceOf(charlie.address);
 
       expect(Number(await underlying.balanceOf(charlie.address))).to.lessThan(
         oldBalance,

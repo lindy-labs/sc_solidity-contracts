@@ -8,19 +8,22 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   const { deployer } = await env.getNamedAccounts();
   const { deploy, get } = env.deployments;
 
-  const ust = await get('UST');
+  const lusd = await get('LUSD');
   const dai = await get('DAI');
   const usdc = await get('USDC');
 
-  // Deploy mock pool for ropsten only
-  if (env.network.config.chainId === 3) {
-    await deployMockCurvePool(env, 'CurvePool-UST-3CRV', 'UST', [
+  // Deploy mock pool for ropsten and local only
+  if (
+    env.network.config.chainId === 3 ||
+    env.network.config.chainId === 31337
+  ) {
+    await deployMockCurvePool(env, 'CurvePool-LUSD-3CRV', 'LUSD', [
       'DAI',
       'USDC',
     ]);
   }
 
-  const curvePool = await get('CurvePool-UST-3CRV');
+  const curvePool = await get('CurvePool-LUSD-3CRV');
 
   const { minLockPeriod, investPct, perfFeePct, lossTolerancePct, multisig } =
     await getCurrentNetworkConfig();
@@ -28,7 +31,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   const owner = multisig;
 
   const args = [
-    ust.address,
+    lusd.address,
     minLockPeriod,
     investPct,
     treasury,
@@ -51,7 +54,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
     ],
   ];
 
-  const vaultDeployment = await deploy('Vault_UST', {
+  const vaultDeployment = await deploy('Vault_LUSD', {
     contract: 'Vault',
     from: deployer,
     log: true,
@@ -60,7 +63,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
 
   if (process.env.NODE_ENV !== 'test')
     await env.tenderly.persistArtifacts({
-      name: 'Vault_UST',
+      name: 'Vault_LUSD',
       address: vaultDeployment.address,
     });
 
@@ -80,8 +83,8 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
 func.skip = async (hre) =>
   hre.network.config.chainId === 137 || hre.network.config.chainId === 80001;
 
-func.id = 'deploy_ust_vault';
-func.tags = ['vaults', 'ust'];
+func.id = 'deploy_lusd_vault';
+func.tags = ['vaults', 'lusd'];
 func.dependencies = ['dev_setup'];
 
 export default func;

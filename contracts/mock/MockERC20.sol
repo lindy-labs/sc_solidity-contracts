@@ -50,3 +50,7 @@ contract MockAUST is MockERC20 {
         MockERC20("Mock aUST", "mockaUST", 18, supply)
     {}
 }
+
+contract MockLUSD is MockERC20 {
+    constructor(uint256 supply) MockERC20("Mock LUSD", "mockLUSD", 18, supply) {}
+}

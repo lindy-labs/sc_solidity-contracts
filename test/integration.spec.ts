@@ -6,11 +6,10 @@ import { Contract, BigNumber } from 'ethers';
 
 import {
   Vault,
-  MockUST,
-  MockAnchorStrategy,
-  MockAUST__factory,
-  MockUST__factory,
   Vault__factory,
+  MockStrategySync,
+  MockLUSD,
+  MockLUSD__factory,
 } from '../typechain';
 
 import createVaultHelpers from './shared/vault';
@@ -32,13 +31,9 @@ describe('Integration', () => {
   let bob: SignerWithAddress;
   let carol: SignerWithAddress;
 
-  let mockEthAnchorRouter: Contract;
-  let mockAUstUstFeed: Contract;
-
-  let underlying: MockUST;
-  let aUstToken: Contract;
+  let underlying: MockLUSD;
   let vault: Vault;
-  let strategy: MockAnchorStrategy;
+  let strategy: MockStrategySync;
 
   let addUnderlyingBalance: (
     account: SignerWithAddress,
@@ -59,13 +54,11 @@ describe('Integration', () => {
 
     [owner] = await ethers.getSigners();
 
-    const ustDeployment = await deployments.get('UST');
-    const austDeployment = await deployments.get('aUST');
-    const ustVaultDeployment = await deployments.get('Vault_UST');
+    const lusdDeployment = await deployments.get('LUSD');
+    const lusdVaultDeployment = await deployments.get('Vault_LUSD');
 
-    aUstToken = MockAUST__factory.connect(austDeployment.address, owner);
-    underlying = MockUST__factory.connect(ustDeployment.address, owner);
-    vault = Vault__factory.connect(ustVaultDeployment.address, owner);
+    underlying = MockLUSD__factory.connect(lusdDeployment.address, owner);
+    vault = Vault__factory.connect(lusdVaultDeployment.address, owner);
   });
 
   beforeEach(() => fixtures());
@@ -74,22 +67,7 @@ describe('Integration', () => {
     [owner, alice, bob, carol] = await ethers.getSigners();
 
     let Vault = await ethers.getContractFactory('Vault');
-    let MockAnchorStrategy = await ethers.getContractFactory(
-      'MockAnchorStrategy',
-    );
-
-    const MockEthAnchorRouterFactory = await ethers.getContractFactory(
-      'MockEthAnchorRouter',
-    );
-    mockEthAnchorRouter = await MockEthAnchorRouterFactory.deploy(
-      underlying.address,
-      aUstToken.address,
-    );
-
-    const MockChainlinkPriceFeedFactory = await ethers.getContractFactory(
-      'MockChainlinkPriceFeed',
-    );
-    mockAUstUstFeed = await MockChainlinkPriceFeedFactory.deploy(18);
+    let MockStrategy = await ethers.getContractFactory('MockStrategySync');
 
     vault = await Vault.deploy(
       underlying.address,
@@ -107,22 +85,13 @@ describe('Integration', () => {
     underlying.connect(bob).approve(vault.address, MaxUint256);
     underlying.connect(carol).approve(vault.address, MaxUint256);
 
-    strategy = await MockAnchorStrategy.deploy(
-      vault.address,
-      mockEthAnchorRouter.address,
-      mockAUstUstFeed.address,
-      underlying.address,
-      aUstToken.address,
-    );
+    strategy = await MockStrategy.deploy(vault.address, underlying.address);
 
-    ({
-      addUnderlyingBalance,
-      addYieldToVault,
-      removeUnderlyingFromVault,
-    } = createVaultHelpers({
-      vault,
-      underlying,
-    }));
+    ({ addUnderlyingBalance, addYieldToVault, removeUnderlyingFromVault } =
+      createVaultHelpers({
+        vault,
+        underlying,
+      }));
   });
 
   describe('single deposit, single sponsor and single claimer', () => {

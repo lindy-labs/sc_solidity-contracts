@@ -5,10 +5,14 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   const { get } = env.deployments;
   const [_owner, _alice, _bob, treasury] = await ethers.getSigners();
 
-  const USTDeployment = await get('UST');
-  const UST = await ethers.getContractAt('MockERC20', USTDeployment.address);
+  const LUSD = await ethers.getContractAt(
+    'MockERC20',
+    (
+      await get('LUSD')
+    ).address,
+  );
 
-  const vaultDeployment = await get('Vault_UST');
+  const vaultDeployment = await get('Vault_LUSD');
   const vault = await ethers.getContractAt('Vault', vaultDeployment.address);
 
   const donationsDeployment = await get('Donations');
@@ -26,16 +30,17 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     {
       destinationId: 9,
       owner: args.claimerId,
-      token: UST.address,
+      token: LUSD.address,
       amount: args.amount,
       // donationId is is the id generated for the donation record by the
       // subgraph handler for YieldClaimed event
       donationId:
         '0x8945ff0b4e5a4ff57c0021a33bef8276cb41f422b0288b24a3933a6619f1d38b-1-0',
-    }, {
+    },
+    {
       destinationId: 10,
       owner: args.claimerId,
-      token: UST.address,
+      token: LUSD.address,
       amount: args.amount,
       donationId:
         '0x8945ff0b4e5a4ff57c0021a33bef8276cb41f422b0288b24a3933a6619f1d38b-1-1',
@@ -45,10 +50,13 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   ({ transactionHash, args } = yieldClaimedEvents[1]);
 
   // Move time forward more than 180 days
-  await ethers.provider.send("evm_increaseTime", [1.6e7]);
-  await ethers.provider.send("evm_mine", []);
+  await ethers.provider.send('evm_increaseTime', [1.6e7]);
+  await ethers.provider.send('evm_mine', []);
 
-  await donations.burn(1, '0x8945ff0b4e5a4ff57c0021a33bef8276cb41f422b0288b24a3933a6619f1d38b-1-0');
+  await donations.burn(
+    1,
+    '0x8945ff0b4e5a4ff57c0021a33bef8276cb41f422b0288b24a3933a6619f1d38b-1-0',
+  );
 };
 
 func.id = 'donations_fixture';
