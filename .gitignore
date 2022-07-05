@@ -9,7 +9,7 @@ artifacts
 coverage
 coverage.json
 .env
-.envrc
+.envrc.local
 typechain
 docs/
 deployments/localhost
