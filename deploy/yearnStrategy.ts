@@ -31,12 +31,6 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
   const yearnVault = await get('YearnVault');
 
-  if (process.env.NODE_ENV !== 'test')
-    await env.tenderly.persistArtifacts({
-      name: 'YearnVault',
-      address: yearnVault.address,
-    });
-
   const args = [
       vault.address,
       owner.address,
