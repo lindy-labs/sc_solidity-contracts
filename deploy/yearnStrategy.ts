@@ -31,17 +31,30 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
   const yearnVault = await get('YearnVault');
 
-  const yearnStrategyDeployment = await deploy('YearnStrategy', {
-    contract: 'YearnStrategy',
-    from: deployer,
-    args: [
+  const args = [
       vault.address,
       owner.address,
       yearnVault.address,
       LUSDDeployment.address,
-    ],
+  ];
+
+  const yearnStrategyDeployment = await deploy('YearnStrategy', {
+    contract: 'YearnStrategy',
+    from: deployer,
+    args,
     log: true,
   });
+
+  if (env.network.config.chainId === 1 || env.network.config.chainId === 3) {
+    try {
+      await env.run('verify:verify', {
+        address: yearnStrategyDeployment.address,
+        constructorArguments: args,
+      });
+    } catch (e) {
+      console.error((e as Error).message);
+    }
+  }
 
   const yearnStrategy = await ethers.getContractAt(
     'YearnStrategy',
