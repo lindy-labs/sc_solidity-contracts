@@ -7,11 +7,11 @@
   "strategy": {
     "network": "mainnet",
     "startBlock": 0,
-    "address": "0x07F269C684E0d1152C2C24eb798DD826a1021656"
+    "address": "0x916D4f94d575D45c978b12cFBdA18556924F9b55"
   },
   "donations": {
     "network": "mainnet",
     "startBlock": 0,
-    "address": "0x916D4f94d575D45c978b12cFBdA18556924F9b55"
+    "address": "0xFa7447c91989141De3Fd4988810e358119EF2e7f"
   }
 }
