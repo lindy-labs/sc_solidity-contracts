@@ -31,6 +31,12 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
   const yearnVault = await get('YearnVault');
 
+  if (process.env.NODE_ENV !== 'test')
+    await env.tenderly.persistArtifacts({
+      name: 'YearnVault',
+      address: yearnVault.address,
+    });
+
   const args = [
       vault.address,
       owner.address,
@@ -45,10 +51,15 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     log: true,
   });
 
+  const yearnStrategy = await ethers.getContractAt(
+    'YearnStrategy',
+    yearnStrategyDeployment.address,
+  );
+
   if (env.network.config.chainId === 1 || env.network.config.chainId === 3) {
     try {
       await env.run('verify:verify', {
-        address: yearnStrategyDeployment.address,
+        address: yearnStrategy.address,
         constructorArguments: args,
       });
     } catch (e) {
@@ -56,10 +67,11 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     }
   }
 
-  const yearnStrategy = await ethers.getContractAt(
-    'YearnStrategy',
-    yearnStrategyDeployment.address,
-  );
+  if (process.env.NODE_ENV !== 'test')
+    await env.tenderly.persistArtifacts({
+      name: 'YearnStrategy',
+      address: yearnStrategy.address,
+    });
 
   const MANAGER_ROLE = utils.keccak256(utils.toUtf8Bytes('MANAGER_ROLE'));
   await yearnStrategy.connect(owner).grantRole(MANAGER_ROLE, owner.address);
