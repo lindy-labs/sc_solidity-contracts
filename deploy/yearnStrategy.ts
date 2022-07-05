@@ -55,8 +55,8 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   await setStrategyTx.wait();
 };
 
-func.id = 'fixture_deployments';
-func.tags = ['fixture_deployments'];
+func.id = 'yearn_strategy';
+func.tags = ['strategy', 'yearn'];
 func.dependencies = ['vaults'];
 
 // don't deploy to polygon networks
