@@ -4,6 +4,7 @@ pragma solidity =0.8.10;
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
+import "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 
 import "../../interfaces/uniswap/IUniv2LikeRouter01.sol";
 import "../../interfaces/curve/ICurveRouter.sol";
@@ -28,16 +29,21 @@ contract OptimalSwap is Ownable {
         address[] path;
     }
 
-    address public immutable CURVE_ROUTER;
+    ICurveRouter public immutable curveRouter;
+    ISwapRouter public immutable uniswapV3Router;
+
     /// @notice router type to each for a particular token pair swap
     mapping(uint256 => RouterType) public routerType;
-    /// @notice Info of each Uniswap TokenPair
+    /// @notice Info of each UniswapV2 TokenPair
     mapping(uint256 => TokenPairInfo) public pairRouter;
+    /// @notice swap path to use for UniswapV3 Token pair
+    mapping(uint256 => bytes) public uniswapV3Path;
     /// @notice Curve pool to use for a particular token pair swap
     mapping(uint256 => address) public curvePool;
 
-    constructor(address _CURVE_ROUTER) {
-        CURVE_ROUTER = _CURVE_ROUTER;
+    constructor(address _CURVE_ROUTER, address _UNISWAP_V3_ROUTER) {
+        curveRouter = ICurveRouter(_CURVE_ROUTER);
+        uniswapV3Router = ISwapRouter(_UNISWAP_V3_ROUTER);
     }
 
     function swap(
@@ -64,7 +70,29 @@ contract OptimalSwap is Ownable {
                 amount,
                 expectedOutput
             );
+        } else if (routerTypeInUse == RouterType.UniswapV3) {
+            output = swapWithUniswapV3(amount, expectedOutput, pairKey);
         }
+    }
+
+    function swapWithUniswapV3(
+        uint256 amount,
+        uint256 expectedOutput,
+        uint256 pairKey
+    ) public payable returns (uint256 output) {
+        bytes memory path = uniswapV3Path[pairKey];
+
+        ISwapRouter.ExactInputParams memory params = ISwapRouter
+            .ExactInputParams({
+                path: path,
+                recipient: msg.sender,
+                deadline: block.timestamp,
+                amountIn: amount,
+                amountOutMinimum: expectedOutput
+            });
+
+        // Executes the swap.
+        output = uniswapV3Router.exactInput(params);
     }
 
     function swapWithCurve(
@@ -74,12 +102,13 @@ contract OptimalSwap is Ownable {
         uint256 expectedOutput,
         uint256 pairKey
     ) public payable returns (uint256 output) {
-        if (CURVE_ROUTER == address(0)) revert CurveRouterAddressNotSet();
+        if (address(curveRouter) == address(0))
+            revert CurveRouterAddressNotSet();
         address curvePoolToUse = curvePool[pairKey];
         if (curvePoolToUse == address(0))
             revert CurvePoolNotSetForPair(fromToken, toToken);
 
-        output = ICurveRouter(CURVE_ROUTER).exchange(
+        output = curveRouter.exchange(
             curvePoolToUse,
             fromToken,
             toToken,
@@ -157,7 +186,7 @@ contract OptimalSwap is Ownable {
         if (curvePoolToUse == address(0))
             revert CurvePoolNotSetForPair(fromToken, toToken);
 
-        curveQuote = ICurveRouter(CURVE_ROUTER).get_exchange_amount(
+        curveQuote = curveRouter.get_exchange_amount(
             curvePoolToUse,
             fromToken,
             toToken,
@@ -178,6 +207,15 @@ contract OptimalSwap is Ownable {
 
         pairInfo.router = router;
         pairInfo.path = path;
+    }
+
+    function updateUniswapV3Path(
+        address fromToken,
+        address toToken,
+        bytes calldata path
+    ) external onlyOwner {
+        uint256 pairKey = getPairKey(fromToken, toToken);
+        uniswapV3Path[pairKey] = path;
     }
 
     function setCurvePool(

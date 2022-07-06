@@ -46,6 +46,7 @@
     "web3": "^1.6.1"
   },
   "dependencies": {
-    "@codechecks/client": "^0.1.12"
+    "@codechecks/client": "^0.1.12",
+    "@uniswap/v3-periphery": "^1.4.1"
   }
 }
