@@ -48,6 +48,6 @@ func.skip = async (hre) =>
 
 func.id = 'deploy_donations';
 func.tags = ['donations'];
-func.dependencies = ['dev_setup', 'deploy_ust_vault'];
+func.dependencies = ['dev_setup', 'lusd', 'strategy', 'yearn'];
 
 export default func;
