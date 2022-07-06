@@ -76,7 +76,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
 func.id = 'yearn_strategy';
 func.tags = ['strategy', 'yearn'];
-func.dependencies = ['vaults'];
+func.dependencies = ['vaults', 'lusd'];
 
 // don't deploy to polygon networks
 func.skip = async (hre) =>

@@ -2,16 +2,16 @@
   "vault": {
     "network": "mainnet",
     "startBlock": 0,
-    "address": "0x6DAe970805beAE5ea0e096eA211958276d40785f"
+    "address": "0x0Fc7C58e9e5458D194E3758b09131A9ba2261F87"
   },
   "strategy": {
     "network": "mainnet",
     "startBlock": 0,
-    "address": "0x916D4f94d575D45c978b12cFBdA18556924F9b55"
+    "address": "0xfF6aC7eadc69DCE64AEBcd8BD70B4efDcECA6503"
   },
   "donations": {
     "network": "mainnet",
     "startBlock": 0,
-    "address": "0xFa7447c91989141De3Fd4988810e358119EF2e7f"
+    "address": "0x4295e9945CB4A2EBA50bE8685df4AF04Fd0bC816"
   }
 }
