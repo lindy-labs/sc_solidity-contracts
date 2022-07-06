@@ -12,8 +12,20 @@ import {CustomErrors} from "../../interfaces/CustomErrors.sol";
 import {IVault} from "../../vault/IVault.sol";
 import {IStabilityPool} from "../../interfaces/liquity/IStabilityPool.sol";
 
+// TODO:
+// Use oracles to convert ETH, LQTY and USDC to LUSD and update the investedAssets method calculating everything in LUSD terms
+// Update the withdraw method to check for ETH, LQTY, USDC balance (and swap them to LUSD) in case the LUSD balance is not enough
+
 /***
  * Gives out LQTY & ETH as rewards
+ The strategy must run in epochs
+ Deposits & withdrawals will only be opened for a small time (1 - 3 hrs) every week
+ Then paused
+ Before the opening of the epoch all ETH, LQTY, USDC held by the contract must be converted to LUSD
+ Also the opening period must be small, because since we are calculating only the lUSD in the investedAssets method
+ so during the opening period if a user withdraws then the rewards that he accrues during the opening period are not given to him
+ for example, suppose we open withdrwals at 8:00 pm and the user withdraws at 9:00 pm then the rewards accrued by his deposits during
+ the time interval from 8 to 9 pm (that small 1 hr) wont be recieved to him (This is also same for any liquidations that happen from 8 to 9 pm)
  */
 contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
     using SafeERC20 for IERC20;
@@ -106,8 +118,7 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
     {
         return
             stabilityPool.getCompoundedLUSDDeposit(address(this)) +
-            stabilityPool.getDepositorETHGain(address(this)) +
-            stabilityPool.getDepositorLQTYGain(address(this)) +
+            underlying.balanceOf(address(this)) +
             usdc.balanceOf(address(this));
     }
 
@@ -153,3 +164,7 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         return underlying.balanceOf(address(this));
     }
 }
+
+// the only problem is when withdrawals take place then in the case of a full withdrawal where somebody wants to withdraw all funds
+// we may have problems if all our funds are not in lusd. If there are still funds in eth, lqty or usdc.
+// then we need to add clauses in the withdraw which will convert eth/lqty/usdc to lusd in such scenarios and then withdraw the lusd.
