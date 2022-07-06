@@ -11,6 +11,7 @@ import {IStrategy} from "../IStrategy.sol";
 import {CustomErrors} from "../../interfaces/CustomErrors.sol";
 import {IVault} from "../../vault/IVault.sol";
 import {IStabilityPool} from "../../interfaces/liquity/IStabilityPool.sol";
+import {OptimalSwapper} from "./OptimalSwapper.sol";
 
 // TODO:
 // Use oracles to convert ETH, LQTY and USDC to LUSD and update the investedAssets method calculating everything in LUSD terms
@@ -21,8 +22,9 @@ import {IStabilityPool} from "../../interfaces/liquity/IStabilityPool.sol";
  The strategy must run in epochs
  Deposits & withdrawals will only be opened for a small time (1 - 3 hrs) every week
  Then paused
- Before the opening of the epoch all ETH, LQTY, USDC held by the contract must be converted to LUSD
- Also the opening period must be small, because since we are calculating only the lUSD in the investedAssets method
+ Before the opening of the epoch all ETH, LQTY held by the contract must be converted to LUSD
+ (USDC held by the contract can be held for as long as possible since the investedAssets method is calculating USDC balance)
+ Also the opening period must be small, because since we are not calculating the reward tokens in the investedAssets method
  so during the opening period if a user withdraws then the rewards that he accrues during the opening period are not given to him
  for example, suppose we open withdrwals at 8:00 pm and the user withdraws at 9:00 pm then the rewards accrued by his deposits during
  the time interval from 8 to 9 pm (that small 1 hr) wont be recieved to him (This is also same for any liquidations that happen from 8 to 9 pm)
@@ -34,21 +36,24 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
 
     error LiquityStabilityPoolCannotBeAddressZero();
     error StrategyYieldTokenCannotBe0Address();
+    error OptimalSwapperCanntoBe0Address();
 
     bytes32 public constant MANAGER_ROLE =
         0x241ecf16d79d0f8dbfb92cbc07fe17840425976cf0667f022fe9877caa831b08; // keccak256("MANAGER_ROLE");
 
-    IERC20 public immutable underlying; // lusd
+    address public immutable underlying; // lusd
     /// @inheritdoc IStrategy
     address public immutable override(IStrategy) vault;
     IStabilityPool public immutable stabilityPool;
-    IERC20 public immutable lqty; // reward token
-    IERC20 public immutable usdc;
+    OptimalSwapper public immutable optimalSwapper;
+    address public immutable lqty; // reward token
+    address public immutable usdc;
 
     constructor(
         address _vault,
         address _owner,
         address _stabilityPool,
+        address _optimalSwapper,
         address _lqty,
         address _usdc,
         address _underlying
@@ -58,6 +63,8 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         if (_usdc == address(0)) revert StrategyYieldTokenCannotBe0Address();
         if (_stabilityPool == address(0))
             revert LiquityStabilityPoolCannotBeAddressZero();
+        if (_optimalSwapper == address(0))
+            revert OptimalSwapperCanntoBe0Address();
         if (_underlying == address(0))
             revert StrategyUnderlyingCannotBe0Address();
 
@@ -67,10 +74,11 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         _setupRole(DEFAULT_ADMIN_ROLE, _owner);
         _setupRole(MANAGER_ROLE, _vault);
         vault = _vault;
-        underlying = IERC20(_underlying);
+        underlying = _underlying;
         stabilityPool = IStabilityPool(_stabilityPool);
-        lqty = IERC20(_lqty);
-        usdc = IERC20(_usdc);
+        optimalSwapper = OptimalSwapper(_optimalSwapper);
+        lqty = _lqty;
+        usdc = _usdc;
     }
 
     //
@@ -116,10 +124,19 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         override(IStrategy)
         returns (uint256)
     {
+        uint256 pairKey = optimalSwapper.getPairKey(usdc, underlying);
         return
+            // lusd deposited into liquity's stability pool
             stabilityPool.getCompoundedLUSDDeposit(address(this)) +
-            underlying.balanceOf(address(this)) +
-            usdc.balanceOf(address(this));
+            // lusd held by this contract
+            IERC20(underlying).balanceOf(address(this)) +
+            // usdc held by this contract in lusd denomination
+            optimalSwapper.getCurveQuote(
+                usdc,
+                underlying,
+                IERC20(usdc).balanceOf(address(this)),
+                pairKey
+            );
     }
 
     /// @inheritdoc IStrategy
@@ -148,7 +165,7 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         stabilityPool.withdrawFromSP(amount);
 
         // transfer underlying to vault
-        underlying.safeTransfer(vault, amount);
+        IERC20(underlying).safeTransfer(vault, amount);
 
         emit StrategyWithdrawn(amount);
     }
@@ -161,7 +178,7 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
      * @return underlying balance of the strategy
      */
     function _getUnderlyingBalance() internal view returns (uint256) {
-        return underlying.balanceOf(address(this));
+        return IERC20(underlying).balanceOf(address(this));
     }
 }
 

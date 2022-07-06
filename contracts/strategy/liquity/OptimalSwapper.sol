@@ -10,9 +10,9 @@ import "../../interfaces/uniswap/IUniv2LikeRouter01.sol";
 import "../../interfaces/curve/ICurveRouter.sol";
 
 /**
-    @title Finds the optimal swap for a given from token and to token    
+    @title Swaps a token pair according to a hardcoded swap path & protocol by the owner
  */
-contract OptimalSwap is Ownable {
+contract OptimalSwapper is Ownable {
     error CurvePoolNotSetForPair(address fromToken, address toToken);
     error CurveRouterAddressNotSet();
 
@@ -51,7 +51,7 @@ contract OptimalSwap is Ownable {
         address toToken,
         uint256 amount,
         uint256 expectedOutput
-    ) external returns (uint256 output) {
+    ) external payable returns (uint256 output) {
         uint256 pairKey = getPairKey(fromToken, toToken);
         RouterType routerTypeInUse = routerType[pairKey];
 
@@ -73,49 +73,6 @@ contract OptimalSwap is Ownable {
         } else if (routerTypeInUse == RouterType.UniswapV3) {
             output = swapWithUniswapV3(amount, expectedOutput, pairKey);
         }
-    }
-
-    function swapWithUniswapV3(
-        uint256 amount,
-        uint256 expectedOutput,
-        uint256 pairKey
-    ) public payable returns (uint256 output) {
-        bytes memory path = uniswapV3Path[pairKey];
-
-        ISwapRouter.ExactInputParams memory params = ISwapRouter
-            .ExactInputParams({
-                path: path,
-                recipient: msg.sender,
-                deadline: block.timestamp,
-                amountIn: amount,
-                amountOutMinimum: expectedOutput
-            });
-
-        // Executes the swap.
-        output = uniswapV3Router.exactInput(params);
-    }
-
-    function swapWithCurve(
-        address fromToken,
-        address toToken,
-        uint256 amount,
-        uint256 expectedOutput,
-        uint256 pairKey
-    ) public payable returns (uint256 output) {
-        if (address(curveRouter) == address(0))
-            revert CurveRouterAddressNotSet();
-        address curvePoolToUse = curvePool[pairKey];
-        if (curvePoolToUse == address(0))
-            revert CurvePoolNotSetForPair(fromToken, toToken);
-
-        output = curveRouter.exchange(
-            curvePoolToUse,
-            fromToken,
-            toToken,
-            amount,
-            expectedOutput,
-            msg.sender
-        );
     }
 
     function swapWithUniswapV2(
@@ -141,20 +98,52 @@ contract OptimalSwap is Ownable {
         return amounts[amounts.length - 1];
     }
 
-    function getData(
+    function swapWithCurve(
         address fromToken,
         address toToken,
-        uint256 amount
-    ) external view returns (uint256 price) {
-        uint256 pairKey = getPairKey(fromToken, toToken);
-        RouterType routerTypeInUse = routerType[pairKey];
+        uint256 amount,
+        uint256 expectedOutput,
+        uint256 pairKey
+    ) public payable returns (uint256 output) {
+        if (address(curveRouter) == address(0))
+            revert CurveRouterAddressNotSet();
+        address curvePoolToUse = curvePool[pairKey];
+        if (curvePoolToUse == address(0))
+            revert CurvePoolNotSetForPair(fromToken, toToken);
 
-        if (routerTypeInUse == RouterType.Curve) {
-            price = getCurveQuote(fromToken, toToken, amount, pairKey);
-        } else if (routerTypeInUse == RouterType.UniswapV2Like) {
-            price = getUniV2Quote(fromToken, toToken, amount);
-        }
+        output = curveRouter.exchange(
+            curvePoolToUse,
+            fromToken,
+            toToken,
+            amount,
+            expectedOutput,
+            msg.sender
+        );
     }
+
+    function swapWithUniswapV3(
+        uint256 amount,
+        uint256 expectedOutput,
+        uint256 pairKey
+    ) public payable returns (uint256 output) {
+        bytes memory path = uniswapV3Path[pairKey];
+
+        ISwapRouter.ExactInputParams memory params = ISwapRouter
+            .ExactInputParams({
+                path: path,
+                recipient: msg.sender,
+                deadline: block.timestamp,
+                amountIn: amount,
+                amountOutMinimum: expectedOutput
+            });
+
+        // Executes the swap.
+        output = uniswapV3Router.exactInput(params);
+    }
+
+    // --------------------------------------------------------------
+    // VIEW Functions
+    // --------------------------------------------------------------
 
     function getUniV2Quote(
         address fromToken,
@@ -180,8 +169,6 @@ contract OptimalSwap is Ownable {
         uint256 amount,
         uint256 pairKey
     ) public view returns (uint256 curveQuote) {
-        // This revert check is not needed since the method will revert anyway if curve router is zero address
-        // if (CURVE_ROUTER == address(0)) revert CurveRouterAddressNotSet();
         address curvePoolToUse = curvePool[pairKey];
         if (curvePoolToUse == address(0))
             revert CurvePoolNotSetForPair(fromToken, toToken);
@@ -192,6 +179,20 @@ contract OptimalSwap is Ownable {
             toToken,
             amount
         );
+    }
+
+    function getUniV3Quote(
+        address fromToken,
+        address toToken,
+        uint256 amount
+    ) public view returns (uint256 quote) {}
+
+    function getPairKey(address fromToken, address toToken)
+        public
+        pure
+        returns (uint256)
+    {
+        return uint256(uint160(fromToken)) + uint256(uint160(toToken));
     }
 
     // --------------------------------------------------------------
@@ -250,13 +251,5 @@ contract OptimalSwap is Ownable {
                 path[index] = (pairInfo.path[pairInfo.path.length - 1 - index]);
             }
         }
-    }
-
-    function getPairKey(address fromToken, address toToken)
-        public
-        pure
-        returns (uint256)
-    {
-        return uint256(uint160(fromToken)) + uint256(uint160(toToken));
     }
 }
