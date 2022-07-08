@@ -33,6 +33,8 @@ contract RyskStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
     address public immutable override(IStrategy) vault;
     // rysk liquidity pool that this strategy is interacting with
     IRyskLiquidityPool public immutable ryskLqPool;
+    // amount of underlying waiting for a withdrawal to complete
+    uint256 pendingWithdrawalAmount;
 
     event RyskWithdrawalInitiated(uint256 shares);
 
@@ -167,11 +169,31 @@ contract RyskStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
     {
         if (amount == 0) revert StrategyAmountZero();
 
-        uint256 _sharesToWithdraw = _underlyingToShares(amount);
+        // we need to check epoch here because if epoch has advanced,
+        // previous withdrawal receipt will be overridden
+        if (
+            ryskLqPool.withdrawalReceipts(address(this)).epoch !=
+            ryskLqPool.epoch()
+        ) {
+            // reset pending withdrawal amount since the receipt will be overridden
+            pendingWithdrawalAmount = 0;
+        }
 
-        ryskLqPool.initiateWithdraw(_sharesToWithdraw);
+        // because the vault can call updateInvested => withdrawToVault multiple times during the same epoch,
+        // and rysk liquidity pool aggregates withdrawal amounts inititated during the same epoch,
+        // we cannot withdraw less than already pending amount
+        if (pendingWithdrawalAmount >= amount) return;
 
-        emit RyskWithdrawalInitiated(_sharesToWithdraw);
+        uint256 amountToWithdraw = amount - pendingWithdrawalAmount;
+        pendingWithdrawalAmount += amountToWithdraw;
+        
+        uint256 sharesToWithdraw = _underlyingToShares(amountToWithdraw);
+
+        if (sharesToWithdraw > _getTotalShares() - ryskLqPool.withdrawalReceipts(address(this)).shares)
+            revert StrategyNotEnoughShares();
+
+        emit RyskWithdrawalInitiated(sharesToWithdraw);
+        ryskLqPool.initiateWithdraw(sharesToWithdraw);
     }
 
     function completeWithdrawal() external {
@@ -187,9 +209,8 @@ contract RyskStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
 
         uint256 amountWithdrawn = ryskLqPool.completeWithdraw(sharesToWithdraw);
 
-        underlying.safeTransfer(vault, amountWithdrawn);
-
         emit StrategyWithdrawn(amountWithdrawn);
+        underlying.safeTransfer(vault, amountWithdrawn);
     }
 
     /**
@@ -229,7 +250,7 @@ contract RyskStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
      * @return number of shares
      */
     function _underlyingToShares(uint256 _underlying)
-        internal
+        public
         view
         returns (uint256)
     {

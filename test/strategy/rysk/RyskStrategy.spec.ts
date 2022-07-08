@@ -260,8 +260,7 @@ describe('RyskStrategy', () => {
       await underlying.mint(strategy.address, underlyingAmount);
       await strategy.connect(manager).invest();
 
-      const amountToWithdraw = parseUnits('50');
-
+      const amountToWithdraw = parseUnits('100');
       await strategy.connect(manager).withdrawToVault(amountToWithdraw);
 
       // underlying owned by Rysk liquidity pool does not chage at this point
@@ -303,7 +302,6 @@ describe('RyskStrategy', () => {
       ).unredeemedShares;
 
       const amountToWithdraw = parseUnits('50');
-
       await strategy.connect(manager).withdrawToVault(amountToWithdraw);
 
       expect(unredeemedShares).to.eq(
@@ -312,6 +310,81 @@ describe('RyskStrategy', () => {
       expect(
         (await ryskLqPool.depositReceipts(strategy.address)).unredeemedShares,
       ).to.eq(0);
+    });
+
+    it('fails when amount to withdraw > owned shares', async () => {
+      const underlyingAmount = utils.parseUnits('100');
+      await underlying.mint(strategy.address, underlyingAmount);
+      await strategy.connect(manager).invest();
+      const unredeemedShares = (
+        await ryskLqPool.depositReceipts(strategy.address)
+      ).unredeemedShares;
+
+      const amountToWithdraw = parseUnits('150');
+      await expect(
+        strategy.connect(manager).withdrawToVault(amountToWithdraw),
+      ).to.be.revertedWith('StrategyNotEnoughShares');
+    });
+
+    it('fails when called multiple times with end amount to withdraw > owned shares', async () => {
+      const underlyingAmount = utils.parseUnits('100');
+      await underlying.mint(strategy.address, underlyingAmount);
+      await strategy.connect(manager).invest();
+      const unredeemedShares = (
+        await ryskLqPool.depositReceipts(strategy.address)
+      ).unredeemedShares;
+
+      await strategy.connect(manager).withdrawToVault(parseUnits('90'));
+
+      const amountToWithdraw = parseUnits('110');
+      await expect(
+        strategy.connect(manager).withdrawToVault(amountToWithdraw),
+      ).to.be.revertedWith('StrategyNotEnoughShares');
+    });
+
+    it('initiates withdrawal for the greatest amount when called multiple times in the same epoch', async () => {
+      let underlyingAmount = utils.parseUnits('100');
+      await underlying.mint(strategy.address, underlyingAmount);
+      await strategy.connect(manager).invest();
+
+      await ryskLqPool.advanceEpoch();
+
+      // initiate withdrawal
+      await strategy.connect(manager).withdrawToVault(parseUnits('60'));
+      await strategy.connect(manager).withdrawToVault(parseUnits('50'));
+
+      const amountToWithdraw = parseUnits('70');
+      await strategy.connect(manager).withdrawToVault(amountToWithdraw);
+
+      const withdrawalReceipt = await ryskLqPool.withdrawalReceipts(
+        strategy.address,
+      );
+
+      expect(withdrawalReceipt.epoch).to.eq(await ryskLqPool.epoch());
+      // 1 share = 1 underlying
+      expect(withdrawalReceipt.shares).to.eq(parseUnits('70'));
+    });
+
+    it('overrides the withdrawal amount from previous epoch when withdrawal was not completed', async () => {
+      let underlyingAmount = utils.parseUnits('100');
+      await underlying.mint(strategy.address, underlyingAmount);
+      await strategy.connect(manager).invest();
+
+      // initiate withdrawal
+      await strategy.connect(manager).withdrawToVault(parseUnits('50'));
+
+      await ryskLqPool.advanceEpoch();
+
+      // initiate another withdrawal in new epoch without completing the previous one
+      const amountToWithdraw = parseUnits('30');
+      await strategy.connect(manager).withdrawToVault(amountToWithdraw);
+
+      const withdrawalReceipt = await ryskLqPool.withdrawalReceipts(
+        strategy.address,
+      );
+
+      expect(withdrawalReceipt.epoch).to.eq(await ryskLqPool.epoch());
+      expect(withdrawalReceipt.shares).to.eq(parseUnits('30'));
     });
   });
 
@@ -403,6 +476,35 @@ describe('RyskStrategy', () => {
       await strategy.completeWithdrawal();
 
       expect(await underlying.balanceOf(vault.address)).to.eq(amountToWithdraw);
+    });
+
+    it('works when withdrawal was initiated multiple times in two different epochs', async () => {
+      let underlyingAmount = utils.parseUnits('100');
+      await underlying.mint(strategy.address, underlyingAmount);
+      await strategy.connect(manager).invest();
+
+      // initiate withdrawals
+      await strategy.connect(manager).withdrawToVault(parseUnits('50'));
+      await strategy.connect(manager).withdrawToVault(parseUnits('60'));
+
+      await ryskLqPool.advanceEpoch();
+
+      // initiate more withdrawals in new epoch without completing the previous one
+      await strategy.connect(manager).withdrawToVault(parseUnits('30'));
+
+      const amountToWithdraw = parseUnits('40');
+      await strategy.connect(manager).withdrawToVault(amountToWithdraw);
+
+      await ryskLqPool.advanceEpoch();
+
+      await strategy.completeWithdrawal();
+
+      expect(await underlying.balanceOf(vault.address)).to.eq(amountToWithdraw);
+      expect(await underlying.balanceOf(strategy.address)).to.eq(0);
+      expect(await ryskLqPool.balanceOf(strategy.address)).to.eq(
+        parseUnits('60'),
+      );
+      expect(await strategy.investedAssets()).to.eq(parseUnits('60'));
     });
   });
 

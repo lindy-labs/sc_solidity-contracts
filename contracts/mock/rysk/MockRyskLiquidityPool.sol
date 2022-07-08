@@ -59,6 +59,19 @@ contract MockRyskLiquidityPool is ERC20 {
         return _amount / epochPricePerShare[epoch] * 1e18;
     }
 
+    // to mimic behavior of Rysk liquidity pool we neeed to consider this cases:
+    // 1. when called second time and epoch has not advanced => add to the previous receipt
+    // 2. when called second time and epoch has advanced => override the previous receipt
+
+    // how to test this?
+    // pay attention to invested assets = undredeemed shares + redeemed shares
+    // invested assets after initiate withdrawal? -> invested assets doesn't change
+
+    // vault calls updateInvested multiple times in the same epoch?
+    // actual -> all withdrawal requests will be aggregated
+    // update invested after uncompleted withdrawal? -> override? but should it?
+    // update invested can be called multiple times in the same or in new epoch,
+    // we want to aggregate all withdrawal requests in the same epoch
     function initiateWithdraw(uint256 _shares) external {
         require(_shares > 0);
 
@@ -66,19 +79,25 @@ contract MockRyskLiquidityPool is ERC20 {
         uint256 unredeemedShares = depositReceipts[msg.sender].unredeemedShares;
 
         if (unredeemedShares != 0) {
-            this.approve(msg.sender, unredeemedShares);
-            transferFrom(address(this), msg.sender, unredeemedShares);
+            this.transfer(msg.sender, unredeemedShares);
             depositReceipts[msg.sender].unredeemedShares = 0;
         }
 
-        uint256 sharesToWithdraw = _shares > this.balanceOf(msg.sender)
+        WithdrawalReceipt storage withdrawalReceipt = withdrawalReceipts[msg.sender];
+        
+        uint256 sharesToWithdraw;
+        if (withdrawalReceipt.epoch == epoch) {
+            sharesToWithdraw = withdrawalReceipt.shares +_shares > this.balanceOf(msg.sender)
+            ? this.balanceOf(msg.sender)
+            : withdrawalReceipt.shares +_shares;
+        } else {
+            sharesToWithdraw = _shares > this.balanceOf(msg.sender)
             ? this.balanceOf(msg.sender)
             : _shares;
+        }
 
-        withdrawalReceipts[msg.sender] = WithdrawalReceipt({
-            epoch: uint128(epoch),
-            shares: uint128(sharesToWithdraw)
-        });
+        withdrawalReceipt.epoch = uint128(epoch);
+        withdrawalReceipt.shares = uint128(sharesToWithdraw);
     }
 
     function completeWithdraw(uint256 _shares) external returns (uint256) {
@@ -88,9 +107,7 @@ contract MockRyskLiquidityPool is ERC20 {
 
         uint256 amount = sharesToWithdraw * epochPricePerShare[epoch] / 1e18;
 
-        underlying.approve(msg.sender, amount);
-        underlying.transfer(msg.sender, amount);
-        // todo fix
+        underlying.safeTransfer(msg.sender, amount);
         _burn(msg.sender, sharesToWithdraw);
 
         return amount;

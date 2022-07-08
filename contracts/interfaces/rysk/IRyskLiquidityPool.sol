@@ -16,8 +16,6 @@ interface IRyskLiquidityPool is IERC20 {
     // this can never return false
     function deposit(uint256 _amount) external returns (bool);
     //
-    function redeem(uint256 _shares) external returns (uint256);
-    //
     function initiateWithdraw(uint256 _shares) external;
     // 
     function completeWithdraw(uint256 _shares) external returns (uint256);
