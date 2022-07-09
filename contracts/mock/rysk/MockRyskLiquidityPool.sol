@@ -51,19 +51,9 @@ contract MockRyskLiquidityPool is ERC20 {
         return true;
     }
 
-    // to mimic behavior of Rysk liquidity pool we neeed to consider this cases:
+    // note two different behaviors depending on epoch:
     // 1. when called second time and epoch has not advanced => add to the previous receipt
     // 2. when called second time and epoch has advanced => override the previous receipt
-
-    // how to test this?
-    // pay attention to invested assets = undredeemed shares + redeemed shares
-    // invested assets after initiate withdrawal? -> invested assets doesn't change
-
-    // vault calls updateInvested multiple times in the same epoch?
-    // actual -> all withdrawal requests will be aggregated
-    // update invested after uncompleted withdrawal? -> override? but should it?
-    // update invested can be called multiple times in the same or in new epoch,
-    // we want to aggregate all withdrawal requests in the same epoch
     function initiateWithdraw(uint256 _shares) external {
         require(_shares > 0);
 
@@ -73,24 +63,25 @@ contract MockRyskLiquidityPool is ERC20 {
             msg.sender
         ];
 
-        uint256 sharesToWithdraw;
         if (withdrawalReceipt.epoch == epoch) {
             require(
                 withdrawalReceipt.shares + _shares <=
                     this.balanceOf(msg.sender),
                 "Not enough shares to withdraw"
             );
-            sharesToWithdraw = withdrawalReceipt.shares + _shares;
+            
+            // add to the previous receipt
+            withdrawalReceipt.shares = uint128(withdrawalReceipt.shares + _shares);
         } else {
             require(
                 _shares <= this.balanceOf(msg.sender),
                 "Not enough shares to withdraw"
             );
-            sharesToWithdraw = _shares;
-        }
 
-        withdrawalReceipt.epoch = uint128(epoch);
-        withdrawalReceipt.shares = uint128(sharesToWithdraw);
+            // override the previous receipt
+            withdrawalReceipt.epoch = uint128(epoch);
+            withdrawalReceipt.shares = uint128(_shares);
+        }         
     }
 
     function completeWithdraw(uint256 _shares) external returns (uint256) {

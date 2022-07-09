@@ -16,7 +16,8 @@ import {IVault} from "../../vault/IVault.sol";
 import "hardhat/console.sol";
 
 /**
- * RyskStrategy generates yield by investing into a Rysk liquidity pool.
+ * RyskStrategy generates yield by investing into a Rysk LiquidityPool,
+ * that serves to provide liquidity for a dynamic hedging options AMM.
  *
  * @notice This strategy is asyncrhonous (doesn't support immediate withdrawals).
  */
@@ -36,6 +37,11 @@ contract RyskStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
     // pending withdrawal receipt
     IRyskLiquidityPool.WithdrawalReceipt pendingWithdrawal;
 
+    /**
+     * Emmited when a withdrawal has been initiated.
+     *
+     *@param shares to be withdrawn
+     */
     event RyskWithdrawalInitiated(uint256 shares);
 
     // rysk liquidity pool is 0x
@@ -187,6 +193,13 @@ contract RyskStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
         ryskLqPool.initiateWithdraw(sharesToWithdraw);
     }
 
+    /**
+     * Completes the withdrawal initiated by withdrawToVault.
+     *
+     * @notice Expected to be called by the backend once the Rysk liquidity pool enters a new epoch.
+     * Backend should subscribe to 'EpochExecuted' event on Rysk LiquidityPool contract,
+     * and act by calling this function when the event is emitted to complete ongoing withdrawal.
+     */
     function completeWithdrawal() external {
         if (pendingWithdrawal.epoch == 0) revert RyskNoWithdrawalInitiated();
         if (pendingWithdrawal.epoch == ryskLqPool.epoch())
@@ -248,6 +261,11 @@ contract RyskStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
             ryskLqPool.epochPricePerShare(ryskLqPool.epoch());
     }
 
+    /**
+     * Checks if the strategy has enough shares to withdraw.
+     *
+     * @param _sharesToWithdraw number of shares to withdraw
+     */
     function _hasEnoughShares(uint256 _sharesToWithdraw)
         internal
         view
@@ -257,6 +275,10 @@ contract RyskStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
             _sharesToWithdraw <= _getTotalShares() - pendingWithdrawal.shares;
     }
 
+    /**
+     * Resets the pending withdrawal if the epoch when withdrawal receipt was created
+     * is older than the current epoch.
+     */
     function _resetPendingWithdrawalIfEpochAdvanced() internal {
         uint256 currentEpoch = ryskLqPool.epoch();
 
