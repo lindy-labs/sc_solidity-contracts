@@ -3,13 +3,10 @@ pragma solidity =0.8.10;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import "hardhat/console.sol";
 
 contract MockRyskLiquidityPool is ERC20 {
-    using SafeERC20 for IERC20;
-    
     IERC20 immutable underlying;
     uint256 public epoch;
     mapping(uint256 => uint256) public epochPricePerShare;
@@ -33,7 +30,7 @@ contract MockRyskLiquidityPool is ERC20 {
         address _underlying
     ) ERC20(_name, _symbol) {
         underlying = IERC20(_underlying);
-        approve(address(this), type(uint256).max);
+
         epoch++;
         epochPricePerShare[epoch] = 1e18;
     }
@@ -41,10 +38,9 @@ contract MockRyskLiquidityPool is ERC20 {
     function deposit(uint256 _amount) external returns (bool) {
         require(_amount > 0);
 
-        underlying.safeTransferFrom(msg.sender, address(this), _amount);
+        underlying.transferFrom(msg.sender, address(this), _amount);
 
         uint256 toMint = _getSharesForAmount(_amount);
-
         _mint(address(this), toMint);
 
         DepositReceipt storage receipt = depositReceipts[msg.sender];
@@ -53,10 +49,6 @@ contract MockRyskLiquidityPool is ERC20 {
         receipt.unredeemedShares += toMint;
 
         return true;
-    }
-
-    function _getSharesForAmount(uint256 _amount) internal view returns (uint256) {
-        return _amount / epochPricePerShare[epoch] * 1e18;
     }
 
     // to mimic behavior of Rysk liquidity pool we neeed to consider this cases:
@@ -75,25 +67,26 @@ contract MockRyskLiquidityPool is ERC20 {
     function initiateWithdraw(uint256 _shares) external {
         require(_shares > 0);
 
-        // redeem shares if needed
-        uint256 unredeemedShares = depositReceipts[msg.sender].unredeemedShares;
+        _redeemUnredeemedShares();
 
-        if (unredeemedShares != 0) {
-            this.transfer(msg.sender, unredeemedShares);
-            depositReceipts[msg.sender].unredeemedShares = 0;
-        }
+        WithdrawalReceipt storage withdrawalReceipt = withdrawalReceipts[
+            msg.sender
+        ];
 
-        WithdrawalReceipt storage withdrawalReceipt = withdrawalReceipts[msg.sender];
-        
         uint256 sharesToWithdraw;
         if (withdrawalReceipt.epoch == epoch) {
-            sharesToWithdraw = withdrawalReceipt.shares +_shares > this.balanceOf(msg.sender)
-            ? this.balanceOf(msg.sender)
-            : withdrawalReceipt.shares +_shares;
+            require(
+                withdrawalReceipt.shares + _shares <=
+                    this.balanceOf(msg.sender),
+                "Not enough shares to withdraw"
+            );
+            sharesToWithdraw = withdrawalReceipt.shares + _shares;
         } else {
-            sharesToWithdraw = _shares > this.balanceOf(msg.sender)
-            ? this.balanceOf(msg.sender)
-            : _shares;
+            require(
+                _shares <= this.balanceOf(msg.sender),
+                "Not enough shares to withdraw"
+            );
+            sharesToWithdraw = _shares;
         }
 
         withdrawalReceipt.epoch = uint128(epoch);
@@ -105,9 +98,9 @@ contract MockRyskLiquidityPool is ERC20 {
 
         uint256 sharesToWithdraw = withdrawalReceipts[msg.sender].shares;
 
-        uint256 amount = sharesToWithdraw * epochPricePerShare[epoch] / 1e18;
+        uint256 amount = (sharesToWithdraw * epochPricePerShare[epoch]) / 1e18;
 
-        underlying.safeTransfer(msg.sender, amount);
+        underlying.transfer(msg.sender, amount);
         _burn(msg.sender, sharesToWithdraw);
 
         return amount;
@@ -115,11 +108,28 @@ contract MockRyskLiquidityPool is ERC20 {
 
     function advanceEpoch() external {
         epoch++;
-        uint256 pricePerShare = totalAssets() / totalSupply() * 1e18;
+        uint256 pricePerShare = (totalAssets() * 1e18) / totalSupply();
         epochPricePerShare[epoch] = pricePerShare;
     }
 
     function totalAssets() internal view returns (uint256) {
         return underlying.balanceOf(address(this));
+    }
+
+    function _getSharesForAmount(uint256 _amount)
+        internal
+        view
+        returns (uint256)
+    {
+        return (_amount * 1e18) / epochPricePerShare[epoch];
+    }
+
+    function _redeemUnredeemedShares() internal {
+        uint256 unredeemedShares = depositReceipts[msg.sender].unredeemedShares;
+
+        if (unredeemedShares != 0) {
+            this.transfer(msg.sender, unredeemedShares);
+            depositReceipts[msg.sender].unredeemedShares = 0;
+        }
     }
 }

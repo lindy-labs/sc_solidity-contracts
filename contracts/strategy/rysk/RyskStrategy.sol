@@ -33,8 +33,8 @@ contract RyskStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
     address public immutable override(IStrategy) vault;
     // rysk liquidity pool that this strategy is interacting with
     IRyskLiquidityPool public immutable ryskLqPool;
-    // amount of underlying waiting for a withdrawal to complete
-    uint256 pendingWithdrawalAmount;
+    // pending withdrawal receipt
+    IRyskLiquidityPool.WithdrawalReceipt pendingWithdrawal;
 
     event RyskWithdrawalInitiated(uint256 shares);
 
@@ -62,7 +62,6 @@ contract RyskStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
             revert RyskLiquidityPoolCannotBe0Address();
         if (_underlying == address(0))
             revert StrategyUnderlyingCannotBe0Address();
-
         if (!_vault.doesContractImplementInterface(type(IVault).interfaceId))
             revert StrategyNotIVault();
 
@@ -161,46 +160,36 @@ contract RyskStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
     }
 
     /// @inheritdoc IStrategy
-    function withdrawToVault(uint256 amount)
+    function withdrawToVault(uint256 _amount)
         external
         virtual
         override(IStrategy)
         onlyManager
     {
-        if (amount == 0) revert StrategyAmountZero();
+        if (_amount == 0) revert StrategyAmountZero();
 
-        // we need to check epoch here because if epoch has advanced,
-        // previous withdrawal receipt will be overridden
-        if (
-            ryskLqPool.withdrawalReceipts(address(this)).epoch !=
-            ryskLqPool.epoch()
-        ) {
-            // reset pending withdrawal amount since the receipt will be overridden
-            pendingWithdrawalAmount = 0;
-        }
+        uint256 shares = _underlyingToShares(_amount);
+
+        _resetPendingWithdrawalIfEpochAdvanced();
 
         // because the vault can call updateInvested => withdrawToVault multiple times during the same epoch,
         // and rysk liquidity pool aggregates withdrawal amounts inititated during the same epoch,
         // we cannot withdraw less than already pending amount
-        if (pendingWithdrawalAmount >= amount) return;
+        if (pendingWithdrawal.shares >= shares) return;
 
-        uint256 amountToWithdraw = amount - pendingWithdrawalAmount;
-        pendingWithdrawalAmount += amountToWithdraw;
-        
-        uint256 sharesToWithdraw = _underlyingToShares(amountToWithdraw);
-
-        if (sharesToWithdraw > _getTotalShares() - ryskLqPool.withdrawalReceipts(address(this)).shares)
+        uint256 sharesToWithdraw = shares - pendingWithdrawal.shares;
+        if (!_hasEnoughShares(sharesToWithdraw))
             revert StrategyNotEnoughShares();
+
+        pendingWithdrawal.shares += uint128(sharesToWithdraw);
 
         emit RyskWithdrawalInitiated(sharesToWithdraw);
         ryskLqPool.initiateWithdraw(sharesToWithdraw);
     }
 
     function completeWithdrawal() external {
-        uint256 epoch = ryskLqPool.withdrawalReceipts(address(this)).epoch;
-
-        if (epoch == 0) revert RyskNoWithdrawalInitiated();
-        if (epoch == ryskLqPool.epoch())
+        if (pendingWithdrawal.epoch == 0) revert RyskNoWithdrawalInitiated();
+        if (pendingWithdrawal.epoch == ryskLqPool.epoch())
             revert RyskCannotComipleteWithdrawalInSameEpoch();
 
         uint256 sharesToWithdraw = ryskLqPool
@@ -250,12 +239,33 @@ contract RyskStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
      * @return number of shares
      */
     function _underlyingToShares(uint256 _underlying)
-        public
+        internal
         view
         returns (uint256)
     {
         return
             (_underlying * 1e18) /
             ryskLqPool.epochPricePerShare(ryskLqPool.epoch());
+    }
+
+    function _hasEnoughShares(uint256 _sharesToWithdraw)
+        internal
+        view
+        returns (bool)
+    {
+        return
+            _sharesToWithdraw <= _getTotalShares() - pendingWithdrawal.shares;
+    }
+
+    function _resetPendingWithdrawalIfEpochAdvanced() internal {
+        uint256 currentEpoch = ryskLqPool.epoch();
+
+        // we need to check epoch here because if epoch has advanced,
+        // previous withdrawal receipt will be overridden
+        if (pendingWithdrawal.epoch != currentEpoch) {
+            // reset pending withdrawal amount since the receipt will be overridden
+            pendingWithdrawal.shares = 0;
+            pendingWithdrawal.epoch = uint128(currentEpoch);
+        }
     }
 }
