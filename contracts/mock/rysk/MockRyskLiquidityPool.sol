@@ -6,6 +6,15 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {IRyskLiquidityPool} from "../../interfaces/rysk/IRyskLiquidityPool.sol";
 
+// This contract aims to mimic the Rysk LiquidityPool contract as much as possible. For instance,
+// the LiquidityPool has the 'epoch' (or 'depositReceipts', etc.) public field and to match that
+// we have the same field implemented here.
+// 
+// Because we want to interact with the LiquidityPool contract's fields in our strategy through an interface,
+// and we cannot declare a field on an interface, we do not implement the IRyskLiquidityPool interface here.
+// Instead, our strategy tests ensure that the API defined by IRyskLiquidityPool and the actual API of the LiquidityPool
+// (MockRyskLiquidityPool) are indeed a match, implying that public fields from the LiquidityPool are accessible 
+// through methods with the same name described by the IRyskLiquidityPool interface.
 contract MockRyskLiquidityPool is ERC20 {
     IERC20 immutable underlying;
     uint256 public epoch;
