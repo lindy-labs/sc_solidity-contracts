@@ -160,9 +160,9 @@ contract RyskStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
 
         if (balance == 0) revert StrategyNoUnderlying();
 
-        ryskLqPool.deposit(balance);
-
         emit StrategyInvested(balance);
+
+        ryskLqPool.deposit(balance);
     }
 
     /// @inheritdoc IStrategy
