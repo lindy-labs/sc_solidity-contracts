@@ -4,25 +4,14 @@ pragma solidity =0.8.10;
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import "hardhat/console.sol";
+import {IRyskLiquidityPool} from "../../interfaces/rysk/IRyskLiquidityPool.sol";
 
 contract MockRyskLiquidityPool is ERC20 {
     IERC20 immutable underlying;
     uint256 public epoch;
     mapping(uint256 => uint256) public epochPricePerShare;
-    mapping(address => DepositReceipt) public depositReceipts;
-    mapping(address => WithdrawalReceipt) public withdrawalReceipts;
-
-    struct DepositReceipt {
-        uint128 epoch;
-        uint128 amount;
-        uint256 unredeemedShares;
-    }
-
-    struct WithdrawalReceipt {
-        uint128 epoch;
-        uint128 shares;
-    }
+    mapping(address => IRyskLiquidityPool.DepositReceipt) public depositReceipts;
+    mapping(address => IRyskLiquidityPool.WithdrawalReceipt) public withdrawalReceipts;
 
     constructor(
         string memory _name,
@@ -43,7 +32,7 @@ contract MockRyskLiquidityPool is ERC20 {
         uint256 toMint = _getSharesForAmount(_amount);
         _mint(address(this), toMint);
 
-        DepositReceipt storage receipt = depositReceipts[msg.sender];
+        IRyskLiquidityPool.DepositReceipt storage receipt = depositReceipts[msg.sender];
         receipt.epoch = uint128(epoch);
         receipt.amount += uint128(_amount);
         receipt.unredeemedShares += toMint;
@@ -59,7 +48,7 @@ contract MockRyskLiquidityPool is ERC20 {
 
         _redeemUnredeemedShares();
 
-        WithdrawalReceipt storage withdrawalReceipt = withdrawalReceipts[
+        IRyskLiquidityPool.WithdrawalReceipt storage withdrawalReceipt = withdrawalReceipts[
             msg.sender
         ];
 
