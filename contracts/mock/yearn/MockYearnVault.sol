@@ -2,15 +2,14 @@
 pragma solidity =0.8.10;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import {IYearnVault} from "../../interfaces/yearn/IYearnVault.sol";
 
 contract MockYearnVault is IYearnVault, ERC20 {
-    using SafeERC20 for IERC20;
+    using SafeERC20 for ERC20;
 
-    IERC20 immutable underlying;
+    ERC20 immutable underlying;
 
     uint256 public lossToRealize;
     uint256 public maxLossWithdrawParam;
@@ -20,7 +19,7 @@ contract MockYearnVault is IYearnVault, ERC20 {
         string memory _symbol,
         address _underlying
     ) ERC20(_name, _symbol) {
-        underlying = IERC20(_underlying);
+        underlying = ERC20(_underlying);
     }
 
     function deposit(uint256 amount, address recipient)
@@ -34,8 +33,9 @@ contract MockYearnVault is IYearnVault, ERC20 {
 
     function pricePerShare() public view returns (uint256) {
         uint256 totalSupply = totalSupply();
-        if (totalSupply == 0) return 1e18;
-        return (1e18 * _getUnderlyingBalance()) / totalSupply;
+        if (totalSupply == 0) return 10**underlying.decimals();
+        return
+            (10**underlying.decimals() * _getUnderlyingBalance()) / totalSupply;
     }
 
     function withdraw(
@@ -48,11 +48,13 @@ contract MockYearnVault is IYearnVault, ERC20 {
         // spy on _maxLoss param
         maxLossWithdrawParam = _maxLoss;
 
-        uint256 value = (maxShares * pricePerShare()) / 1e18;
+        uint256 value = (maxShares * pricePerShare()) /
+            10**underlying.decimals();
 
-        // simulate loss 
+        // simulate loss
         if (lossToRealize != 0) {
-            if (lossToRealize * maxLossWithdrawParam * 10000  > value) revert("lossToRealize too high");
+            if (lossToRealize * maxLossWithdrawParam * 10000 > value)
+                revert("lossToRealize too high");
 
             value = value - lossToRealize;
         }

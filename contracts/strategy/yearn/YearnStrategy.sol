@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.10;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
@@ -19,7 +19,7 @@ import {IVault} from "../../vault/IVault.sol";
  * @notice This strategy is syncrhonous (supports immediate withdrawals).
  */
 contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
-    using SafeERC20 for IERC20;
+    using SafeERC20 for ERC20;
     using PercentMath for uint256;
     using ERC165Query for address;
 
@@ -29,11 +29,13 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
     /// role allowed to invest/withdraw from yearn vault
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
     // underlying ERC20 token
-    IERC20 public immutable underlying;
+    ERC20 public immutable underlying;
     /// @inheritdoc IStrategy
     address public immutable override(IStrategy) vault;
     // yearn vault that this strategy is interacting with
     IYearnVault public immutable yVault;
+    // underlying decimal multiplier
+    uint256 public immutable decimalMultipliter;
 
     /**
      * @param _vault address of the vault that will use this strategy
@@ -60,8 +62,9 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
 
         vault = _vault;
         yVault = IYearnVault(_yVault);
-        underlying = IERC20(_underlying);
+        underlying = ERC20(_underlying);
 
+        decimalMultipliter = 10**underlying.decimals();
         underlying.approve(_yVault, type(uint256).max);
     }
 
@@ -80,16 +83,21 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
     //
 
     /**
-     * Transfers ownership of the Strategy to another account, 
+     * Transfers ownership of the Strategy to another account,
      * revoking previous owner's ADMIN role and setting up ADMIN role for the new owner.
-     * 
+     *
      * @notice Can only be called by the current owner.
      *
      * @param _newOwner The new owner of the contract.
      */
-    function transferOwnership(address _newOwner) public override(Ownable) onlyOwner {
+    function transferOwnership(address _newOwner)
+        public
+        override(Ownable)
+        onlyOwner
+    {
         if (_newOwner == address(0x0)) revert StrategyOwnerCannotBe0Address();
-        if (_newOwner == msg.sender) revert StrategyCannotTransferOwnershipToSelf();
+        if (_newOwner == msg.sender)
+            revert StrategyCannotTransferOwnershipToSelf();
 
         _transferOwnership(_newOwner);
 
@@ -126,8 +134,7 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
         override(IStrategy)
         returns (uint256)
     {
-        return
-            _sharesToUnderlying(_getShares()) + _getUnderlyingBalance();
+        return _sharesToUnderlying(_getShares()) + _getUnderlyingBalance();
     }
 
     /// @inheritdoc IStrategy
@@ -154,7 +161,11 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
         if (_sharesToWithdraw > _getShares()) revert StrategyNotEnoughShares();
 
         // burn shares and withdraw required underlying to strategy
-        uint256 amountWithdrawn = yVault.withdraw(_sharesToWithdraw, address(this), 1);
+        uint256 amountWithdrawn = yVault.withdraw(
+            _sharesToWithdraw,
+            address(this),
+            1
+        );
 
         // transfer underlying to vault
         underlying.safeTransfer(vault, amountWithdrawn);
@@ -192,7 +203,7 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
         view
         returns (uint256)
     {
-        return (_shares * yVault.pricePerShare()) / 1e18;
+        return (_shares * yVault.pricePerShare()) / decimalMultipliter;
     }
 
     /**
@@ -207,6 +218,6 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
         view
         returns (uint256)
     {
-        return (_underlying * 1e18) / yVault.pricePerShare();
+        return (_underlying * decimalMultipliter) / yVault.pricePerShare();
     }
 }
