@@ -12,6 +12,9 @@ contract MockYearnVault is IYearnVault, ERC20 {
 
     IERC20 immutable underlying;
 
+    uint256 public lossToRealize;
+    uint256 public maxLossWithdrawParam;
+
     constructor(
         string memory _name,
         string memory _symbol,
@@ -32,17 +35,27 @@ contract MockYearnVault is IYearnVault, ERC20 {
     function pricePerShare() public view returns (uint256) {
         uint256 totalSupply = totalSupply();
         if (totalSupply == 0) return 1e18;
-        return (1e18 * _freeFunds()) / totalSupply;
+        return (1e18 * _getUnderlyingBalance()) / totalSupply;
     }
 
     function withdraw(
         uint256 maxShares,
         address recipient,
-        uint256 /* maxLoss */
+        uint256 _maxLoss
     ) public returns (uint256) {
         require(maxShares > 0);
 
+        // spy on _maxLoss param
+        maxLossWithdrawParam = _maxLoss;
+
         uint256 value = (maxShares * pricePerShare()) / 1e18;
+
+        // simulate loss 
+        if (lossToRealize != 0) {
+            if (lossToRealize * maxLossWithdrawParam * 10000  > value) revert("lossToRealize too high");
+
+            value = value - lossToRealize;
+        }
 
         _burn(msg.sender, maxShares);
 
@@ -55,6 +68,10 @@ contract MockYearnVault is IYearnVault, ERC20 {
         return underlying.balanceOf(address(this));
     }
 
+    function realizeLossOnWithdrawal(uint256 _lossAmount) public {
+        lossToRealize = _lossAmount;
+    }
+
     ///////////////// INTERNAL FUNCTIONS //////////////////////////////
 
     function _issueSharesForAmount(address to, uint256 amount)
@@ -64,7 +81,7 @@ contract MockYearnVault is IYearnVault, ERC20 {
         uint256 shares;
         uint256 totalSupply = totalSupply();
         if (totalSupply > 0) {
-            shares = (amount * totalSupply) / _freeFunds(); // dev: no free funds
+            shares = (amount * totalSupply) / _getUnderlyingBalance(); // dev: no free funds
         } else {
             shares = amount;
         }
@@ -75,7 +92,7 @@ contract MockYearnVault is IYearnVault, ERC20 {
         return shares;
     }
 
-    function _freeFunds() internal view returns (uint256) {
+    function _getUnderlyingBalance() internal view returns (uint256) {
         return underlying.balanceOf(address(this));
     }
 }

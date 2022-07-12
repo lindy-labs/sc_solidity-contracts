@@ -13,8 +13,7 @@ import {
 
 import { generateNewAddress } from '../../shared/';
 import { depositParams, claimParams } from '../../shared/factories';
-
-const { parseEther } = utils;
+import { parseUnits } from 'ethers/lib/utils';
 
 describe('YearnStrategy', () => {
   let owner: SignerWithAddress;
@@ -44,7 +43,7 @@ describe('YearnStrategy', () => {
       'LUSD',
       'LUSD',
       18,
-      parseEther('1000000000'),
+      parseUnits('1000000000'),
     );
 
     const YVaultFactory = await ethers.getContractFactory('MockYearnVault');
@@ -201,7 +200,7 @@ describe('YearnStrategy', () => {
     });
 
     it('deposits underlying from the vault to the yVault', async () => {
-      let underlyingAmount = utils.parseUnits('100', 18);
+      let underlyingAmount = parseUnits('100', 18);
       await depositToVault(underlyingAmount);
 
       expect(await vault.totalUnderlying()).to.eq(underlyingAmount);
@@ -220,7 +219,7 @@ describe('YearnStrategy', () => {
     });
 
     it('emits a StrategyInvested event', async () => {
-      let underlyingAmount = utils.parseUnits('100', 18);
+      let underlyingAmount = parseUnits('100', 18);
       await depositToVault(underlyingAmount);
 
       const tx = await vault.connect(owner).updateInvested();
@@ -231,13 +230,13 @@ describe('YearnStrategy', () => {
     });
 
     it('can be called multiple times', async () => {
-      await depositToVault(utils.parseUnits('100', 18));
+      await depositToVault(parseUnits('100', 18));
       await vault.connect(owner).updateInvested();
 
-      await depositToVault(utils.parseUnits('10', 18));
+      await depositToVault(parseUnits('10', 18));
       await vault.connect(owner).updateInvested();
 
-      const totalUnderlying = utils.parseUnits('110', 18).sub('37');
+      const totalUnderlying = parseUnits('110', 18).sub('37');
 
       expect(await underlying.balanceOf(strategy.address)).to.eq(0);
       expect(await strategy.investedAssets()).to.eq(totalUnderlying);
@@ -259,22 +258,22 @@ describe('YearnStrategy', () => {
     });
 
     it('removes the requested funds from the yVault', async () => {
-      await depositToVault(parseEther('100'));
+      await depositToVault(parseUnits('100'));
       await vault.connect(owner).updateInvested();
 
-      const amountToWithdraw = parseEther('30');
+      const amountToWithdraw = parseUnits('30');
 
       await strategy.connect(manager).withdrawToVault(amountToWithdraw);
 
-      expect(await yVault.balanceOf(strategy.address)).to.eq(parseEther('70'));
-      expect(await strategy.investedAssets()).to.eq(parseEther('70'));
+      expect(await yVault.balanceOf(strategy.address)).to.eq(parseUnits('70'));
+      expect(await strategy.investedAssets()).to.eq(parseUnits('70'));
     });
 
     it('emits an event', async () => {
-      await depositToVault(parseEther('100'));
+      await depositToVault(parseUnits('100'));
       await vault.connect(owner).updateInvested();
 
-      const amountToWithdraw = parseEther('30');
+      const amountToWithdraw = parseUnits('30');
 
       let tx = await strategy
         .connect(manager)
@@ -286,14 +285,87 @@ describe('YearnStrategy', () => {
     });
 
     it('fails if the requested funds from the yVault are greater than available', async () => {
-      await depositToVault(parseEther('100'));
+      await depositToVault(parseUnits('100'));
       await vault.connect(owner).updateInvested();
 
-      const amountToWithdraw = parseEther('101');
+      const amountToWithdraw = parseUnits('101');
 
       await expect(
         strategy.connect(manager).withdrawToVault(amountToWithdraw),
       ).to.be.revertedWith('StrategyNotEnoughShares');
+    });
+
+    it('(audit H-1) works if there is a precision loss when converting shares to underlying', async () => {
+      await depositToVault(parseUnits('100'));
+      await vault.connect(owner).updateInvested();
+
+      await yVault.realizeLossOnWithdrawal('1');
+
+      const tx = await strategy
+        .connect(manager)
+        .withdrawToVault(parseUnits('30'));
+
+      const expectedAmountWithdrawn = '29999999999999999999';
+      expect(await underlying.balanceOf(vault.address)).to.eq(
+        expectedAmountWithdrawn,
+      );
+      expect(await underlying.balanceOf(yVault.address)).to.eq(
+        '70000000000000000001',
+      );
+      await expect(tx)
+        .to.emit(strategy, 'StrategyWithdrawn')
+        .withArgs(expectedAmountWithdrawn);
+    });
+
+    it("(audit H-1) always calls Yearn vault 'withdraw' function with param 'maxLoss' = 1", async () => {
+      let underlyingAmount = parseUnits('100', 18);
+      await depositToVault(underlyingAmount);
+      await vault.connect(owner).updateInvested();
+
+      await strategy.connect(manager).withdrawToVault(parseUnits('30'));
+
+      expect(await yVault.maxLossWithdrawParam()).to.eq('1');
+    });
+
+    it('(audit H-1) works if there is a 0.01% loss on withdrawal', async () => {
+      let underlyingAmount = parseUnits('100', 18);
+      await depositToVault(underlyingAmount);
+      await vault.connect(owner).updateInvested();
+
+      const amountToWithdraw = parseUnits('50');
+      // realize loss of 0.01%
+      const lossAmount = amountToWithdraw.div('10000');
+      await yVault.realizeLossOnWithdrawal(lossAmount);
+
+      const tx = await strategy
+        .connect(manager)
+        .withdrawToVault(amountToWithdraw);
+
+      const expectedAmountWithdrawn = parseUnits('49995', '15');
+      expect(await underlying.balanceOf(vault.address)).to.eq(
+        expectedAmountWithdrawn,
+      );
+      expect(await underlying.balanceOf(yVault.address)).to.eq(
+        parseUnits('50005', '15'),
+      );
+      await expect(tx)
+        .to.emit(strategy, 'StrategyWithdrawn')
+        .withArgs(expectedAmountWithdrawn);
+    });
+
+    it('(audit H-1) fails if there is more than 0.01% loss on withdrawal', async () => {
+      let underlyingAmount = parseUnits('100', 18);
+      await depositToVault(underlyingAmount);
+      await vault.connect(owner).updateInvested();
+
+      const amountToWithdraw = parseUnits('50');
+      // loss > 0.01%
+      const lossAmount = amountToWithdraw.div('10000').add('1');
+      await yVault.realizeLossOnWithdrawal(lossAmount);
+
+      // we do not assert concrete error since transaction should fail on Yearn vault 'withdraw' call
+      await expect(strategy.connect(manager).withdrawToVault(amountToWithdraw))
+        .to.be.reverted;
     });
   });
 

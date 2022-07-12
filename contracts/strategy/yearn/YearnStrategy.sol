@@ -154,12 +154,12 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
         if (_sharesToWithdraw > _getShares()) revert StrategyNotEnoughShares();
 
         // burn shares and withdraw required underlying to strategy
-        yVault.withdraw(_sharesToWithdraw, address(this), 1);
+        uint256 amountWithdrawn = yVault.withdraw(_sharesToWithdraw, address(this), 1);
 
         // transfer underlying to vault
-        underlying.safeTransfer(vault, amount);
+        underlying.safeTransfer(vault, amountWithdrawn);
 
-        emit StrategyWithdrawn(amount);
+        emit StrategyWithdrawn(amountWithdrawn);
     }
 
     /**
