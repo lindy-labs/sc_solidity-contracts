@@ -2,6 +2,7 @@ import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { ethers } from 'hardhat';
 import { expect } from 'chai';
 import { BigNumber, utils, constants } from 'ethers';
+import { time } from '@openzeppelin/test-helpers';
 
 import {
   Vault,
@@ -11,7 +12,7 @@ import {
   YearnStrategy__factory,
 } from '../typechain';
 
-import { generateNewAddress } from './shared/';
+import { generateNewAddress, moveForwardTwoWeeks } from './shared/';
 import { parseUnits } from 'ethers/lib/utils';
 
 let owner: SignerWithAddress;
@@ -29,6 +30,7 @@ const PERFORMANCE_FEE_PCT = BigNumber.from('0');
 const INVEST_PCT = BigNumber.from('10000');
 const INVESTMENT_FEE_PCT = BigNumber.from('0');
 const UNDERLYING_DECIMALS = '18';
+const TWO_WEEKS = time.duration.days(14).toNumber();
 
 const MANAGER_ROLE = utils.keccak256(utils.toUtf8Bytes('MANAGER_ROLE'));
 
@@ -69,6 +71,35 @@ describe('Audit Tests 4', () => {
         await strategy.connect(manager).withdrawToVault(parseUnits('30'));
 
         expect(await yVault.maxLossWithdrawParam()).to.eq('1');
+      });
+    });
+  });
+
+  describe('issue H-2', () => {
+    beforeEach(async () => await beforeEachCommon(UNDERLYING_DECIMALS));
+
+    describe('Vault#unsponsor', () => {
+      it('works when not enough funds in the vault by withdrawing from sync strategy', async () => {
+        const underlyingAmount = parseUnits('1000');
+        await underlying.mint(owner.address, underlyingAmount);
+
+        await vault
+          .connect(owner)
+          .sponsor(underlying.address, underlyingAmount, TWO_WEEKS);
+        await vault.connect(owner).updateInvested();
+        await moveForwardTwoWeeks();
+
+        // at this point we have all the underlying invested
+        expect(await strategy.investedAssets()).to.eq(underlyingAmount);
+        expect(await underlying.balanceOf(vault.address)).to.eq('0');
+
+        await vault.connect(owner).unsponsor(manager.address, [1]);
+
+        expect(await strategy.investedAssets()).to.eq('0');
+        expect(await underlying.balanceOf(vault.address)).to.eq('0');
+        expect(await underlying.balanceOf(manager.address)).to.eq(
+          underlyingAmount,
+        );
       });
     });
   });

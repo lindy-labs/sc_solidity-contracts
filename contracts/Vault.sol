@@ -782,6 +782,8 @@ contract Vault is
 
         totalSponsored -= sponsorAmount;
 
+        _rebalanceBeforeWithdrawing(sponsorAmount);
+
         underlying.safeTransfer(_to, sponsorAmount);
     }
 
