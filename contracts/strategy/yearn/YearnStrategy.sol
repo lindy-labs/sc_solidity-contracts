@@ -136,12 +136,14 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
 
     /// @inheritdoc IStrategy
     function invest() external virtual override(IStrategy) onlyManager {
-        uint256 balance = _getUnderlyingBalance();
-        if (balance == 0) revert StrategyNoUnderlying();
+        uint256 beforeBalance = _getUnderlyingBalance();
+        if (beforeBalance == 0) revert StrategyNoUnderlying();
 
-        yVault.deposit(balance, address(this));
+        yVault.deposit(type(uint256).max, address(this));
 
-        emit StrategyInvested(balance);
+        uint256 afterBalance = _getUnderlyingBalance();
+
+        emit StrategyInvested(beforeBalance - afterBalance);
     }
 
     /// @inheritdoc IStrategy
