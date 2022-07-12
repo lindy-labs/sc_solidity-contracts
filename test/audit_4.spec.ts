@@ -14,74 +14,27 @@ import {
 import { generateNewAddress } from './shared/';
 import { parseUnits } from 'ethers/lib/utils';
 
+let owner: SignerWithAddress;
+let manager: SignerWithAddress;
+let vault: Vault;
+let yVault: MockYearnVault;
+let strategy: YearnStrategy;
+let underlying: MockERC20;
+
+let YearnStrategyFactory: YearnStrategy__factory;
+
+const TREASURY = generateNewAddress();
+const MIN_LOCK_PERIOD = 1;
+const PERFORMANCE_FEE_PCT = BigNumber.from('0');
+const INVEST_PCT = BigNumber.from('10000');
+const INVESTMENT_FEE_PCT = BigNumber.from('0');
+const UNDERLYING_DECIMALS = '18';
+
+const MANAGER_ROLE = utils.keccak256(utils.toUtf8Bytes('MANAGER_ROLE'));
+
 describe('Audit Tests 4', () => {
   describe('issue H-1', () => {
-    let owner: SignerWithAddress;
-    let manager: SignerWithAddress;
-    let vault: Vault;
-    let yVault: MockYearnVault;
-    let strategy: YearnStrategy;
-    let underlying: MockERC20;
-
-    let YearnStrategyFactory: YearnStrategy__factory;
-
-    const TREASURY = generateNewAddress();
-    const MIN_LOCK_PERIOD = 1;
-    const PERFORMANCE_FEE_PCT = BigNumber.from('0');
-    const INVEST_PCT = BigNumber.from('10000');
-    const INVESTMENT_FEE_PCT = BigNumber.from('0');
-
-    const MANAGER_ROLE = utils.keccak256(utils.toUtf8Bytes('MANAGER_ROLE'));
-
-    beforeEach(async () => {
-      [owner, manager] = await ethers.getSigners();
-
-      const MockERC20 = await ethers.getContractFactory('MockERC20');
-      underlying = await MockERC20.deploy(
-        'LUSD',
-        'LUSD',
-        18,
-        parseUnits('1000000000'),
-      );
-
-      const YVaultFactory = await ethers.getContractFactory('MockYearnVault');
-
-      yVault = await YVaultFactory.deploy(
-        'Yearn LUSD Vault',
-        'yLusd',
-        underlying.address,
-      );
-
-      const VaultFactory = await ethers.getContractFactory('Vault');
-
-      vault = await VaultFactory.deploy(
-        underlying.address,
-        MIN_LOCK_PERIOD,
-        INVEST_PCT,
-        TREASURY,
-        owner.address,
-        PERFORMANCE_FEE_PCT,
-        INVESTMENT_FEE_PCT,
-        [],
-      );
-
-      YearnStrategyFactory = await ethers.getContractFactory('YearnStrategy');
-
-      strategy = await YearnStrategyFactory.deploy(
-        vault.address,
-        owner.address,
-        yVault.address,
-        underlying.address,
-      );
-
-      await strategy.connect(owner).grantRole(MANAGER_ROLE, manager.address);
-
-      await vault.setStrategy(strategy.address);
-
-      await underlying
-        .connect(owner)
-        .approve(vault.address, constants.MaxUint256);
-    });
+    beforeEach(async () => await beforeEachCommon(UNDERLYING_DECIMALS));
 
     describe('YearnStrategy#withdrawToVault', () => {
       it('works if there is a precision loss when converting shares to underlying', async () => {
@@ -119,4 +72,79 @@ describe('Audit Tests 4', () => {
       });
     });
   });
+
+  describe('issue H-3', () => {
+    const underlyingDecimals = '8';
+    beforeEach(async () => await beforeEachCommon(underlyingDecimals));
+
+    describe('YearnStrategy#withdrawToVault', () => {
+      it('works if yearn vault shares decimals != 18', async () => {
+        // UNDERLYING_DECIMALS = 8
+        const underlyingAmount = parseUnits('100', underlyingDecimals);
+        underlying.mint(strategy.address, underlyingAmount);
+        strategy.connect(manager).invest();
+
+        await strategy
+          .connect(manager)
+          .withdrawToVault(underlyingAmount.div(2));
+
+        expect(await strategy.decimalMultiplier()).to.eq(1e8);
+        expect(await yVault.decimals()).to.eq(await underlying.decimals());
+        expect(await underlying.balanceOf(vault.address)).to.eq(
+          parseUnits('50', underlyingDecimals),
+        );
+        expect(await underlying.balanceOf(yVault.address)).to.eq(
+          parseUnits('50', underlyingDecimals),
+        );
+      });
+    });
+  });
 });
+
+const beforeEachCommon = async (underlyingDecimals: string) => {
+  [owner, manager] = await ethers.getSigners();
+
+  const MockERC20 = await ethers.getContractFactory('MockERC20');
+  underlying = await MockERC20.deploy(
+    'LUSD',
+    'LUSD',
+    underlyingDecimals,
+    parseUnits('1000000000'),
+  );
+
+  const YVaultFactory = await ethers.getContractFactory('MockYearnVault');
+
+  yVault = await YVaultFactory.deploy(
+    'Yearn LUSD Vault',
+    'yLusd',
+    underlying.address,
+  );
+
+  const VaultFactory = await ethers.getContractFactory('Vault');
+
+  vault = await VaultFactory.deploy(
+    underlying.address,
+    MIN_LOCK_PERIOD,
+    INVEST_PCT,
+    TREASURY,
+    owner.address,
+    PERFORMANCE_FEE_PCT,
+    INVESTMENT_FEE_PCT,
+    [],
+  );
+
+  YearnStrategyFactory = await ethers.getContractFactory('YearnStrategy');
+
+  strategy = await YearnStrategyFactory.deploy(
+    vault.address,
+    owner.address,
+    yVault.address,
+    underlying.address,
+  );
+
+  await strategy.connect(owner).grantRole(MANAGER_ROLE, manager.address);
+
+  await vault.setStrategy(strategy.address);
+
+  await underlying.connect(owner).approve(vault.address, constants.MaxUint256);
+};

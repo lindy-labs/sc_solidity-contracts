@@ -34,6 +34,8 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
     address public immutable override(IStrategy) vault;
     // yearn vault that this strategy is interacting with
     IYearnVault public immutable yVault;
+    // decimals
+    uint128 public immutable decimalMultiplier;
 
     /**
      * @param _vault address of the vault that will use this strategy
@@ -60,6 +62,8 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
 
         vault = _vault;
         yVault = IYearnVault(_yVault);
+        decimalMultiplier = uint128(10**yVault.decimals());
+
         underlying = IERC20(_underlying);
 
         underlying.approve(_yVault, type(uint256).max);
@@ -192,7 +196,7 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
         view
         returns (uint256)
     {
-        return (_shares * yVault.pricePerShare()) / 1e18;
+        return (_shares * yVault.pricePerShare()) / decimalMultiplier;
     }
 
     /**
@@ -207,6 +211,6 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
         view
         returns (uint256)
     {
-        return (_underlying * 1e18) / yVault.pricePerShare();
+        return (_underlying * decimalMultiplier) / yVault.pricePerShare();
     }
 }
