@@ -12,7 +12,6 @@ contract MockYearnVault is IYearnVault, ERC20 {
 
     IERC20 immutable underlying;
 
-    uint256 public lossToRealize;
     uint256 public maxLossWithdrawParam;
 
     constructor(
@@ -50,13 +49,6 @@ contract MockYearnVault is IYearnVault, ERC20 {
 
         uint256 value = (maxShares * pricePerShare()) / 1e18;
 
-        // simulate loss 
-        if (lossToRealize != 0) {
-            if (lossToRealize * maxLossWithdrawParam * 10000  > value) revert("lossToRealize too high");
-
-            value = value - lossToRealize;
-        }
-
         _burn(msg.sender, maxShares);
 
         underlying.transfer(recipient, value);
@@ -66,10 +58,6 @@ contract MockYearnVault is IYearnVault, ERC20 {
 
     function totalAssets() external view returns (uint256) {
         return underlying.balanceOf(address(this));
-    }
-
-    function realizeLossOnWithdrawal(uint256 _lossAmount) public {
-        lossToRealize = _lossAmount;
     }
 
     ///////////////// INTERNAL FUNCTIONS //////////////////////////////
