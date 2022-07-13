@@ -1,24 +1,24 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity =0.8.10;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Context} from "@openzeppelin/contracts/utils/Context.sol";
-import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
-import {Counters} from "@openzeppelin/contracts/utils/Counters.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { Context } from "@openzeppelin/contracts/utils/Context.sol";
+import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import { Pausable } from "@openzeppelin/contracts/security/Pausable.sol";
+import { Counters } from "@openzeppelin/contracts/utils/Counters.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
-import {IVault} from "./vault/IVault.sol";
-import {IVaultSponsoring} from "./vault/IVaultSponsoring.sol";
-import {IVaultSettings} from "./vault/IVaultSettings.sol";
-import {CurveSwapper} from "./vault/CurveSwapper.sol";
-import {PercentMath} from "./lib/PercentMath.sol";
-import {IStrategy} from "./strategy/IStrategy.sol";
-import {CustomErrors} from "./interfaces/CustomErrors.sol";
+import { IVault } from "./vault/IVault.sol";
+import { IVaultSponsoring } from "./vault/IVaultSponsoring.sol";
+import { IVaultSettings } from "./vault/IVaultSettings.sol";
+import { CurveSwapper } from "./vault/CurveSwapper.sol";
+import { PercentMath } from "./lib/PercentMath.sol";
+import { IStrategy } from "./strategy/IStrategy.sol";
+import { CustomErrors } from "./interfaces/CustomErrors.sol";
 
 /**
  * A vault where other accounts can deposit an underlying token
@@ -179,16 +179,21 @@ contract Vault is
     //
 
     /**
-     * Transfers ownership of the Vault to another account, 
+     * Transfers ownership of the Vault to another account,
      * revoking all of previous owner's roles and setting them up for the new owner.
-     * 
+     *
      * @notice Can only be called by the current owner.
      *
      * @param _newOwner The new owner of the contract.
      */
-    function transferOwnership(address _newOwner) public override(Ownable) onlyOwner {
+    function transferOwnership(address _newOwner)
+        public
+        override(Ownable)
+        onlyOwner
+    {
         if (_newOwner == address(0x0)) revert VaultOwnerCannotBe0Address();
-        if (_newOwner == msg.sender) revert VaultCannotTransferOwnershipToSelf();
+        if (_newOwner == msg.sender)
+            revert VaultCannotTransferOwnershipToSelf();
 
         _transferOwnership(_newOwner);
 
@@ -308,7 +313,8 @@ contract Vault is
         );
         uint256 newUnderlyingAmount = _swapIntoUnderlying(
             _params.inputToken,
-            _params.amount
+            _params.amount,
+            _params.slippage
         );
 
         uint64 lockedUntil = _params.lockDuration + _blockTimestamp();
@@ -464,7 +470,8 @@ contract Vault is
     function sponsor(
         address _inputToken,
         uint256 _amount,
-        uint256 _lockDuration
+        uint256 _lockDuration,
+        uint256 slippage
     )
         external
         override(IVaultSponsoring)
@@ -484,7 +491,11 @@ contract Vault is
         uint256 tokenId = _depositTokenIds.current();
 
         _transferAndCheckInputToken(msg.sender, _inputToken, _amount);
-        uint256 underlyingAmount = _swapIntoUnderlying(_inputToken, _amount);
+        uint256 underlyingAmount = _swapIntoUnderlying(
+            _inputToken,
+            _amount,
+            slippage
+        );
 
         deposits[tokenId] = Deposit(
             underlyingAmount,

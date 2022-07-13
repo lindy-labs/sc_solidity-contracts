@@ -1,18 +1,15 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity =0.8.10;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
-import {ICurve} from "../interfaces/curve/ICurve.sol";
+import { ICurve } from "../interfaces/curve/ICurve.sol";
 
 /// Helper abstract contract to manage curve swaps
 abstract contract CurveSwapper {
     using SafeERC20 for IERC20;
-
-    /// Static 95% slippage (TODO should probably make this configurable)
-    uint256 public constant SLIPPAGE = 99;
 
     //
     // Structs
@@ -77,10 +74,11 @@ abstract contract CurveSwapper {
     /// @param _token The token we want to swap into
     /// @param _amount The amount of underlying we want to swap
     /// TODO missing slippage checks
-    function _swapIntoUnderlying(address _token, uint256 _amount)
-        internal
-        returns (uint256 amount)
-    {
+    function _swapIntoUnderlying(
+        address _token,
+        uint256 _amount,
+        uint256 slippage
+    ) internal returns (uint256 amount) {
         address underlyingToken = getUnderlying();
         if (_token == underlyingToken) {
             // same token, nothing to do
@@ -96,7 +94,8 @@ abstract contract CurveSwapper {
         uint256 minAmount = _calcMinDy(
             _amount,
             swapper.tokenDecimals,
-            swapper.underlyingDecimals
+            swapper.underlyingDecimals,
+            slippage
         );
 
         amount = swapper.pool.exchange_underlying(
@@ -115,10 +114,11 @@ abstract contract CurveSwapper {
     /// @param _token The token we want to swap into
     /// @param _amount The amount of underlying we want to swap
     /// TODO missing slippage checks
-    function _swapFromUnderlying(address _token, uint256 _amount)
-        internal
-        returns (uint256 amount)
-    {
+    function _swapFromUnderlying(
+        address _token,
+        uint256 _amount,
+        uint256 slippage
+    ) internal returns (uint256 amount) {
         if (_token == getUnderlying()) {
             // same token, nothing to do
             return _amount;
@@ -129,7 +129,8 @@ abstract contract CurveSwapper {
         uint256 minAmount = _calcMinDy(
             _amount,
             swapper.underlyingDecimals,
-            swapper.tokenDecimals
+            swapper.tokenDecimals,
+            slippage
         );
 
         amount = swapper.pool.exchange_underlying(
@@ -145,10 +146,11 @@ abstract contract CurveSwapper {
     function _calcMinDy(
         uint256 _amount,
         uint8 _fromDecimals,
-        uint8 _toDecimals
+        uint8 _toDecimals,
+        uint256 slippage
     ) internal pure returns (uint256) {
         return
-            (_amount * SLIPPAGE * 10**_toDecimals) / (10**_fromDecimals * 100);
+            (_amount * slippage * 10**_toDecimals) / (10**_fromDecimals * 100);
     }
 
     /// This is necessary because some tokens (USDT) force you to approve(0)

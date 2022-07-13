@@ -973,6 +973,7 @@ describe('AnchorStrategy', () => {
       ],
       lockDuration: TWO_WEEKS,
       name: 'Foundation name',
+      slippage: BigNumber.from(5),
     });
   };
 

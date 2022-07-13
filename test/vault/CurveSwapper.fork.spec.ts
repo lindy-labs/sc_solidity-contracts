@@ -11,6 +11,7 @@ import {
   ERC20__factory,
 } from '../../typechain';
 import { ForkHelpers } from '../shared';
+import {BigNumber} from 'ethers';
 
 const { formatUnits, parseUnits, getAddress } = ethers.utils;
 const { MaxUint256, AddressZero } = ethers.constants;
@@ -88,19 +89,19 @@ describe('CurveSwapper', () => {
   describe('swapToUnderlying', function () {
     it('swaps 100DAI for approximately 100UST', async () => {
       const input = parseUnits('100', decimals.dai);
-      const action = () => swapper.test_swapIntoUnderlying(dai.address, input);
+      const action = () => swapper.test_swapIntoUnderlying(dai.address, input, BigNumber.from(5));
       await validateSwap(action, swapper, dai, ust, '100');
     });
 
     it('swaps 100USDC for approximately 100UST', async () => {
       const input = parseUnits('100', decimals.usdc);
-      const action = () => swapper.test_swapIntoUnderlying(usdc.address, input);
+      const action = () => swapper.test_swapIntoUnderlying(usdc.address, input, BigNumber.from(5));
       await validateSwap(action, swapper, usdc, ust, '100');
     });
 
     it('swaps 100USDT for approximately 100UST', async () => {
       const input = parseUnits('100', decimals.usdt);
-      const action = () => swapper.test_swapIntoUnderlying(usdt.address, input);
+      const action = () => swapper.test_swapIntoUnderlying(usdt.address, input, BigNumber.from(5));
       await validateSwap(action, swapper, usdt, ust, '100');
     });
   });
@@ -108,19 +109,19 @@ describe('CurveSwapper', () => {
   describe('swapFromUnderlying', function () {
     it('swaps 100UST for approximately 100DAI', async () => {
       const input = parseUnits('100', decimals.ust);
-      const action = () => swapper.test_swapFromUnderlying(dai.address, input);
+      const action = () => swapper.test_swapFromUnderlying(dai.address, input, BigNumber.from(5));
       await validateSwap(action, swapper, ust, dai, '100');
     });
 
     it('swaps 100UST for approximately 100USDC', async () => {
       const input = parseUnits('100', decimals.ust);
-      const action = () => swapper.test_swapFromUnderlying(usdc.address, input);
+      const action = () => swapper.test_swapFromUnderlying(usdc.address, input, BigNumber.from(5));
       await validateSwap(action, swapper, ust, usdc, '100');
     });
 
     it('swaps 100UST for approximately 100USDT', async () => {
       const input = parseUnits('100', decimals.ust);
-      const action = () => swapper.test_swapFromUnderlying(usdt.address, input);
+      const action = () => swapper.test_swapFromUnderlying(usdt.address, input, BigNumber.from(5));
       await validateSwap(action, swapper, ust, usdt, '100');
     });
   });

@@ -102,7 +102,12 @@ describe('Integration', () => {
 
       await vault
         .connect(bob)
-        .sponsor(underlying.address, parseUnits('500'), TWO_WEEKS);
+        .sponsor(
+          underlying.address,
+          parseUnits('500'),
+          TWO_WEEKS,
+          BigNumber.from(5),
+        );
 
       await vault.connect(alice).deposit(
         depositParams.build({
@@ -136,7 +141,12 @@ describe('Integration', () => {
       expect(await underlying.balanceOf(bob.address)).to.eq(parseUnits('1000'));
       await vault
         .connect(bob)
-        .sponsor(underlying.address, parseUnits('500'), TWO_WEEKS);
+        .sponsor(
+          underlying.address,
+          parseUnits('500'),
+          TWO_WEEKS,
+          BigNumber.from(5),
+        );
 
       expect(await underlying.balanceOf(bob.address)).to.eq(parseUnits('500'));
 
@@ -173,7 +183,12 @@ describe('Integration', () => {
 
       await vault
         .connect(bob)
-        .sponsor(underlying.address, parseUnits('500'), TWO_WEEKS);
+        .sponsor(
+          underlying.address,
+          parseUnits('500'),
+          TWO_WEEKS,
+          BigNumber.from(5),
+        );
 
       await vault.connect(alice).deposit(
         depositParams.build({
@@ -207,10 +222,20 @@ describe('Integration', () => {
       // alice and bob sponsor
       await vault
         .connect(alice)
-        .sponsor(underlying.address, parseUnits('500'), TWO_WEEKS);
+        .sponsor(
+          underlying.address,
+          parseUnits('500'),
+          TWO_WEEKS,
+          BigNumber.from(5),
+        );
       await vault
         .connect(bob)
-        .sponsor(underlying.address, parseUnits('500'), TWO_WEEKS);
+        .sponsor(
+          underlying.address,
+          parseUnits('500'),
+          TWO_WEEKS,
+          BigNumber.from(5),
+        );
 
       // alice deposits with yield to herself and to carol
       await vault.connect(alice).deposit(
