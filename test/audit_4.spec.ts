@@ -34,145 +34,6 @@ const TWO_WEEKS = time.duration.days(14).toNumber();
 
 const MANAGER_ROLE = utils.keccak256(utils.toUtf8Bytes('MANAGER_ROLE'));
 
-describe('Audit Tests 4', () => {
-  describe('issue H-1', () => {
-    beforeEach(async () => await beforeEachCommon(UNDERLYING_DECIMALS));
-
-    describe('YearnStrategy#withdrawToVault', () => {
-      it('works if there is a precision loss when converting shares to underlying', async () => {
-        // mint 90 to startegy
-        underlying.mint(strategy.address, parseUnits('90'));
-        // mint 10 to yVault to change price per share
-        underlying.mint(yVault.address, parseUnits('10'));
-        strategy.connect(manager).invest();
-
-        // at this point we have 90 shares and 100 total underlying in yVault
-        // which will cause rounding errors when calculating price per share
-        const tx = await strategy
-          .connect(manager)
-          .withdrawToVault(parseUnits('30'));
-
-        const expectedAmountWithdrawn = '29999999999999999999';
-        expect(await underlying.balanceOf(vault.address)).to.eq(
-          expectedAmountWithdrawn,
-        );
-        expect(await underlying.balanceOf(yVault.address)).to.eq(
-          '70000000000000000001',
-        );
-        await expect(tx)
-          .to.emit(strategy, 'StrategyWithdrawn')
-          .withArgs(expectedAmountWithdrawn);
-      });
-
-      it("calls Yearn vault 'withdraw' function with param 'maxLoss' default value of 1", async () => {
-        const defaultMaxLoss = '1';
-        underlying.mint(strategy.address, parseUnits('100'));
-        strategy.connect(manager).invest();
-
-        await strategy.connect(manager).withdrawToVault(parseUnits('30'));
-
-        expect(await yVault.maxLossWithdrawParam()).to.eq(defaultMaxLoss);
-      });
-    });
-  });
-
-  describe('issue H-2', () => {
-    beforeEach(async () => await beforeEachCommon(UNDERLYING_DECIMALS));
-
-    describe('Vault#unsponsor', () => {
-      it('works when not enough funds in the vault by withdrawing from sync strategy', async () => {
-        const underlyingAmount = parseUnits('1000');
-        await underlying.mint(owner.address, underlyingAmount);
-
-        await vault
-          .connect(owner)
-          .sponsor(underlying.address, underlyingAmount, TWO_WEEKS);
-        await vault.connect(owner).updateInvested();
-        await moveForwardTwoWeeks();
-
-        // at this point we have all the underlying invested
-        expect(await strategy.investedAssets()).to.eq(underlyingAmount);
-        expect(await underlying.balanceOf(vault.address)).to.eq('0');
-
-        await vault.connect(owner).unsponsor(manager.address, [1]);
-
-        expect(await strategy.investedAssets()).to.eq('0');
-        expect(await underlying.balanceOf(vault.address)).to.eq('0');
-        expect(await underlying.balanceOf(manager.address)).to.eq(
-          underlyingAmount,
-        );
-      });
-    });
-  });
-
-  describe('issue H-3', () => {
-    const underlyingDecimals = '8';
-    beforeEach(async () => await beforeEachCommon(underlyingDecimals));
-
-    describe('YearnStrategy#withdrawToVault', () => {
-      it('works converting underlying <=> shares when decimals != 18', async () => {
-        const underlyingAmount = parseUnits('100', underlyingDecimals);
-        underlying.mint(strategy.address, underlyingAmount);
-        strategy.connect(manager).invest();
-
-        await strategy
-          .connect(manager)
-          .withdrawToVault(underlyingAmount.div(2));
-
-        expect(await strategy.decimalMultiplier()).to.eq(1e8);
-        expect(await yVault.decimals()).to.eq(await underlying.decimals());
-        expect(await underlying.balanceOf(vault.address)).to.eq(
-          parseUnits('50', underlyingDecimals),
-        );
-        expect(await underlying.balanceOf(yVault.address)).to.eq(
-          parseUnits('50', underlyingDecimals),
-        );
-      });
-    });
-  });
-
-  describe('issue M-5', () => {
-    beforeEach(async () => await beforeEachCommon(UNDERLYING_DECIMALS));
-
-    describe('YearnStrategy#setWithdrawalMaxLossParam', () => {
-      it('fails if the caller is not owner', async () => {
-        await expect(
-          strategy.connect(manager).setMaxLossWithdrawParam('2'),
-        ).to.be.revertedWith('Ownable: caller is not the owner');
-      });
-
-      it('sets the max loss withdraw param', async () => {
-        const maxLoss = '2';
-
-        await strategy.setMaxLossWithdrawParam(maxLoss);
-
-        expect(await strategy.maxLossWithdrawParam()).to.eq(maxLoss);
-      });
-
-      it('defaults to 100% when the max loss withdraw param > 100%', async () => {
-        // 1 = 0.01%
-        const maxLoss = '10001'; // 100.01%
-
-        await strategy.setMaxLossWithdrawParam(maxLoss);
-
-        expect(await strategy.maxLossWithdrawParam()).to.eq('10000');
-      });
-
-      it("uses the maxLossWithdrawParam when calling 'withdraw' on Yearn vault", async () => {
-        const maxLoss = '100'; // 1%
-        await strategy.setMaxLossWithdrawParam(maxLoss);
-
-        underlying.mint(strategy.address, parseUnits('100'));
-        strategy.connect(manager).invest();
-
-        await strategy.connect(manager).withdrawToVault(parseUnits('30'));
-
-        expect(await yVault.maxLossWithdrawParam()).to.eq(maxLoss);
-      });
-    });
-  });
-});
-
 const beforeEachCommon = async (underlyingDecimals: string) => {
   [owner, manager] = await ethers.getSigners();
 
@@ -220,3 +81,133 @@ const beforeEachCommon = async (underlyingDecimals: string) => {
 
   await underlying.connect(owner).approve(vault.address, constants.MaxUint256);
 };
+
+describe('Audit Tests 4', () => {
+  describe('issue H-1 YearnStrategy#withdrawToVault', () => {
+    beforeEach(async () => await beforeEachCommon(UNDERLYING_DECIMALS));
+
+    it('works if there is a precision loss when converting shares to underlying', async () => {
+      underlying.mint(strategy.address, parseUnits('90'));
+      strategy.connect(manager).invest();
+
+      underlying.mint(yVault.address, parseUnits('10'));
+
+      // at this point we have 90 shares and 100 total underlying in yVault
+      // which will cause rounding errors when calculating price per share
+      const amountToWithdraw = parseUnits('30');
+      const tx = await strategy
+        .connect(manager)
+        .withdrawToVault(amountToWithdraw);
+
+      const expectedAmountWithdrawn = amountToWithdraw.sub('1');
+      expect(await underlying.balanceOf(vault.address)).to.eq(
+        expectedAmountWithdrawn,
+      );
+      expect(await underlying.balanceOf(yVault.address)).to.eq(
+        parseUnits('70').add('1'),
+      );
+      await expect(tx)
+        .to.emit(strategy, 'StrategyWithdrawn')
+        .withArgs(expectedAmountWithdrawn);
+    });
+
+    it("calls Yearn vault 'withdraw' function with param 'maxLoss' default value of 1", async () => {
+      const defaultMaxLoss = '1';
+      underlying.mint(strategy.address, parseUnits('100'));
+      strategy.connect(manager).invest();
+
+      // calls Yearn vault's 'withdraw' function behind the scenes
+      await strategy.connect(manager).withdrawToVault(parseUnits('30'));
+
+      expect(await yVault.spyForMaxLossWithdrawParam()).to.eq(defaultMaxLoss);
+    });
+  });
+
+  describe('issue H-2 Vault#unsponsor', () => {
+    beforeEach(async () => await beforeEachCommon(UNDERLYING_DECIMALS));
+
+    it('works when not enough funds in the vault by withdrawing from sync strategy', async () => {
+      const underlyingAmount = parseUnits('1000');
+      await underlying.mint(owner.address, underlyingAmount);
+
+      await vault
+        .connect(owner)
+        .sponsor(underlying.address, underlyingAmount, TWO_WEEKS);
+      await vault.connect(owner).updateInvested();
+      await moveForwardTwoWeeks();
+
+      // at this point we have all the underlying invested
+      expect(await strategy.investedAssets()).to.eq(underlyingAmount);
+      expect(await underlying.balanceOf(vault.address)).to.eq('0');
+
+      await vault.connect(owner).unsponsor(manager.address, [1]);
+
+      expect(await strategy.investedAssets()).to.eq('0');
+      expect(await underlying.balanceOf(vault.address)).to.eq('0');
+      expect(await underlying.balanceOf(manager.address)).to.eq(
+        underlyingAmount,
+      );
+    });
+  });
+
+  describe('issue H-3 YearnStrategy#withdrawToVault', () => {
+    const underlyingDecimals = '8';
+    beforeEach(async () => await beforeEachCommon(underlyingDecimals));
+
+    it('works converting underlying when decimals != 18', async () => {
+      const underlyingAmount = parseUnits('100', underlyingDecimals);
+      underlying.mint(strategy.address, underlyingAmount);
+      strategy.connect(manager).invest();
+
+      await strategy.connect(manager).withdrawToVault(underlyingAmount.div(2));
+
+      expect(await strategy.conversionMultiplier()).to.eq(1e8);
+      expect(await yVault.decimals()).to.eq(await underlying.decimals());
+      expect(await underlying.balanceOf(vault.address)).to.eq(
+        parseUnits('50', underlyingDecimals),
+      );
+      expect(await underlying.balanceOf(yVault.address)).to.eq(
+        parseUnits('50', underlyingDecimals),
+      );
+    });
+  });
+
+  describe('issue M-5 YearnStrategy#setWithdrawalMaxLossParam', () => {
+    beforeEach(async () => await beforeEachCommon(UNDERLYING_DECIMALS));
+    it('fails if the caller is not owner', async () => {
+      await expect(
+        strategy.connect(manager).setMaxLossWithdrawParam('2'),
+      ).to.be.revertedWith('Ownable: caller is not the owner');
+    });
+
+    it('sets the max loss withdraw param', async () => {
+      const maxLoss = '2';
+
+      await strategy.setMaxLossWithdrawParam(maxLoss);
+
+      expect(await strategy.maxLossWithdrawParam()).to.eq(maxLoss);
+    });
+
+    it('reverts when the max loss withdraw param > 100%', async () => {
+      // 1 = 0.01%
+      const maxLoss = '10001'; // 100.01%
+
+      await expect(
+        strategy.setMaxLossWithdrawParam(maxLoss),
+      ).to.be.revertedWith('StrategyMaxLossParamTooLarge');
+    });
+
+    it("uses the maxLossWithdrawParam when calling 'withdraw' on Yearn vault", async () => {
+      const maxLoss = '100'; // 1%
+      await strategy.setMaxLossWithdrawParam(maxLoss);
+
+      underlying.mint(strategy.address, parseUnits('100'));
+      strategy.connect(manager).invest();
+
+      // calls Yearn vault's 'withdraw' function behind the scenes
+      await strategy.connect(manager).withdrawToVault(parseUnits('30'));
+
+      expect(await yVault.spyForMaxLossWithdrawParam()).to.eq(maxLoss);
+    });
+  });
+});

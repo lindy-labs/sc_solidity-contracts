@@ -12,7 +12,7 @@ contract MockYearnVault is IYearnVault, ERC20 {
 
     IERC20Metadata immutable underlying;
 
-    uint256 public maxLossWithdrawParam;
+    uint256 public spyForMaxLossWithdrawParam;
 
     constructor(
         string memory _name,
@@ -49,7 +49,7 @@ contract MockYearnVault is IYearnVault, ERC20 {
         require(maxShares > 0);
 
         // spy on _maxLoss param
-        maxLossWithdrawParam = _maxLoss;
+        spyForMaxLossWithdrawParam = _maxLoss;
 
         uint256 value = (maxShares * pricePerShare()) / 10**underlying.decimals();
 

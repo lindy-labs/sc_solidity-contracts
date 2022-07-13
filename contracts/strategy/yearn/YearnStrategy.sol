@@ -25,6 +25,8 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
 
     // yearn vault is 0x
     error StrategyYearnVaultCannotBe0Address();
+    // max loss parameter > 100%
+    error StrategyMaxLossParamTooLarge();
 
     /// role allowed to invest/withdraw from yearn vault
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
@@ -34,8 +36,8 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
     address public immutable override(IStrategy) vault;
     // yearn vault that this strategy is interacting with
     IYearnVault public immutable yVault;
-    // decimals
-    uint128 public immutable decimalMultiplier;
+    // multiplier for underlying convertion to shares
+    uint128 public immutable conversionMultiplier;
     // max loss withdraw param = 0.01%
     uint128 public maxLossWithdrawParam = 1;
 
@@ -64,7 +66,7 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
 
         vault = _vault;
         yVault = IYearnVault(_yVault);
-        decimalMultiplier = uint128(10**yVault.decimals());
+        conversionMultiplier = uint128(10**yVault.decimals());
 
         underlying = IERC20(_underlying);
 
@@ -179,8 +181,9 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
      * @param _maxLoss The max loss percentage to use when withdrawing from the Yearn vault. Value of 1 equals 0.01% loss.
      */
     function setMaxLossWithdrawParam(uint128 _maxLoss) external onlyOwner {
-        // default to 10000 when _maxLoss > 10000
-        maxLossWithdrawParam = _maxLoss > 10000 ? 10000 : _maxLoss;
+        if (_maxLoss > 10000) revert StrategyMaxLossParamTooLarge();
+
+        maxLossWithdrawParam = _maxLoss;
     }
 
     /**
@@ -213,7 +216,7 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
         view
         returns (uint256)
     {
-        return (_shares * yVault.pricePerShare()) / decimalMultiplier;
+        return (_shares * yVault.pricePerShare()) / conversionMultiplier;
     }
 
     /**
@@ -228,6 +231,6 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
         view
         returns (uint256)
     {
-        return (_underlying * decimalMultiplier) / yVault.pricePerShare();
+        return (_underlying * conversionMultiplier) / yVault.pricePerShare();
     }
 }
