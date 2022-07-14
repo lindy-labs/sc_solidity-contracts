@@ -1541,6 +1541,18 @@ describe('Vault', () => {
 
       await expect(action).to.be.revertedWith('VaultCannotDeposit0');
     });
+
+    it('fails if the input token is not supported', async () => {
+      const params = depositParams.build({
+        amount: parseUnits('100'),
+        inputToken: vault.address,
+        claims: [claimParams.percent(100).to(alice.address).build()],
+      });
+
+      const action = vault.connect(alice).deposit(params);
+
+      await expect(action).to.be.revertedWith('VaultAmountDoesNotMatchParams');
+    });
   });
 
   ['withdraw', 'forceWithdraw'].map((vaultAction) => {
