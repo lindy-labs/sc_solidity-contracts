@@ -6,12 +6,15 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 contract MockERC20 is ERC20 {
     uint8 private decimals_;
 
+    uint256 private fee;
+
     constructor(
         string memory _name,
         string memory _symbol,
         uint8 _decimals,
         uint256 _totalSupply
     ) ERC20(_name, _symbol) {
+        fee = 0;
         decimals_ = _decimals;
         _mint(msg.sender, _totalSupply);
     }
@@ -30,6 +33,18 @@ contract MockERC20 is ERC20 {
 
     function burn(address _user, uint256 _amount) public {
         _burn(_user, _amount);
+    }
+
+    function setFee(uint256 _fee) public {
+        fee = _fee;
+    }
+
+    function _transfer(
+        address from,
+        address to,
+        uint256 amount
+    ) internal virtual override(ERC20) {
+        super._transfer(from, to, (amount * (10000 - fee)) / 10000);
     }
 }
 

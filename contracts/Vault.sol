@@ -314,7 +314,6 @@ contract Vault is
             _params.amount
         );
 
-        console.log("asdjlasjdlskadjasld");
         uint256 newUnderlyingAmount = _swapIntoUnderlying(
             _params.inputToken,
             _params.amount
