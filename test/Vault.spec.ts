@@ -789,24 +789,16 @@ describe('Vault', () => {
   });
 
   describe('sponsor', () => {
-    describe('using an underlying that charges fees on transfer like USDC', () => {
-      beforeEach(async () => {
-        await underlying.setFee(500);
-      });
+    it('revers with an error when the underlying has fees', async () => {
+      await underlying.setFee(500);
 
-      it('revers with an error', async () => {
-        await addUnderlyingBalance(owner, '1000');
+      await addUnderlyingBalance(owner, '1000');
 
-        const tx = vault
-          .connect(owner)
-          .sponsor(underlying.address, parseUnits('500'), TWO_WEEKS);
+      const tx = vault
+        .connect(owner)
+        .sponsor(underlying.address, parseUnits('500'), TWO_WEEKS);
 
-        await expect(tx).to.be.revertedWith('VaultAmountDoesNotMatchParams');
-      });
-
-      afterEach(async () => {
-        await underlying.setFee(0);
-      });
+      await expect(tx).to.be.revertedWith('VaultAmountDoesNotMatchParams');
     });
 
     it('reverts if contract is paused', async () => {
@@ -1067,28 +1059,22 @@ describe('Vault', () => {
   });
 
   describe('depositForGroupId', () => {
-    describe('using an underlying that charges fees on transfer like USDC', () => {
-      it('revers with an error', async () => {
-        await addUnderlyingBalance(alice, '1000');
+    it('revers with an error when the underlying has fees', async () => {
+      await addUnderlyingBalance(alice, '1000');
 
-        const params = depositParams.build({
-          amount: parseUnits('100'),
-          inputToken: underlying.address,
-          claims: [claimParams.percent(100).to(alice.address).build()],
-        });
-
-        await vault.connect(alice).deposit(params);
-
-        await underlying.setFee(500);
-
-        const tx = vault.connect(alice).depositForGroupId(0, params);
-
-        await expect(tx).to.be.revertedWith('VaultAmountDoesNotMatchParams');
+      const params = depositParams.build({
+        amount: parseUnits('100'),
+        inputToken: underlying.address,
+        claims: [claimParams.percent(100).to(alice.address).build()],
       });
 
-      afterEach(async () => {
-        await underlying.setFee(0);
-      });
+      await vault.connect(alice).deposit(params);
+
+      await underlying.setFee(500);
+
+      const tx = vault.connect(alice).depositForGroupId(0, params);
+
+      await expect(tx).to.be.revertedWith('VaultAmountDoesNotMatchParams');
     });
 
     it('reverts if contract is paused', async () => {
@@ -1316,28 +1302,20 @@ describe('Vault', () => {
   });
 
   describe('deposit', () => {
-    describe('using an underlying that charges fees on transfer like USDC', () => {
-      beforeEach(async () => {
-        await underlying.setFee(500);
-      });
+    it('revers with an error when the underlying has fees', async () => {
+      await underlying.setFee(500);
 
-      it('revers with an error', async () => {
-        await addUnderlyingBalance(alice, '1000');
+      await addUnderlyingBalance(alice, '1000');
 
-        const tx = vault.connect(alice).deposit(
-          depositParams.build({
-            amount: parseUnits('500'),
-            inputToken: underlying.address,
-            claims: [claimParams.percent(100).to(alice.address).build()],
-          }),
-        );
+      const tx = vault.connect(alice).deposit(
+        depositParams.build({
+          amount: parseUnits('500'),
+          inputToken: underlying.address,
+          claims: [claimParams.percent(100).to(alice.address).build()],
+        }),
+      );
 
-        await expect(tx).to.be.revertedWith('VaultAmountDoesNotMatchParams');
-      });
-
-      afterEach(async () => {
-        await underlying.setFee(0);
-      });
+      await expect(tx).to.be.revertedWith('VaultAmountDoesNotMatchParams');
     });
 
     it('reverts if contract is paused', async () => {
