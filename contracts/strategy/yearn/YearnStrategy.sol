@@ -80,16 +80,21 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
     //
 
     /**
-     * Transfers ownership of the Strategy to another account, 
+     * Transfers ownership of the Strategy to another account,
      * revoking previous owner's ADMIN role and setting up ADMIN role for the new owner.
-     * 
+     *
      * @notice Can only be called by the current owner.
      *
      * @param _newOwner The new owner of the contract.
      */
-    function transferOwnership(address _newOwner) public override(Ownable) onlyOwner {
+    function transferOwnership(address _newOwner)
+        public
+        override(Ownable)
+        onlyOwner
+    {
         if (_newOwner == address(0x0)) revert StrategyOwnerCannotBe0Address();
-        if (_newOwner == msg.sender) revert StrategyCannotTransferOwnershipToSelf();
+        if (_newOwner == msg.sender)
+            revert StrategyCannotTransferOwnershipToSelf();
 
         _transferOwnership(_newOwner);
 
@@ -126,8 +131,7 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
         override(IStrategy)
         returns (uint256)
     {
-        return
-            _sharesToUnderlying(_getShares()) + _getUnderlyingBalance();
+        return _sharesToUnderlying(_getShares()) + _getUnderlyingBalance();
     }
 
     /// @inheritdoc IStrategy

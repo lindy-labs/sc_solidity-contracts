@@ -179,16 +179,21 @@ contract Vault is
     //
 
     /**
-     * Transfers ownership of the Vault to another account, 
+     * Transfers ownership of the Vault to another account,
      * revoking all of previous owner's roles and setting them up for the new owner.
-     * 
+     *
      * @notice Can only be called by the current owner.
      *
      * @param _newOwner The new owner of the contract.
      */
-    function transferOwnership(address _newOwner) public override(Ownable) onlyOwner {
+    function transferOwnership(address _newOwner)
+        public
+        override(Ownable)
+        onlyOwner
+    {
         if (_newOwner == address(0x0)) revert VaultOwnerCannotBe0Address();
-        if (_newOwner == msg.sender) revert VaultCannotTransferOwnershipToSelf();
+        if (_newOwner == msg.sender)
+            revert VaultCannotTransferOwnershipToSelf();
 
         _transferOwnership(_newOwner);
 

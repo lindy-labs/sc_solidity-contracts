@@ -38,7 +38,12 @@ contract MockStrategySync is IStrategy, AccessControl, CustomErrors {
         underlying.transfer(vault, amount);
     }
 
-    function investedAssets() external view override(IStrategy) returns (uint256) {
+    function investedAssets()
+        external
+        view
+        override(IStrategy)
+        returns (uint256)
+    {
         return underlying.balanceOf(address(this));
     }
 
