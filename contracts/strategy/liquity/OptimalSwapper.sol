@@ -227,6 +227,15 @@ contract OptimalSwapper is Ownable {
         curvePool[getPairKey(fromToken, toToken)] = pool;
     }
 
+    function setRouterType(
+        address _fromToken,
+        address _toToken,
+        RouterType _routerType
+    ) external onlyOwner {
+        uint256 pairKey = getPairKey(_fromToken, _toToken);
+        routerType[pairKey] = _routerType;
+    }
+
     // --------------------------------------------------------------
     // Internal
     // --------------------------------------------------------------

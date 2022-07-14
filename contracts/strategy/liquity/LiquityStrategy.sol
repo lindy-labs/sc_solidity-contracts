@@ -5,6 +5,7 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 
+import {weth9} from "../../interfaces/weth9.sol";
 import {PercentMath} from "../../lib/PercentMath.sol";
 import {ERC165Query} from "../../lib/ERC165Query.sol";
 import {IStrategy} from "../IStrategy.sol";
@@ -40,6 +41,7 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
 
     bytes32 public constant MANAGER_ROLE =
         0x241ecf16d79d0f8dbfb92cbc07fe17840425976cf0667f022fe9877caa831b08; // keccak256("MANAGER_ROLE");
+    address public constant weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
 
     address public immutable underlying; // lusd
     /// @inheritdoc IStrategy
@@ -170,6 +172,46 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         emit StrategyWithdrawn(amount);
     }
 
+    /**
+        swaps the ETH & LQTY rewards from the stability pool into usdc
+     */
+    function harvest() external {
+        // withdraw rewards from Liquity Stability Pool Contract
+        stabilityPool.withdrawFromSP(0);
+
+        uint256 lqtyRewards = IERC20(lqty).balanceOf(address(this));
+        uint256 ethRewards = address(this).balance;
+
+        if (lqtyRewards > 0) {
+            // swap LQTY to USDC
+            optimalSwapper.swap(lqty, usdc, lqtyRewards, 0);
+        }
+
+        // swap ETH to usdc
+        // todo: double check in the tests if we are getting ETH or WETH from stability pool
+        if (ethRewards > 0) {
+            weth9(weth).deposit{value: ethRewards}();
+            optimalSwapper.swap(
+                weth,
+                usdc,
+                IERC20(weth).balanceOf(address(this)),
+                0
+            );
+        }
+    }
+
+    /**
+        @notice swaps all the given token balance inside the contract to lusd
+     */
+    function sweepToLusd(address _token) external {
+        optimalSwapper.swap(
+            _token,
+            lusd,
+            IERC20(_token).balanceOf(address(this)),
+            0
+        );
+    }
+
     /////////////////////////////////// INTERNAL FUNCTIONS ////////////////////////////////////////////
 
     /**
@@ -185,3 +227,7 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
 // the only problem is when withdrawals take place then in the case of a full withdrawal where somebody wants to withdraw all funds
 // we may have problems if all our funds are not in lusd. If there are still funds in eth, lqty or usdc.
 // then we need to add clauses in the withdraw which will convert eth/lqty/usdc to lusd in such scenarios and then withdraw the lusd.
+
+// we can allow withdrawals anytime if the user is ready to take a loss
+// the vault deposits to the strategy anyway, so we can just deposit to the strategy when we want
+// call the harvest method from the vault before the invest method
