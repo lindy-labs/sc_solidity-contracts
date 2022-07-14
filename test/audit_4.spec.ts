@@ -84,7 +84,7 @@ const beforeEachCommon = async (underlyingDecimals: string) => {
 
 describe('Audit Tests 4', () => {
   describe('issue H-1 YearnStrategy#withdrawToVault', () => {
-    beforeEach(async () => await beforeEachCommon(UNDERLYING_DECIMALS));
+    beforeEach(() => beforeEachCommon(UNDERLYING_DECIMALS));
 
     it('works if there is a precision loss when converting shares to underlying', async () => {
       underlying.mint(strategy.address, parseUnits('90'));
@@ -124,7 +124,7 @@ describe('Audit Tests 4', () => {
   });
 
   describe('issue H-2 Vault#unsponsor', () => {
-    beforeEach(async () => await beforeEachCommon(UNDERLYING_DECIMALS));
+    beforeEach(() => beforeEachCommon(UNDERLYING_DECIMALS));
 
     it('works when not enough funds in the vault by withdrawing from sync strategy', async () => {
       const underlyingAmount = parseUnits('1000');
@@ -152,7 +152,7 @@ describe('Audit Tests 4', () => {
 
   describe('issue H-3 YearnStrategy#withdrawToVault', () => {
     const underlyingDecimals = '8';
-    beforeEach(async () => await beforeEachCommon(underlyingDecimals));
+    beforeEach(() => beforeEachCommon(underlyingDecimals));
 
     it('works converting underlying when decimals != 18', async () => {
       const underlyingAmount = parseUnits('100', underlyingDecimals);
@@ -173,7 +173,8 @@ describe('Audit Tests 4', () => {
   });
 
   describe('issue M-5 YearnStrategy#setWithdrawalMaxLossParam', () => {
-    beforeEach(async () => await beforeEachCommon(UNDERLYING_DECIMALS));
+    beforeEach(() => beforeEachCommon(UNDERLYING_DECIMALS));
+
     it('fails if the caller is not owner', async () => {
       await expect(
         strategy.connect(manager).setMaxLossWithdrawParam('2'),
@@ -188,7 +189,7 @@ describe('Audit Tests 4', () => {
       expect(await strategy.maxLossWithdrawParam()).to.eq(maxLoss);
     });
 
-    it('reverts when the max loss withdraw param > 100%', async () => {
+    it('fails when the max loss withdraw param > 100%', async () => {
       // 1 = 0.01%
       const maxLoss = '10001'; // 100.01%
 
