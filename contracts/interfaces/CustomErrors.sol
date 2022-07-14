@@ -29,7 +29,7 @@ interface CustomErrors {
 
     // Vault: owner cannot be 0x0
     error VaultOwnerCannotBe0Address();
-    
+
     // Vault: cannot transfer ownership to self
     error VaultCannotTransferOwnershipToSelf();
 
