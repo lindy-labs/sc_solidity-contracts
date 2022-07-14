@@ -174,6 +174,7 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
 
     /**
         swaps the ETH & LQTY rewards from the stability pool into usdc
+        // TODO: onlyOwner
      */
     function harvest() external {
         // withdraw rewards from Liquity Stability Pool Contract
@@ -202,11 +203,12 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
 
     /**
         @notice swaps all the given token balance inside the contract to lusd
+        // TODO: onlyOwner
      */
     function sweepToLusd(address _token) external {
         optimalSwapper.swap(
             _token,
-            lusd,
+            underlying,
             IERC20(_token).balanceOf(address(this)),
             0
         );
