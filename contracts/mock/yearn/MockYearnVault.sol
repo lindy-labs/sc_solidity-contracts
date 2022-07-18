@@ -25,8 +25,15 @@ contract MockYearnVault is IYearnVault, ERC20 {
         returns (uint256)
     {
         require(amount > 0);
-        underlying.safeTransferFrom(msg.sender, address(this), amount);
-        return _issueSharesForAmount(recipient, amount);
+
+        uint256 newAmount = amount;
+
+        if (amount == type(uint256).max)
+            newAmount = underlying.balanceOf(msg.sender);
+
+        underlying.safeTransferFrom(msg.sender, address(this), newAmount);
+
+        return _issueSharesForAmount(recipient, newAmount);
     }
 
     function pricePerShare() public view returns (uint256) {
