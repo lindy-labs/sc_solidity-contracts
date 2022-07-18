@@ -136,12 +136,14 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
 
     /// @inheritdoc IStrategy
     function invest() external virtual override(IStrategy) onlyManager {
-        uint256 balance = _getUnderlyingBalance();
-        if (balance == 0) revert StrategyNoUnderlying();
+        uint256 beforeBalance = _getUnderlyingBalance();
+        if (beforeBalance == 0) revert StrategyNoUnderlying();
 
-        yVault.deposit(balance, address(this));
+        yVault.deposit(type(uint256).max, address(this));
 
-        emit StrategyInvested(balance);
+        uint256 afterBalance = _getUnderlyingBalance();
+
+        emit StrategyInvested(beforeBalance - afterBalance);
     }
 
     /// @inheritdoc IStrategy
@@ -152,13 +154,19 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
         onlyManager
     {
         if (amount == 0) revert StrategyAmountZero();
+        uint256 uninvestedUnderlying = _getUnderlyingBalance();
 
-        uint256 _sharesToWithdraw = _underlyingToShares(amount);
+        if (amount > uninvestedUnderlying) {
+            uint256 _sharesToWithdraw = _underlyingToShares(
+                amount - uninvestedUnderlying
+            );
 
-        if (_sharesToWithdraw > _getShares()) revert StrategyNotEnoughShares();
+            if (_sharesToWithdraw > _getShares())
+                revert StrategyNotEnoughShares();
 
-        // burn shares and withdraw required underlying to strategy
-        yVault.withdraw(_sharesToWithdraw, address(this), 1);
+            // burn shares and withdraw required underlying to strategy
+            yVault.withdraw(_sharesToWithdraw, address(this), 1);
+        }
 
         // transfer underlying to vault
         underlying.safeTransfer(vault, amount);
