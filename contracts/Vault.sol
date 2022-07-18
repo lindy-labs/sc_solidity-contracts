@@ -1,24 +1,24 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity =0.8.10;
 
-import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { IERC20Metadata } from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import { SafeERC20 } from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import { Context } from "@openzeppelin/contracts/utils/Context.sol";
-import { ERC165 } from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
-import { AccessControl } from "@openzeppelin/contracts/access/AccessControl.sol";
-import { ReentrancyGuard } from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
-import { Pausable } from "@openzeppelin/contracts/security/Pausable.sol";
-import { Counters } from "@openzeppelin/contracts/utils/Counters.sol";
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import {Context} from "@openzeppelin/contracts/utils/Context.sol";
+import {ERC165} from "@openzeppelin/contracts/utils/introspection/ERC165.sol";
+import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
+import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
+import {Counters} from "@openzeppelin/contracts/utils/Counters.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-import { IVault } from "./vault/IVault.sol";
-import { IVaultSponsoring } from "./vault/IVaultSponsoring.sol";
-import { IVaultSettings } from "./vault/IVaultSettings.sol";
-import { CurveSwapper } from "./vault/CurveSwapper.sol";
-import { PercentMath } from "./lib/PercentMath.sol";
-import { IStrategy } from "./strategy/IStrategy.sol";
-import { CustomErrors } from "./interfaces/CustomErrors.sol";
+import {IVault} from "./vault/IVault.sol";
+import {IVaultSponsoring} from "./vault/IVaultSponsoring.sol";
+import {IVaultSettings} from "./vault/IVaultSettings.sol";
+import {CurveSwapper} from "./vault/CurveSwapper.sol";
+import {PercentMath} from "./lib/PercentMath.sol";
+import {IStrategy} from "./strategy/IStrategy.sol";
+import {CustomErrors} from "./interfaces/CustomErrors.sol";
 
 /**
  * A vault where other accounts can deposit an underlying token
