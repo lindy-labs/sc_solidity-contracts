@@ -269,6 +269,30 @@ describe('YearnStrategy', () => {
       expect(await strategy.investedAssets()).to.eq(parseUnits('70'));
     });
 
+    it('removes the requested funds from the strategy', async () => {
+      await underlying.mint(strategy.address, parseUnits('100'));
+
+      await strategy.connect(manager).withdrawToVault(parseUnits('30'));
+
+      expect(await yVault.balanceOf(strategy.address)).to.eq(parseUnits('0'));
+      expect(await strategy.investedAssets()).to.eq(parseUnits('70'));
+      expect(await underlying.balanceOf(vault.address)).to.eq(parseUnits('30'));
+    });
+
+    it('removes the requested funds from the strategy and the yVault', async () => {
+      await depositToVault(parseUnits('100'));
+      await vault.connect(owner).updateInvested();
+      await underlying.mint(strategy.address, parseUnits('10'));
+
+      await strategy.connect(manager).withdrawToVault(parseUnits('30'));
+
+      expect(await yVault.balanceOf(strategy.address)).to.eq(parseUnits('80'));
+      expect(await underlying.balanceOf(strategy.address)).to.eq(
+        parseUnits('0'),
+      );
+      expect(await underlying.balanceOf(vault.address)).to.eq(parseUnits('30'));
+    });
+
     it('emits an event', async () => {
       await depositToVault(parseUnits('100'));
       await vault.connect(owner).updateInvested();

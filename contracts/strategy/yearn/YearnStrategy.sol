@@ -95,9 +95,14 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
      *
      * @param _newOwner The new owner of the contract.
      */
-    function transferOwnership(address _newOwner) public override(Ownable) onlyOwner {
+    function transferOwnership(address _newOwner)
+        public
+        override(Ownable)
+        onlyOwner
+    {
         if (_newOwner == address(0x0)) revert StrategyOwnerCannotBe0Address();
-        if (_newOwner == msg.sender) revert StrategyCannotTransferOwnershipToSelf();
+        if (_newOwner == msg.sender)
+            revert StrategyCannotTransferOwnershipToSelf();
 
         _transferOwnership(_newOwner);
 
@@ -139,12 +144,14 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
 
     /// @inheritdoc IStrategy
     function invest() external virtual override(IStrategy) onlyManager {
-        uint256 balance = _getUnderlyingBalance();
-        if (balance == 0) revert StrategyNoUnderlying();
+        uint256 beforeBalance = _getUnderlyingBalance();
+        if (beforeBalance == 0) revert StrategyNoUnderlying();
 
-        yVault.deposit(balance, address(this));
+        yVault.deposit(type(uint256).max, address(this));
 
-        emit StrategyInvested(balance);
+        uint256 afterBalance = _getUnderlyingBalance();
+
+        emit StrategyInvested(beforeBalance - afterBalance);
     }
 
     /// @inheritdoc IStrategy
@@ -155,8 +162,19 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
         onlyManager
     {
         if (amount == 0) revert StrategyAmountZero();
+        uint256 uninvestedUnderlying = _getUnderlyingBalance();
 
-        uint256 _sharesToWithdraw = _underlyingToShares(amount);
+        if (amount <= uninvestedUnderlying) {
+            underlying.safeTransfer(vault, amount);
+
+            emit StrategyWithdrawn(amount);
+
+            return;
+        }
+
+        uint256 _sharesToWithdraw = _underlyingToShares(
+            amount - uninvestedUnderlying
+        );
 
         if (_sharesToWithdraw > _getShares()) revert StrategyNotEnoughShares();
 
@@ -167,10 +185,9 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
             maxLossWithdrawParam
         );
 
-        // transfer underlying to vault
-        underlying.safeTransfer(vault, amountWithdrawn);
+        underlying.safeTransfer(vault, uninvestedUnderlying + amountWithdrawn);
 
-        emit StrategyWithdrawn(amountWithdrawn);
+        emit StrategyWithdrawn(uninvestedUnderlying + amountWithdrawn);
     }
 
     /**

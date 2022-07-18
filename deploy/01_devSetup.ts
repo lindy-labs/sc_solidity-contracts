@@ -1,12 +1,14 @@
 import type { HardhatRuntimeEnvironment } from 'hardhat/types';
-
 import { ethers } from 'hardhat';
 
 const { parseUnits } = ethers.utils;
 
 const func = async function (env: HardhatRuntimeEnvironment) {
-  await deployDevToken(env, 'DAI', 'MockDAI');
-  await deployDevToken(env, 'USDC', 'MockUSDC');
+  if (env.network.config.chainId === 31337) {
+    await deployDevToken(env, 'DAI', 'MockDAI');
+    await deployDevToken(env, 'USDC', 'MockUSDC');
+  }
+
   await deployDevToken(env, 'LUSD', 'MockLUSD');
 };
 
@@ -42,16 +44,16 @@ async function deployDevToken(
           { from: account },
           'mint',
           account,
-          parseUnits('1000', decimals),
+          parseUnits('100000', decimals),
         );
       }
     }
   }
 }
 
-// Deploy only to hardhat
+// Deploy only to hardhat and ropsten
 func.skip = async (hre: HardhatRuntimeEnvironment) =>
-  hre.network.config.chainId != 31337;
+  hre.network.config.chainId != 31337 && hre.network.config.chainId != 3;
 
 func.id = 'dev_setup';
 func.tags = ['dev_setup'];
