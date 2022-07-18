@@ -149,6 +149,12 @@ describe('Vault (fork tests)', () => {
       expect(pool[0]).to.equal(AddressZero);
     });
 
+    it("fails if the token doesn't exits", async () => {
+      const action = vault.removePool(LUSD_ADDRESS);
+
+      await expect(action).to.be.reverted;
+    });
+
     it('is not callable by a non-admin', async () => {
       const action = vault.connect(alice).removePool(dai.address);
 
@@ -185,8 +191,8 @@ describe('Vault (fork tests)', () => {
     });
   });
 
-  describe('deposit with DAI', function () {
-    it('fails if USDT is not whitelisted', async () => {
+  describe('deposit with USDC', function () {
+    it('fails if USDC is not whitelisted', async () => {
       const action = vault.connect(alice).deposit(
         depositParams.build({
           amount: parseUnits('1000', await usdc.decimals()),
