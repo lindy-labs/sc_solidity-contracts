@@ -155,39 +155,37 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
     }
 
     /// @inheritdoc IStrategy
-    function withdrawToVault(uint256 amount)
+    function withdrawToVault(uint256 _amount)
         external
         virtual
         override(IStrategy)
         onlyManager
     {
-        if (amount == 0) revert StrategyAmountZero();
+        if (_amount == 0) revert StrategyAmountZero();
         uint256 uninvestedUnderlying = _getUnderlyingBalance();
 
-        if (amount <= uninvestedUnderlying) {
-            underlying.safeTransfer(vault, amount);
+        if (_amount > uninvestedUnderlying) {
+            uint256 sharesToWithdraw = _underlyingToShares(
+                _amount - uninvestedUnderlying
+            );
 
-            emit StrategyWithdrawn(amount);
+            if (sharesToWithdraw > _getShares())
+                revert StrategyNotEnoughShares();
 
-            return;
+            // burn shares and withdraw required underlying to strategy
+            uint256 withdrawnFromYearn = yVault.withdraw(
+                sharesToWithdraw,
+                address(this),
+                maxLossWithdrawParam
+            );
+
+            _amount = uninvestedUnderlying + withdrawnFromYearn;
         }
 
-        uint256 _sharesToWithdraw = _underlyingToShares(
-            amount - uninvestedUnderlying
-        );
+        // transfer underlying to vault
+        underlying.safeTransfer(vault, _amount);
 
-        if (_sharesToWithdraw > _getShares()) revert StrategyNotEnoughShares();
-
-        // burn shares and withdraw required underlying to strategy
-        uint256 amountWithdrawn = yVault.withdraw(
-            _sharesToWithdraw,
-            address(this),
-            maxLossWithdrawParam
-        );
-
-        underlying.safeTransfer(vault, uninvestedUnderlying + amountWithdrawn);
-
-        emit StrategyWithdrawn(uninvestedUnderlying + amountWithdrawn);
+        emit StrategyWithdrawn(_amount);
     }
 
     /**
