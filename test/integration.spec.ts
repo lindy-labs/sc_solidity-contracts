@@ -18,6 +18,7 @@ import {
   moveForwardTwoWeeks,
   SHARES_MULTIPLIER,
   generateNewAddress,
+  CURVE_SLIPPAGE,
 } from './shared';
 
 const { utils } = ethers;
@@ -106,7 +107,7 @@ describe('Integration', () => {
           underlying.address,
           parseUnits('500'),
           TWO_WEEKS,
-          BigNumber.from(5),
+          CURVE_SLIPPAGE,
         );
 
       await vault.connect(alice).deposit(
@@ -145,7 +146,7 @@ describe('Integration', () => {
           underlying.address,
           parseUnits('500'),
           TWO_WEEKS,
-          BigNumber.from(5),
+          CURVE_SLIPPAGE,
         );
 
       expect(await underlying.balanceOf(bob.address)).to.eq(parseUnits('500'));
@@ -187,7 +188,7 @@ describe('Integration', () => {
           underlying.address,
           parseUnits('500'),
           TWO_WEEKS,
-          BigNumber.from(5),
+          CURVE_SLIPPAGE,
         );
 
       await vault.connect(alice).deposit(
@@ -226,7 +227,7 @@ describe('Integration', () => {
           underlying.address,
           parseUnits('500'),
           TWO_WEEKS,
-          BigNumber.from(5),
+          CURVE_SLIPPAGE,
         );
       await vault
         .connect(bob)
@@ -234,7 +235,7 @@ describe('Integration', () => {
           underlying.address,
           parseUnits('500'),
           TWO_WEEKS,
-          BigNumber.from(5),
+          CURVE_SLIPPAGE,
         );
 
       // alice deposits with yield to herself and to carol
