@@ -18,7 +18,7 @@ import {IVault} from "../../vault/IVault.sol";
  *
  * @notice This strategy is syncrhonous (supports immediate withdrawals).
  */
-contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
+contract YearnStrategy is IStrategy, AccessControl, CustomErrors {
     using SafeERC20 for IERC20;
     using PercentMath for uint256;
     using ERC165Query for address;
@@ -99,6 +99,12 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
         _;
     }
 
+    modifier onlyOwner() {
+        if (!hasRole(DEFAULT_ADMIN_ROLE, msg.sender))
+            revert StrategyCallerNotOwner();
+        _;
+    }
+
     //
     // Ownable
     //
@@ -111,16 +117,10 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
      *
      * @param _newOwner The new owner of the contract.
      */
-    function transferOwnership(address _newOwner)
-        public
-        override(Ownable)
-        onlyOwner
-    {
+    function transferOwnership(address _newOwner) public onlyOwner {
         if (_newOwner == address(0x0)) revert StrategyOwnerCannotBe0Address();
         if (_newOwner == msg.sender)
             revert StrategyCannotTransferOwnershipToSelf();
-
-        _transferOwnership(_newOwner);
 
         _setupRole(DEFAULT_ADMIN_ROLE, _newOwner);
         _setupRole(SETTINGS_ROLE, _newOwner);

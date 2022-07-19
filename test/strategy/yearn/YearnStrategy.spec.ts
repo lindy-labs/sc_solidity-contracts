@@ -152,7 +152,7 @@ describe('YearnStrategy', () => {
     it('can only be called by the current owner', async () => {
       await expect(
         strategy.connect(alice).transferOwnership(alice.address),
-      ).to.be.revertedWith('Ownable: caller is not the owner');
+      ).to.be.revertedWith('StrategyCallerNotOwner');
     });
 
     it('reverts if new owner is address(0)', async () => {
@@ -168,9 +168,14 @@ describe('YearnStrategy', () => {
     });
 
     it('changes ownership to the new owner', async () => {
+      let DEFAULT_ADMIN_ROLE = await strategy.DEFAULT_ADMIN_ROLE();
+      expect(
+        await strategy.hasRole(DEFAULT_ADMIN_ROLE, alice.address),
+      ).to.be.equal(false);
       await strategy.connect(owner).transferOwnership(alice.address);
-
-      expect(await strategy.owner()).to.be.equal(alice.address);
+      expect(
+        await strategy.hasRole(DEFAULT_ADMIN_ROLE, alice.address),
+      ).to.be.equal(true);
     });
 
     it("revokes previous owner's ADMIN role and sets up ADMIN role for the new owner", async () => {

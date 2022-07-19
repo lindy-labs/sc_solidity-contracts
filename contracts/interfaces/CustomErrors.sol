@@ -136,6 +136,9 @@ interface CustomErrors {
     // Strategy: caller has no settings role
     error StrategyCallerNotSettings();
 
+    // Strategy: caller is not the owner
+    error StrategyCallerNotOwner();
+
     // Strategy: amount is 0
     error StrategyAmountZero();
 
