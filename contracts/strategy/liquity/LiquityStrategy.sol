@@ -115,6 +115,24 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
     //
 
     /**
+     * Transfers ownership of the Strategy to another account,
+     * revoking previous owner's ADMIN role and setting up ADMIN role for the new owner.
+     *
+     * @notice Can only be called by the current owner.
+     *
+     * @param _newOwner The new owner of the contract.
+     */
+    function transferOwnership(address _newOwner) public onlyOwner {
+        if (_newOwner == address(0x0)) revert StrategyOwnerCannotBe0Address();
+        if (_newOwner == msg.sender)
+            revert StrategyCannotTransferOwnershipToSelf();
+
+        _setupRole(DEFAULT_ADMIN_ROLE, _newOwner);
+
+        _revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
+    }
+
+    /**
      * Returns true since strategy is synchronous.
      */
     function isSync() external pure override(IStrategy) returns (bool) {
