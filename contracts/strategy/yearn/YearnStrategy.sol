@@ -23,6 +23,13 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
     using PercentMath for uint256;
     using ERC165Query for address;
 
+    /**
+     * Emmited when the maxLossWithdrawParam (from Yearn vault) is changed.
+     *
+     * @param maxLoss new value for max loss withdraw param
+     */
+    event StrategyMaxLossWithdrawParamChanged(uint256 maxLoss);
+
     // yearn vault is 0x
     error StrategyYearnVaultCannotBe0Address();
     // max loss parameter > 100%
@@ -199,6 +206,8 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
         if (_maxLoss > 10000) revert StrategyMaxLossParamTooLarge();
 
         maxLossWithdrawParam = _maxLoss;
+
+        emit StrategyMaxLossWithdrawParamChanged(_maxLoss);
     }
 
     /**

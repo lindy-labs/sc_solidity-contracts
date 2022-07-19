@@ -172,7 +172,7 @@ describe('Audit Tests 4', () => {
     });
   });
 
-  describe('issue M-5 YearnStrategy#setWithdrawalMaxLossParam', () => {
+  describe('issue M-5 YearnStrategy#setMaxLossWithdrawParam', () => {
     beforeEach(() => beforeEachCommon(UNDERLYING_DECIMALS));
 
     it('fails if the caller is not owner', async () => {
@@ -187,6 +187,16 @@ describe('Audit Tests 4', () => {
       await strategy.setMaxLossWithdrawParam(maxLoss);
 
       expect(await strategy.maxLossWithdrawParam()).to.eq(maxLoss);
+    });
+
+    it('emits a StrategyMaxLossWithdrawParamChanged event', async () => {
+      const maxLoss = '2';
+
+      const tx = strategy.setMaxLossWithdrawParam(maxLoss);
+
+      await expect(tx)
+        .to.emit(strategy, 'StrategyMaxLossWithdrawParamChanged')
+        .withArgs(maxLoss);
     });
 
     it('fails when the max loss withdraw param > 100%', async () => {
