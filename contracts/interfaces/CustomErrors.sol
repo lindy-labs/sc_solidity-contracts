@@ -133,6 +133,9 @@ interface CustomErrors {
     // Strategy: caller is not manager
     error StrategyCallerNotManager();
 
+    // Strategy: caller is not the owner of the strategy contract
+    error StrategyCallerNotOwner();
+
     // Strategy: amount is 0
     error StrategyAmountZero();
 

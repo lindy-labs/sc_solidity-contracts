@@ -24,7 +24,9 @@ contract MockStabilityPool is IStabilityPool {
 
         if (_amount > bal) _amount = bal;
 
-        lusd.transfer(msg.sendre, _amount);
+        balances[msg.sender] -= _amount;
+
+        lusd.transfer(msg.sender, _amount);
     }
 
     function getDepositorETHGain(address _depositor)

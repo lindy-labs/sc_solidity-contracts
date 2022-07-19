@@ -7,6 +7,7 @@ import {
   Vault,
   MockStabilityPool,
   LiquityStrategy,
+  OptimalSwapper,
   MockERC20,
   LiquityStrategy__factory,
 } from '../../../typechain';
@@ -22,8 +23,11 @@ describe('LiquityStrategy', () => {
   let manager: SignerWithAddress;
   let vault: Vault;
   let stabilityPool: MockStabilityPool;
+  let optimalSwapper: OptimalSwapper;
   let strategy: LiquityStrategy;
   let underlying: MockERC20;
+  let lqty: MockERC20;
+  let usdc: MockERC20;
 
   let LiquityStrategyFactory: LiquityStrategy__factory;
 
@@ -47,11 +51,18 @@ describe('LiquityStrategy', () => {
       parseEther('1000000000'),
     );
 
+    lqty = await MockERC20.deploy('LQTY', 'LQTY', 18, parseEther('1000000000'));
+
+    usdc = await MockERC20.deploy('USDC', 'USDC', 18, parseEther('1000000000'));
+
     const StabilityPoolFactory = await ethers.getContractFactory(
       'MockStabilityPool',
     );
 
+    const OptimalSwapper = await ethers.getContractFactory('OptimalSwapper');
+
     stabilityPool = await StabilityPoolFactory.deploy();
+    // optimalSwapper = await OptimalSwapper.deploy();
 
     const VaultFactory = await ethers.getContractFactory('Vault');
 
@@ -71,7 +82,10 @@ describe('LiquityStrategy', () => {
     strategy = await LiquityStrategyFactory.deploy(
       vault.address,
       owner.address,
-      yVault.address,
+      stabilityPool.address,
+      optimalSwapper.address,
+      lqty.address,
+      usdc.address,
       underlying.address,
     );
 

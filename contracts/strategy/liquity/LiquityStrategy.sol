@@ -93,6 +93,11 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         _;
     }
 
+    modifier onlyOwner() {
+        if (!hasRole(DEFAULT_ADMIN_ROLE, msg.sender))
+            revert StrategyCallerNotOwner();
+    }
+
     //
     // IStrategy
     //
@@ -174,9 +179,8 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
 
     /**
         swaps the ETH & LQTY rewards from the stability pool into usdc
-        // TODO: onlyOwner
      */
-    function harvest() external {
+    function harvest() external onlyOwner {
         // withdraw rewards from Liquity Stability Pool Contract
         stabilityPool.withdrawFromSP(0);
 
@@ -203,9 +207,8 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
 
     /**
         @notice swaps all the given token balance inside the contract to lusd
-        // TODO: onlyOwner
      */
-    function sweepToLusd(address _token) external {
+    function sweepToLusd(address _token) external onlyOwner {
         optimalSwapper.swap(
             _token,
             underlying,
