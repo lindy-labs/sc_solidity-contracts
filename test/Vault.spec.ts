@@ -795,6 +795,18 @@ describe('Vault', () => {
   });
 
   describe('sponsor', () => {
+    it('revers with an error when the underlying has fees', async () => {
+      await underlying.setFee(500);
+
+      await addUnderlyingBalance(owner, '1000');
+
+      const tx = vault
+        .connect(owner)
+        .sponsor(underlying.address, parseUnits('500'), TWO_WEEKS);
+
+      await expect(tx).to.be.revertedWith('VaultAmountDoesNotMatchParams');
+    });
+
     it('reverts if contract is paused', async () => {
       await vault.connect(owner).pause();
       await expect(
@@ -1160,6 +1172,24 @@ describe('Vault', () => {
   });
 
   describe('depositForGroupId', () => {
+    it('revers with an error when the underlying has fees', async () => {
+      await addUnderlyingBalance(alice, '1000');
+
+      const params = depositParams.build({
+        amount: parseUnits('100'),
+        inputToken: underlying.address,
+        claims: [claimParams.percent(100).to(alice.address).build()],
+      });
+
+      await vault.connect(alice).deposit(params);
+
+      await underlying.setFee(500);
+
+      const tx = vault.connect(alice).depositForGroupId(0, params);
+
+      await expect(tx).to.be.revertedWith('VaultAmountDoesNotMatchParams');
+    });
+
     it('reverts if contract is paused', async () => {
       await vault.connect(alice).deposit(
         depositParams.build({
@@ -1385,6 +1415,22 @@ describe('Vault', () => {
   });
 
   describe('deposit', () => {
+    it('revers with an error when the underlying has fees', async () => {
+      await underlying.setFee(500);
+
+      await addUnderlyingBalance(alice, '1000');
+
+      const tx = vault.connect(alice).deposit(
+        depositParams.build({
+          amount: parseUnits('500'),
+          inputToken: underlying.address,
+          claims: [claimParams.percent(100).to(alice.address).build()],
+        }),
+      );
+
+      await expect(tx).to.be.revertedWith('VaultAmountDoesNotMatchParams');
+    });
+
     it('reverts if contract is paused', async () => {
       const params = depositParams.build({
         lockDuration: TWO_WEEKS,

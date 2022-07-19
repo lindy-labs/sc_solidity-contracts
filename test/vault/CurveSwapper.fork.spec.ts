@@ -130,6 +130,17 @@ describe('CurveSwapper', () => {
         swapper.test_swapFromUnderlying(usdt.address, input, CURVE_SLIPPAGE);
       await validateSwap(action, swapper, ust, usdt, '100');
     });
+
+    it('swaps 100UST for 100UST', async () => {
+      const input = parseUnits('100', decimals.ust);
+      const amountBefore = await ust.balanceOf(swapper.address);
+
+      swapper.test_swapFromUnderlying(ust.address, input);
+
+      const amountAfter = await ust.balanceOf(swapper.address);
+
+      expect(amountAfter).to.eq(amountBefore);
+    });
   });
 
   describe('removePool', function () {
