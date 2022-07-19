@@ -135,7 +135,7 @@ describe('CurveSwapper', () => {
       const input = parseUnits('100', decimals.ust);
       const amountBefore = await ust.balanceOf(swapper.address);
 
-      swapper.test_swapFromUnderlying(ust.address, input);
+      swapper.test_swapFromUnderlying(ust.address, input, CURVE_SLIPPAGE);
 
       const amountAfter = await ust.balanceOf(swapper.address);
 

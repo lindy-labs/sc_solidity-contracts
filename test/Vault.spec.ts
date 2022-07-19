@@ -802,7 +802,12 @@ describe('Vault', () => {
 
       const tx = vault
         .connect(owner)
-        .sponsor(underlying.address, parseUnits('500'), TWO_WEEKS);
+        .sponsor(
+          underlying.address,
+          parseUnits('500'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
 
       await expect(tx).to.be.revertedWith('VaultAmountDoesNotMatchParams');
     });
