@@ -282,11 +282,19 @@ describe('LiquityStrategy', () => {
       ).to.be.revertedWith('StrategyCannotTransferOwnershipToSelf');
     });
 
-    // it('changes ownership to the new owner', async () => {
-    //   await strategy.connect(owner).transferOwnership(alice.address);
+    it('changes ownership to the new owner', async () => {
+      let DEFAULT_ADMIN_ROLE = await strategy.DEFAULT_ADMIN_ROLE();
 
-    //   expect(await strategy.owner()).to.be.equal(alice.address);
-    // });
+      expect(
+        await strategy.hasRole(DEFAULT_ADMIN_ROLE, alice.address),
+      ).to.be.equal(false);
+
+      await strategy.connect(owner).transferOwnership(alice.address);
+
+      expect(
+        await strategy.hasRole(DEFAULT_ADMIN_ROLE, alice.address),
+      ).to.be.equal(true);
+    });
 
     it("revokes previous owner's ADMIN role and sets up ADMIN role for the new owner", async () => {
       // assert that the owner has the ADMIN role
@@ -302,4 +310,69 @@ describe('LiquityStrategy', () => {
         .true;
     });
   });
+
+  describe('#invest function', () => {
+    it('reverts if msg.sender is not manager', async () => {
+      await expect(strategy.connect(alice).invest()).to.be.revertedWith(
+        'StrategyCallerNotManager',
+      );
+    });
+
+    it('reverts if underlying balance is zero', async () => {
+      await expect(strategy.connect(manager).invest()).to.be.revertedWith(
+        'StrategyNoUnderlying',
+      );
+    });
+
+    it('deposits underlying to the stabilityPool', async () => {
+      let underlyingAmount = utils.parseEther('100');
+      await depositToVault(underlyingAmount);
+
+      // todo: uncomment all the commented lines after the optimalSwapper has been decided
+
+      // expect(await vault.totalUnderlying()).to.eq(underlyingAmount);
+      // expect(await strategy.investedAssets()).to.eq(0);
+      // expect(await strategy.hasAssets()).be.false;
+
+      // await vault.connect(owner).updateInvested();
+
+      // expect(await underlying.balanceOf(stabilityPool.address)).to.eq(
+      //   underlyingAmount,
+      // );
+      // expect(await underlying.balanceOf(strategy.address)).to.eq(0);
+      // // expect(await strategy.investedAssets()).to.eq(underlyingAmount);
+      // // expect(await strategy.hasAssets()).be.true;
+      // expect(await vault.totalUnderlying()).to.eq(underlyingAmount);
+    });
+
+    it('emits a StrategyInvested event', async () => {
+      // let underlyingAmount = utils.parseUnits('100', 18);
+      // await depositToVault(underlyingAmount);
+      // const tx = await vault.connect(owner).updateInvested();
+      // await expect(tx)
+      //   .to.emit(strategy, 'StrategyInvested')
+      //   .withArgs(underlyingAmount);
+    });
+
+    it('can be called multiple times', async () => {
+      // await depositToVault(utils.parseUnits('100', 18));
+      // await vault.connect(owner).updateInvested();
+      // await depositToVault(utils.parseUnits('10', 18));
+      // await vault.connect(owner).updateInvested();
+      // const totalUnderlying = utils.parseUnits('110', 18).sub('37');
+      // expect(await underlying.balanceOf(strategy.address)).to.eq(0);
+      // expect(await strategy.investedAssets()).to.eq(totalUnderlying);
+      // expect(await vault.totalUnderlying()).to.eq(totalUnderlying);
+    });
+  });
+
+  const depositToVault = async (amount: BigNumber) => {
+    await vault.connect(owner).deposit(
+      depositParams.build({
+        amount,
+        inputToken: underlying.address,
+        claims: [claimParams.percent(100).to(owner.address).build()],
+      }),
+    );
+  };
 });
