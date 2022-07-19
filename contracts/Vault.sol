@@ -466,7 +466,7 @@ contract Vault is
         address _inputToken,
         uint256 _amount,
         uint256 _lockDuration,
-        uint256 slippage
+        uint256 _slippage
     )
         external
         override(IVaultSponsoring)
@@ -489,7 +489,7 @@ contract Vault is
         uint256 underlyingAmount = _swapIntoUnderlying(
             _inputToken,
             _amount,
-            slippage
+            _slippage
         );
 
         deposits[tokenId] = Deposit(
