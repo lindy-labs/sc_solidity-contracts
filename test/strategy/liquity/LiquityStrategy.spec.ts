@@ -28,6 +28,7 @@ describe('LiquityStrategy', () => {
   let underlying: MockERC20;
   let lqty: MockERC20;
   let usdc: MockERC20;
+  let weth: MockERC20;
 
   let LiquityStrategyFactory: LiquityStrategy__factory;
 
@@ -55,14 +56,18 @@ describe('LiquityStrategy', () => {
 
     usdc = await MockERC20.deploy('USDC', 'USDC', 18, parseEther('1000000000'));
 
+    weth = await MockERC20.deploy('WETH', 'WETH', 18, parseEther('1000000000'));
+
     const StabilityPoolFactory = await ethers.getContractFactory(
       'MockStabilityPool',
     );
+    stabilityPool = await StabilityPoolFactory.deploy();
 
     const OptimalSwapper = await ethers.getContractFactory('OptimalSwapper');
-
-    stabilityPool = await StabilityPoolFactory.deploy();
-    // optimalSwapper = await OptimalSwapper.deploy();
+    optimalSwapper = await OptimalSwapper.deploy(
+      constants.AddressZero,
+      constants.AddressZero,
+    );
 
     const VaultFactory = await ethers.getContractFactory('Vault');
 
@@ -86,6 +91,7 @@ describe('LiquityStrategy', () => {
       optimalSwapper.address,
       lqty.address,
       usdc.address,
+      weth.address,
       underlying.address,
     );
 
@@ -96,5 +102,164 @@ describe('LiquityStrategy', () => {
     await underlying
       .connect(owner)
       .approve(vault.address, constants.MaxUint256);
+  });
+
+  describe('#constructor', () => {
+    it('reverts if owner is address(0)', async () => {
+      await expect(
+        LiquityStrategyFactory.deploy(
+          vault.address,
+          constants.AddressZero,
+          stabilityPool.address,
+          optimalSwapper.address,
+          lqty.address,
+          usdc.address,
+          weth.address,
+          underlying.address,
+        ),
+      ).to.be.revertedWith('StrategyOwnerCannotBe0Address');
+    });
+
+    it('reverts if stabilityPool is address(0)', async () => {
+      await expect(
+        LiquityStrategyFactory.deploy(
+          vault.address,
+          owner.address,
+          constants.AddressZero,
+          optimalSwapper.address,
+          lqty.address,
+          usdc.address,
+          weth.address,
+
+          underlying.address,
+        ),
+      ).to.be.revertedWith('LiquityStabilityPoolCannotBeAddressZero');
+    });
+
+    it('reverts if optimalSwapper is address(0)', async () => {
+      await expect(
+        LiquityStrategyFactory.deploy(
+          vault.address,
+          owner.address,
+          stabilityPool.address,
+          constants.AddressZero,
+          lqty.address,
+          usdc.address,
+          weth.address,
+
+          underlying.address,
+        ),
+      ).to.be.revertedWith('OptimalSwapperCanntoBe0Address');
+    });
+
+    it('reverts if lqty is address(0)', async () => {
+      await expect(
+        LiquityStrategyFactory.deploy(
+          vault.address,
+          owner.address,
+          stabilityPool.address,
+          optimalSwapper.address,
+          constants.AddressZero,
+          usdc.address,
+          weth.address,
+
+          underlying.address,
+        ),
+      ).to.be.revertedWith('StrategyYieldTokenCannotBe0Address');
+    });
+
+    it('reverts if usdc is address(0)', async () => {
+      await expect(
+        LiquityStrategyFactory.deploy(
+          vault.address,
+          owner.address,
+          stabilityPool.address,
+          optimalSwapper.address,
+          lqty.address,
+          constants.AddressZero,
+          weth.address,
+          underlying.address,
+        ),
+      ).to.be.revertedWith('StrategyYieldTokenCannotBe0Address');
+    });
+
+    it('reverts if weth is address(0)', async () => {
+      await expect(
+        LiquityStrategyFactory.deploy(
+          vault.address,
+          owner.address,
+          stabilityPool.address,
+          optimalSwapper.address,
+          lqty.address,
+          usdc.address,
+          constants.AddressZero,
+          underlying.address,
+        ),
+      ).to.be.revertedWith('StrategyYieldTokenCannotBe0Address');
+    });
+
+    it('reverts if underlying is address(0)', async () => {
+      await expect(
+        LiquityStrategyFactory.deploy(
+          vault.address,
+          owner.address,
+          stabilityPool.address,
+          optimalSwapper.address,
+          lqty.address,
+          usdc.address,
+          weth.address,
+          constants.AddressZero,
+        ),
+      ).to.be.revertedWith('StrategyUnderlyingCannotBe0Address');
+    });
+
+    it('reverts if vault does not have IVault interface', async () => {
+      await expect(
+        LiquityStrategyFactory.deploy(
+          manager.address,
+          owner.address,
+          stabilityPool.address,
+          optimalSwapper.address,
+          lqty.address,
+          usdc.address,
+          weth.address,
+
+          underlying.address,
+        ),
+      ).to.be.revertedWith('StrategyNotIVault');
+    });
+
+    it('checks initial values', async () => {
+      expect(await strategy.isSync()).to.be.true;
+      expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, owner.address)).to.be
+        .true;
+      expect(await strategy.hasRole(MANAGER_ROLE, vault.address)).to.be.true;
+      expect(await strategy.vault()).to.eq(vault.address);
+      expect(await strategy.stabilityPool()).to.eq(stabilityPool.address);
+
+      expect(await strategy.underlying()).to.eq(underlying.address);
+
+      // TODO: this is commented because hasAssets uses optimalSwapper & we are not sure about using that
+      // expect(await strategy.hasAssets()).to.be.false;
+      expect(
+        await underlying.allowance(strategy.address, stabilityPool.address),
+      ).to.eq(constants.MaxUint256);
+
+      expect(
+        await underlying.allowance(strategy.address, optimalSwapper.address),
+      ).to.eq(constants.MaxUint256);
+
+      expect(
+        await lqty.allowance(strategy.address, optimalSwapper.address),
+      ).to.eq(constants.MaxUint256);
+
+      expect(
+        await usdc.allowance(strategy.address, optimalSwapper.address),
+      ).to.eq(constants.MaxUint256);
+
+      expect(
+        await weth.allowance(strategy.address, optimalSwapper.address),
+      ).to.eq(constants.MaxUint256);
+    });
   });
 });

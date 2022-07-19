@@ -41,7 +41,6 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
 
     bytes32 public constant MANAGER_ROLE =
         0x241ecf16d79d0f8dbfb92cbc07fe17840425976cf0667f022fe9877caa831b08; // keccak256("MANAGER_ROLE");
-    address public constant weth = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
 
     address public immutable underlying; // lusd
     /// @inheritdoc IStrategy
@@ -50,6 +49,7 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
     OptimalSwapper public immutable optimalSwapper;
     address public immutable lqty; // reward token
     address public immutable usdc;
+    address public immutable weth;
 
     constructor(
         address _vault,
@@ -58,11 +58,13 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         address _optimalSwapper,
         address _lqty,
         address _usdc,
+        address _weth,
         address _underlying
     ) {
         if (_owner == address(0)) revert StrategyOwnerCannotBe0Address();
         if (_lqty == address(0)) revert StrategyYieldTokenCannotBe0Address();
         if (_usdc == address(0)) revert StrategyYieldTokenCannotBe0Address();
+        if (_weth == address(0)) revert StrategyYieldTokenCannotBe0Address();
         if (_stabilityPool == address(0))
             revert LiquityStabilityPoolCannotBeAddressZero();
         if (_optimalSwapper == address(0))
@@ -81,6 +83,15 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         optimalSwapper = OptimalSwapper(_optimalSwapper);
         lqty = _lqty;
         usdc = _usdc;
+        weth = _weth;
+
+        IERC20(underlying).approve(_stabilityPool, type(uint256).max);
+
+        // approve optimalSwapper for all the tokens
+        IERC20(lqty).approve(_optimalSwapper, type(uint256).max);
+        IERC20(usdc).approve(_optimalSwapper, type(uint256).max);
+        IERC20(weth).approve(_optimalSwapper, type(uint256).max);
+        IERC20(underlying).approve(_optimalSwapper, type(uint256).max);
     }
 
     //
@@ -96,6 +107,7 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
     modifier onlyOwner() {
         if (!hasRole(DEFAULT_ADMIN_ROLE, msg.sender))
             revert StrategyCallerNotOwner();
+        _;
     }
 
     //
