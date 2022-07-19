@@ -13,6 +13,7 @@ import {CustomErrors} from "../../interfaces/CustomErrors.sol";
 import {IVault} from "../../vault/IVault.sol";
 import {IStabilityPool} from "../../interfaces/liquity/IStabilityPool.sol";
 import {OptimalSwapper} from "./OptimalSwapper.sol";
+import {ICurveRouter} from "../../interfaces/curve/ICurveRouter.sol";
 
 // TODO:
 // Use oracles to convert ETH, LQTY and USDC to LUSD and update the investedAssets method calculating everything in LUSD terms
@@ -51,6 +52,9 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
     address public immutable usdc;
     address public immutable weth;
 
+    ICurveRouter public curveRouter;
+    address public curveLusdPool;
+
     constructor(
         address _vault,
         address _owner,
@@ -59,7 +63,9 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         address _lqty,
         address _usdc,
         address _weth,
-        address _underlying
+        address _underlying,
+        address _curveRouter,
+        address _curveLusdPool
     ) {
         if (_owner == address(0)) revert StrategyOwnerCannotBe0Address();
         if (_lqty == address(0)) revert StrategyYieldTokenCannotBe0Address();
@@ -84,6 +90,10 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         lqty = _lqty;
         usdc = _usdc;
         weth = _weth;
+
+        // no need extra checks for these, since if these are wrong then the investedAssets method would revert automatically
+        curveRouter = ICurveRouter(_curveRouter);
+        curveLusdPool = _curveLusdPool;
 
         IERC20(underlying).approve(_stabilityPool, type(uint256).max);
 
@@ -161,18 +171,17 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         override(IStrategy)
         returns (uint256)
     {
-        uint256 pairKey = optimalSwapper.getPairKey(usdc, underlying);
         return
             // lusd deposited into liquity's stability pool
             stabilityPool.getCompoundedLUSDDeposit(address(this)) +
             // lusd held by this contract
             IERC20(underlying).balanceOf(address(this)) +
             // usdc held by this contract in lusd denomination
-            optimalSwapper.getCurveQuote(
+            curveRouter.get_exchange_amount(
+                curveLusdPool,
                 usdc,
                 underlying,
-                IERC20(usdc).balanceOf(address(this)),
-                pairKey
+                IERC20(usdc).balanceOf(address(this))
             );
     }
 
@@ -245,6 +254,17 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
             IERC20(_token).balanceOf(address(this)),
             0
         );
+    }
+
+    /**
+        @notice set the curve router address and the curve lusd pool address
+     */
+    function setCurveRouterAndPool(address _curveRouter, address _curveLusdPool)
+        external
+        onlyOwner
+    {
+        curveRouter = ICurveRouter(_curveRouter);
+        curveLusdPool = _curveLusdPool;
     }
 
     /////////////////////////////////// INTERNAL FUNCTIONS ////////////////////////////////////////////

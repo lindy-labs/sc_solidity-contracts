@@ -8,6 +8,8 @@ import {
   MockStabilityPool,
   LiquityStrategy,
   OptimalSwapper,
+  MockCurveRouter,
+  MockCurve,
   MockERC20,
   LiquityStrategy__factory,
 } from '../../../typechain';
@@ -25,6 +27,8 @@ describe('LiquityStrategy', () => {
   let stabilityPool: MockStabilityPool;
   let optimalSwapper: OptimalSwapper;
   let strategy: LiquityStrategy;
+  let curveRouter: MockCurveRouter;
+  let curvePool: MockCurve;
   let underlying: MockERC20;
   let lqty: MockERC20;
   let usdc: MockERC20;
@@ -61,13 +65,17 @@ describe('LiquityStrategy', () => {
     const StabilityPoolFactory = await ethers.getContractFactory(
       'MockStabilityPool',
     );
-    stabilityPool = await StabilityPoolFactory.deploy();
-
     const OptimalSwapper = await ethers.getContractFactory('OptimalSwapper');
+    const MockCurveRouter = await ethers.getContractFactory('MockCurveRouter');
+    const MockCurvePool = await ethers.getContractFactory('MockCurve');
+
+    stabilityPool = await StabilityPoolFactory.deploy();
     optimalSwapper = await OptimalSwapper.deploy(
       constants.AddressZero,
       constants.AddressZero,
     );
+    curveRouter = await MockCurveRouter.deploy();
+    curvePool = await MockCurvePool.deploy();
 
     const VaultFactory = await ethers.getContractFactory('Vault');
 
@@ -93,6 +101,8 @@ describe('LiquityStrategy', () => {
       usdc.address,
       weth.address,
       underlying.address,
+      curveRouter.address,
+      curvePool.address,
     );
 
     await strategy.connect(owner).grantRole(MANAGER_ROLE, manager.address);
@@ -116,6 +126,8 @@ describe('LiquityStrategy', () => {
           usdc.address,
           weth.address,
           underlying.address,
+          curveRouter.address,
+          curvePool.address,
         ),
       ).to.be.revertedWith('StrategyOwnerCannotBe0Address');
     });
@@ -130,8 +142,9 @@ describe('LiquityStrategy', () => {
           lqty.address,
           usdc.address,
           weth.address,
-
           underlying.address,
+          curveRouter.address,
+          curvePool.address,
         ),
       ).to.be.revertedWith('LiquityStabilityPoolCannotBeAddressZero');
     });
@@ -146,8 +159,9 @@ describe('LiquityStrategy', () => {
           lqty.address,
           usdc.address,
           weth.address,
-
           underlying.address,
+          curveRouter.address,
+          curvePool.address,
         ),
       ).to.be.revertedWith('OptimalSwapperCanntoBe0Address');
     });
@@ -162,8 +176,9 @@ describe('LiquityStrategy', () => {
           constants.AddressZero,
           usdc.address,
           weth.address,
-
           underlying.address,
+          curveRouter.address,
+          curvePool.address,
         ),
       ).to.be.revertedWith('StrategyYieldTokenCannotBe0Address');
     });
@@ -179,6 +194,8 @@ describe('LiquityStrategy', () => {
           constants.AddressZero,
           weth.address,
           underlying.address,
+          curveRouter.address,
+          curvePool.address,
         ),
       ).to.be.revertedWith('StrategyYieldTokenCannotBe0Address');
     });
@@ -194,6 +211,8 @@ describe('LiquityStrategy', () => {
           usdc.address,
           constants.AddressZero,
           underlying.address,
+          curveRouter.address,
+          curvePool.address,
         ),
       ).to.be.revertedWith('StrategyYieldTokenCannotBe0Address');
     });
@@ -209,6 +228,8 @@ describe('LiquityStrategy', () => {
           usdc.address,
           weth.address,
           constants.AddressZero,
+          curveRouter.address,
+          curvePool.address,
         ),
       ).to.be.revertedWith('StrategyUnderlyingCannotBe0Address');
     });
@@ -223,8 +244,9 @@ describe('LiquityStrategy', () => {
           lqty.address,
           usdc.address,
           weth.address,
-
           underlying.address,
+          curveRouter.address,
+          curvePool.address,
         ),
       ).to.be.revertedWith('StrategyNotIVault');
     });
@@ -328,21 +350,19 @@ describe('LiquityStrategy', () => {
       let underlyingAmount = utils.parseEther('100');
       await depositToVault(underlyingAmount);
 
-      // todo: uncomment all the commented lines after the optimalSwapper has been decided
+      expect(await vault.totalUnderlying()).to.eq(underlyingAmount);
+      expect(await strategy.investedAssets()).to.eq(0);
+      expect(await strategy.hasAssets()).be.false;
 
-      // expect(await vault.totalUnderlying()).to.eq(underlyingAmount);
-      // expect(await strategy.investedAssets()).to.eq(0);
-      // expect(await strategy.hasAssets()).be.false;
+      await vault.connect(owner).updateInvested();
 
-      // await vault.connect(owner).updateInvested();
-
-      // expect(await underlying.balanceOf(stabilityPool.address)).to.eq(
-      //   underlyingAmount,
-      // );
-      // expect(await underlying.balanceOf(strategy.address)).to.eq(0);
-      // // expect(await strategy.investedAssets()).to.eq(underlyingAmount);
-      // // expect(await strategy.hasAssets()).be.true;
-      // expect(await vault.totalUnderlying()).to.eq(underlyingAmount);
+      expect(await underlying.balanceOf(stabilityPool.address)).to.eq(
+        underlyingAmount,
+      );
+      expect(await underlying.balanceOf(strategy.address)).to.eq(0);
+      expect(await strategy.investedAssets()).to.eq(underlyingAmount);
+      expect(await strategy.hasAssets()).be.true;
+      expect(await vault.totalUnderlying()).to.eq(underlyingAmount);
     });
 
     it('emits a StrategyInvested event', async () => {
