@@ -73,11 +73,10 @@ abstract contract CurveSwapper {
     ///
     /// @param _token The token we want to swap into
     /// @param _amount The amount of underlying we want to swap
-    /// TODO missing slippage checks
     function _swapIntoUnderlying(
         address _token,
         uint256 _amount,
-        uint256 slippage
+        uint256 _slippage
     ) internal returns (uint256 amount) {
         address underlyingToken = getUnderlying();
         if (_token == underlyingToken) {
@@ -95,7 +94,7 @@ abstract contract CurveSwapper {
             _amount,
             swapper.tokenDecimals,
             swapper.underlyingDecimals,
-            slippage
+            _slippage
         );
 
         amount = swapper.pool.exchange_underlying(
@@ -113,11 +112,10 @@ abstract contract CurveSwapper {
     ///
     /// @param _token The token we want to swap into
     /// @param _amount The amount of underlying we want to swap
-    /// TODO missing slippage checks
     function _swapFromUnderlying(
         address _token,
         uint256 _amount,
-        uint256 slippage
+        uint256 _slippage
     ) internal returns (uint256 amount) {
         if (_token == getUnderlying()) {
             // same token, nothing to do
@@ -130,7 +128,7 @@ abstract contract CurveSwapper {
             _amount,
             swapper.underlyingDecimals,
             swapper.tokenDecimals,
-            slippage
+            _slippage
         );
 
         amount = swapper.pool.exchange_underlying(
@@ -147,10 +145,10 @@ abstract contract CurveSwapper {
         uint256 _amount,
         uint8 _fromDecimals,
         uint8 _toDecimals,
-        uint256 slippage
+        uint256 _slippage
     ) internal pure returns (uint256) {
         return
-            (_amount * slippage * 10**_toDecimals) / (10**_fromDecimals * 100);
+            (_amount * _slippage * 10**_toDecimals) / (10**_fromDecimals * 100);
     }
 
     /// This is necessary because some tokens (USDT) force you to approve(0)
