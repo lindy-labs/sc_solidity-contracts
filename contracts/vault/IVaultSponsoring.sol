@@ -36,7 +36,7 @@ interface IVaultSponsoring {
         address _inputToken,
         uint256 _amount,
         uint256 _lockedUntil,
-        uint256 slippage
+        uint256 _slippage
     ) external;
 
     /**
