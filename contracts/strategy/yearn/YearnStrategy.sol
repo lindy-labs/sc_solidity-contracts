@@ -24,16 +24,16 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
     using ERC165Query for address;
 
     /**
-     * Emmited when the maxLossWithdrawParam (from Yearn vault) is changed.
+     * Emmited when the maxLossOnWithdraw (from Yearn vault) is changed.
      *
      * @param maxLoss new value for max loss withdraw param
      */
-    event StrategyMaxLossWithdrawParamChanged(uint256 maxLoss);
+    event StrategyMaxLossOnWithdrawChanged(uint256 maxLoss);
 
     // yearn vault is 0x
     error StrategyYearnVaultCannotBe0Address();
-    // max loss parameter > 100%
-    error StrategyMaxLossParamTooLarge();
+    // max loss on withdraw from yearn > 100%
+    error StrategyMaxLossOnWithdrawTooLarge();
 
     /// role allowed to invest/withdraw from yearn vault
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
@@ -45,8 +45,8 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
     IYearnVault public immutable yVault;
     // multiplier for underlying convertion to shares
     uint128 public immutable conversionMultiplier;
-    // max loss withdraw param = 0.01%
-    uint128 public maxLossWithdrawParam = 1;
+    // used when withdrawing from yearn vault, 1 = 0.01%
+    uint128 public maxLossOnWithdraw = 1;
 
     /**
      * @param _vault address of the vault that will use this strategy
@@ -183,7 +183,7 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
             uint256 withdrawnFromYearn = yVault.withdraw(
                 sharesToWithdraw,
                 address(this),
-                maxLossWithdrawParam
+                maxLossOnWithdraw
             );
 
             _amount = uninvestedUnderlying + withdrawnFromYearn;
@@ -198,16 +198,16 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
     /**
      * Sets the max loss percentage used when withdrawing from the Yearn vault.
      *
-     * @notice Can only be called by the manager role.
+     * @notice Can only be called by the owner.
      *
      * @param _maxLoss The max loss percentage to use when withdrawing from the Yearn vault. Value of 1 equals 0.01% loss.
      */
-    function setMaxLossWithdrawParam(uint128 _maxLoss) external onlyOwner {
-        if (_maxLoss > 10000) revert StrategyMaxLossParamTooLarge();
+    function setMaxLossOnWithdraw(uint128 _maxLoss) external onlyOwner {
+        if (_maxLoss > 10000) revert StrategyMaxLossOnWithdrawTooLarge();
 
-        maxLossWithdrawParam = _maxLoss;
+        maxLossOnWithdraw = _maxLoss;
 
-        emit StrategyMaxLossWithdrawParamChanged(_maxLoss);
+        emit StrategyMaxLossOnWithdrawChanged(_maxLoss);
     }
 
     /**

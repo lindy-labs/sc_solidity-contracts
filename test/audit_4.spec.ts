@@ -172,30 +172,30 @@ describe('Audit Tests 4', () => {
     });
   });
 
-  describe('issue M-5 YearnStrategy#setMaxLossWithdrawParam', () => {
+  describe('issue M-5 YearnStrategy#setMaxLossOnWithdraw', () => {
     beforeEach(() => beforeEachCommon(UNDERLYING_DECIMALS));
 
     it('fails if the caller is not owner', async () => {
       await expect(
-        strategy.connect(manager).setMaxLossWithdrawParam('2'),
+        strategy.connect(manager).setMaxLossOnWithdraw('2'),
       ).to.be.revertedWith('Ownable: caller is not the owner');
     });
 
     it('sets the max loss withdraw param', async () => {
       const maxLoss = '2';
 
-      await strategy.setMaxLossWithdrawParam(maxLoss);
+      await strategy.setMaxLossOnWithdraw(maxLoss);
 
-      expect(await strategy.maxLossWithdrawParam()).to.eq(maxLoss);
+      expect(await strategy.maxLossOnWithdraw()).to.eq(maxLoss);
     });
 
     it('emits a StrategyMaxLossWithdrawParamChanged event', async () => {
       const maxLoss = '2';
 
-      const tx = strategy.setMaxLossWithdrawParam(maxLoss);
+      const tx = strategy.setMaxLossOnWithdraw(maxLoss);
 
       await expect(tx)
-        .to.emit(strategy, 'StrategyMaxLossWithdrawParamChanged')
+        .to.emit(strategy, 'StrategyMaxLossOnWithdrawChanged')
         .withArgs(maxLoss);
     });
 
@@ -203,14 +203,14 @@ describe('Audit Tests 4', () => {
       // 1 = 0.01%
       const maxLoss = '10001'; // 100.01%
 
-      await expect(
-        strategy.setMaxLossWithdrawParam(maxLoss),
-      ).to.be.revertedWith('StrategyMaxLossParamTooLarge');
+      await expect(strategy.setMaxLossOnWithdraw(maxLoss)).to.be.revertedWith(
+        'StrategyMaxLossOnWithdrawTooLarge',
+      );
     });
 
     it("uses the maxLossWithdrawParam when calling 'withdraw' on Yearn vault", async () => {
       const maxLoss = '100'; // 1%
-      await strategy.setMaxLossWithdrawParam(maxLoss);
+      await strategy.setMaxLossOnWithdraw(maxLoss);
 
       underlying.mint(strategy.address, parseUnits('100'));
       strategy.connect(manager).invest();
