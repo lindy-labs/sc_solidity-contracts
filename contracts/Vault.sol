@@ -308,7 +308,8 @@ contract Vault is
         );
         uint256 newUnderlyingAmount = _swapIntoUnderlying(
             _params.inputToken,
-            _params.amount
+            _params.amount,
+            _params.slippage
         );
 
         uint64 lockedUntil = _params.lockDuration + _blockTimestamp();
@@ -464,7 +465,8 @@ contract Vault is
     function sponsor(
         address _inputToken,
         uint256 _amount,
-        uint256 _lockDuration
+        uint256 _lockDuration,
+        uint256 _slippage
     )
         external
         override(IVaultSponsoring)
@@ -484,7 +486,11 @@ contract Vault is
         uint256 tokenId = _depositTokenIds.current();
 
         _transferAndCheckInputToken(msg.sender, _inputToken, _amount);
-        uint256 underlyingAmount = _swapIntoUnderlying(_inputToken, _amount);
+        uint256 underlyingAmount = _swapIntoUnderlying(
+            _inputToken,
+            _amount,
+            _slippage
+        );
 
         deposits[tokenId] = Deposit(
             underlyingAmount,
