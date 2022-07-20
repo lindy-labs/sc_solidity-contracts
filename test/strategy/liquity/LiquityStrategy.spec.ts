@@ -69,7 +69,7 @@ describe('LiquityStrategy', () => {
     const MockCurveRouter = await ethers.getContractFactory('MockCurveRouter');
     const MockCurvePool = await ethers.getContractFactory('MockCurve');
 
-    stabilityPool = await StabilityPoolFactory.deploy();
+    stabilityPool = await StabilityPoolFactory.deploy(underlying.address);
     optimalSwapper = await OptimalSwapper.deploy(
       constants.AddressZero,
       constants.AddressZero,
@@ -366,23 +366,23 @@ describe('LiquityStrategy', () => {
     });
 
     it('emits a StrategyInvested event', async () => {
-      // let underlyingAmount = utils.parseUnits('100', 18);
-      // await depositToVault(underlyingAmount);
-      // const tx = await vault.connect(owner).updateInvested();
-      // await expect(tx)
-      //   .to.emit(strategy, 'StrategyInvested')
-      //   .withArgs(underlyingAmount);
+      let underlyingAmount = utils.parseEther('100');
+      await depositToVault(underlyingAmount);
+      const tx = await vault.connect(owner).updateInvested();
+      await expect(tx)
+        .to.emit(strategy, 'StrategyInvested')
+        .withArgs(underlyingAmount);
     });
 
     it('can be called multiple times', async () => {
-      // await depositToVault(utils.parseUnits('100', 18));
-      // await vault.connect(owner).updateInvested();
-      // await depositToVault(utils.parseUnits('10', 18));
-      // await vault.connect(owner).updateInvested();
-      // const totalUnderlying = utils.parseUnits('110', 18).sub('37');
-      // expect(await underlying.balanceOf(strategy.address)).to.eq(0);
-      // expect(await strategy.investedAssets()).to.eq(totalUnderlying);
-      // expect(await vault.totalUnderlying()).to.eq(totalUnderlying);
+      await depositToVault(utils.parseUnits('100', 18));
+      await vault.connect(owner).updateInvested();
+      await depositToVault(utils.parseUnits('10', 18));
+      await vault.connect(owner).updateInvested();
+      const totalUnderlying = utils.parseEther('110');
+      expect(await underlying.balanceOf(strategy.address)).to.eq(0);
+      expect(await strategy.investedAssets()).to.eq(totalUnderlying);
+      expect(await vault.totalUnderlying()).to.eq(totalUnderlying);
     });
   });
 

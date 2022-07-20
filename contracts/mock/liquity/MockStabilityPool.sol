@@ -5,8 +5,11 @@ import {IStabilityPool} from "../../interfaces/liquity/IStabilityPool.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract MockStabilityPool is IStabilityPool {
-    IERC20 public constant lusd =
-        IERC20(0x5f98805A4E8be255a32880FDeC7F6728C6568bA0);
+    IERC20 public immutable lusd;
+
+    constructor(address _lusd) {
+        lusd = IERC20(_lusd);
+    }
 
     mapping(address => uint256) public balances;
 
