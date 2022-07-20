@@ -175,13 +175,13 @@ describe('Audit Tests 4', () => {
   describe('issue M-5 YearnStrategy#setMaxLossOnWithdraw', () => {
     beforeEach(() => beforeEachCommon(UNDERLYING_DECIMALS));
 
-    it('fails if the caller is not owner', async () => {
+    it('fails if the caller is not the owner', async () => {
       await expect(
         strategy.connect(manager).setMaxLossOnWithdraw('2'),
       ).to.be.revertedWith('Ownable: caller is not the owner');
     });
 
-    it('sets the max loss withdraw param', async () => {
+    it('sets the maxLossOnWithdraw field', async () => {
       const maxLoss = '2';
 
       await strategy.setMaxLossOnWithdraw(maxLoss);
@@ -189,7 +189,7 @@ describe('Audit Tests 4', () => {
       expect(await strategy.maxLossOnWithdraw()).to.eq(maxLoss);
     });
 
-    it('emits a StrategyMaxLossWithdrawParamChanged event', async () => {
+    it('emits a StrategyMaxLossOnWithdrawChanged event', async () => {
       const maxLoss = '2';
 
       const tx = strategy.setMaxLossOnWithdraw(maxLoss);
@@ -199,7 +199,7 @@ describe('Audit Tests 4', () => {
         .withArgs(maxLoss);
     });
 
-    it('fails when the max loss withdraw param > 100%', async () => {
+    it('fails when the max loss > 100%', async () => {
       // 1 = 0.01%
       const maxLoss = '10001'; // 100.01%
 
@@ -208,7 +208,7 @@ describe('Audit Tests 4', () => {
       );
     });
 
-    it("uses the maxLossWithdrawParam when calling 'withdraw' on Yearn vault", async () => {
+    it("uses the maxLossOnWithdraw when calling 'withdraw' on Yearn vault", async () => {
       const maxLoss = '100'; // 1%
       await strategy.setMaxLossOnWithdraw(maxLoss);
 
