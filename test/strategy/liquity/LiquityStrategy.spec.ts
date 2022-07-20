@@ -386,6 +386,62 @@ describe('LiquityStrategy', () => {
     });
   });
 
+  describe('#withdrawToVault function', () => {
+    it('reverts if msg.sender is not manager', async () => {
+      await expect(
+        strategy.connect(alice).withdrawToVault(1),
+      ).to.be.revertedWith('StrategyCallerNotManager');
+    });
+
+    it('reverts if amount is zero', async () => {
+      await expect(
+        strategy.connect(manager).withdrawToVault(0),
+      ).to.be.revertedWith('StrategyAmountZero');
+    });
+
+    it('removes the requested funds from the stabilityPool', async () => {
+      await depositToVault(parseEther('100'));
+      await vault.connect(owner).updateInvested();
+
+      const amountToWithdraw = parseEther('30');
+
+      await strategy.connect(manager).withdrawToVault(amountToWithdraw);
+
+      expect(await stabilityPool.balances(strategy.address)).to.eq(
+        parseEther('70'),
+      );
+      expect(await strategy.investedAssets()).to.eq(parseEther('70'));
+    });
+
+    it('emits an event', async () => {
+      await depositToVault(parseEther('100'));
+      await vault.connect(owner).updateInvested();
+
+      const amountToWithdraw = parseEther('30');
+
+      let tx = await strategy
+        .connect(manager)
+        .withdrawToVault(amountToWithdraw);
+
+      await expect(tx)
+        .to.emit(strategy, 'StrategyWithdrawn')
+        .withArgs(amountToWithdraw);
+    });
+
+    it('fails if the requested funds from the stabilityPool are greater than available', async () => {
+      await depositToVault(parseEther('100'));
+      await vault.connect(owner).updateInvested();
+
+      const amountToWithdraw = parseEther('101');
+
+      await expect(
+        strategy.connect(manager).withdrawToVault(amountToWithdraw),
+      ).to.be.revertedWith('StrategyNotEnoughShares');
+    });
+  });
+
+  describe('#harvest functionality', () => {});
+
   const depositToVault = async (amount: BigNumber) => {
     await vault.connect(owner).deposit(
       depositParams.build({
