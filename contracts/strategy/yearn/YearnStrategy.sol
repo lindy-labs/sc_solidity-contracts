@@ -37,6 +37,8 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
 
     /// role allowed to invest/withdraw from yearn vault
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
+    /// role allowed to change settings such as max loss on withdraw from yearn vault
+    bytes32 public constant SETTINGS_ROLE = keccak256("SETTINGS_ROLE");
     // underlying ERC20 token
     IERC20 public immutable underlying;
     /// @inheritdoc IStrategy
@@ -69,6 +71,7 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
             revert StrategyNotIVault();
 
         _setupRole(DEFAULT_ADMIN_ROLE, _owner);
+        _setupRole(SETTINGS_ROLE, _owner);
         _setupRole(MANAGER_ROLE, _vault);
 
         vault = _vault;
@@ -87,6 +90,12 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
     modifier onlyManager() {
         if (!hasRole(MANAGER_ROLE, msg.sender))
             revert StrategyCallerNotManager();
+        _;
+    }
+
+    modifier onlySettingsRole() {
+        if (!hasRole(SETTINGS_ROLE, msg.sender))
+            revert StrategyCallerNoSettingsRole();
         _;
     }
 
@@ -114,8 +123,10 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
         _transferOwnership(_newOwner);
 
         _setupRole(DEFAULT_ADMIN_ROLE, _newOwner);
+        _setupRole(SETTINGS_ROLE, _newOwner);
 
         _revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _revokeRole(SETTINGS_ROLE, msg.sender);
     }
 
     /**
@@ -202,7 +213,7 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
      *
      * @param _maxLoss The max loss percentage to use when withdrawing from the Yearn vault. Value of 1 equals 0.01% loss.
      */
-    function setMaxLossOnWithdraw(uint128 _maxLoss) external onlyOwner {
+    function setMaxLossOnWithdraw(uint128 _maxLoss) external onlySettingsRole {
         if (_maxLoss > 10000) revert StrategyMaxLossOnWithdrawTooLarge();
 
         maxLossOnWithdraw = _maxLoss;

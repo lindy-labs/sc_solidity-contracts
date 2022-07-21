@@ -33,6 +33,7 @@ describe('YearnStrategy', () => {
   const INVESTMENT_FEE_PCT = BigNumber.from('0');
 
   const DEFAULT_ADMIN_ROLE = constants.HashZero;
+  const SETTINGS_ROLE = utils.keccak256(utils.toUtf8Bytes('SETTINGS_ROLE'));
   const MANAGER_ROLE = utils.keccak256(utils.toUtf8Bytes('MANAGER_ROLE'));
 
   beforeEach(async () => {
@@ -134,6 +135,7 @@ describe('YearnStrategy', () => {
       expect(await strategy.isSync()).to.be.true;
       expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, owner.address)).to.be
         .true;
+      expect(await strategy.hasRole(SETTINGS_ROLE, owner.address)).to.be.true;
       expect(await strategy.hasRole(MANAGER_ROLE, vault.address)).to.be.true;
       expect(await strategy.vault()).to.eq(vault.address);
       expect(await strategy.yVault()).to.eq(yVault.address);
@@ -175,14 +177,17 @@ describe('YearnStrategy', () => {
       // assert that the owner has the ADMIN role
       expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, owner.address)).to.be
         .true;
+      expect(await strategy.hasRole(SETTINGS_ROLE, owner.address)).to.be.true;
 
       await strategy.connect(owner).transferOwnership(alice.address);
 
       expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, owner.address)).to.be
         .false;
+      expect(await strategy.hasRole(SETTINGS_ROLE, owner.address)).to.be.false;
 
       expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, alice.address)).to.be
         .true;
+      expect(await strategy.hasRole(SETTINGS_ROLE, alice.address)).to.be.true;
     });
   });
 

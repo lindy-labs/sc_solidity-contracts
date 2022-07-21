@@ -33,6 +33,7 @@ const UNDERLYING_DECIMALS = '18';
 const TWO_WEEKS = time.duration.days(14).toNumber();
 
 const MANAGER_ROLE = utils.keccak256(utils.toUtf8Bytes('MANAGER_ROLE'));
+const SETTINGS_ROLE = utils.keccak256(utils.toUtf8Bytes('SETTINGS_ROLE'));
 
 const beforeEachCommon = async (underlyingDecimals: string) => {
   [owner, manager] = await ethers.getSigners();
@@ -175,10 +176,13 @@ describe('Audit Tests 4', () => {
   describe('issue M-5 YearnStrategy#setMaxLossOnWithdraw', () => {
     beforeEach(() => beforeEachCommon(UNDERLYING_DECIMALS));
 
-    it('fails if the caller is not the owner', async () => {
+    it("fails if the caller doesn't have settings role", async () => {
+      expect(await strategy.hasRole(SETTINGS_ROLE, manager.address)).to.be
+        .false;
+
       await expect(
         strategy.connect(manager).setMaxLossOnWithdraw('2'),
-      ).to.be.revertedWith('Ownable: caller is not the owner');
+      ).to.be.revertedWith('StrategyCallerNoSettingsRole');
     });
 
     it('sets the maxLossOnWithdraw field', async () => {
