@@ -8,16 +8,22 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {IYearnVault} from "../../interfaces/yearn/IYearnVault.sol";
 
 contract MockYearnVault is IYearnVault, ERC20 {
-    using SafeERC20 for IERC20;
+    using SafeERC20 for IERC20Metadata;
 
-    IERC20 immutable underlying;
+    IERC20Metadata immutable underlying;
+
+    uint256 public spyForMaxLossWithdrawParam;
 
     constructor(
         string memory _name,
         string memory _symbol,
         address _underlying
     ) ERC20(_name, _symbol) {
-        underlying = IERC20(_underlying);
+        underlying = IERC20Metadata(_underlying);
+    }
+
+    function decimals() public view override(IERC20Metadata, ERC20) returns (uint8) {
+        return underlying.decimals();
     }
 
     function deposit(uint256 amount, address recipient)
@@ -38,18 +44,21 @@ contract MockYearnVault is IYearnVault, ERC20 {
 
     function pricePerShare() public view returns (uint256) {
         uint256 totalSupply = totalSupply();
-        if (totalSupply == 0) return 1e18;
-        return (1e18 * _freeFunds()) / totalSupply;
+        if (totalSupply == 0) return 10**underlying.decimals();
+        return (10**underlying.decimals() * _getUnderlyingBalance()) / totalSupply;
     }
 
     function withdraw(
         uint256 maxShares,
         address recipient,
-        uint256 /* maxLoss */
+        uint256 _maxLoss
     ) public returns (uint256) {
         require(maxShares > 0);
 
-        uint256 value = (maxShares * pricePerShare()) / 1e18;
+        // spy on _maxLoss param
+        spyForMaxLossWithdrawParam = _maxLoss;
+
+        uint256 value = (maxShares * pricePerShare()) / 10**underlying.decimals();
 
         _burn(msg.sender, maxShares);
 
@@ -71,7 +80,7 @@ contract MockYearnVault is IYearnVault, ERC20 {
         uint256 shares;
         uint256 totalSupply = totalSupply();
         if (totalSupply > 0) {
-            shares = (amount * totalSupply) / _freeFunds(); // dev: no free funds
+            shares = (amount * totalSupply) / _getUnderlyingBalance(); // dev: no free funds
         } else {
             shares = amount;
         }
@@ -82,7 +91,7 @@ contract MockYearnVault is IYearnVault, ERC20 {
         return shares;
     }
 
-    function _freeFunds() internal view returns (uint256) {
+    function _getUnderlyingBalance() internal view returns (uint256) {
         return underlying.balanceOf(address(this));
     }
 }
