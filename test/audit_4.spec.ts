@@ -182,7 +182,7 @@ describe('Audit Tests 4', () => {
 
       await expect(
         strategy.connect(manager).setMaxLossOnWithdraw('2'),
-      ).to.be.revertedWith('StrategyCallerNoSettingsRole');
+      ).to.be.revertedWith('StrategyCallerNotSettings');
     });
 
     it('sets the maxLossOnWithdraw field', async () => {

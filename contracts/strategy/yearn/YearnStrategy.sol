@@ -93,9 +93,9 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
         _;
     }
 
-    modifier onlySettingsRole() {
+    modifier onlySettings() {
         if (!hasRole(SETTINGS_ROLE, msg.sender))
-            revert StrategyCallerNoSettingsRole();
+            revert StrategyCallerNotSettings();
         _;
     }
 
@@ -213,7 +213,7 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
      *
      * @param _maxLoss The max loss percentage to use when withdrawing from the Yearn vault. Value of 1 equals 0.01% loss.
      */
-    function setMaxLossOnWithdraw(uint128 _maxLoss) external onlySettingsRole {
+    function setMaxLossOnWithdraw(uint128 _maxLoss) external onlySettings {
         if (_maxLoss > 10000) revert StrategyMaxLossOnWithdrawTooLarge();
 
         maxLossOnWithdraw = _maxLoss;
