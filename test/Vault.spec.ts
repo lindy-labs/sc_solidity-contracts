@@ -21,6 +21,7 @@ import {
   generateNewAddress,
   getRoleErrorMsg,
   arrayFromTo,
+  CURVE_SLIPPAGE,
 } from './shared';
 
 const { parseUnits } = ethers.utils;
@@ -476,7 +477,12 @@ describe('Vault', () => {
       await addUnderlyingBalance(owner, '500');
       await vault
         .connect(owner)
-        .sponsor(underlying.address, parseUnits('500'), TWO_WEEKS);
+        .sponsor(
+          underlying.address,
+          parseUnits('500'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
 
       // force total underlying minus sponsored to be 0
       await removeUnderlyingFromVault('100');
@@ -789,12 +795,34 @@ describe('Vault', () => {
   });
 
   describe('sponsor', () => {
+    it('revers with an error when the underlying has fees', async () => {
+      await underlying.setFee(500);
+
+      await addUnderlyingBalance(owner, '1000');
+
+      const tx = vault
+        .connect(owner)
+        .sponsor(
+          underlying.address,
+          parseUnits('500'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
+
+      await expect(tx).to.be.revertedWith('VaultAmountDoesNotMatchParams');
+    });
+
     it('reverts if contract is paused', async () => {
       await vault.connect(owner).pause();
       await expect(
         vault
           .connect(owner)
-          .sponsor(underlying.address, parseUnits('500'), TWO_WEEKS),
+          .sponsor(
+            underlying.address,
+            parseUnits('500'),
+            TWO_WEEKS,
+            CURVE_SLIPPAGE,
+          ),
       ).to.be.revertedWith('Pausable: paused');
       await vault.connect(owner).unpause();
     });
@@ -802,7 +830,12 @@ describe('Vault', () => {
       await expect(
         vault
           .connect(alice)
-          .sponsor(underlying.address, parseUnits('500'), TWO_WEEKS),
+          .sponsor(
+            underlying.address,
+            parseUnits('500'),
+            TWO_WEEKS,
+            CURVE_SLIPPAGE,
+          ),
       ).to.be.revertedWith(getRoleErrorMsg(alice, SPONSOR_ROLE));
     });
 
@@ -811,10 +844,20 @@ describe('Vault', () => {
 
       await vault
         .connect(owner)
-        .sponsor(underlying.address, parseUnits('500'), TWO_WEEKS);
+        .sponsor(
+          underlying.address,
+          parseUnits('500'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
       await vault
         .connect(owner)
-        .sponsor(underlying.address, parseUnits('500'), TWO_WEEKS);
+        .sponsor(
+          underlying.address,
+          parseUnits('500'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
 
       expect(await vault.totalSponsored()).to.eq(parseUnits('1000'));
     });
@@ -825,10 +868,20 @@ describe('Vault', () => {
       await vault.connect(owner).grantRole(SPONSOR_ROLE, bob.address);
       await vault
         .connect(bob)
-        .sponsor(underlying.address, parseUnits('500'), TWO_WEEKS);
+        .sponsor(
+          underlying.address,
+          parseUnits('500'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
       await vault
         .connect(bob)
-        .sponsor(underlying.address, parseUnits('500'), TWO_WEEKS);
+        .sponsor(
+          underlying.address,
+          parseUnits('500'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
       expect(await vault.totalSponsored()).to.eq(parseUnits('1000'));
 
       await vault.connect(owner).revokeRole(SPONSOR_ROLE, bob.address);
@@ -839,7 +892,12 @@ describe('Vault', () => {
 
       const tx = await vault
         .connect(owner)
-        .sponsor(underlying.address, parseUnits('500'), TWO_WEEKS);
+        .sponsor(
+          underlying.address,
+          parseUnits('500'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
 
       await expect(tx)
         .to.emit(vault, 'Sponsored')
@@ -855,7 +913,9 @@ describe('Vault', () => {
       await addUnderlyingBalance(owner, '1000');
 
       await expect(
-        vault.connect(owner).sponsor(underlying.address, parseUnits('500'), 0),
+        vault
+          .connect(owner)
+          .sponsor(underlying.address, parseUnits('500'), 0, CURVE_SLIPPAGE),
       ).to.be.revertedWith('VaultInvalidLockPeriod');
     });
 
@@ -866,7 +926,12 @@ describe('Vault', () => {
       await expect(
         vault
           .connect(owner)
-          .sponsor(underlying.address, parseUnits('500'), lockDuration),
+          .sponsor(
+            underlying.address,
+            parseUnits('500'),
+            lockDuration,
+            CURVE_SLIPPAGE,
+          ),
       ).to.be.revertedWith('VaultInvalidLockPeriod');
     });
 
@@ -877,7 +942,12 @@ describe('Vault', () => {
       await expect(
         vault
           .connect(owner)
-          .sponsor(underlying.address, parseUnits('500'), lockDuration),
+          .sponsor(
+            underlying.address,
+            parseUnits('500'),
+            lockDuration,
+            CURVE_SLIPPAGE,
+          ),
       ).to.be.revertedWith('VaultInvalidLockPeriod');
     });
 
@@ -888,7 +958,12 @@ describe('Vault', () => {
       await expect(
         vault
           .connect(owner)
-          .sponsor(underlying.address, parseUnits('0'), lockDuration),
+          .sponsor(
+            underlying.address,
+            parseUnits('0'),
+            lockDuration,
+            CURVE_SLIPPAGE,
+          ),
       ).to.be.revertedWith('VaultCannotSponsor0');
     });
 
@@ -897,7 +972,12 @@ describe('Vault', () => {
 
       await vault
         .connect(owner)
-        .sponsor(underlying.address, parseUnits('500'), TWO_WEEKS);
+        .sponsor(
+          underlying.address,
+          parseUnits('500'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
 
       const deposit = await vault.deposits(1);
       expect(deposit.owner).to.be.equal(owner.address);
@@ -908,7 +988,12 @@ describe('Vault', () => {
 
       await vault
         .connect(owner)
-        .sponsor(underlying.address, parseUnits('500'), TWO_WEEKS);
+        .sponsor(
+          underlying.address,
+          parseUnits('500'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
 
       const currentTime = await getLastBlockTimestamp();
 
@@ -922,7 +1007,12 @@ describe('Vault', () => {
 
       await vault
         .connect(owner)
-        .sponsor(underlying.address, parseUnits('400'), TWO_WEEKS);
+        .sponsor(
+          underlying.address,
+          parseUnits('400'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
 
       expect(await vault.totalUnderlying()).to.equal(parseUnits('400'));
       expect(await underlying.balanceOf(vault.address)).to.equal(
@@ -940,10 +1030,20 @@ describe('Vault', () => {
 
       await vault
         .connect(owner)
-        .sponsor(underlying.address, parseUnits('500'), TWO_WEEKS);
+        .sponsor(
+          underlying.address,
+          parseUnits('500'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
       await vault
         .connect(owner)
-        .sponsor(underlying.address, parseUnits('500'), TWO_WEEKS);
+        .sponsor(
+          underlying.address,
+          parseUnits('500'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
 
       await moveForwardTwoWeeks();
       await vault.connect(owner).unsponsor(newAccount.address, [1]);
@@ -959,7 +1059,12 @@ describe('Vault', () => {
 
       await vault
         .connect(owner)
-        .sponsor(underlying.address, parseUnits('500'), TWO_WEEKS);
+        .sponsor(
+          underlying.address,
+          parseUnits('500'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
 
       await moveForwardTwoWeeks();
       const tx = await vault.connect(owner).unsponsor(bob.address, [1]);
@@ -972,7 +1077,12 @@ describe('Vault', () => {
 
       await vault
         .connect(owner)
-        .sponsor(underlying.address, parseUnits('500'), TWO_WEEKS);
+        .sponsor(
+          underlying.address,
+          parseUnits('500'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
 
       await vault.connect(owner).grantRole(SPONSOR_ROLE, bob.address);
       await expect(
@@ -987,7 +1097,12 @@ describe('Vault', () => {
 
       await vault
         .connect(owner)
-        .sponsor(underlying.address, parseUnits('500'), TWO_WEEKS);
+        .sponsor(
+          underlying.address,
+          parseUnits('500'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
 
       await expect(
         vault
@@ -1001,7 +1116,12 @@ describe('Vault', () => {
 
       await vault
         .connect(owner)
-        .sponsor(underlying.address, parseUnits('500'), TWO_WEEKS);
+        .sponsor(
+          underlying.address,
+          parseUnits('500'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
 
       await expect(
         vault.connect(owner).unsponsor(owner.address, [1]),
@@ -1021,7 +1141,12 @@ describe('Vault', () => {
       );
       await vault
         .connect(owner)
-        .sponsor(underlying.address, parseUnits('500'), TWO_WEEKS);
+        .sponsor(
+          underlying.address,
+          parseUnits('500'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
 
       await moveForwardTwoWeeks();
 
@@ -1035,7 +1160,12 @@ describe('Vault', () => {
 
       await vault
         .connect(owner)
-        .sponsor(underlying.address, parseUnits('1000'), TWO_WEEKS);
+        .sponsor(
+          underlying.address,
+          parseUnits('1000'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
       await moveForwardTwoWeeks();
 
       await removeUnderlyingFromVault('500');
@@ -1047,6 +1177,24 @@ describe('Vault', () => {
   });
 
   describe('depositForGroupId', () => {
+    it('revers with an error when the underlying has fees', async () => {
+      await addUnderlyingBalance(alice, '1000');
+
+      const params = depositParams.build({
+        amount: parseUnits('100'),
+        inputToken: underlying.address,
+        claims: [claimParams.percent(100).to(alice.address).build()],
+      });
+
+      await vault.connect(alice).deposit(params);
+
+      await underlying.setFee(500);
+
+      const tx = vault.connect(alice).depositForGroupId(0, params);
+
+      await expect(tx).to.be.revertedWith('VaultAmountDoesNotMatchParams');
+    });
+
     it('reverts if contract is paused', async () => {
       await vault.connect(alice).deposit(
         depositParams.build({
@@ -1272,6 +1420,22 @@ describe('Vault', () => {
   });
 
   describe('deposit', () => {
+    it('revers with an error when the underlying has fees', async () => {
+      await underlying.setFee(500);
+
+      await addUnderlyingBalance(alice, '1000');
+
+      const tx = vault.connect(alice).deposit(
+        depositParams.build({
+          amount: parseUnits('500'),
+          inputToken: underlying.address,
+          claims: [claimParams.percent(100).to(alice.address).build()],
+        }),
+      );
+
+      await expect(tx).to.be.revertedWith('VaultAmountDoesNotMatchParams');
+    });
+
     it('reverts if contract is paused', async () => {
       const params = depositParams.build({
         lockDuration: TWO_WEEKS,
@@ -1739,7 +1903,12 @@ describe('Vault', () => {
         );
         await vault
           .connect(owner)
-          .sponsor(underlying.address, parseUnits('500'), TWO_WEEKS);
+          .sponsor(
+            underlying.address,
+            parseUnits('500'),
+            TWO_WEEKS,
+            CURVE_SLIPPAGE,
+          );
 
         await moveForwardTwoWeeks();
 
@@ -1981,7 +2150,12 @@ describe('Vault', () => {
       await addUnderlyingBalance(owner, '500');
       await vault
         .connect(owner)
-        .sponsor(underlying.address, parseUnits('500'), TWO_WEEKS);
+        .sponsor(
+          underlying.address,
+          parseUnits('500'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
 
       const params = depositParams.build({
         amount: parseUnits('100'),

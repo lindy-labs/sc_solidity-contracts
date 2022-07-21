@@ -11,9 +11,6 @@ import {ICurve} from "../interfaces/curve/ICurve.sol";
 abstract contract CurveSwapper {
     using SafeERC20 for IERC20;
 
-    /// Static 95% slippage (TODO should probably make this configurable)
-    uint256 public constant SLIPPAGE = 99;
-
     //
     // Structs
     //
@@ -76,11 +73,11 @@ abstract contract CurveSwapper {
     ///
     /// @param _token The token we want to swap into
     /// @param _amount The amount of underlying we want to swap
-    /// TODO missing slippage checks
-    function _swapIntoUnderlying(address _token, uint256 _amount)
-        internal
-        returns (uint256 amount)
-    {
+    function _swapIntoUnderlying(
+        address _token,
+        uint256 _amount,
+        uint256 _slippage
+    ) internal returns (uint256 amount) {
         address underlyingToken = getUnderlying();
         if (_token == underlyingToken) {
             // same token, nothing to do
@@ -96,7 +93,8 @@ abstract contract CurveSwapper {
         uint256 minAmount = _calcMinDy(
             _amount,
             swapper.tokenDecimals,
-            swapper.underlyingDecimals
+            swapper.underlyingDecimals,
+            _slippage
         );
 
         amount = swapper.pool.exchange_underlying(
@@ -114,11 +112,11 @@ abstract contract CurveSwapper {
     ///
     /// @param _token The token we want to swap into
     /// @param _amount The amount of underlying we want to swap
-    /// TODO missing slippage checks
-    function _swapFromUnderlying(address _token, uint256 _amount)
-        internal
-        returns (uint256 amount)
-    {
+    function _swapFromUnderlying(
+        address _token,
+        uint256 _amount,
+        uint256 _slippage
+    ) internal returns (uint256 amount) {
         if (_token == getUnderlying()) {
             // same token, nothing to do
             return _amount;
@@ -129,7 +127,8 @@ abstract contract CurveSwapper {
         uint256 minAmount = _calcMinDy(
             _amount,
             swapper.underlyingDecimals,
-            swapper.tokenDecimals
+            swapper.tokenDecimals,
+            _slippage
         );
 
         amount = swapper.pool.exchange_underlying(
@@ -145,10 +144,11 @@ abstract contract CurveSwapper {
     function _calcMinDy(
         uint256 _amount,
         uint8 _fromDecimals,
-        uint8 _toDecimals
+        uint8 _toDecimals,
+        uint256 _slippage
     ) internal pure returns (uint256) {
         return
-            (_amount * SLIPPAGE * 10**_toDecimals) / (10**_fromDecimals * 100);
+            (_amount * _slippage * 10**_toDecimals) / (10**_fromDecimals * 100);
     }
 
     /// This is necessary because some tokens (USDT) force you to approve(0)

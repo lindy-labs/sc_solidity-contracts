@@ -2,6 +2,7 @@ import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 import type { DeployFunction } from 'hardhat-deploy/types';
 import { parseUnits } from '@ethersproject/units';
 import { ethers } from 'hardhat';
+import {BigNumber} from 'ethers';
 
 const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   const { get } = env.deployments;
@@ -42,7 +43,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   const lockDuration = await vault.MIN_SPONSOR_LOCK_DURATION();
   await vault
     .connect(treasury)
-    .sponsor(lusd.address, parseUnits('1000', 18), lockDuration);
+    .sponsor(lusd.address, parseUnits('1000', 18), lockDuration, BigNumber.from(5));
 
   console.log(
     'Alice deposits 1000 with 90% yield to Alice and 10% yield for donations',
@@ -64,6 +65,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
       },
     ],
     name: "Alice's Foundation 1",
+    slippage: BigNumber.from(5),
   });
 
   console.log(
@@ -86,6 +88,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
       },
     ],
     name: "Bob's Foundation 1",
+    slippage: BigNumber.from(5),
   });
 
   console.log('2000 yield is generated');
