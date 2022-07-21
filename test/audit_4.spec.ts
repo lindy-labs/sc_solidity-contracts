@@ -12,7 +12,11 @@ import {
   YearnStrategy__factory,
 } from '../typechain';
 
-import { generateNewAddress, moveForwardTwoWeeks } from './shared/';
+import {
+  generateNewAddress,
+  moveForwardTwoWeeks,
+  CURVE_SLIPPAGE,
+} from './shared/';
 import { parseUnits } from 'ethers/lib/utils';
 
 let owner: SignerWithAddress;
@@ -133,7 +137,12 @@ describe('Audit Tests 4', () => {
 
       await vault
         .connect(owner)
-        .sponsor(underlying.address, underlyingAmount, TWO_WEEKS);
+        .sponsor(
+          underlying.address,
+          underlyingAmount,
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
       await vault.connect(owner).updateInvested();
       await moveForwardTwoWeeks();
 
