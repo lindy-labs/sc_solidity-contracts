@@ -118,11 +118,11 @@ interface CustomErrors {
     // Strategy Errors
     //
 
-    // Strategy: owner is 0x
-    error StrategyOwnerCannotBe0Address();
+    // Strategy: admin is 0x
+    error StrategyAdminCannotBe0Address();
 
-    // Strategy: cannot transfer ownership to self
-    error StrategyCannotTransferOwnershipToSelf();
+    // Strategy: cannot transfer admin rights to self
+    error StrategyCannotTransferAdminRightsToSelf();
 
     // Strategy: underlying is 0x
     error StrategyUnderlyingCannotBe0Address();
@@ -136,8 +136,8 @@ interface CustomErrors {
     // Strategy: caller has no settings role
     error StrategyCallerNotSettings();
 
-    // Strategy: caller is not the owner
-    error StrategyCallerNotOwner();
+    // Strategy: caller is not admin
+    error StrategyCallerNotAdmin();
 
     // Strategy: amount is 0
     error StrategyAmountZero();

@@ -52,17 +52,17 @@ contract YearnStrategy is IStrategy, AccessControl, CustomErrors {
 
     /**
      * @param _vault address of the vault that will use this strategy
-     * @param _owner address of the owner of this strategy
+     * @param _admin address of the administrator account for this strategy
      * @param _yVault address of the yearn vault that this strategy is using
      * @param _underlying address of the underlying token
      */
     constructor(
         address _vault,
-        address _owner,
+        address _admin,
         address _yVault,
         address _underlying
     ) {
-        if (_owner == address(0)) revert StrategyOwnerCannotBe0Address();
+        if (_admin == address(0)) revert StrategyAdminCannotBe0Address();
         if (_yVault == address(0)) revert StrategyYearnVaultCannotBe0Address();
         if (_underlying == address(0))
             revert StrategyUnderlyingCannotBe0Address();
@@ -70,8 +70,8 @@ contract YearnStrategy is IStrategy, AccessControl, CustomErrors {
         if (!_vault.doesContractImplementInterface(type(IVault).interfaceId))
             revert StrategyNotIVault();
 
-        _setupRole(DEFAULT_ADMIN_ROLE, _owner);
-        _setupRole(SETTINGS_ROLE, _owner);
+        _setupRole(DEFAULT_ADMIN_ROLE, _admin);
+        _setupRole(SETTINGS_ROLE, _admin);
         _setupRole(MANAGER_ROLE, _vault);
 
         vault = _vault;
@@ -99,9 +99,9 @@ contract YearnStrategy is IStrategy, AccessControl, CustomErrors {
         _;
     }
 
-    modifier onlyOwner() {
+    modifier onlyAdmin() {
         if (!hasRole(DEFAULT_ADMIN_ROLE, msg.sender))
-            revert StrategyCallerNotOwner();
+            revert StrategyCallerNotAdmin();
         _;
     }
 
@@ -110,20 +110,20 @@ contract YearnStrategy is IStrategy, AccessControl, CustomErrors {
     //
 
     /**
-     * Transfers ownership of the Strategy to another account,
-     * revoking previous owner's ADMIN role and setting up ADMIN role for the new owner.
+     * Transfers administrator rights for the Strategy to another account,
+     * revoking current admin roles and setting up the roles for the new admin.
      *
-     * @notice Can only be called by the current owner.
+     * @notice Can only be called by the account with the ADMIN role.
      *
-     * @param _newOwner The new owner of the contract.
+     * @param _newAdmin The new Strategy admin account.
      */
-    function transferOwnership(address _newOwner) public onlyOwner {
-        if (_newOwner == address(0x0)) revert StrategyOwnerCannotBe0Address();
-        if (_newOwner == msg.sender)
-            revert StrategyCannotTransferOwnershipToSelf();
+    function transferAdminRights(address _newAdmin) public onlyAdmin {
+        if (_newAdmin == address(0x0)) revert StrategyAdminCannotBe0Address();
+        if (_newAdmin == msg.sender)
+            revert StrategyCannotTransferAdminRightsToSelf();
 
-        _setupRole(DEFAULT_ADMIN_ROLE, _newOwner);
-        _setupRole(SETTINGS_ROLE, _newOwner);
+        _setupRole(DEFAULT_ADMIN_ROLE, _newAdmin);
+        _setupRole(SETTINGS_ROLE, _newAdmin);
 
         _revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _revokeRole(SETTINGS_ROLE, msg.sender);
@@ -209,7 +209,7 @@ contract YearnStrategy is IStrategy, AccessControl, CustomErrors {
     /**
      * Sets the max loss percentage used when withdrawing from the Yearn vault.
      *
-     * @notice Can only be called by the owner.
+     * @notice Can only be called by the account with settings role.
      *
      * @param _maxLoss The max loss percentage to use when withdrawing from the Yearn vault. Value of 1 equals 0.01% loss.
      */
