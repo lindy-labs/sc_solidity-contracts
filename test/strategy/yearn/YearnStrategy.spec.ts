@@ -16,7 +16,7 @@ import { depositParams, claimParams } from '../../shared/factories';
 import { parseUnits } from 'ethers/lib/utils';
 
 describe('YearnStrategy', () => {
-  let owner: SignerWithAddress;
+  let admin: SignerWithAddress;
   let alice: SignerWithAddress;
   let manager: SignerWithAddress;
   let vault: Vault;
@@ -37,7 +37,7 @@ describe('YearnStrategy', () => {
   const MANAGER_ROLE = utils.keccak256(utils.toUtf8Bytes('MANAGER_ROLE'));
 
   beforeEach(async () => {
-    [owner, alice, manager] = await ethers.getSigners();
+    [admin, alice, manager] = await ethers.getSigners();
 
     const MockERC20 = await ethers.getContractFactory('MockERC20');
     underlying = await MockERC20.deploy(
@@ -62,7 +62,7 @@ describe('YearnStrategy', () => {
       MIN_LOCK_PERIOD,
       INVEST_PCT,
       TREASURY,
-      owner.address,
+      admin.address,
       PERFORMANCE_FEE_PCT,
       INVESTMENT_FEE_PCT,
       [],
@@ -72,22 +72,22 @@ describe('YearnStrategy', () => {
 
     strategy = await YearnStrategyFactory.deploy(
       vault.address,
-      owner.address,
+      admin.address,
       yVault.address,
       underlying.address,
     );
 
-    await strategy.connect(owner).grantRole(MANAGER_ROLE, manager.address);
+    await strategy.connect(admin).grantRole(MANAGER_ROLE, manager.address);
 
     await vault.setStrategy(strategy.address);
 
     await underlying
-      .connect(owner)
+      .connect(admin)
       .approve(vault.address, constants.MaxUint256);
   });
 
   describe('#constructor', () => {
-    it('reverts if owner is address(0)', async () => {
+    it('reverts if admin is address(0)', async () => {
       await expect(
         YearnStrategyFactory.deploy(
           vault.address,
@@ -95,14 +95,14 @@ describe('YearnStrategy', () => {
           yVault.address,
           underlying.address,
         ),
-      ).to.be.revertedWith('StrategyOwnerCannotBe0Address');
+      ).to.be.revertedWith('StrategyAdminCannotBe0Address');
     });
 
     it('reverts if the yearn vault is address(0)', async () => {
       await expect(
         YearnStrategyFactory.deploy(
           vault.address,
-          owner.address,
+          admin.address,
           constants.AddressZero,
           underlying.address,
         ),
@@ -113,7 +113,7 @@ describe('YearnStrategy', () => {
       await expect(
         YearnStrategyFactory.deploy(
           vault.address,
-          owner.address,
+          admin.address,
           yVault.address,
           constants.AddressZero,
         ),
@@ -124,7 +124,7 @@ describe('YearnStrategy', () => {
       await expect(
         YearnStrategyFactory.deploy(
           manager.address,
-          owner.address,
+          admin.address,
           yVault.address,
           underlying.address,
         ),
@@ -133,9 +133,9 @@ describe('YearnStrategy', () => {
 
     it('checks initial values', async () => {
       expect(await strategy.isSync()).to.be.true;
-      expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, owner.address)).to.be
+      expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, admin.address)).to.be
         .true;
-      expect(await strategy.hasRole(SETTINGS_ROLE, owner.address)).to.be.true;
+      expect(await strategy.hasRole(SETTINGS_ROLE, admin.address)).to.be.true;
       expect(await strategy.hasRole(MANAGER_ROLE, vault.address)).to.be.true;
       expect(await strategy.vault()).to.eq(vault.address);
       expect(await strategy.yVault()).to.eq(yVault.address);
@@ -148,42 +148,46 @@ describe('YearnStrategy', () => {
     });
   });
 
-  describe('#transferOwnership', () => {
-    it('can only be called by the current owner', async () => {
+  describe('#transferAdminRights', () => {
+    it('can only be called by the current admin', async () => {
       await expect(
-        strategy.connect(alice).transferOwnership(alice.address),
-      ).to.be.revertedWith('Ownable: caller is not the owner');
+        strategy.connect(alice).transferAdminRights(alice.address),
+      ).to.be.revertedWith('StrategyCallerNotAdmin');
     });
 
-    it('reverts if new owner is address(0)', async () => {
+    it('reverts if new admin is address(0)', async () => {
       await expect(
-        strategy.connect(owner).transferOwnership(constants.AddressZero),
-      ).to.be.revertedWith('StrategyOwnerCannotBe0Address');
+        strategy.connect(admin).transferAdminRights(constants.AddressZero),
+      ).to.be.revertedWith('StrategyAdminCannotBe0Address');
     });
 
-    it('reverts if the new owner is the same as the current one', async () => {
+    it('reverts if the new admin is the same as the current one', async () => {
       await expect(
-        strategy.connect(owner).transferOwnership(owner.address),
-      ).to.be.revertedWith('StrategyCannotTransferOwnershipToSelf');
+        strategy.connect(admin).transferAdminRights(admin.address),
+      ).to.be.revertedWith('StrategyCannotTransferAdminRightsToSelf');
     });
 
-    it('changes ownership to the new owner', async () => {
-      await strategy.connect(owner).transferOwnership(alice.address);
-
-      expect(await strategy.owner()).to.be.equal(alice.address);
+    it('changes admin account to the new admin account', async () => {
+      let DEFAULT_ADMIN_ROLE = await strategy.DEFAULT_ADMIN_ROLE();
+      expect(
+        await strategy.hasRole(DEFAULT_ADMIN_ROLE, alice.address),
+      ).to.be.equal(false);
+      await strategy.connect(admin).transferAdminRights(alice.address);
+      expect(
+        await strategy.hasRole(DEFAULT_ADMIN_ROLE, alice.address),
+      ).to.be.equal(true);
     });
 
-    it("revokes previous owner's ADMIN role and sets up ADMIN role for the new owner", async () => {
-      // assert that the owner has the ADMIN role
-      expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, owner.address)).to.be
+    it("revokes previous admin's roles and sets up the same roles for the new admin account", async () => {
+      expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, admin.address)).to.be
         .true;
-      expect(await strategy.hasRole(SETTINGS_ROLE, owner.address)).to.be.true;
+      expect(await strategy.hasRole(SETTINGS_ROLE, admin.address)).to.be.true;
 
-      await strategy.connect(owner).transferOwnership(alice.address);
+      await strategy.connect(admin).transferAdminRights(alice.address);
 
-      expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, owner.address)).to.be
+      expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, admin.address)).to.be
         .false;
-      expect(await strategy.hasRole(SETTINGS_ROLE, owner.address)).to.be.false;
+      expect(await strategy.hasRole(SETTINGS_ROLE, admin.address)).to.be.false;
 
       expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, alice.address)).to.be
         .true;
@@ -212,7 +216,7 @@ describe('YearnStrategy', () => {
       expect(await strategy.investedAssets()).to.eq(0);
       expect(await strategy.hasAssets()).be.false;
 
-      await vault.connect(owner).updateInvested();
+      await vault.connect(admin).updateInvested();
 
       expect(await underlying.balanceOf(yVault.address)).to.eq(
         underlyingAmount,
@@ -227,7 +231,7 @@ describe('YearnStrategy', () => {
       let underlyingAmount = parseUnits('100', 18);
       await depositToVault(underlyingAmount);
 
-      const tx = await vault.connect(owner).updateInvested();
+      const tx = await vault.connect(admin).updateInvested();
 
       await expect(tx)
         .to.emit(strategy, 'StrategyInvested')
@@ -236,10 +240,10 @@ describe('YearnStrategy', () => {
 
     it('can be called multiple times', async () => {
       await depositToVault(parseUnits('100', 18));
-      await vault.connect(owner).updateInvested();
+      await vault.connect(admin).updateInvested();
 
       await depositToVault(parseUnits('10', 18));
-      await vault.connect(owner).updateInvested();
+      await vault.connect(admin).updateInvested();
 
       const totalUnderlying = parseUnits('110', 18).sub('37');
 
@@ -264,7 +268,7 @@ describe('YearnStrategy', () => {
 
     it('removes the requested funds from the yVault', async () => {
       await depositToVault(parseUnits('100'));
-      await vault.connect(owner).updateInvested();
+      await vault.connect(admin).updateInvested();
 
       const amountToWithdraw = parseUnits('30');
 
@@ -286,7 +290,7 @@ describe('YearnStrategy', () => {
 
     it('removes the requested funds from the strategy and the yVault', async () => {
       await depositToVault(parseUnits('100'));
-      await vault.connect(owner).updateInvested();
+      await vault.connect(admin).updateInvested();
       await underlying.mint(strategy.address, parseUnits('10'));
 
       await strategy.connect(manager).withdrawToVault(parseUnits('30'));
@@ -300,7 +304,7 @@ describe('YearnStrategy', () => {
 
     it('emits an event', async () => {
       await depositToVault(parseUnits('100'));
-      await vault.connect(owner).updateInvested();
+      await vault.connect(admin).updateInvested();
 
       const amountToWithdraw = parseUnits('30');
 
@@ -315,7 +319,7 @@ describe('YearnStrategy', () => {
 
     it('fails if the requested funds from the yVault are greater than available', async () => {
       await depositToVault(parseUnits('100'));
-      await vault.connect(owner).updateInvested();
+      await vault.connect(admin).updateInvested();
 
       const amountToWithdraw = parseUnits('101');
 
@@ -326,11 +330,11 @@ describe('YearnStrategy', () => {
   });
 
   const depositToVault = async (amount: BigNumber) => {
-    await vault.connect(owner).deposit(
+    await vault.connect(admin).deposit(
       depositParams.build({
         amount,
         inputToken: underlying.address,
-        claims: [claimParams.percent(100).to(owner.address).build()],
+        claims: [claimParams.percent(100).to(admin.address).build()],
       }),
     );
   };

@@ -14,7 +14,7 @@ import {
 import { CURVE_SLIPPAGE, generateNewAddress } from '../../shared/';
 
 describe('AnchorStrategy', () => {
-  let owner: SignerWithAddress;
+  let admin: SignerWithAddress;
   let alice: SignerWithAddress;
   let manager: SignerWithAddress;
   let vault: Vault;
@@ -37,7 +37,7 @@ describe('AnchorStrategy', () => {
   const MANAGER_ROLE = utils.keccak256(utils.toUtf8Bytes('MANAGER_ROLE'));
 
   beforeEach(async () => {
-    [owner, alice, manager] = await ethers.getSigners();
+    [admin, alice, manager] = await ethers.getSigners();
 
     const MockERC20 = await ethers.getContractFactory('MockERC20');
     ustToken = await MockERC20.deploy(
@@ -73,7 +73,7 @@ describe('AnchorStrategy', () => {
       MIN_LOCK_PERIOD,
       INVEST_PCT,
       TREASURY,
-      owner.address,
+      admin.address,
       PERFORMANCE_FEE_PCT,
       INVESTMENT_FEE_PCT,
       [],
@@ -89,20 +89,20 @@ describe('AnchorStrategy', () => {
       mockAUstUstFeed.address,
       ustToken.address,
       aUstToken.address,
-      owner.address,
+      admin.address,
     );
 
-    await strategy.connect(owner).grantRole(MANAGER_ROLE, manager.address);
+    await strategy.connect(admin).grantRole(MANAGER_ROLE, manager.address);
 
     await vault.setStrategy(strategy.address);
     await underlying
-      .connect(owner)
+      .connect(admin)
       .approve(vault.address, constants.MaxUint256);
     await aUstToken
-      .connect(owner)
+      .connect(admin)
       .approve(mockEthAnchorRouter.address, constants.MaxUint256);
     await ustToken
-      .connect(owner)
+      .connect(admin)
       .approve(mockEthAnchorRouter.address, constants.MaxUint256);
   });
 
@@ -113,7 +113,7 @@ describe('AnchorStrategy', () => {
       AnchorStrategyFactory = await ethers.getContractFactory('AnchorStrategy');
     });
 
-    it('Revert if owner is address(0)', async () => {
+    it('Revert if admin is address(0)', async () => {
       await expect(
         AnchorStrategyFactory.deploy(
           vault.address,
@@ -123,7 +123,7 @@ describe('AnchorStrategy', () => {
           aUstToken.address,
           constants.AddressZero,
         ),
-      ).to.be.revertedWith('StrategyOwnerCannotBe0Address');
+      ).to.be.revertedWith('StrategyAdminCannotBe0Address');
     });
 
     it('Revert if ethAnchorRouter is address(0)', async () => {
@@ -134,7 +134,7 @@ describe('AnchorStrategy', () => {
           mockAUstUstFeed.address,
           ustToken.address,
           aUstToken.address,
-          owner.address,
+          admin.address,
         ),
       ).to.be.revertedWith('StrategyRouterCannotBe0Address');
     });
@@ -147,7 +147,7 @@ describe('AnchorStrategy', () => {
           mockAUstUstFeed.address,
           constants.AddressZero,
           aUstToken.address,
-          owner.address,
+          admin.address,
         ),
       ).to.be.revertedWith('StrategyUnderlyingCannotBe0Address');
     });
@@ -160,7 +160,7 @@ describe('AnchorStrategy', () => {
           mockAUstUstFeed.address,
           ustToken.address,
           constants.AddressZero,
-          owner.address,
+          admin.address,
         ),
       ).to.be.revertedWith('StrategyYieldTokenCannotBe0Address');
     });
@@ -173,14 +173,14 @@ describe('AnchorStrategy', () => {
           mockAUstUstFeed.address,
           ustToken.address,
           aUstToken.address,
-          owner.address,
+          admin.address,
         ),
       ).to.be.revertedWith('StrategyNotIVault');
     });
 
     it('Check initial values', async () => {
       expect(
-        await strategy.hasRole(DEFAULT_ADMIN_ROLE, owner.address),
+        await strategy.hasRole(DEFAULT_ADMIN_ROLE, admin.address),
       ).to.be.equal(true);
       expect(await strategy.hasRole(MANAGER_ROLE, vault.address)).to.be.equal(
         true,
@@ -217,21 +217,21 @@ describe('AnchorStrategy', () => {
 
       const amount0 = utils.parseUnits('100', 18);
       const aUstAmount0 = utils.parseUnits('90', 18);
-      await underlying.connect(owner).transfer(vault.address, amount0);
-      await vault.connect(owner).updateInvested();
+      await underlying.connect(admin).transfer(vault.address, amount0);
+      await vault.connect(admin).updateInvested();
 
       let exchangeRate = amount0.mul(utils.parseEther('1')).div(aUstAmount0);
       await mockAUstUstFeed.setAnswer(exchangeRate);
 
       await aUstToken
-        .connect(owner)
+        .connect(admin)
         .approve(mockEthAnchorRouter.address, aUstAmount0);
       await mockEthAnchorRouter.notifyDepositResult(operator0, aUstAmount0);
       await strategy.connect(manager).finishDepositStable(0);
 
       // when price is not positive
       await mockAUstUstFeed.setLatestRoundData(1, 0, 100, 100, 1);
-      await expect(vault.connect(owner).updateInvested()).to.be.revertedWith(
+      await expect(vault.connect(admin).updateInvested()).to.be.revertedWith(
         'StrategyInvalidAUSTRate',
       );
 
@@ -243,7 +243,7 @@ describe('AnchorStrategy', () => {
         100,
         1,
       );
-      await expect(vault.connect(owner).updateInvested()).to.be.revertedWith(
+      await expect(vault.connect(admin).updateInvested()).to.be.revertedWith(
         'StrategyInvalidAUSTRate',
       );
 
@@ -255,7 +255,7 @@ describe('AnchorStrategy', () => {
         0,
         1,
       );
-      await expect(vault.connect(owner).updateInvested()).to.be.revertedWith(
+      await expect(vault.connect(admin).updateInvested()).to.be.revertedWith(
         'StrategyInvalidAUSTRate',
       );
     });
@@ -270,7 +270,7 @@ describe('AnchorStrategy', () => {
 
       expect(await vault.totalUnderlying()).equal(underlyingAmount);
 
-      const tx = await vault.connect(owner).updateInvested();
+      const tx = await vault.connect(admin).updateInvested();
 
       expect(await underlying.balanceOf(strategy.address)).equal(0);
       expect(await strategy.pendingDeposits()).equal(investAmount);
@@ -294,7 +294,7 @@ describe('AnchorStrategy', () => {
 
       let investAmount0 = underlyingBalance0.mul(INVEST_PCT).div(DENOMINATOR);
 
-      await vault.connect(owner).updateInvested();
+      await vault.connect(admin).updateInvested();
 
       const operator1 = await registerNewTestOperator();
       let underlyingBalance1 = utils.parseUnits('50', 18);
@@ -306,7 +306,7 @@ describe('AnchorStrategy', () => {
         .div(DENOMINATOR)
         .sub(investAmount0);
 
-      await vault.connect(owner).updateInvested();
+      await vault.connect(admin).updateInvested();
 
       expect(await underlying.balanceOf(strategy.address)).equal(0);
       expect(await strategy.pendingDeposits()).equal(
@@ -340,7 +340,7 @@ describe('AnchorStrategy', () => {
       underlyingAmount0 = utils.parseUnits('100', 18);
       aUstAmount0 = utils.parseUnits('80', 18);
       await depositVault(underlyingAmount0);
-      await vault.connect(owner).updateInvested();
+      await vault.connect(admin).updateInvested();
       investAmount0 = underlyingAmount0.mul(INVEST_PCT).div(DENOMINATOR);
     });
 
@@ -394,7 +394,7 @@ describe('AnchorStrategy', () => {
 
       const underlyingAmount1 = utils.parseUnits('50', 18);
       await depositVault(underlyingAmount1);
-      await vault.connect(owner).updateInvested();
+      await vault.connect(admin).updateInvested();
 
       let investAmount1 = underlyingAmount1
         .add(underlyingAmount0)
@@ -448,7 +448,7 @@ describe('AnchorStrategy', () => {
       const operator1 = await registerNewTestOperator();
 
       await depositVault(underlyingAmount1);
-      await vault.connect(owner).updateInvested();
+      await vault.connect(admin).updateInvested();
 
       await notifyDepositReturnAmount(operator1, aUstAmount1);
 
@@ -476,7 +476,7 @@ describe('AnchorStrategy', () => {
       underlyingAmount0 = utils.parseUnits('100', 18);
       aUstAmount0 = utils.parseUnits('80', 18);
       await depositVault(underlyingAmount0);
-      await vault.connect(owner).updateInvested();
+      await vault.connect(admin).updateInvested();
 
       await notifyDepositReturnAmount(operator, aUstAmount0);
       await strategy.connect(manager).finishDepositStable(0);
@@ -568,7 +568,7 @@ describe('AnchorStrategy', () => {
       investAmount0 = underlyingAmount0.mul(INVEST_PCT).div(DENOMINATOR);
       aUstAmount0 = utils.parseUnits('80', 18);
       await depositVault(underlyingAmount0);
-      await vault.connect(owner).updateInvested();
+      await vault.connect(admin).updateInvested();
 
       await notifyDepositReturnAmount(operator0, aUstAmount0);
       await strategy.connect(manager).finishDepositStable(0);
@@ -710,7 +710,7 @@ describe('AnchorStrategy', () => {
       const aUstAmount1 = utils.parseUnits('80', 18);
       const operator1 = await registerNewTestOperator();
       await depositVault(underlyingAmount1);
-      await vault.connect(owner).updateInvested();
+      await vault.connect(admin).updateInvested();
 
       await notifyDepositReturnAmount(operator1, aUstAmount1);
       await strategy.connect(manager).finishDepositStable(0);
@@ -961,13 +961,13 @@ describe('AnchorStrategy', () => {
   };
 
   const depositVault = async (amount: BigNumber) => {
-    await vault.connect(owner).deposit({
+    await vault.connect(admin).deposit({
       amount,
       inputToken: underlying.address,
       claims: [
         {
           pct: DENOMINATOR,
-          beneficiary: owner.address,
+          beneficiary: admin.address,
           data: '0x',
         },
       ],
