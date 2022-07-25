@@ -36,6 +36,15 @@ interface CustomErrors {
     // Vault: caller is not admin
     error VaultCallerNotAdmin();
 
+    // Vault: caller is not settings
+    error VaultCallerNotSettings();
+
+    // Vault: caller is not investor
+    error VaultCallerNotInvestor();
+
+    // Vault: caller is not sponsor
+    error VaultCallerNotSponsor();
+
     // Vault: destination address is 0x
     error VaultDestinationCannotBe0Address();
 

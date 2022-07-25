@@ -380,10 +380,10 @@ describe('Vault', () => {
   });
 
   describe('setTreasury', () => {
-    it('reverts if msg.sender is not admin', async () => {
+    it('reverts if the caller does not have settings role', async () => {
       await expect(
         vault.connect(alice).setTreasury(TREASURY),
-      ).to.be.revertedWith(getRoleErrorMsg(alice, SETTINGS_ROLE));
+      ).to.be.revertedWith('VaultCallerNotSettings');
     });
 
     it('reverts if treasury is address(0)', async () => {
@@ -402,9 +402,9 @@ describe('Vault', () => {
   });
 
   describe('setPerfFeePct', () => {
-    it('reverts if msg.sender is not admin', async () => {
+    it('reverts if the caller does not have settings role', async () => {
       await expect(vault.connect(alice).setPerfFeePct(100)).to.be.revertedWith(
-        getRoleErrorMsg(alice, SETTINGS_ROLE),
+        'VaultCallerNotSettings',
       );
     });
 
@@ -426,9 +426,9 @@ describe('Vault', () => {
   });
 
   describe('setInvestPct', () => {
-    it('reverts if msg.sender is not admin', async () => {
+    it('reverts if the caller does not have settings role', async () => {
       await expect(vault.connect(alice).setInvestPct(100)).to.be.revertedWith(
-        getRoleErrorMsg(alice, SETTINGS_ROLE),
+        'VaultCallerNotSettings',
       );
     });
 
@@ -448,10 +448,10 @@ describe('Vault', () => {
   });
 
   describe('setLossTolerancePct', () => {
-    it('reverts if msg.sender is not admin', async () => {
+    it('reverts if the caller does not have settings role', async () => {
       await expect(
         vault.connect(alice).setLossTolerancePct(100),
-      ).to.be.revertedWith(getRoleErrorMsg(alice, SETTINGS_ROLE));
+      ).to.be.revertedWith('VaultCallerNotSettings');
     });
 
     it('reverts if invest percentage is greater than 100%', async () => {
@@ -532,10 +532,10 @@ describe('Vault', () => {
       perfFee = newYield.mul(PERFORMANCE_FEE_PCT).div(DENOMINATOR);
     });
 
-    it('reverts if msg.sender is not investor', async () => {
+    it('reverts if the caller is not investor', async () => {
       await expect(
         vault.connect(alice).withdrawPerformanceFee(),
-      ).to.be.revertedWith(getRoleErrorMsg(alice, INVESTOR_ROLE));
+      ).to.be.revertedWith('VaultCallerNotInvestor');
     });
 
     it('withdraw performance fee and emit FeeWithdrawn event', async () => {
@@ -557,9 +557,9 @@ describe('Vault', () => {
   });
 
   describe('updateInvested', () => {
-    it('reverts if msg.sender is not investor', async () => {
+    it('reverts if the caller is not investor', async () => {
       await expect(vault.connect(alice).updateInvested()).to.be.revertedWith(
-        getRoleErrorMsg(alice, INVESTOR_ROLE),
+        'VaultCallerNotInvestor',
       );
     });
 
@@ -709,10 +709,10 @@ describe('Vault', () => {
   });
 
   describe('setStrategy', () => {
-    it('reverts if msg.sender is not admin', async () => {
+    it('reverts if the caller does not have settings role', async () => {
       await expect(
         vault.connect(alice).setStrategy(strategy.address),
-      ).to.be.revertedWith(getRoleErrorMsg(alice, SETTINGS_ROLE));
+      ).to.be.revertedWith('VaultCallerNotSettings');
     });
 
     it('reverts if new strategy is address(0)', async () => {
@@ -831,8 +831,7 @@ describe('Vault', () => {
       ).to.be.revertedWith('Pausable: paused');
       await vault.connect(admin).unpause();
     });
-
-    it('reverts if msg.sender is not sponsor', async () => {
+    it('reverts if the caller is not sponsor', async () => {
       await expect(
         vault
           .connect(alice)
@@ -842,7 +841,7 @@ describe('Vault', () => {
             TWO_WEEKS,
             CURVE_SLIPPAGE,
           ),
-      ).to.be.revertedWith(getRoleErrorMsg(alice, SPONSOR_ROLE));
+      ).to.be.revertedWith('VaultCallerNotSponsor');
     });
 
     it('adds a sponsor to the vault', async () => {
@@ -2713,15 +2712,15 @@ describe('Vault', () => {
   });
 
   describe('pause/unpause', () => {
-    it('reverts(pause) if not DEFAULT_ADMIN_ROLE', async () => {
+    it('reverts(pause) if the caller is not admin', async () => {
       await expect(vault.connect(alice).pause()).to.be.revertedWith(
-        getRoleErrorMsg(alice, DEFAULT_ADMIN_ROLE),
+        'VaultCallerNotAdmin',
       );
     });
 
-    it('reverts(unpause) if not DEFAULT_ADMIN_ROLE', async () => {
+    it('reverts(unpause) if not caller is not admin', async () => {
       await expect(vault.connect(alice).unpause()).to.be.revertedWith(
-        getRoleErrorMsg(alice, DEFAULT_ADMIN_ROLE),
+        'VaultCallerNotAdmin',
       );
     });
   });

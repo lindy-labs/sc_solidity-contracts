@@ -182,6 +182,23 @@ contract Vault is
         _;
     }
 
+    modifier onlySettings() {
+        if (!hasRole(SETTINGS_ROLE, msg.sender))
+            revert VaultCallerNotSettings();
+        _;
+    }
+
+    modifier onlyInvestor() {
+        if (!hasRole(INVESTOR_ROLE, msg.sender))
+            revert VaultCallerNotInvestor();
+        _;
+    }
+
+    modifier onlySponsor() {
+        if (!hasRole(SPONSOR_ROLE, msg.sender)) revert VaultCallerNotSponsor();
+        _;
+    }
+
     /**
      * Transfers administrator rights for the Vault to another account,
      * revoking all current admin's roles and setting up the roles for the new admin.
@@ -415,11 +432,7 @@ contract Vault is
     }
 
     /// @inheritdoc IVault
-    function updateInvested()
-        external
-        override(IVault)
-        onlyRole(INVESTOR_ROLE)
-    {
+    function updateInvested() external override(IVault) onlyInvestor {
         if (address(strategy) == address(0)) revert VaultStrategyNotSet();
 
         (uint256 maxInvestableAmount, uint256 alreadyInvested) = investState();
@@ -453,11 +466,7 @@ contract Vault is
     }
 
     /// @inheritdoc IVault
-    function withdrawPerformanceFee()
-        external
-        override(IVault)
-        onlyRole(INVESTOR_ROLE)
-    {
+    function withdrawPerformanceFee() external override(IVault) onlyInvestor {
         uint256 _perfFee = accumulatedPerfFee;
         if (_perfFee == 0) revert VaultNoPerformanceFee();
 
@@ -482,7 +491,7 @@ contract Vault is
         external
         override(IVaultSponsoring)
         nonReentrant
-        onlyRole(SPONSOR_ROLE)
+        onlySponsor
         whenNotPaused
     {
         if (_amount == 0) revert VaultCannotSponsor0();
@@ -542,20 +551,14 @@ contract Vault is
     /// Adds a new curve swap pool from an input token to {underlying}
     ///
     /// @param _param Swap pool params
-    function addPool(SwapPoolParam memory _param)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function addPool(SwapPoolParam memory _param) external onlyAdmin {
         _addPool(_param);
     }
 
     /// Removes an existing swap pool, and the ability to deposit the given token as underlying
     ///
     /// @param _inputToken the token to remove
-    function removePool(address _inputToken)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function removePool(address _inputToken) external onlyAdmin {
         _removePool(_inputToken);
     }
 
@@ -567,7 +570,7 @@ contract Vault is
     function setInvestPct(uint16 _investPct)
         external
         override(IVaultSettings)
-        onlyRole(SETTINGS_ROLE)
+        onlySettings
     {
         if (!PercentMath.validPct(_investPct)) revert VaultInvalidInvestpct();
 
@@ -580,7 +583,7 @@ contract Vault is
     function setTreasury(address _treasury)
         external
         override(IVaultSettings)
-        onlyRole(SETTINGS_ROLE)
+        onlySettings
     {
         if (address(_treasury) == address(0x0))
             revert VaultTreasuryCannotBe0Address();
@@ -592,7 +595,7 @@ contract Vault is
     function setPerfFeePct(uint16 _perfFeePct)
         external
         override(IVaultSettings)
-        onlyRole(SETTINGS_ROLE)
+        onlySettings
     {
         if (!PercentMath.validPct(_perfFeePct))
             revert VaultInvalidPerformanceFee();
@@ -604,7 +607,7 @@ contract Vault is
     function setStrategy(address _strategy)
         external
         override(IVaultSettings)
-        onlyRole(SETTINGS_ROLE)
+        onlySettings
     {
         if (_strategy == address(0)) revert VaultStrategyNotSet();
         if (IStrategy(_strategy).vault() != address(this))
@@ -621,7 +624,7 @@ contract Vault is
     function setLossTolerancePct(uint16 pct)
         external
         override(IVaultSettings)
-        onlyRole(SETTINGS_ROLE)
+        onlySettings
     {
         if (!pct.validPct()) revert VaultInvalidLossTolerance();
 
@@ -1116,11 +1119,11 @@ contract Vault is
         return claimer[claimerId].totalPrincipal;
     }
 
-    function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function pause() external onlyAdmin {
         _pause();
     }
 
-    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function unpause() external onlyAdmin {
         _unpause();
     }
 
