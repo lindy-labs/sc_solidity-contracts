@@ -10,7 +10,6 @@ import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
 import {Counters} from "@openzeppelin/contracts/utils/Counters.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 import {IVault} from "./vault/IVault.sol";
 import {IVaultSponsoring} from "./vault/IVaultSponsoring.sol";
@@ -38,7 +37,6 @@ contract Vault is
     ReentrancyGuard,
     Pausable,
     ExitPausable,
-    Ownable,
     CustomErrors
 {
     using SafeERC20 for IERC20;
@@ -130,7 +128,7 @@ contract Vault is
      * @param _minLockPeriod Minimum lock period to deposit
      * @param _investPct Percentage of the total underlying to invest in the strategy
      * @param _treasury Treasury address to collect performance fee
-     * @param _owner Vault admin address
+     * @param _admin Vault admin address
      * @param _perfFeePct Performance fee percentage
      * @param _lossTolerancePct Loss tolerance when investing through the strategy
      * @param _swapPools Swap pools used to automatically convert tokens to underlying
@@ -140,7 +138,7 @@ contract Vault is
         uint64 _minLockPeriod,
         uint16 _investPct,
         address _treasury,
-        address _owner,
+        address _admin,
         uint16 _perfFeePct,
         uint16 _lossTolerancePct,
         SwapPoolParam[] memory _swapPools
@@ -151,16 +149,14 @@ contract Vault is
         if (address(_underlying) == address(0x0))
             revert VaultUnderlyingCannotBe0Address();
         if (_treasury == address(0x0)) revert VaultTreasuryCannotBe0Address();
-        if (_owner == address(0x0)) revert VaultOwnerCannotBe0Address();
+        if (_admin == address(0x0)) revert VaultAdminCannotBe0Address();
         if (_minLockPeriod == 0 || _minLockPeriod > MAX_DEPOSIT_LOCK_DURATION)
             revert VaultInvalidMinLockPeriod();
 
-        _transferOwnership(_owner);
-
-        _grantRole(DEFAULT_ADMIN_ROLE, _owner);
-        _grantRole(INVESTOR_ROLE, _owner);
-        _grantRole(SETTINGS_ROLE, _owner);
-        _grantRole(SPONSOR_ROLE, _owner);
+        _setupRole(DEFAULT_ADMIN_ROLE, _admin);
+        _setupRole(INVESTOR_ROLE, _admin);
+        _setupRole(SETTINGS_ROLE, _admin);
+        _setupRole(SPONSOR_ROLE, _admin);
 
         investPct = _investPct;
         underlying = _underlying;
@@ -177,32 +173,32 @@ contract Vault is
     }
 
     //
-    // Ownable
+    // Modifiers
     //
 
+    modifier onlyAdmin() {
+        if (!hasRole(DEFAULT_ADMIN_ROLE, msg.sender))
+            revert VaultCallerNotAdmin();
+        _;
+    }
+
     /**
-     * Transfers ownership of the Vault to another account,
-     * revoking all of previous owner's roles and setting them up for the new owner.
+     * Transfers administrator rights for the Vault to another account,
+     * revoking all current admin's roles and setting up the roles for the new admin.
      *
-     * @notice Can only be called by the current owner.
+     * @notice Can only be called by the admin.
      *
-     * @param _newOwner The new owner of the contract.
+     * @param _newAdmin The new admin account.
      */
-    function transferOwnership(address _newOwner)
-        public
-        override(Ownable)
-        onlyOwner
-    {
-        if (_newOwner == address(0x0)) revert VaultOwnerCannotBe0Address();
-        if (_newOwner == msg.sender)
-            revert VaultCannotTransferOwnershipToSelf();
+    function transferAdminRights(address _newAdmin) external onlyAdmin {
+        if (_newAdmin == address(0x0)) revert VaultAdminCannotBe0Address();
+        if (_newAdmin == msg.sender)
+            revert VaultCannotTransferAdminRightsToSelf();
 
-        _transferOwnership(_newOwner);
-
-        _grantRole(DEFAULT_ADMIN_ROLE, _newOwner);
-        _grantRole(INVESTOR_ROLE, _newOwner);
-        _grantRole(SETTINGS_ROLE, _newOwner);
-        _grantRole(SPONSOR_ROLE, _newOwner);
+        _setupRole(DEFAULT_ADMIN_ROLE, _newAdmin);
+        _setupRole(INVESTOR_ROLE, _newAdmin);
+        _setupRole(SETTINGS_ROLE, _newAdmin);
+        _setupRole(SPONSOR_ROLE, _newAdmin);
 
         _revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _revokeRole(INVESTOR_ROLE, msg.sender);
