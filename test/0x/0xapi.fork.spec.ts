@@ -1,9 +1,10 @@
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { BigNumber } from 'ethers';
-import { ethers } from 'hardhat';
+import { ethers, web3 } from 'hardhat';
 import { expect } from 'chai';
 import { time } from '@openzeppelin/test-helpers';
 
+import qs from 'qs';
 import axios from 'axios';
 
 import { SimpleTokenSwap, ERC20, ERC20__factory } from '../../typechain';
@@ -22,12 +23,15 @@ const FORK_BLOCK = 14988444;
 const WETH = '0xc02aaa39b223fe8d0a0e5c4f27ead9083c756cc2';
 const USDC = '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48';
 const LQTY = '0x6DEA81C8171D0bA574754EF6F8b412F2Ed88c54D';
+const DAI = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48';
 
 describe('0xapi swap mainnet fork tests', () => {
   let owner: SignerWithAddress;
   let alice: SignerWithAddress;
   let simpleTokenSwap: SimpleTokenSwap;
   let lqty: ERC20;
+  let weth: ERC20;
+  let dai: ERC20;
 
   beforeEach(async () => {
     await ForkHelpers.forkToMainnet(FORK_BLOCK);
@@ -35,6 +39,8 @@ describe('0xapi swap mainnet fork tests', () => {
     [owner, alice] = await ethers.getSigners();
 
     lqty = ERC20__factory.connect(LQTY, owner);
+    weth = ERC20__factory.connect(WETH, owner);
+    dai = ERC20__factory.connect(DAI, owner);
 
     const SimpleTokenSwapFactory = await ethers.getContractFactory(
       'SimpleTokenSwap',
@@ -44,23 +50,22 @@ describe('0xapi swap mainnet fork tests', () => {
   });
 
   it('swap tokens through 0x api', async () => {
-    await ForkHelpers.mintToken(
-      lqty,
-      owner,
-      parseUnits('1000', await lqty.decimals()),
-    );
+    let sellToken = lqty;
 
-    const amount = parseUnits('1000', 18);
-    let url = `https://api.0x.org/swap/v1/quote?buyToken=${USDC}&sellToken=${LQTY}&sellAmount=${amount}`;
+    const amount = parseUnits('1', await sellToken.decimals());
+
+    await ForkHelpers.mintToken(sellToken, simpleTokenSwap.address, amount);
+
+    let url = `https://api.0x.org/swap/v1/quote?buyToken=${USDC}&sellToken=${sellToken.address}&sellAmount=${amount}`;
 
     const { data, status } = await axios.get(url);
 
     console.log(data);
 
-    await lqty.connect(owner).transfer(simpleTokenSwap.address, amount);
+    await web3.eth;
 
     await simpleTokenSwap
       .connect(owner)
-      .fillQuote(LQTY, USDC, data.allowanceTarget, data.to, data.data);
+      .fillQuote(data.sellTokenAddress, data.to, data.data);
   });
 });
