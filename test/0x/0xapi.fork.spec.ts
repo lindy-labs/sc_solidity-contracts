@@ -62,8 +62,6 @@ describe('0xapi swap mainnet fork tests', () => {
 
     console.log(data);
 
-    await web3.eth;
-
     await simpleTokenSwap
       .connect(owner)
       .fillQuote(data.sellTokenAddress, data.to, data.data);
