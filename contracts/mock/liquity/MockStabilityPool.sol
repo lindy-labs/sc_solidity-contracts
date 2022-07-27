@@ -13,6 +13,10 @@ contract MockStabilityPool is IStabilityPool {
 
     mapping(address => uint256) public balances;
 
+    function activePool() public pure returns (address) {
+        return address(0);
+    }
+
     function provideToSP(uint256 _amount, address _frontEndTag) external {
         // transfers lusd from the depositor to this contract and updates the balance
         // the balance must appear on getCompoundedLUSDDeposit

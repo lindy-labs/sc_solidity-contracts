@@ -38,8 +38,7 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
     error LiquityStabilityPoolCannotBeAddressZero();
     error StrategyYieldTokenCannotBe0Address();
 
-    bytes32 public constant MANAGER_ROLE =
-        0x241ecf16d79d0f8dbfb92cbc07fe17840425976cf0667f022fe9877caa831b08; // keccak256("MANAGER_ROLE");
+    bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
 
     IERC20 public immutable underlying; // lusd
     /// @inheritdoc IStrategy

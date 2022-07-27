@@ -2,6 +2,8 @@
 pragma solidity =0.8.10;
 
 interface IStabilityPool {
+    function activePool() external view returns (address);
+
     /*  provideToSP():
      *
      * - Triggers a LQTY issuance, based on time passed since the last issuance. The LQTY issuance is shared between *all* depositors and front ends
