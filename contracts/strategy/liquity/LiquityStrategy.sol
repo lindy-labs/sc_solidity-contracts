@@ -12,7 +12,6 @@ import {IStrategy} from "../IStrategy.sol";
 import {CustomErrors} from "../../interfaces/CustomErrors.sol";
 import {IVault} from "../../vault/IVault.sol";
 import {IStabilityPool} from "../../interfaces/liquity/IStabilityPool.sol";
-import {OptimalSwapper} from "./OptimalSwapper.sol";
 import {ICurveRouter} from "../../interfaces/curve/ICurveRouter.sol";
 
 // TODO:
@@ -38,7 +37,6 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
 
     error LiquityStabilityPoolCannotBeAddressZero();
     error StrategyYieldTokenCannotBe0Address();
-    error OptimalSwapperCanntoBe0Address();
 
     bytes32 public constant MANAGER_ROLE =
         0x241ecf16d79d0f8dbfb92cbc07fe17840425976cf0667f022fe9877caa831b08; // keccak256("MANAGER_ROLE");
@@ -47,7 +45,6 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
     /// @inheritdoc IStrategy
     address public immutable override(IStrategy) vault;
     IStabilityPool public immutable stabilityPool;
-    OptimalSwapper public immutable optimalSwapper;
     address public immutable lqty; // reward token
     address public immutable usdc;
     address public immutable weth;
@@ -59,7 +56,6 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         address _vault,
         address _owner,
         address _stabilityPool,
-        address _optimalSwapper,
         address _lqty,
         address _usdc,
         address _weth,
@@ -73,8 +69,6 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         if (_weth == address(0)) revert StrategyYieldTokenCannotBe0Address();
         if (_stabilityPool == address(0))
             revert LiquityStabilityPoolCannotBeAddressZero();
-        if (_optimalSwapper == address(0))
-            revert OptimalSwapperCanntoBe0Address();
         if (_underlying == address(0))
             revert StrategyUnderlyingCannotBe0Address();
 
@@ -86,7 +80,6 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         vault = _vault;
         underlying = _underlying;
         stabilityPool = IStabilityPool(_stabilityPool);
-        optimalSwapper = OptimalSwapper(_optimalSwapper);
         lqty = _lqty;
         usdc = _usdc;
         weth = _weth;
@@ -96,12 +89,6 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         curveLusdPool = _curveLusdPool;
 
         IERC20(underlying).approve(_stabilityPool, type(uint256).max);
-
-        // approve optimalSwapper for all the tokens
-        IERC20(lqty).approve(_optimalSwapper, type(uint256).max);
-        IERC20(usdc).approve(_optimalSwapper, type(uint256).max);
-        IERC20(weth).approve(_optimalSwapper, type(uint256).max);
-        IERC20(underlying).approve(_optimalSwapper, type(uint256).max);
     }
 
     //
@@ -219,41 +206,50 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
     /**
         swaps the ETH & LQTY rewards from the stability pool into usdc
      */
-    function harvest() external onlyOwner {
+    function harvest(
+        address _swapTarget,
+        bytes calldata _lqtySwapData,
+        bytes calldata _ethSwapData
+    ) external payable onlyOwner {
         // withdraw rewards from Liquity Stability Pool Contract
         stabilityPool.withdrawFromSP(0);
 
+        // calculate rewards
         uint256 lqtyRewards = IERC20(lqty).balanceOf(address(this));
         uint256 ethRewards = address(this).balance;
 
+        // give out approvals to the swapTarget
+        IERC20(lqty).safeApprove(_swapTarget, lqtyRewards);
+
+        bool success;
         if (lqtyRewards > 0) {
             // swap LQTY to USDC
-            optimalSwapper.swap(lqty, usdc, lqtyRewards, 0);
+            (success, ) = _swapTarget.call{value: msg.value}(_lqtySwapData);
+            require(success, "LQTY_SWAP_CALL_FAILED");
         }
 
         // swap ETH to usdc
         // todo: double check in the tests if we are getting ETH or WETH from stability pool
         if (ethRewards > 0) {
-            weth9(weth).deposit{value: ethRewards}();
-            optimalSwapper.swap(
-                weth,
-                usdc,
-                IERC20(weth).balanceOf(address(this)),
-                0
-            );
+            (success, ) = _swapTarget.call{value: msg.value}(_ethSwapData);
+            require(success, "ETH_SWAP_CALL_FAILED");
         }
     }
 
     /**
-        @notice swaps all the given token balance inside the contract to lusd
+        @notice swaps all the given fromtoken balance inside the contract to the toToken (coming from the 0xapi data)
+        supposed to be used by the backend to swap the usdc held by the contract to lusd
+        but can be used for other swaps too
      */
-    function sweepToLusd(address _token) external onlyOwner {
-        optimalSwapper.swap(
-            _token,
-            underlying,
-            IERC20(_token).balanceOf(address(this)),
-            0
-        );
+    function swap(
+        address _fromToken,
+        uint256 _amount,
+        address _swapTarget,
+        bytes calldata _swapData
+    ) external payable onlyOwner {
+        IERC20(_fromToken).approve(_swapTarget, _amount);
+        (bool success, ) = _swapTarget.call{value: msg.value}(_swapData);
+        require(success, "SWAP_CALL_FAILED");
     }
 
     /**
