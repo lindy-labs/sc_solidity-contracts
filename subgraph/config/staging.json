@@ -1,13 +1,13 @@
 {
   "vault": {
     "network": "ropsten",
-    "startBlock": 12319902,
-    "address": "0xA44567Ea4b9649c86D18ae7EdCB03d1752e792f7"
+    "startBlock": 12674899,
+    "address": "0x97abEa05f2c0408d0dDD0abd984Fa38979F41161"
   },
   "strategy": {
     "network": "ropsten",
-    "startBlock": 12319902,
-    "address": "0x0FBeFDD033371d540Fa4256a756D7A2604A0817a"
+    "startBlock": 12674899,
+    "address": "0xd4950a1b7421e090c4865157d2b057a244d12365"
   },
   "donations": {
     "network": "mumbai",
