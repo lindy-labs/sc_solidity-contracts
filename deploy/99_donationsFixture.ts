@@ -1,4 +1,6 @@
 import type { HardhatRuntimeEnvironment } from 'hardhat/types';
+
+import { includes } from 'lodash';
 import { ethers } from 'hardhat';
 
 const func = async function (env: HardhatRuntimeEnvironment) {
@@ -59,17 +61,10 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   );
 };
 
-func.id = 'donations_fixture';
 func.tags = ['donations_fixture'];
-func.dependencies = [
-  'fixture_deployments',
-  'fixtures',
-  'strategies',
-  'donations',
-];
+func.dependencies = ['dev', 'fixtures', 'vault', 'donations'];
 
-// Deploy only to hardhat
-func.skip = async (hre: HardhatRuntimeEnvironment) =>
-  hre.network.config.chainId != 31337;
+func.skip = async (env: HardhatRuntimeEnvironment) =>
+  !includes(['docker', 'hardhat'], env.deployments.getNetworkName());
 
 export default func;
