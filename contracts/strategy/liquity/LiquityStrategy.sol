@@ -41,13 +41,12 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
     bytes32 public constant MANAGER_ROLE =
         0x241ecf16d79d0f8dbfb92cbc07fe17840425976cf0667f022fe9877caa831b08; // keccak256("MANAGER_ROLE");
 
-    address public immutable underlying; // lusd
+    IERC20 public immutable underlying; // lusd
     /// @inheritdoc IStrategy
     address public immutable override(IStrategy) vault;
     IStabilityPool public immutable stabilityPool;
-    address public immutable lqty; // reward token
-    address public immutable usdc;
-    address public immutable weth;
+    IERC20 public immutable lqty; // reward token
+    IERC20 public immutable usdc;
 
     ICurveRouter public curveRouter;
     address public curveLusdPool;
@@ -58,7 +57,6 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         address _stabilityPool,
         address _lqty,
         address _usdc,
-        address _weth,
         address _underlying,
         address _curveRouter,
         address _curveLusdPool
@@ -66,7 +64,6 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         if (_owner == address(0)) revert StrategyOwnerCannotBe0Address();
         if (_lqty == address(0)) revert StrategyYieldTokenCannotBe0Address();
         if (_usdc == address(0)) revert StrategyYieldTokenCannotBe0Address();
-        if (_weth == address(0)) revert StrategyYieldTokenCannotBe0Address();
         if (_stabilityPool == address(0))
             revert LiquityStabilityPoolCannotBeAddressZero();
         if (_underlying == address(0))
@@ -78,17 +75,16 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         _setupRole(DEFAULT_ADMIN_ROLE, _owner);
         _setupRole(MANAGER_ROLE, _vault);
         vault = _vault;
-        underlying = _underlying;
+        underlying = IERC20(_underlying);
         stabilityPool = IStabilityPool(_stabilityPool);
-        lqty = _lqty;
-        usdc = _usdc;
-        weth = _weth;
+        lqty = IERC20(_lqty);
+        usdc = IERC20(_usdc);
 
         // no need extra checks for these, since if these are wrong then the investedAssets method would revert automatically
         curveRouter = ICurveRouter(_curveRouter);
         curveLusdPool = _curveLusdPool;
 
-        IERC20(underlying).approve(_stabilityPool, type(uint256).max);
+        underlying.approve(_stabilityPool, type(uint256).max);
     }
 
     //
@@ -162,13 +158,13 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
             // lusd deposited into liquity's stability pool
             stabilityPool.getCompoundedLUSDDeposit(address(this)) +
             // lusd held by this contract
-            IERC20(underlying).balanceOf(address(this)) +
+            underlying.balanceOf(address(this)) +
             // usdc held by this contract in lusd denomination
             curveRouter.get_exchange_amount(
                 curveLusdPool,
-                usdc,
-                underlying,
-                IERC20(usdc).balanceOf(address(this))
+                address(usdc),
+                address(underlying),
+                usdc.balanceOf(address(this))
             );
     }
 
@@ -198,7 +194,7 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         stabilityPool.withdrawFromSP(amount);
 
         // transfer underlying to vault
-        IERC20(underlying).safeTransfer(vault, amount);
+        underlying.safeTransfer(vault, amount);
 
         emit StrategyWithdrawn(amount);
     }
@@ -215,11 +211,11 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         stabilityPool.withdrawFromSP(0);
 
         // calculate rewards
-        uint256 lqtyRewards = IERC20(lqty).balanceOf(address(this));
+        uint256 lqtyRewards = lqty.balanceOf(address(this));
         uint256 ethRewards = address(this).balance;
 
         // give out approvals to the swapTarget
-        IERC20(lqty).safeApprove(_swapTarget, lqtyRewards);
+        lqty.safeApprove(_swapTarget, lqtyRewards);
 
         bool success;
         if (lqtyRewards > 0) {
@@ -242,12 +238,12 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         but can be used for other swaps too
      */
     function swap(
-        address _fromToken,
+        IERC20 _fromToken,
         uint256 _amount,
         address _swapTarget,
         bytes calldata _swapData
     ) external payable onlyOwner {
-        IERC20(_fromToken).approve(_swapTarget, _amount);
+        _fromToken.approve(_swapTarget, _amount);
         (bool success, ) = _swapTarget.call{value: msg.value}(_swapData);
         require(success, "SWAP_CALL_FAILED");
     }
@@ -271,7 +267,7 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
      * @return underlying balance of the strategy
      */
     function _getUnderlyingBalance() internal view returns (uint256) {
-        return IERC20(underlying).balanceOf(address(this));
+        return underlying.balanceOf(address(this));
     }
 }
 
