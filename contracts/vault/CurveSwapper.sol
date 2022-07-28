@@ -148,7 +148,7 @@ abstract contract CurveSwapper {
         uint16 _slippage
     ) internal pure returns (uint256) {
         return
-            (_amount * _slippage * 10**_toDecimals) / (10**_fromDecimals * 100);
+            (_amount * _slippage * 10**_toDecimals) / (10**_fromDecimals * 10000);
     }
 
     /// This is necessary because some tokens (USDT) force you to approve(0)
