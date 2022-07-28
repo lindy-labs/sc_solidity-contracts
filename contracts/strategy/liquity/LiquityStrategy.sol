@@ -14,10 +14,6 @@ import {IVault} from "../../vault/IVault.sol";
 import {IStabilityPool} from "../../interfaces/liquity/IStabilityPool.sol";
 import {ICurveRouter} from "../../interfaces/curve/ICurveRouter.sol";
 
-// TODO:
-// Use oracles to convert ETH, LQTY and USDC to LUSD and update the investedAssets method calculating everything in LUSD terms
-// Update the withdraw method to check for ETH, LQTY, USDC balance (and swap them to LUSD) in case the LUSD balance is not enough
-
 /***
  * Gives out LQTY & ETH as rewards
  The strategy must run in epochs
@@ -37,6 +33,7 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
 
     error LiquityStabilityPoolCannotBeAddressZero();
     error StrategyYieldTokenCannotBe0Address();
+    error SwapCallFailed(address fromToken);
 
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
 
@@ -52,7 +49,7 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
 
     constructor(
         address _vault,
-        address _owner,
+        address _admin,
         address _stabilityPool,
         address _lqty,
         address _usdc,
@@ -60,7 +57,7 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         address _curveRouter,
         address _curveLusdPool
     ) {
-        if (_owner == address(0)) revert StrategyOwnerCannotBe0Address();
+        if (_admin == address(0)) revert StrategyOwnerCannotBe0Address();
         if (_lqty == address(0)) revert StrategyYieldTokenCannotBe0Address();
         if (_usdc == address(0)) revert StrategyYieldTokenCannotBe0Address();
         if (_stabilityPool == address(0))
@@ -71,8 +68,9 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         if (!_vault.doesContractImplementInterface(type(IVault).interfaceId))
             revert StrategyNotIVault();
 
-        _setupRole(DEFAULT_ADMIN_ROLE, _owner);
+        _setupRole(DEFAULT_ADMIN_ROLE, _admin);
         _setupRole(MANAGER_ROLE, _vault);
+
         vault = _vault;
         underlying = IERC20(_underlying);
         stabilityPool = IStabilityPool(_stabilityPool);
@@ -96,7 +94,7 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         _;
     }
 
-    modifier onlyOwner() {
+    modifier onlyAdmin() {
         if (!hasRole(DEFAULT_ADMIN_ROLE, msg.sender))
             revert StrategyCallerNotOwner();
         _;
@@ -107,19 +105,19 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
     //
 
     /**
-     * Transfers ownership of the Strategy to another account,
-     * revoking previous owner's ADMIN role and setting up ADMIN role for the new owner.
+     * Transfers administrator rights for the Strategy to another account,
+     * revoking current admin roles and setting up the roles for the new admin.
      *
-     * @notice Can only be called by the current owner.
+     * @notice Can only be called by the account with the ADMIN role.
      *
-     * @param _newOwner The new owner of the contract.
+     * @param _newAdmin The new Strategy admin account.
      */
-    function transferOwnership(address _newOwner) public onlyOwner {
-        if (_newOwner == address(0x0)) revert StrategyOwnerCannotBe0Address();
-        if (_newOwner == msg.sender)
+    function transferOwnership(address _newAdmin) public onlyAdmin {
+        if (_newAdmin == address(0x0)) revert StrategyOwnerCannotBe0Address();
+        if (_newAdmin == msg.sender)
             revert StrategyCannotTransferOwnershipToSelf();
 
-        _setupRole(DEFAULT_ADMIN_ROLE, _newOwner);
+        _setupRole(DEFAULT_ADMIN_ROLE, _newAdmin);
 
         _revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
@@ -169,7 +167,7 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
 
     /// @inheritdoc IStrategy
     function invest() external virtual override(IStrategy) onlyManager {
-        uint256 balance = _getUnderlyingBalance();
+        uint256 balance = underlying.balanceOf(address(this));
         if (balance == 0) revert StrategyNoUnderlying();
 
         stabilityPool.provideToSP(balance, address(0));
@@ -205,7 +203,7 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         address _swapTarget,
         bytes calldata _lqtySwapData,
         bytes calldata _ethSwapData
-    ) external payable onlyOwner {
+    ) external payable onlyAdmin {
         // withdraw rewards from Liquity Stability Pool Contract
         stabilityPool.withdrawFromSP(0);
 
@@ -220,14 +218,14 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         if (lqtyRewards > 0) {
             // swap LQTY to USDC
             (success, ) = _swapTarget.call{value: msg.value}(_lqtySwapData);
-            require(success, "LQTY_SWAP_CALL_FAILED");
+            if (!success) revert SwapCallFailed(address(lqty));
         }
 
         // swap ETH to usdc
         // todo: double check in the tests if we are getting ETH or WETH from stability pool
         if (ethRewards > 0) {
             (success, ) = _swapTarget.call{value: msg.value}(_ethSwapData);
-            require(success, "ETH_SWAP_CALL_FAILED");
+            if (!success) revert SwapCallFailed(address(0));
         }
     }
 
@@ -241,10 +239,10 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         uint256 _amount,
         address _swapTarget,
         bytes calldata _swapData
-    ) external payable onlyOwner {
+    ) external payable onlyAdmin {
         _fromToken.approve(_swapTarget, _amount);
         (bool success, ) = _swapTarget.call{value: msg.value}(_swapData);
-        require(success, "SWAP_CALL_FAILED");
+        if (!success) revert SwapCallFailed(address(_fromToken));
     }
 
     /**
@@ -252,21 +250,10 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
      */
     function setCurveRouterAndPool(address _curveRouter, address _curveLusdPool)
         external
-        onlyOwner
+        onlyAdmin
     {
         curveRouter = ICurveRouter(_curveRouter);
         curveLusdPool = _curveLusdPool;
-    }
-
-    /////////////////////////////////// INTERNAL FUNCTIONS ////////////////////////////////////////////
-
-    /**
-     * Get the underlying balance of the strategy.
-     *
-     * @return underlying balance of the strategy
-     */
-    function _getUnderlyingBalance() internal view returns (uint256) {
-        return underlying.balanceOf(address(this));
     }
 }
 
