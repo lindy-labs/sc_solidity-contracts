@@ -51,7 +51,7 @@ describe('Integration', () => {
   const SPONSOR_ROLE = utils.keccak256(utils.toUtf8Bytes('SPONSOR_ROLE'));
 
   const fixtures = deployments.createFixture(async ({ deployments }) => {
-    await deployments.fixture(['vaults']);
+    await deployments.fixture(['vault']);
 
     [owner] = await ethers.getSigners();
 

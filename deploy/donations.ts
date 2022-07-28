@@ -46,8 +46,6 @@ func.skip = async (hre) =>
   hre.network.config.chainId != 80001 &&
   hre.network.config.chainId != 31337;
 
-func.id = 'deploy_donations';
 func.tags = ['donations'];
-func.dependencies = ['dev_setup', 'lusd', 'strategy', 'yearn'];
 
 export default func;
