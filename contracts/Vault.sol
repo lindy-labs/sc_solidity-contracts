@@ -466,7 +466,7 @@ contract Vault is
         address _inputToken,
         uint256 _amount,
         uint256 _lockDuration,
-        uint256 _slippage
+        uint16 _slippage
     )
         external
         override(IVaultSponsoring)

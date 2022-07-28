@@ -76,7 +76,7 @@ abstract contract CurveSwapper {
     function _swapIntoUnderlying(
         address _token,
         uint256 _amount,
-        uint256 _slippage
+        uint16 _slippage
     ) internal returns (uint256 amount) {
         address underlyingToken = getUnderlying();
         if (_token == underlyingToken) {
@@ -115,7 +115,7 @@ abstract contract CurveSwapper {
     function _swapFromUnderlying(
         address _token,
         uint256 _amount,
-        uint256 _slippage
+        uint16 _slippage
     ) internal returns (uint256 amount) {
         if (_token == getUnderlying()) {
             // same token, nothing to do
@@ -145,7 +145,7 @@ abstract contract CurveSwapper {
         uint256 _amount,
         uint8 _fromDecimals,
         uint8 _toDecimals,
-        uint256 _slippage
+        uint16 _slippage
     ) internal pure returns (uint256) {
         return
             (_amount * _slippage * 10**_toDecimals) / (10**_fromDecimals * 100);

@@ -23,11 +23,11 @@ contract TestCurveSwapper is CurveSwapper {
         return _underlying;
     }
 
-    function test_swapIntoUnderlying(address _token, uint256 _amount, uint256 _slippage) external {
+    function test_swapIntoUnderlying(address _token, uint256 _amount, uint16 _slippage) external {
         _swapIntoUnderlying(_token, _amount, _slippage);
     }
 
-    function test_swapFromUnderlying(address _token, uint256 _amount, uint256 _slippage) external {
+    function test_swapFromUnderlying(address _token, uint256 _amount, uint16 _slippage) external {
         _swapFromUnderlying(_token, _amount, _slippage);
     }
 
