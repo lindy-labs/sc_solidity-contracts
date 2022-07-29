@@ -112,7 +112,7 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
      *
      * @param _newAdmin The new Strategy admin account.
      */
-    function transferOwnership(address _newAdmin) public onlyAdmin {
+    function transferAdminRights(address _newAdmin) public onlyAdmin {
         if (_newAdmin == address(0x0)) revert StrategyOwnerCannotBe0Address();
         if (_newAdmin == msg.sender)
             revert StrategyCannotTransferOwnershipToSelf();
@@ -186,9 +186,34 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
 
         if (amount > investedAssets()) revert StrategyNotEnoughShares();
 
-        // withdraw lusd from the stabilityPool to this contract
-        // this will also withdraw the unclaimed lqty & eth rewards
-        stabilityPool.withdrawFromSP(amount);
+        uint256 uninvestedUnderlying = underlying.balanceOf(address(this));
+
+        if (amount > uninvestedUnderlying) {
+            uint256 toWithdraw = amount - uninvestedUnderlying;
+
+            // withdraw lusd from the stabilityPool to this contract
+            // this will also withdraw the unclaimed lqty & eth rewards
+            // if toWitdraw > the total deposits in stabilityPool, then the stabilityPool withdraws all the deposits
+            stabilityPool.withdrawFromSP(toWithdraw);
+        }
+
+        uninvestedUnderlying = underlying.balanceOf(address(this));
+
+        if (amount > uninvestedUnderlying) {
+            // if even after withdrawing from the stability pool, the lusd balance is still not enough
+            // then for the rest swap usdc held by the contract to lusd
+            uint256 toSwap = amount - uninvestedUnderlying;
+
+            // using curve for the usdc->lusd since that has the highest amount of lusd liquidity
+            curveRouter.exchange(
+                curveLusdPool,
+                address(usdc),
+                address(lusd),
+                toSwap,
+                1,
+                address(this)
+            );
+        }
 
         // transfer underlying to vault
         underlying.safeTransfer(vault, amount);
@@ -222,7 +247,6 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         }
 
         // swap ETH to usdc
-        // todo: double check in the tests if we are getting ETH or WETH from stability pool
         if (ethRewards > 0) {
             (success, ) = _swapTarget.call{value: msg.value}(_ethSwapData);
             if (!success) revert SwapCallFailed(address(0));
