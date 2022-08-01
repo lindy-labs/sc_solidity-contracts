@@ -236,19 +236,19 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         uint256 lqtyRewards = lqty.balanceOf(address(this));
         uint256 ethRewards = address(this).balance;
 
-        // give out approvals to the swapTarget
-        lqty.safeApprove(_swapTarget, lqtyRewards);
-
         bool success;
         if (lqtyRewards > 0) {
+            // give out approvals to the swapTarget
+            lqty.safeApprove(_swapTarget, lqtyRewards);
+
             // swap LQTY to USDC
-            (success, ) = _swapTarget.call{value: msg.value}(_lqtySwapData);
+            (success, ) = _swapTarget.call{value: 0}(_lqtySwapData);
             if (!success) revert SwapCallFailed(address(lqty));
         }
 
         // swap ETH to usdc
         if (ethRewards > 0) {
-            (success, ) = _swapTarget.call{value: msg.value}(_ethSwapData);
+            (success, ) = _swapTarget.call{value: ethRewards}(_ethSwapData);
             if (!success) revert SwapCallFailed(address(0));
         }
     }
@@ -259,12 +259,15 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         but can be used for other swaps too
      */
     function swap(
-        IERC20 _fromToken,
+        address _fromToken,
         uint256 _amount,
         address _swapTarget,
         bytes calldata _swapData
     ) external payable onlyAdmin {
-        _fromToken.approve(_swapTarget, _amount);
+        if (_fromToken != address(0)) {
+            IERC20(_fromToken).approve(_swapTarget, _amount);
+        }
+
         (bool success, ) = _swapTarget.call{value: msg.value}(_swapData);
         if (!success) revert SwapCallFailed(address(_fromToken));
     }
@@ -279,6 +282,11 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         curveRouter = ICurveRouter(_curveRouter);
         curveLusdPool = _curveLusdPool;
     }
+
+    /**
+     * Strategy has to be able to receive ETH rewards from the liquity stability pool.
+     */
+    receive() external payable {}
 }
 
 // the only problem is when withdrawals take place then in the case of a full withdrawal where somebody wants to withdraw all funds

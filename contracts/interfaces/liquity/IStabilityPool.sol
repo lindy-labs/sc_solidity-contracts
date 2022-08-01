@@ -2,8 +2,6 @@
 pragma solidity =0.8.10;
 
 interface IStabilityPool {
-    function activePool() external view returns (address);
-
     /*  provideToSP():
      *
      * - Triggers a LQTY issuance, based on time passed since the last issuance. The LQTY issuance is shared between *all* depositors and front ends
@@ -55,4 +53,16 @@ interface IStabilityPool {
         external
         view
         returns (uint256);
+
+    /*
+     * Cancels out the specified debt against the LUSD contained in the Stability Pool (as far as possible)
+     * and transfers the Trove's ETH collateral from ActivePool to StabilityPool.
+     * Only called by liquidation functions in the TroveManager.
+     */
+    function offset(uint256 _debtToOffset, uint256 _collToAdd) external;
+
+    /*
+     * Address of the TroveManager contract.
+     */
+    function troveManager() external view returns (address);
 }
