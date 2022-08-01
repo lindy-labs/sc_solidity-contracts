@@ -208,7 +208,7 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
             curveRouter.exchange(
                 curveLusdPool,
                 address(usdc),
-                address(lusd),
+                address(underlying),
                 toSwap,
                 1,
                 address(this)
