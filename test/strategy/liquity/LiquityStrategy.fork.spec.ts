@@ -9,7 +9,7 @@ import {
   ForkHelpers,
   generateNewAddress,
   moveForwardTwoWeeks,
-} from '../shared';
+} from '../../shared';
 
 import {
   Vault,
@@ -18,7 +18,7 @@ import {
   IStabilityPool,
   IStabilityPool__factory,
   LiquityStrategy,
-} from '../../typechain';
+} from '../../../typechain';
 
 const { parseUnits } = ethers.utils;
 const { MaxUint256 } = ethers.constants;
