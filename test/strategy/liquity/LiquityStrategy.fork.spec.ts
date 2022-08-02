@@ -81,10 +81,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       owner.address,
       lqtyStabilityPool.address,
       lqty.address,
-      usdc.address,
       lusd.address,
-      CURVE_ROUTER,
-      CURVE_LUSD_POOL,
     );
 
     await vault.setStrategy(strategy.address);
@@ -109,39 +106,39 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
     );
   });
 
-  it('swaps LQTY for USDC', async () => {
-    const swapAmount = parseUnits('1', await lqty.decimals());
+  // it('swaps LQTY for USDC', async () => {
+  //   const swapAmount = parseUnits('1', await lqty.decimals());
 
-    await ForkHelpers.mintToken(lqty, strategy.address, swapAmount);
+  //   await ForkHelpers.mintToken(lqty, strategy.address, swapAmount);
 
-    let url = `https://api.0x.org/swap/v1/quote?buyToken=${USDC}&sellToken=${lqty.address}&sellAmount=${swapAmount}`;
-    const { data } = await axios.get(url);
+  //   let url = `https://api.0x.org/swap/v1/quote?buyToken=${USDC}&sellToken=${lqty.address}&sellAmount=${swapAmount}`;
+  //   const { data } = await axios.get(url);
 
-    expect(await usdc.balanceOf(strategy.address)).to.eq('0');
+  //   expect(await usdc.balanceOf(strategy.address)).to.eq('0');
 
-    await strategy
-      .connect(owner)
-      .swap(data.sellTokenAddress, data.sellAmount, data.to, data.data);
+  //   await strategy
+  //     .connect(owner)
+  //     .swap(data.sellTokenAddress, data.sellAmount, data.to, data.data);
 
-    expect(await usdc.balanceOf(strategy.address)).to.gt('0');
-  });
+  //   expect(await usdc.balanceOf(strategy.address)).to.gt('0');
+  // });
 
-  it('swaps ETH for USDC', async () => {
-    const swapAmount = parseUnits('1');
+  // it('swaps ETH for USDC', async () => {
+  //   const swapAmount = parseUnits('1');
 
-    let url = `https://api.0x.org/swap/v1/quote?buyToken=${USDC}&sellToken=ETH&sellAmount=${swapAmount}`;
-    const { data } = await axios.get(url);
+  //   let url = `https://api.0x.org/swap/v1/quote?buyToken=${USDC}&sellToken=ETH&sellAmount=${swapAmount}`;
+  //   const { data } = await axios.get(url);
 
-    expect(await usdc.balanceOf(strategy.address)).to.eq('0');
+  //   expect(await usdc.balanceOf(strategy.address)).to.eq('0');
 
-    await strategy
-      .connect(owner)
-      .swap(constants.AddressZero, data.sellAmount, data.to, data.data, {
-        value: swapAmount,
-      });
+  //   await strategy
+  //     .connect(owner)
+  //     .swap(constants.AddressZero, data.sellAmount, data.to, data.data, {
+  //       value: swapAmount,
+  //     });
 
-    expect(await usdc.balanceOf(strategy.address)).to.gt('0');
-  });
+  //   expect(await usdc.balanceOf(strategy.address)).to.gt('0');
+  // });
 
   it('harvests gains from stability pool and converts them to USDC', async () => {
     const troveManagerAddress = await lqtyStabilityPool.troveManager();

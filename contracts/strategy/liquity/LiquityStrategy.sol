@@ -42,24 +42,16 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
     address public immutable override(IStrategy) vault;
     IStabilityPool public immutable stabilityPool;
     IERC20 public immutable lqty; // reward token
-    IERC20 public immutable usdc;
-
-    ICurveRouter public curveRouter;
-    address public curveLusdPool;
 
     constructor(
         address _vault,
         address _admin,
         address _stabilityPool,
         address _lqty,
-        address _usdc,
-        address _underlying,
-        address _curveRouter,
-        address _curveLusdPool
+        address _underlying
     ) {
         if (_admin == address(0)) revert StrategyOwnerCannotBe0Address();
         if (_lqty == address(0)) revert StrategyYieldTokenCannotBe0Address();
-        if (_usdc == address(0)) revert StrategyYieldTokenCannotBe0Address();
         if (_stabilityPool == address(0))
             revert LiquityStabilityPoolCannotBeAddressZero();
         if (_underlying == address(0))
@@ -75,11 +67,6 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         underlying = IERC20(_underlying);
         stabilityPool = IStabilityPool(_stabilityPool);
         lqty = IERC20(_lqty);
-        usdc = IERC20(_usdc);
-
-        // no need extra checks for these, since if these are wrong then the investedAssets method would revert automatically
-        curveRouter = ICurveRouter(_curveRouter);
-        curveLusdPool = _curveLusdPool;
 
         underlying.approve(_stabilityPool, type(uint256).max);
     }
@@ -153,16 +140,7 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
     {
         return
             // lusd deposited into liquity's stability pool
-            stabilityPool.getCompoundedLUSDDeposit(address(this)) +
-            // lusd held by this contract
-            underlying.balanceOf(address(this)) +
-            // usdc held by this contract in lusd denomination
-            curveRouter.get_exchange_amount(
-                curveLusdPool,
-                address(usdc),
-                address(underlying),
-                usdc.balanceOf(address(this))
-            );
+            stabilityPool.getCompoundedLUSDDeposit(address(this));
     }
 
     /// @inheritdoc IStrategy
@@ -186,34 +164,10 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
 
         if (amount > investedAssets()) revert StrategyNotEnoughShares();
 
-        uint256 uninvestedUnderlying = underlying.balanceOf(address(this));
-
-        if (amount > uninvestedUnderlying) {
-            uint256 toWithdraw = amount - uninvestedUnderlying;
-
-            // withdraw lusd from the stabilityPool to this contract
-            // this will also withdraw the unclaimed lqty & eth rewards
-            // if toWitdraw > the total deposits in stabilityPool, then the stabilityPool withdraws all the deposits
-            stabilityPool.withdrawFromSP(toWithdraw);
-        }
-
-        uninvestedUnderlying = underlying.balanceOf(address(this));
-
-        if (amount > uninvestedUnderlying) {
-            // if even after withdrawing from the stability pool, the lusd balance is still not enough
-            // then for the rest swap usdc held by the contract to lusd
-            uint256 toSwap = amount - uninvestedUnderlying;
-
-            // using curve for the usdc->lusd since that has the highest amount of lusd liquidity
-            curveRouter.exchange(
-                curveLusdPool,
-                address(usdc),
-                address(underlying),
-                toSwap,
-                1,
-                address(this)
-            );
-        }
+        // withdraw lusd from the stabilityPool to this contract
+        // this will also withdraw the unclaimed lqty & eth rewards
+        // if toWitdraw > the total deposits in stabilityPool, then the stabilityPool withdraws all the deposits
+        stabilityPool.withdrawFromSP(amount);
 
         // transfer underlying to vault
         underlying.safeTransfer(vault, amount);
@@ -222,7 +176,7 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
     }
 
     /**
-        swaps the ETH & LQTY rewards from the stability pool into usdc
+        swaps the ETH & LQTY rewards from the stability pool into LUSD
      */
     function harvest(
         address _swapTarget,
@@ -241,46 +195,22 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
             // give out approvals to the swapTarget
             lqty.safeApprove(_swapTarget, lqtyRewards);
 
-            // swap LQTY to USDC
+            // swap LQTY to LUSD
             (success, ) = _swapTarget.call{value: 0}(_lqtySwapData);
             if (!success) revert SwapCallFailed(address(lqty));
         }
 
-        // swap ETH to usdc
+        // swap ETH to LUSD
         if (ethRewards > 0) {
             (success, ) = _swapTarget.call{value: ethRewards}(_ethSwapData);
             if (!success) revert SwapCallFailed(address(0));
         }
-    }
 
-    /**
-        @notice swaps all the given fromtoken balance inside the contract to the toToken (coming from the 0xapi data)
-        supposed to be used by the backend to swap the usdc held by the contract to lusd
-        but can be used for other swaps too
-     */
-    function swap(
-        address _fromToken,
-        uint256 _amount,
-        address _swapTarget,
-        bytes calldata _swapData
-    ) external payable onlyAdmin {
-        if (_fromToken != address(0)) {
-            IERC20(_fromToken).approve(_swapTarget, _amount);
+        // reinvest rewards into the stability pool
+        uint256 balance = underlying.balanceOf(address(this));
+        if (balance > 0) {
+            stabilityPool.provideToSP(balance, address(0));
         }
-
-        (bool success, ) = _swapTarget.call{value: msg.value}(_swapData);
-        if (!success) revert SwapCallFailed(address(_fromToken));
-    }
-
-    /**
-        @notice set the curve router address and the curve lusd pool address
-     */
-    function setCurveRouterAndPool(address _curveRouter, address _curveLusdPool)
-        external
-        onlyAdmin
-    {
-        curveRouter = ICurveRouter(_curveRouter);
-        curveLusdPool = _curveLusdPool;
     }
 
     /**

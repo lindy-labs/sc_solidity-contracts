@@ -91,10 +91,7 @@ describe('LiquityStrategy', () => {
       owner.address,
       stabilityPool.address,
       lqty.address,
-      usdc.address,
       underlying.address,
-      curveRouter.address,
-      curvePool.address,
     );
 
     await strategy.connect(owner).grantRole(MANAGER_ROLE, manager.address);
@@ -114,10 +111,7 @@ describe('LiquityStrategy', () => {
           constants.AddressZero,
           stabilityPool.address,
           lqty.address,
-          usdc.address,
           underlying.address,
-          curveRouter.address,
-          curvePool.address,
         ),
       ).to.be.revertedWith('StrategyOwnerCannotBe0Address');
     });
@@ -129,10 +123,7 @@ describe('LiquityStrategy', () => {
           owner.address,
           constants.AddressZero,
           lqty.address,
-          usdc.address,
           underlying.address,
-          curveRouter.address,
-          curvePool.address,
         ),
       ).to.be.revertedWith('LiquityStabilityPoolCannotBeAddressZero');
     });
@@ -144,25 +135,7 @@ describe('LiquityStrategy', () => {
           owner.address,
           stabilityPool.address,
           constants.AddressZero,
-          usdc.address,
           underlying.address,
-          curveRouter.address,
-          curvePool.address,
-        ),
-      ).to.be.revertedWith('StrategyYieldTokenCannotBe0Address');
-    });
-
-    it('reverts if usdc is address(0)', async () => {
-      await expect(
-        LiquityStrategyFactory.deploy(
-          vault.address,
-          owner.address,
-          stabilityPool.address,
-          lqty.address,
-          constants.AddressZero,
-          underlying.address,
-          curveRouter.address,
-          curvePool.address,
         ),
       ).to.be.revertedWith('StrategyYieldTokenCannotBe0Address');
     });
@@ -174,10 +147,7 @@ describe('LiquityStrategy', () => {
           owner.address,
           stabilityPool.address,
           lqty.address,
-          usdc.address,
           constants.AddressZero,
-          curveRouter.address,
-          curvePool.address,
         ),
       ).to.be.revertedWith('StrategyUnderlyingCannotBe0Address');
     });
@@ -189,10 +159,7 @@ describe('LiquityStrategy', () => {
           owner.address,
           stabilityPool.address,
           lqty.address,
-          usdc.address,
           underlying.address,
-          curveRouter.address,
-          curvePool.address,
         ),
       ).to.be.revertedWith('StrategyNotIVault');
     });
