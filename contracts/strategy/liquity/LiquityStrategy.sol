@@ -50,7 +50,7 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         address _lqty,
         address _underlying
     ) {
-        if (_admin == address(0)) revert StrategyOwnerCannotBe0Address();
+        if (_admin == address(0)) revert StrategyAdminCannotBe0Address();
         if (_lqty == address(0)) revert StrategyYieldTokenCannotBe0Address();
         if (_stabilityPool == address(0))
             revert LiquityStabilityPoolCannotBeAddressZero();
@@ -83,7 +83,7 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
 
     modifier onlyAdmin() {
         if (!hasRole(DEFAULT_ADMIN_ROLE, msg.sender))
-            revert StrategyCallerNotOwner();
+            revert StrategyCallerNotAdmin();
         _;
     }
 
@@ -100,9 +100,9 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
      * @param _newAdmin The new Strategy admin account.
      */
     function transferAdminRights(address _newAdmin) public onlyAdmin {
-        if (_newAdmin == address(0x0)) revert StrategyOwnerCannotBe0Address();
+        if (_newAdmin == address(0x0)) revert StrategyAdminCannotBe0Address();
         if (_newAdmin == msg.sender)
-            revert StrategyCannotTransferOwnershipToSelf();
+            revert StrategyCannotTransferAdminRightsToSelf();
 
         _setupRole(DEFAULT_ADMIN_ROLE, _newAdmin);
 

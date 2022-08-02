@@ -113,7 +113,7 @@ describe('LiquityStrategy', () => {
           lqty.address,
           underlying.address,
         ),
-      ).to.be.revertedWith('StrategyOwnerCannotBe0Address');
+      ).to.be.revertedWith('StrategyAdminCannotBe0Address');
     });
 
     it('reverts if stabilityPool is address(0)', async () => {
@@ -186,19 +186,19 @@ describe('LiquityStrategy', () => {
     it('can only be called by the current owner', async () => {
       await expect(
         strategy.connect(alice).transferAdminRights(alice.address),
-      ).to.be.revertedWith('StrategyCallerNotOwner');
+      ).to.be.revertedWith('StrategyCallerNotAdmin');
     });
 
     it('reverts if new owner is address(0)', async () => {
       await expect(
         strategy.connect(owner).transferAdminRights(constants.AddressZero),
-      ).to.be.revertedWith('StrategyOwnerCannotBe0Address');
+      ).to.be.revertedWith('StrategyAdminCannotBe0Address');
     });
 
     it('reverts if the new owner is the same as the current one', async () => {
       await expect(
         strategy.connect(owner).transferAdminRights(owner.address),
-      ).to.be.revertedWith('StrategyCannotTransferOwnershipToSelf');
+      ).to.be.revertedWith('StrategyCannotTransferAdminRightsToSelf');
     });
 
     it('changes ownership to the new owner', async () => {
