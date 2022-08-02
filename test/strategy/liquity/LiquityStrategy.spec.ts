@@ -91,10 +91,7 @@ describe('LiquityStrategy', () => {
       owner.address,
       stabilityPool.address,
       lqty.address,
-      usdc.address,
       underlying.address,
-      curveRouter.address,
-      curvePool.address,
     );
 
     await strategy.connect(owner).grantRole(MANAGER_ROLE, manager.address);
@@ -114,10 +111,7 @@ describe('LiquityStrategy', () => {
           constants.AddressZero,
           stabilityPool.address,
           lqty.address,
-          usdc.address,
           underlying.address,
-          curveRouter.address,
-          curvePool.address,
         ),
       ).to.be.revertedWith('StrategyOwnerCannotBe0Address');
     });
@@ -129,10 +123,7 @@ describe('LiquityStrategy', () => {
           owner.address,
           constants.AddressZero,
           lqty.address,
-          usdc.address,
           underlying.address,
-          curveRouter.address,
-          curvePool.address,
         ),
       ).to.be.revertedWith('LiquityStabilityPoolCannotBeAddressZero');
     });
@@ -144,25 +135,7 @@ describe('LiquityStrategy', () => {
           owner.address,
           stabilityPool.address,
           constants.AddressZero,
-          usdc.address,
           underlying.address,
-          curveRouter.address,
-          curvePool.address,
-        ),
-      ).to.be.revertedWith('StrategyYieldTokenCannotBe0Address');
-    });
-
-    it('reverts if usdc is address(0)', async () => {
-      await expect(
-        LiquityStrategyFactory.deploy(
-          vault.address,
-          owner.address,
-          stabilityPool.address,
-          lqty.address,
-          constants.AddressZero,
-          underlying.address,
-          curveRouter.address,
-          curvePool.address,
         ),
       ).to.be.revertedWith('StrategyYieldTokenCannotBe0Address');
     });
@@ -174,10 +147,7 @@ describe('LiquityStrategy', () => {
           owner.address,
           stabilityPool.address,
           lqty.address,
-          usdc.address,
           constants.AddressZero,
-          curveRouter.address,
-          curvePool.address,
         ),
       ).to.be.revertedWith('StrategyUnderlyingCannotBe0Address');
     });
@@ -189,10 +159,7 @@ describe('LiquityStrategy', () => {
           owner.address,
           stabilityPool.address,
           lqty.address,
-          usdc.address,
           underlying.address,
-          curveRouter.address,
-          curvePool.address,
         ),
       ).to.be.revertedWith('StrategyNotIVault');
     });
@@ -215,22 +182,22 @@ describe('LiquityStrategy', () => {
     });
   });
 
-  describe('#transferOwnership', () => {
+  describe('#transferAdminRights', () => {
     it('can only be called by the current owner', async () => {
       await expect(
-        strategy.connect(alice).transferOwnership(alice.address),
+        strategy.connect(alice).transferAdminRights(alice.address),
       ).to.be.revertedWith('StrategyCallerNotOwner');
     });
 
     it('reverts if new owner is address(0)', async () => {
       await expect(
-        strategy.connect(owner).transferOwnership(constants.AddressZero),
+        strategy.connect(owner).transferAdminRights(constants.AddressZero),
       ).to.be.revertedWith('StrategyOwnerCannotBe0Address');
     });
 
     it('reverts if the new owner is the same as the current one', async () => {
       await expect(
-        strategy.connect(owner).transferOwnership(owner.address),
+        strategy.connect(owner).transferAdminRights(owner.address),
       ).to.be.revertedWith('StrategyCannotTransferOwnershipToSelf');
     });
 
@@ -241,7 +208,7 @@ describe('LiquityStrategy', () => {
         await strategy.hasRole(DEFAULT_ADMIN_ROLE, alice.address),
       ).to.be.equal(false);
 
-      await strategy.connect(owner).transferOwnership(alice.address);
+      await strategy.connect(owner).transferAdminRights(alice.address);
 
       expect(
         await strategy.hasRole(DEFAULT_ADMIN_ROLE, alice.address),
@@ -253,7 +220,7 @@ describe('LiquityStrategy', () => {
       expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, owner.address)).to.be
         .true;
 
-      await strategy.connect(owner).transferOwnership(alice.address);
+      await strategy.connect(owner).transferAdminRights(alice.address);
 
       expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, owner.address)).to.be
         .false;

@@ -33,6 +33,13 @@ export function impersonate(accounts: string[]) {
   );
 }
 
+export async function setBalance(address: string, balance: BigNumber) {
+  await network.provider.send('hardhat_setBalance', [
+    address,
+    dirtyFix(balance._hex),
+  ]);
+}
+
 export async function unfork() {
   await network.provider.request({
     method: 'hardhat_reset',

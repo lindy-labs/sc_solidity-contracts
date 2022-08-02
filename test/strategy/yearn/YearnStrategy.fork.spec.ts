@@ -8,7 +8,7 @@ import {
   ForkHelpers,
   generateNewAddress,
   moveForwardTwoWeeks,
-} from '../shared';
+} from '../../shared';
 
 import {
   Vault,
@@ -17,9 +17,9 @@ import {
   IYearnVault,
   IYearnVault__factory,
   YearnStrategy,
-} from '../../typechain';
+} from '../../../typechain';
 
-import { depositParams, claimParams } from '../shared/factories';
+import { depositParams, claimParams } from '../../shared/factories';
 
 const { parseUnits } = ethers.utils;
 const { MaxUint256 } = ethers.constants;
