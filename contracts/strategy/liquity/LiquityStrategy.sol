@@ -280,11 +280,3 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         curveLusdPool = _curveLusdPool;
     }
 }
-
-// the only problem is when withdrawals take place then in the case of a full withdrawal where somebody wants to withdraw all funds
-// we may have problems if all our funds are not in lusd. If there are still funds in eth, lqty or usdc.
-// then we need to add clauses in the withdraw which will convert eth/lqty/usdc to lusd in such scenarios and then withdraw the lusd.
-
-// we can allow withdrawals anytime if the user is ready to take a loss
-// the vault deposits to the strategy anyway, so we can just deposit to the strategy when we want
-// call the harvest method from the vault before the invest method
