@@ -20,6 +20,7 @@ interface IVault {
         uint256 amount;
         ClaimParams[] claims;
         string name;
+        uint256 slippage;
     }
 
     struct Deposit {

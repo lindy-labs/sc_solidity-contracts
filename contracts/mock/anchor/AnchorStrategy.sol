@@ -85,7 +85,7 @@ contract AnchorStrategy is
      * @param _aUstToUstFeed aUST / UST chainlink feed address
      * @param _ustToken UST token address
      * @param _aUstToken aUST token address
-     * @param _owner Owner address
+     * @param _admin admin address
      */
     constructor(
         address _vault,
@@ -93,9 +93,9 @@ contract AnchorStrategy is
         AggregatorV3Interface _aUstToUstFeed,
         IERC20 _ustToken,
         IERC20 _aUstToken,
-        address _owner
+        address _admin
     ) {
-        if (_owner == address(0)) revert StrategyOwnerCannotBe0Address();
+        if (_admin == address(0)) revert StrategyAdminCannotBe0Address();
         if (_ethAnchorRouter == address(0))
             revert StrategyRouterCannotBe0Address();
         if (address(_ustToken) == address(0))
@@ -105,7 +105,7 @@ contract AnchorStrategy is
         if (!_vault.doesContractImplementInterface(type(IVault).interfaceId))
             revert StrategyNotIVault();
 
-        _setupRole(DEFAULT_ADMIN_ROLE, _owner);
+        _setupRole(DEFAULT_ADMIN_ROLE, _admin);
         _setupRole(MANAGER_ROLE, _vault);
 
         vault = _vault;

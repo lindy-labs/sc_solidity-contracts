@@ -1,7 +1,7 @@
 # Sandclock's Solidity Monorepo
 
 ![Build Status](https://github.com/lindy-labs/sc_solidity-contracts/workflows/CI/badge.svg)
-[![Coverage Status](https://coveralls.io/repos/github/lindy-labs/sc_solidity-contracts/badge.svg)](https://coveralls.io/github/lindy-labs/sc_solidity-contracts)
+[![Coverage Status](https://coveralls.io/repos/github/lindy-labs/sc_solidity-contracts/badge.svg?branch=main&kill_cache=1)](https://coveralls.io/github/lindy-labs/sc_solidity-contracts)
 
 Solidity implementation of [Sandclock](https://sandclock.org)'s vaults, strategies, and peripheral contracts.
 

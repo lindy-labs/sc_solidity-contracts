@@ -179,21 +179,16 @@ contract Vault is
     //
 
     /**
-     * Transfers ownership of the Vault to another account,
+     * Transfers ownership of the Vault to another account, 
      * revoking all of previous owner's roles and setting them up for the new owner.
-     *
+     * 
      * @notice Can only be called by the current owner.
      *
      * @param _newOwner The new owner of the contract.
      */
-    function transferOwnership(address _newOwner)
-        public
-        override(Ownable)
-        onlyOwner
-    {
+    function transferOwnership(address _newOwner) public override(Ownable) onlyOwner {
         if (_newOwner == address(0x0)) revert VaultOwnerCannotBe0Address();
-        if (_newOwner == msg.sender)
-            revert VaultCannotTransferOwnershipToSelf();
+        if (_newOwner == msg.sender) revert VaultCannotTransferOwnershipToSelf();
 
         _transferOwnership(_newOwner);
 
@@ -313,7 +308,8 @@ contract Vault is
         );
         uint256 newUnderlyingAmount = _swapIntoUnderlying(
             _params.inputToken,
-            _params.amount
+            _params.amount,
+            _params.slippage
         );
 
         uint64 lockedUntil = _params.lockDuration + _blockTimestamp();
@@ -469,7 +465,8 @@ contract Vault is
     function sponsor(
         address _inputToken,
         uint256 _amount,
-        uint256 _lockDuration
+        uint256 _lockDuration,
+        uint256 _slippage
     )
         external
         override(IVaultSponsoring)
@@ -489,7 +486,11 @@ contract Vault is
         uint256 tokenId = _depositTokenIds.current();
 
         _transferAndCheckInputToken(msg.sender, _inputToken, _amount);
-        uint256 underlyingAmount = _swapIntoUnderlying(_inputToken, _amount);
+        uint256 underlyingAmount = _swapIntoUnderlying(
+            _inputToken,
+            _amount,
+            _slippage
+        );
 
         deposits[tokenId] = Deposit(
             underlyingAmount,
@@ -786,6 +787,8 @@ contract Vault is
         if (sponsorAmount > totalUnderlying()) revert VaultNotEnoughFunds();
 
         totalSponsored -= sponsorAmount;
+
+        _rebalanceBeforeWithdrawing(sponsorAmount);
 
         underlying.safeTransfer(_to, sponsorAmount);
     }

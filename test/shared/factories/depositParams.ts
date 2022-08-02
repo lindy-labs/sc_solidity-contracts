@@ -4,6 +4,7 @@ import { time } from '@openzeppelin/test-helpers';
 
 import type { ClaimParams } from './claimParams';
 import { claimParams } from './claimParams';
+import { CURVE_SLIPPAGE } from '..';
 
 const { parseUnits } = ethers.utils;
 
@@ -13,6 +14,7 @@ interface DepositParams {
   claims: ClaimParams[];
   lockDuration: BigNumberish;
   name: string;
+  slippage: BigNumberish;
 }
 
 export const depositParams = Factory.define<DepositParams>(() => {
@@ -22,5 +24,6 @@ export const depositParams = Factory.define<DepositParams>(() => {
     claims: [claimParams.build()],
     lockDuration: ethers.BigNumber.from(time.duration.weeks(2).toNumber()), // 2 weeks
     name: 'Foundation name',
+    slippage: CURVE_SLIPPAGE,
   };
 });
