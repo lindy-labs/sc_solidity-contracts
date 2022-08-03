@@ -12,7 +12,6 @@ import {IStrategy} from "../IStrategy.sol";
 import {CustomErrors} from "../../interfaces/CustomErrors.sol";
 import {IVault} from "../../vault/IVault.sol";
 import {IStabilityPool} from "../../interfaces/liquity/IStabilityPool.sol";
-import {ICurveRouter} from "../../interfaces/curve/ICurveRouter.sol";
 
 /***
  * Gives out LQTY & ETH as rewards
@@ -87,10 +86,6 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         _;
     }
 
-    //
-    // IStrategy
-    //
-
     /**
      * Transfers administrator rights for the Strategy to another account,
      * revoking current admin roles and setting up the roles for the new admin.
@@ -108,6 +103,10 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
 
         _revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
+
+    //
+    // IStrategy
+    //
 
     /**
      * Returns true since strategy is synchronous.
@@ -128,9 +127,7 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
     }
 
     /// @inheritdoc IStrategy
-    /// @notice lusd deposited into strategy + lusd held by strategy + usdc held after eth/lqty=>usdc swap
-    /// @dev eth & lqty rewards of the strategy in the lqty pool or withdrawn and held by the strategy are not calculated as rewards
-    /// untill that eth/lqty is harvested and converted to usdc/lusd.
+    /// @notice ETH & LQTY rewards of the strategy waiting to be claimed in the liquity stability pool are not included
     function investedAssets()
         public
         view
@@ -138,9 +135,7 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         override(IStrategy)
         returns (uint256)
     {
-        return
-            // lusd deposited into liquity's stability pool
-            stabilityPool.getCompoundedLUSDDeposit(address(this));
+        return stabilityPool.getCompoundedLUSDDeposit(address(this));
     }
 
     /// @inheritdoc IStrategy
@@ -186,27 +181,26 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         // withdraw rewards from Liquity Stability Pool Contract
         stabilityPool.withdrawFromSP(0);
 
-        // calculate rewards
         uint256 lqtyRewards = lqty.balanceOf(address(this));
         uint256 ethRewards = address(this).balance;
 
         bool success;
         if (lqtyRewards > 0) {
-            // give out approvals to the swapTarget
+            // give approval to the swapTarget
             lqty.safeApprove(_swapTarget, lqtyRewards);
 
-            // swap LQTY to LUSD
+            // swap LQTY reward to LUSD
             (success, ) = _swapTarget.call{value: 0}(_lqtySwapData);
             if (!success) revert SwapCallFailed(address(lqty));
         }
 
-        // swap ETH to LUSD
+        // swap ETH reward to LUSD
         if (ethRewards > 0) {
             (success, ) = _swapTarget.call{value: ethRewards}(_ethSwapData);
             if (!success) revert SwapCallFailed(address(0));
         }
 
-        // reinvest rewards into the stability pool
+        // invest gains into the stability pool
         uint256 balance = underlying.balanceOf(address(this));
         if (balance > 0) {
             stabilityPool.provideToSP(balance, address(0));

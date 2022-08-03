@@ -127,6 +127,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
     const lqtyGains = await lqtyStabilityPool.getDepositorLQTYGain(
       strategy.address,
     );
+    expect(lqtyGains).to.be.gt(0);
     const sellLqtyResponse = await axios.get(
       `https://api.0x.org/swap/v1/quote?buyToken=${LUSD}&sellToken=${lqty.address}&sellAmount=${lqtyGains}`,
     );
@@ -135,6 +136,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
     const ethGains = await lqtyStabilityPool.getDepositorETHGain(
       strategy.address,
     );
+    expect(ethGains).to.be.gt(0);
     const sellEthResponse = await axios.get(
       `https://api.0x.org/swap/v1/quote?buyToken=${LUSD}&sellToken=ETH&sellAmount=${ethGains}`,
     );
