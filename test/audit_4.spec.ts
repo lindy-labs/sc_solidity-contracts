@@ -3,6 +3,7 @@ import { ethers } from 'hardhat';
 import { expect } from 'chai';
 import { BigNumber, utils, constants } from 'ethers';
 import { time } from '@openzeppelin/test-helpers';
+import { parseUnits } from 'ethers/lib/utils';
 
 import {
   Vault,
@@ -17,7 +18,7 @@ import {
   moveForwardTwoWeeks,
   CURVE_SLIPPAGE,
 } from './shared/';
-import { parseUnits } from 'ethers/lib/utils';
+import { depositParams, claimParams } from './shared/factories';
 
 let owner: SignerWithAddress;
 let manager: SignerWithAddress;
@@ -30,7 +31,7 @@ let YearnStrategyFactory: YearnStrategy__factory;
 
 const TREASURY = generateNewAddress();
 const MIN_LOCK_PERIOD = 1;
-const PERFORMANCE_FEE_PCT = BigNumber.from('0');
+const PERFORMANCE_FEE_PCT = BigNumber.from('200');
 const INVEST_PCT = BigNumber.from('10000');
 const INVESTMENT_FEE_PCT = BigNumber.from('0');
 const UNDERLYING_DECIMALS = '18';
@@ -232,6 +233,32 @@ describe('Audit Tests 4', () => {
       await strategy.connect(manager).withdrawToVault(parseUnits('30'));
 
       expect(await yVault.spyForMaxLossWithdrawParam()).to.eq(maxLoss);
+    });
+  });
+
+  describe('issue I-1 Vault#withdrawPerfFee', () => {
+    beforeEach(() => beforeEachCommon(UNDERLYING_DECIMALS));
+
+    it.only("works when there's not enough funds in the vault by withdrawing from sync strategy", async () => {
+      const params = depositParams.build({
+        amount: parseUnits('100'),
+        inputToken: underlying.address,
+        claims: [claimParams.percent(100).to(owner.address).build()],
+      });
+
+      await vault.connect(owner).deposit(params);
+      underlying.mint(vault.address, parseUnits('100'));
+      await vault.connect(owner).claimYield(owner.address);
+
+      expect(await vault.accumulatedPerfFee()).to.eq(parseUnits('2'));
+
+      // updateInvested will leave the vault with 0 underlying
+      await vault.updateInvested();
+
+      expect(await underlying.balanceOf(vault.address)).to.eq('0');
+
+      await expect(vault.connect(owner).withdrawPerformanceFee()).to.not.be
+        .reverted;
     });
   });
 });
