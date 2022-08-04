@@ -239,7 +239,7 @@ describe('Audit Tests 4', () => {
   describe('issue I-1 Vault#withdrawPerformanceFee', () => {
     beforeEach(() => beforeEachCommon(UNDERLYING_DECIMALS));
 
-    it.only("works when there's not enough funds in the vault by withdrawing from sync strategy", async () => {
+    it("works when there's not enough funds in the vault by withdrawing from sync strategy", async () => {
       const params = depositParams.build({
         amount: parseUnits('100'),
         inputToken: underlying.address,
