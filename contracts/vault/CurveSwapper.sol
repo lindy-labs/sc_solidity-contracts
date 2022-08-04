@@ -76,7 +76,7 @@ abstract contract CurveSwapper {
     function _swapIntoUnderlying(
         address _token,
         uint256 _amount,
-        uint256 _slippage
+        uint256 _minAmountOut
     ) internal returns (uint256 amount) {
         address underlyingToken = getUnderlying();
         if (_token == underlyingToken) {
@@ -90,18 +90,11 @@ abstract contract CurveSwapper {
             "non-existing swap pool"
         );
 
-        uint256 minAmount = _calcMinDy(
-            _amount,
-            swapper.tokenDecimals,
-            swapper.underlyingDecimals,
-            _slippage
-        );
-
         amount = swapper.pool.exchange_underlying(
             swapper.tokenI,
             swapper.underlyingI,
             _amount,
-            minAmount
+            _minAmountOut
         );
 
         emit Swap(_token, underlyingToken, _amount, amount);
@@ -115,7 +108,7 @@ abstract contract CurveSwapper {
     function _swapFromUnderlying(
         address _token,
         uint256 _amount,
-        uint256 _slippage
+        uint256 _minAmountOut
     ) internal returns (uint256 amount) {
         if (_token == getUnderlying()) {
             // same token, nothing to do
@@ -124,31 +117,14 @@ abstract contract CurveSwapper {
 
         Swapper storage swapper = swappers[_token];
 
-        uint256 minAmount = _calcMinDy(
-            _amount,
-            swapper.underlyingDecimals,
-            swapper.tokenDecimals,
-            _slippage
-        );
-
         amount = swapper.pool.exchange_underlying(
             swapper.underlyingI,
             swapper.tokenI,
             _amount,
-            minAmount
+            _minAmountOut
         );
 
         emit Swap(getUnderlying(), _token, _amount, amount);
-    }
-
-    function _calcMinDy(
-        uint256 _amount,
-        uint8 _fromDecimals,
-        uint8 _toDecimals,
-        uint256 _slippage
-    ) internal pure returns (uint256) {
-        return
-            (_amount * _slippage * 10**_toDecimals) / (10**_fromDecimals * 10000);
     }
 
     /// This is necessary because some tokens (USDT) force you to approve(0)
