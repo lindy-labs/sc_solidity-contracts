@@ -236,7 +236,7 @@ describe('Audit Tests 4', () => {
     });
   });
 
-  describe('issue I-1 Vault#withdrawPerfFee', () => {
+  describe('issue I-1 Vault#withdrawPerformanceFee', () => {
     beforeEach(() => beforeEachCommon(UNDERLYING_DECIMALS));
 
     it.only("works when there's not enough funds in the vault by withdrawing from sync strategy", async () => {
