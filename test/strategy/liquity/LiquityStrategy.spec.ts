@@ -1,5 +1,5 @@
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
-import { ethers } from 'hardhat';
+import { ethers, upgrades } from 'hardhat';
 import { expect } from 'chai';
 import { BigNumber, utils, constants } from 'ethers';
 
@@ -71,13 +71,23 @@ describe('LiquityStrategy', () => {
 
     LiquityStrategyFactory = await ethers.getContractFactory('LiquityStrategy');
 
-    strategy = await LiquityStrategyFactory.deploy(
-      vault.address,
-      admin.address,
-      stabilityPool.address,
-      lqty.address,
-      underlying.address,
+    const strategy_proxy = await upgrades.deployProxy(
+      LiquityStrategyFactory,
+      [
+        vault.address,
+        admin.address,
+        stabilityPool.address,
+        lqty.address,
+        underlying.address,
+      ],
+      {
+        kind: 'uups',
+      },
     );
+
+    await strategy_proxy.deployed();
+
+    strategy = LiquityStrategyFactory.attach(strategy_proxy.address);
 
     await strategy.connect(admin).grantRole(MANAGER_ROLE, manager.address);
 
@@ -88,63 +98,93 @@ describe('LiquityStrategy', () => {
       .approve(vault.address, constants.MaxUint256);
   });
 
-  describe('#constructor', () => {
+  describe('#initialize', () => {
     it('reverts if admin is address(0)', async () => {
       await expect(
-        LiquityStrategyFactory.deploy(
-          vault.address,
-          constants.AddressZero,
-          stabilityPool.address,
-          lqty.address,
-          underlying.address,
+        upgrades.deployProxy(
+          LiquityStrategyFactory,
+          [
+            vault.address,
+            constants.AddressZero,
+            stabilityPool.address,
+            lqty.address,
+            underlying.address,
+          ],
+          {
+            kind: 'uups',
+          },
         ),
       ).to.be.revertedWith('StrategyAdminCannotBe0Address');
     });
 
     it('reverts if stabilityPool is address(0)', async () => {
       await expect(
-        LiquityStrategyFactory.deploy(
-          vault.address,
-          admin.address,
-          constants.AddressZero,
-          lqty.address,
-          underlying.address,
+        upgrades.deployProxy(
+          LiquityStrategyFactory,
+          [
+            vault.address,
+            admin.address,
+            constants.AddressZero,
+            lqty.address,
+            underlying.address,
+          ],
+          {
+            kind: 'uups',
+          },
         ),
       ).to.be.revertedWith('LiquityStabilityPoolCannotBeAddressZero');
     });
 
     it('reverts if lqty is address(0)', async () => {
       await expect(
-        LiquityStrategyFactory.deploy(
-          vault.address,
-          admin.address,
-          stabilityPool.address,
-          constants.AddressZero,
-          underlying.address,
+        upgrades.deployProxy(
+          LiquityStrategyFactory,
+          [
+            vault.address,
+            admin.address,
+            stabilityPool.address,
+            constants.AddressZero,
+            underlying.address,
+          ],
+          {
+            kind: 'uups',
+          },
         ),
       ).to.be.revertedWith('StrategyYieldTokenCannotBe0Address');
     });
 
     it('reverts if underlying is address(0)', async () => {
       await expect(
-        LiquityStrategyFactory.deploy(
-          vault.address,
-          admin.address,
-          stabilityPool.address,
-          lqty.address,
-          constants.AddressZero,
+        upgrades.deployProxy(
+          LiquityStrategyFactory,
+          [
+            vault.address,
+            admin.address,
+            stabilityPool.address,
+            lqty.address,
+            constants.AddressZero,
+          ],
+          {
+            kind: 'uups',
+          },
         ),
       ).to.be.revertedWith('StrategyUnderlyingCannotBe0Address');
     });
 
     it('reverts if vault does not have IVault interface', async () => {
       await expect(
-        LiquityStrategyFactory.deploy(
-          manager.address,
-          admin.address,
-          stabilityPool.address,
-          lqty.address,
-          underlying.address,
+        upgrades.deployProxy(
+          LiquityStrategyFactory,
+          [
+            manager.address,
+            admin.address,
+            stabilityPool.address,
+            lqty.address,
+            underlying.address,
+          ],
+          {
+            kind: 'uups',
+          },
         ),
       ).to.be.revertedWith('StrategyNotIVault');
     });
@@ -310,7 +350,7 @@ describe('LiquityStrategy', () => {
     });
   });
 
-  describe('#harvest functionality', () => {});
+  // describe('#harvest functionality', () => {});
 
   const depositToVault = async (amount: BigNumber) => {
     await vault.connect(admin).deposit(

@@ -2,16 +2,15 @@
 pragma solidity =0.8.10;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
+import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
 
-import {weth9} from "../../interfaces/weth9.sol";
 import {PercentMath} from "../../lib/PercentMath.sol";
-import {ERC165Query} from "../../lib/ERC165Query.sol";
 import {IStrategy} from "../IStrategy.sol";
 import {CustomErrors} from "../../interfaces/CustomErrors.sol";
 import {IVault} from "../../vault/IVault.sol";
 import {IStabilityPool} from "../../interfaces/liquity/IStabilityPool.sol";
+import {ERC165Query} from "../../lib/ERC165Query.sol";
 
 /***
  * Gives out LQTY & ETH as rewards
@@ -25,50 +24,28 @@ import {IStabilityPool} from "../../interfaces/liquity/IStabilityPool.sol";
  for example, suppose we open withdrwals at 8:00 pm and the user withdraws at 9:00 pm then the rewards accrued by his deposits during
  the time interval from 8 to 9 pm (that small 1 hr) wont be recieved to him (This is also same for any liquidations that happen from 8 to 9 pm)
  */
-contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
-    using SafeERC20 for IERC20;
+contract LiquityStrategy is
+    IStrategy,
+    UUPSUpgradeable,
+    AccessControlUpgradeable,
+    CustomErrors
+{
     using PercentMath for uint256;
     using ERC165Query for address;
 
     error LiquityStabilityPoolCannotBeAddressZero();
     error StrategyYieldTokenCannotBe0Address();
     error SwapCallFailed(address fromToken);
+    error TokenApprovalFailed(address token);
+    error TokenTransferFailed(address token);
 
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
 
-    IERC20 public immutable underlying; // lusd
+    IERC20 public underlying; // lusd
     /// @inheritdoc IStrategy
-    address public immutable override(IStrategy) vault;
-    IStabilityPool public immutable stabilityPool;
-    IERC20 public immutable lqty; // reward token
-
-    constructor(
-        address _vault,
-        address _admin,
-        address _stabilityPool,
-        address _lqty,
-        address _underlying
-    ) {
-        if (_admin == address(0)) revert StrategyAdminCannotBe0Address();
-        if (_lqty == address(0)) revert StrategyYieldTokenCannotBe0Address();
-        if (_stabilityPool == address(0))
-            revert LiquityStabilityPoolCannotBeAddressZero();
-        if (_underlying == address(0))
-            revert StrategyUnderlyingCannotBe0Address();
-
-        if (!_vault.doesContractImplementInterface(type(IVault).interfaceId))
-            revert StrategyNotIVault();
-
-        _setupRole(DEFAULT_ADMIN_ROLE, _admin);
-        _setupRole(MANAGER_ROLE, _vault);
-
-        vault = _vault;
-        underlying = IERC20(_underlying);
-        stabilityPool = IStabilityPool(_stabilityPool);
-        lqty = IERC20(_lqty);
-
-        underlying.approve(_stabilityPool, type(uint256).max);
-    }
+    address public override(IStrategy) vault;
+    IStabilityPool public stabilityPool;
+    IERC20 public lqty; // reward token
 
     //
     // Modifiers
@@ -84,6 +61,42 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         if (!hasRole(DEFAULT_ADMIN_ROLE, msg.sender))
             revert StrategyCallerNotAdmin();
         _;
+    }
+
+    //
+    // Initialize method (constructor alternative in proxy contracts)
+    //
+
+    function initialize(
+        address _vault,
+        address _admin,
+        address _stabilityPool,
+        address _lqty,
+        address _underlying
+    ) public initializer {
+        __AccessControl_init();
+        __UUPSUpgradeable_init();
+
+        if (_admin == address(0)) revert StrategyAdminCannotBe0Address();
+        if (_lqty == address(0)) revert StrategyYieldTokenCannotBe0Address();
+        if (_stabilityPool == address(0))
+            revert LiquityStabilityPoolCannotBeAddressZero();
+        if (_underlying == address(0))
+            revert StrategyUnderlyingCannotBe0Address();
+        if (!_vault.doesContractImplementInterface(type(IVault).interfaceId))
+            revert StrategyNotIVault();
+
+        _setupRole(DEFAULT_ADMIN_ROLE, _admin);
+        _setupRole(MANAGER_ROLE, _vault);
+
+        vault = _vault;
+        underlying = IERC20(_underlying);
+        stabilityPool = IStabilityPool(_stabilityPool);
+        lqty = IERC20(_lqty);
+
+        if (!underlying.approve(_stabilityPool, type(uint256).max)) {
+            revert TokenApprovalFailed(_underlying);
+        }
     }
 
     /**
@@ -165,7 +178,9 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         stabilityPool.withdrawFromSP(amount);
 
         // transfer underlying to vault
-        underlying.safeTransfer(vault, amount);
+        if (!underlying.transfer(vault, amount)) {
+            revert TokenTransferFailed(address(underlying));
+        }
 
         emit StrategyWithdrawn(amount);
     }
@@ -187,7 +202,9 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         bool success;
         if (lqtyRewards > 0) {
             // give approval to the swapTarget
-            lqty.safeApprove(_swapTarget, lqtyRewards);
+            if (!lqty.approve(_swapTarget, lqtyRewards)) {
+                revert TokenApprovalFailed(address(lqty));
+            }
 
             // swap LQTY reward to LUSD
             (success, ) = _swapTarget.call{value: 0}(_lqtySwapData);
@@ -206,6 +223,12 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
             stabilityPool.provideToSP(balance, address(0));
         }
     }
+
+    function _authorizeUpgrade(address newImplementation)
+        internal
+        override
+        onlyAdmin
+    {}
 
     /**
      * Strategy has to be able to receive ETH rewards from the liquity stability pool.

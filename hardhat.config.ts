@@ -10,6 +10,7 @@ import 'hardhat-deploy';
 import 'hardhat-gas-reporter';
 import 'solidity-coverage';
 import '@tenderly/hardhat-tenderly';
+import '@openzeppelin/hardhat-upgrades';
 
 const config: HardhatUserConfig = {
   solidity: {
