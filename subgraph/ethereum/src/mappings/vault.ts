@@ -86,10 +86,6 @@ export function handleYieldClaimed(event: YieldClaimed): void {
     }
   }
 
-  if (!event.params.burnedShares.equals(totalClaimedShares)) {
-    throw "The math for the claimed shares doesn't add up to the total burned shares";
-  }
-
   claimer.save();
   vault.save();
 }

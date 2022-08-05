@@ -1,8 +1,10 @@
 import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 import type { DeployFunction } from 'hardhat-deploy/types';
+
+import { includes } from 'lodash';
 import { parseUnits } from '@ethersproject/units';
 import { ethers } from 'hardhat';
-import {BigNumber} from 'ethers';
+import { BigNumber } from 'ethers';
 
 const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   const { get } = env.deployments;
@@ -43,7 +45,12 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   const lockDuration = await vault.MIN_SPONSOR_LOCK_DURATION();
   await vault
     .connect(treasury)
-    .sponsor(lusd.address, parseUnits('1000', 18), lockDuration, BigNumber.from(5));
+    .sponsor(
+      lusd.address,
+      parseUnits('1000', 18),
+      lockDuration,
+      BigNumber.from(5),
+    );
 
   console.log(
     'Alice deposits 1000 with 90% yield to Alice and 10% yield for donations',
@@ -65,7 +72,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
       },
     ],
     name: "Alice's Foundation 1",
-    slippage: BigNumber.from(5),
+    slippage: BigNumber.from(500),
   });
 
   console.log(
@@ -88,7 +95,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
       },
     ],
     name: "Bob's Foundation 1",
-    slippage: BigNumber.from(5),
+    slippage: BigNumber.from(500),
   });
 
   console.log('2000 yield is generated');
@@ -104,12 +111,10 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   await vault.connect(bob).claimYield(treasury.address);
 };
 
-func.id = 'fixtures';
 func.tags = ['fixtures'];
-func.dependencies = ['vaults', 'strategies', 'fixture_deployments'];
+func.dependencies = ['dev', 'vault'];
 
-// Deploy only to hardhat
-func.skip = async (hre: HardhatRuntimeEnvironment) =>
-  hre.network.config.chainId != 31337;
+func.skip = async (env: HardhatRuntimeEnvironment) =>
+  !includes(['docker', 'hardhat'], env.deployments.getNetworkName());
 
 export default func;
