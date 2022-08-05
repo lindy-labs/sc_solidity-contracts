@@ -177,10 +177,18 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         address _swapTarget,
         bytes calldata _lqtySwapData,
         bytes calldata _ethSwapData
-    ) external payable onlyAdmin {
-        // withdraw rewards from Liquity Stability Pool Contract
+    ) external onlyAdmin {
+        // claim rewards from Liquity Stability Pool Contract
         stabilityPool.withdrawFromSP(0);
 
+        reinvestRewards(_swapTarget, _lqtySwapData, _ethSwapData);
+    }
+
+    function reinvestRewards(
+        address _swapTarget,
+        bytes calldata _lqtySwapData,
+        bytes calldata _ethSwapData
+    ) public onlyAdmin {
         uint256 lqtyRewards = lqty.balanceOf(address(this));
         uint256 ethRewards = address(this).balance;
 
