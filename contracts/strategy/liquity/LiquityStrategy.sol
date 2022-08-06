@@ -30,9 +30,17 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
     using PercentMath for uint256;
     using ERC165Query for address;
 
-    error LiquityStabilityPoolCannotBeAddressZero();
+    error StrategyStabilityPoolCannotBeAddressZero();
     error StrategyYieldTokenCannotBe0Address();
-    error SwapCallFailed(address fromToken);
+    error StrategyNothingToReinvest();
+    error StrategySwapTargetCannotBe0Address();
+    error StrategyLQTYSwapDataEmpty();
+    error StrategyETHSwapDataEmpty();
+    error StrategyLQTYSwapFailed();
+    error StrategyETHSwapFailed();
+
+    event StrategyRewardsClaimed(uint256 amountInLQTY, uint256 amountInETH);
+    event StrategyRewardsReinvested(uint256 amountInLUSD);
 
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
 
@@ -52,7 +60,7 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         if (_admin == address(0)) revert StrategyAdminCannotBe0Address();
         if (_lqty == address(0)) revert StrategyYieldTokenCannotBe0Address();
         if (_stabilityPool == address(0))
-            revert LiquityStabilityPoolCannotBeAddressZero();
+            revert StrategyStabilityPoolCannotBeAddressZero();
         if (_underlying == address(0))
             revert StrategyUnderlyingCannotBe0Address();
 
@@ -60,6 +68,8 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
             revert StrategyNotIVault();
 
         _setupRole(DEFAULT_ADMIN_ROLE, _admin);
+        // TODO: test manager role for admin
+        _setupRole(MANAGER_ROLE, _admin);
         _setupRole(MANAGER_ROLE, _vault);
 
         vault = _vault;
@@ -100,8 +110,10 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
             revert StrategyCannotTransferAdminRightsToSelf();
 
         _setupRole(DEFAULT_ADMIN_ROLE, _newAdmin);
+        _setupRole(MANAGER_ROLE, _newAdmin);
 
         _revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _setupRole(MANAGER_ROLE, _newAdmin);
     }
 
     //
@@ -149,6 +161,8 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
     }
 
     /// @inheritdoc IStrategy
+    /// @notice will also claim unclaimed LQTY & ETH gains
+    /// @notice when amount > total deposited, all available funds will be withdrawn
     function withdrawToVault(uint256 amount)
         external
         virtual
@@ -156,18 +170,21 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         onlyManager
     {
         if (amount == 0) revert StrategyAmountZero();
-
         if (amount > investedAssets()) revert StrategyNotEnoughShares();
 
-        // withdraw lusd from the stabilityPool to this contract
-        // this will also withdraw the unclaimed lqty & eth rewards
-        // if toWitdraw > the total deposits in stabilityPool, then the stabilityPool withdraws all the deposits
+        // withdraws underlying amount and claims LQTY & ETH rewards
         stabilityPool.withdrawFromSP(amount);
 
-        // transfer underlying to vault
-        underlying.safeTransfer(vault, amount);
+        uint256 lqtyRewards = lqty.balanceOf(address(this));
+        uint256 ethRewards = address(this).balance;
 
-        emit StrategyWithdrawn(amount);
+        emit StrategyRewardsClaimed(lqtyRewards, ethRewards);
+
+        // transfer underlying to vault
+        uint256 balance = underlying.balanceOf(address(this));
+        underlying.safeTransfer(vault, balance);
+
+        emit StrategyWithdrawn(balance);
     }
 
     /**
@@ -178,7 +195,9 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         bytes calldata _lqtySwapData,
         bytes calldata _ethSwapData
     ) external onlyAdmin {
-        // claim rewards from Liquity Stability Pool Contract
+        checkSwapData(_swapTarget, _lqtySwapData, _ethSwapData);
+
+        // claim rewards
         stabilityPool.withdrawFromSP(0);
 
         reinvestRewards(_swapTarget, _lqtySwapData, _ethSwapData);
@@ -189,34 +208,54 @@ contract LiquityStrategy is IStrategy, AccessControl, CustomErrors {
         bytes calldata _lqtySwapData,
         bytes calldata _ethSwapData
     ) public onlyAdmin {
+        checkSwapData(_swapTarget, _lqtySwapData, _ethSwapData);
+
         uint256 lqtyRewards = lqty.balanceOf(address(this));
         uint256 ethRewards = address(this).balance;
 
-        bool success;
+        // TODO write tests
+        if (lqtyRewards == 0 && ethRewards == 0)
+            revert StrategyNothingToReinvest();
+
         if (lqtyRewards > 0) {
-            // give approval to the swapTarget
             lqty.safeApprove(_swapTarget, lqtyRewards);
 
             // swap LQTY reward to LUSD
-            (success, ) = _swapTarget.call{value: 0}(_lqtySwapData);
-            if (!success) revert SwapCallFailed(address(lqty));
+            // TODO - response?
+            (bool success, ) = _swapTarget.call{value: 0}(_lqtySwapData);
+            if (!success) revert StrategyLQTYSwapFailed();
         }
 
         // swap ETH reward to LUSD
         if (ethRewards > 0) {
-            (success, ) = _swapTarget.call{value: ethRewards}(_ethSwapData);
-            if (!success) revert SwapCallFailed(address(0));
+            (bool success, ) = _swapTarget.call{value: ethRewards}(
+                _ethSwapData
+            );
+            if (!success) revert StrategyETHSwapFailed();
         }
 
-        // invest gains into the stability pool
+        // reinvest gains into the stability pool
         uint256 balance = underlying.balanceOf(address(this));
         if (balance > 0) {
+            emit StrategyRewardsReinvested(balance);
+
             stabilityPool.provideToSP(balance, address(0));
         }
     }
 
+    function checkSwapData(
+        address _swapTarget,
+        bytes calldata _lqtySwapData,
+        bytes calldata _ethSwapData
+    ) private pure {
+        if (_swapTarget == address(0))
+            revert StrategySwapTargetCannotBe0Address();
+        if (_lqtySwapData.length == 0) revert StrategyLQTYSwapDataEmpty();
+        if (_ethSwapData.length == 0) revert StrategyETHSwapDataEmpty();
+    }
+
     /**
-     * Strategy has to be able to receive ETH rewards from the liquity stability pool.
+     * Strategy has to be able to receive ETH as stability pool rewards.
      */
     receive() external payable {}
 }

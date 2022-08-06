@@ -110,7 +110,7 @@ describe('LiquityStrategy', () => {
           lqty.address,
           underlying.address,
         ),
-      ).to.be.revertedWith('LiquityStabilityPoolCannotBeAddressZero');
+      ).to.be.revertedWith('StrategyStabilityPoolCannotBeAddressZero');
     });
 
     it('reverts if lqty is address(0)', async () => {

@@ -149,7 +149,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       expect(await lqty.balanceOf(strategy.address)).to.eq('0');
       expect(await ethers.provider.getBalance(strategy.address)).to.eq('0');
 
-      // withdraw gains from stability pool and reinvests
+      // withdraws gains from stability pool and reinvests
       await strategy.harvest(SWAP_TARGET, SWAP_LQTY_DATA, SWAP_ETH_DATA);
 
       // assert no funds are held by the strategy after harvest is executed
