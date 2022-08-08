@@ -1175,6 +1175,29 @@ describe('Vault', () => {
         vault.connect(owner).unsponsor(owner.address, [1]),
       ).to.be.revertedWith('VaultNotEnoughFunds');
     });
+
+    it('reverts if contract is exit paused', async () => {
+      await addUnderlyingBalance(owner, '1000');
+
+      await vault
+        .connect(owner)
+        .sponsor(
+          underlying.address,
+          parseUnits('500'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
+
+      await moveForwardTwoWeeks();
+
+      await vault.connect(owner).exitPause();
+
+      await expect(
+        vault.connect(owner).unsponsor(bob.address, [1]),
+      ).to.be.revertedWith('Pausable: ExitPaused');
+
+      await vault.connect(owner).exitUnpause();
+    });
   });
 
   describe('depositForGroupId', () => {

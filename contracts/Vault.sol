@@ -521,6 +521,7 @@ contract Vault is
     function unsponsor(address _to, uint256[] calldata _ids)
         external
         nonReentrant
+        whenNotExitPaused
     {
         if (_to == address(0)) revert VaultDestinationCannotBe0Address();
 
