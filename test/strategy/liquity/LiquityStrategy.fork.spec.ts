@@ -89,7 +89,6 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
     );
 
     await vault.setStrategy(strategy.address);
-    await strategy.connect(admin).grantRole(MANAGER_ROLE, admin.address);
 
     lusd.connect(admin).approve(vault.address, ethers.constants.MaxUint256);
   });
@@ -196,7 +195,6 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
         BigNumber.from(EXPECTED_ETH_REWARD),
       );
 
-      // reinvest rewards
       await strategy.reinvestRewards(
         SWAP_TARGET,
         SWAP_LQTY_DATA,
@@ -209,6 +207,16 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       expect(await ethers.provider.getBalance(strategy.address)).to.eq('0');
 
       expect(await strategy.investedAssets()).to.gt(initialInvestment);
+    });
+
+    it('fails if there are no LQTY and ETH assets held by the strategy', async () => {
+      const initialInvestment = parseUnits('10000');
+      await ForkHelpers.mintToken(lusd, strategy.address, initialInvestment);
+      await strategy.invest();
+
+      expect(
+        strategy.reinvestRewards(SWAP_TARGET, SWAP_LQTY_DATA, SWAP_ETH_DATA),
+      ).to.be.revertedWith('StrategyNothingToReinvest');
     });
   });
 

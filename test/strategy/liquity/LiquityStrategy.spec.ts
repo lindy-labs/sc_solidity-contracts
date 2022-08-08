@@ -153,6 +153,7 @@ describe('LiquityStrategy', () => {
       expect(await strategy.isSync()).to.be.true;
       expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, admin.address)).to.be
         .true;
+      expect(await strategy.hasRole(MANAGER_ROLE, admin.address)).to.be.true;
       expect(await strategy.hasRole(MANAGER_ROLE, vault.address)).to.be.true;
       expect(await strategy.vault()).to.eq(vault.address);
       expect(await strategy.stabilityPool()).to.eq(stabilityPool.address);
@@ -186,8 +187,6 @@ describe('LiquityStrategy', () => {
     });
 
     it('transfers admin role to the new admin account', async () => {
-      let DEFAULT_ADMIN_ROLE = await strategy.DEFAULT_ADMIN_ROLE();
-
       expect(
         await strategy.hasRole(DEFAULT_ADMIN_ROLE, alice.address),
       ).to.be.equal(false);
@@ -203,14 +202,17 @@ describe('LiquityStrategy', () => {
       // assert that the owner has the ADMIN role
       expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, admin.address)).to.be
         .true;
+      expect(await strategy.hasRole(MANAGER_ROLE, admin.address)).to.be.true;
 
       await strategy.connect(admin).transferAdminRights(alice.address);
 
       expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, admin.address)).to.be
         .false;
+      expect(await strategy.hasRole(MANAGER_ROLE, admin.address)).to.be.false;
 
       expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, alice.address)).to.be
         .true;
+      expect(await strategy.hasRole(MANAGER_ROLE, alice.address)).to.be.true;
     });
   });
 
