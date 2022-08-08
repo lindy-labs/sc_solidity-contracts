@@ -110,7 +110,6 @@ describe('Audit Tests 2', () => {
 
       await time.increase(24 * 60 * 60);
 
-      await vault.connect(alice).claimYield(alice.address);
       await vault.connect(alice).withdraw(alice.address, [2]);
 
       await underlying
