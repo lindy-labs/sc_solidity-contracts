@@ -13,7 +13,9 @@ import {IStabilityPool} from "../../interfaces/liquity/IStabilityPool.sol";
 import {ERC165Query} from "../../lib/ERC165Query.sol";
 
 /***
- * Gives out LQTY & ETH as rewards
+ * Liquity Strategy generates yield by investing LUSD assets into Liquity Stability Pool contract.
+ * Stability pool gives out LQTY & ETH as rewards for liquidity providers.
+ * TODO: check this with diganta
  The strategy must run in epochs
  Deposits & withdrawals will only be opened for a small time (1 - 3 hrs) every week
  Then paused
@@ -33,11 +35,20 @@ contract LiquityStrategy is
     using PercentMath for uint256;
     using ERC165Query for address;
 
-    error LiquityStabilityPoolCannotBeAddressZero();
+    error StrategyStabilityPoolCannotBeAddressZero();
     error StrategyYieldTokenCannotBe0Address();
-    error SwapCallFailed(address fromToken);
     error TokenApprovalFailed(address token);
     error TokenTransferFailed(address token);
+    error StrategyNothingToReinvest();
+    error StrategySwapTargetCannotBe0Address();
+    error StrategyLQTYSwapDataEmpty();
+    error StrategyETHSwapDataEmpty();
+    error StrategyLQTYSwapFailed();
+    error StrategyETHSwapFailed();
+
+    // TODO: test emitted events
+    event StrategyRewardsClaimed(uint256 amountInLQTY, uint256 amountInETH);
+    event StrategyRewardsReinvested(uint256 amountInLUSD);
 
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
 
@@ -80,13 +91,14 @@ contract LiquityStrategy is
         if (_admin == address(0)) revert StrategyAdminCannotBe0Address();
         if (_lqty == address(0)) revert StrategyYieldTokenCannotBe0Address();
         if (_stabilityPool == address(0))
-            revert LiquityStabilityPoolCannotBeAddressZero();
+            revert StrategyStabilityPoolCannotBeAddressZero();
         if (_underlying == address(0))
             revert StrategyUnderlyingCannotBe0Address();
         if (!_vault.doesContractImplementInterface(type(IVault).interfaceId))
             revert StrategyNotIVault();
 
         _setupRole(DEFAULT_ADMIN_ROLE, _admin);
+        _setupRole(MANAGER_ROLE, _admin);
         _setupRole(MANAGER_ROLE, _vault);
 
         vault = _vault;
@@ -113,8 +125,10 @@ contract LiquityStrategy is
             revert StrategyCannotTransferAdminRightsToSelf();
 
         _setupRole(DEFAULT_ADMIN_ROLE, _newAdmin);
+        _setupRole(MANAGER_ROLE, _newAdmin);
 
         _revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _revokeRole(MANAGER_ROLE, msg.sender);
     }
 
     //
@@ -162,6 +176,8 @@ contract LiquityStrategy is
     }
 
     /// @inheritdoc IStrategy
+    /// @notice will also claim unclaimed LQTY & ETH gains
+    /// @notice when amount > total deposited, all available funds will be withdrawn
     function withdrawToVault(uint256 amount)
         external
         virtual
@@ -169,57 +185,97 @@ contract LiquityStrategy is
         onlyManager
     {
         if (amount == 0) revert StrategyAmountZero();
-
         if (amount > investedAssets()) revert StrategyNotEnoughShares();
 
-        // withdraw lusd from the stabilityPool to this contract
-        // this will also withdraw the unclaimed lqty & eth rewards
-        // if toWitdraw > the total deposits in stabilityPool, then the stabilityPool withdraws all the deposits
+        // withdraws underlying amount and claims LQTY & ETH rewards
         stabilityPool.withdrawFromSP(amount);
 
+        uint256 lqtyRewards = lqty.balanceOf(address(this));
+        uint256 ethRewards = address(this).balance;
+        emit StrategyRewardsClaimed(lqtyRewards, ethRewards);
+
         // transfer underlying to vault
-        if (!underlying.transfer(vault, amount)) {
+        uint256 balance = underlying.balanceOf(address(this));
+        // transfer underlying to vault
+        if (!underlying.transfer(vault, balance)) {
             revert TokenTransferFailed(address(underlying));
         }
 
-        emit StrategyWithdrawn(amount);
+        emit StrategyWithdrawn(balance);
     }
 
     /**
-        swaps the ETH & LQTY rewards from the stability pool into LUSD
+     * Collects the LQTY & ETH rewards from the stability pool, swaps the rewards to LUSD,
+     * and reinvests swapped LUSD amount into the stability pool to create compound interest on future gains.
+     *
+     * @notice Can only be called by the account with the ADMIN role.
+     * @notice Implicitly calls the reinvestRewards function.
+     * @notice Arguments provided to harvest function are real-time data obtained from '0x' api.
+     *
+     * @param _swapTarget the address of the '0x' contract performing the tokens swap.
+     * @param _lqtySwapData data used to perform LQTY -> LUSD swap.
+     * @param _ethSwapData data used to perform ETH -> LUSD swap.
      */
     function harvest(
         address _swapTarget,
         bytes calldata _lqtySwapData,
         bytes calldata _ethSwapData
-    ) external payable onlyAdmin {
-        // withdraw rewards from Liquity Stability Pool Contract
+    ) external {
+        // claim rewards
         stabilityPool.withdrawFromSP(0);
 
-        uint256 lqtyRewards = lqty.balanceOf(address(this));
-        uint256 ethRewards = address(this).balance;
+        reinvestRewards(_swapTarget, _lqtySwapData, _ethSwapData);
+    }
 
-        bool success;
-        if (lqtyRewards > 0) {
+    /**
+     * Swaps LQTY tokens and ETH already held by the strategy to LUSD,
+     * and reinvests swapped LUSD amount into the stability pool.
+     *
+     * @notice Can only be called by the account with the ADMIN role.
+     * @notice Arguments provided are real-time data obtained from '0x' api.
+     *
+     * @param _swapTarget the address of the '0x' contract performing the tokens swap.
+     * @param _lqtySwapData data used to perform LQTY -> LUSD swap.
+     * @param _ethSwapData data used to perform ETH -> LUSD swap.
+     */
+    function reinvestRewards(
+        address _swapTarget,
+        bytes calldata _lqtySwapData,
+        bytes calldata _ethSwapData
+    ) public onlyAdmin {
+        uint256 lqtyBalance = lqty.balanceOf(address(this));
+        uint256 ethBalance = address(this).balance;
+
+        if (lqtyBalance == 0 && ethBalance == 0)
+            revert StrategyNothingToReinvest();
+
+        checkSwapData(_swapTarget, _lqtySwapData, _ethSwapData);
+
+        if (lqtyBalance > 0) {
             // give approval to the swapTarget
             if (!lqty.approve(_swapTarget, lqtyRewards)) {
                 revert TokenApprovalFailed(address(lqty));
             }
 
             // swap LQTY reward to LUSD
-            (success, ) = _swapTarget.call{value: 0}(_lqtySwapData);
-            if (!success) revert SwapCallFailed(address(lqty));
+            // TODO - response?
+            (bool success, ) = _swapTarget.call{value: 0}(_lqtySwapData);
+            if (!success) revert StrategyLQTYSwapFailed();
         }
 
         // swap ETH reward to LUSD
-        if (ethRewards > 0) {
-            (success, ) = _swapTarget.call{value: ethRewards}(_ethSwapData);
-            if (!success) revert SwapCallFailed(address(0));
+        if (ethBalance > 0) {
+            (bool success, ) = _swapTarget.call{value: ethBalance}(
+                _ethSwapData
+            );
+            if (!success) revert StrategyETHSwapFailed();
         }
 
-        // invest gains into the stability pool
+        // reinvest gains into the stability pool
         uint256 balance = underlying.balanceOf(address(this));
         if (balance > 0) {
+            emit StrategyRewardsReinvested(balance);
+
             stabilityPool.provideToSP(balance, address(0));
         }
     }
@@ -231,7 +287,36 @@ contract LiquityStrategy is
     {}
 
     /**
-     * Strategy has to be able to receive ETH rewards from the liquity stability pool.
+     * Checks that the data for swapping LQTY and ETH to LUSD is valid.
+     *
+     * @notice Arguments provided are real-time data obtained from '0x' api.
+     *
+     * @param _swapTarget the address of the '0x' contract performing the tokens swap.
+     * @param _lqtySwapData data used to perform LQTY -> LUSD swap.
+     * @param _ethSwapData data used to perform ETH -> LUSD swap.
+     */
+    function checkSwapData(
+        address _swapTarget,
+        bytes calldata _lqtySwapData,
+        bytes calldata _ethSwapData
+    ) public {
+        // TODO tests
+        if (_swapTarget == address(0))
+            revert StrategySwapTargetCannotBe0Address();
+
+        uint256 lqtyBalance = lqty.balanceOf(address(this));
+
+        if (lqtyBalance > 0 && _lqtySwapData.length == 0)
+            revert StrategyLQTYSwapDataEmpty();
+
+        uint256 ethBalance = address(this).balance;
+
+        if (ethBalance > 0 && _ethSwapData.length == 0)
+            revert StrategyETHSwapDataEmpty();
+    }
+
+    /**
+     * Strategy has to be able to receive ETH as stability pool rewards.
      */
     receive() external payable {}
 }
