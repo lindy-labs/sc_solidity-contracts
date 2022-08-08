@@ -114,6 +114,9 @@ interface CustomErrors {
     // Vault: deposit name for MetaVault too short
     error VaultDepositNameTooShort();
 
+    // Vault: no yield to claim
+    error VaultNoYieldToClaim();
+
     //
     // Strategy Errors
     //

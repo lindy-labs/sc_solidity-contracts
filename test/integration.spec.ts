@@ -163,7 +163,7 @@ describe('Integration', () => {
       await moveForwardTwoWeeks();
       await removeUnderlyingFromVault('2500');
 
-      await vault.connect(carol).claimYield(carol.address);
+      await expect(vault.connect(carol).claimYield(carol.address)).to.be.revertedWith('VaultNoYieldToClaim');
       // we expect the withdraw to fail because there are not enough funds in the vault
       await expect(
         vault.connect(alice).withdraw(alice.address, [2]),
@@ -201,7 +201,7 @@ describe('Integration', () => {
 
       await moveForwardTwoWeeks();
 
-      await vault.connect(carol).claimYield(carol.address);
+      await expect(vault.connect(carol).claimYield(carol.address)).to.be.revertedWith('VaultNoYieldToClaim');
       await vault.connect(alice).withdraw(alice.address, [2]);
       await vault.connect(bob).unsponsor(bob.address, [1]);
 

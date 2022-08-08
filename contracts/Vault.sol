@@ -342,7 +342,7 @@ contract Vault is
 
         (uint256 yield, uint256 shares, uint256 fee) = yieldFor(msg.sender);
 
-        if (yield == 0) return;
+        if (yield == 0) revert VaultNoYieldToClaim();
 
         uint256 _totalUnderlyingMinusSponsored = totalUnderlyingMinusSponsored();
         uint256 _totalShares = totalShares;
