@@ -52,7 +52,7 @@ contract LiquityStrategy is
 
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
 
-    IERC20 public underlying; // lusd
+    IERC20 public underlying; // LUSD token
     /// @inheritdoc IStrategy
     address public override(IStrategy) vault;
     IStabilityPool public stabilityPool;
@@ -98,7 +98,6 @@ contract LiquityStrategy is
             revert StrategyNotIVault();
 
         _setupRole(DEFAULT_ADMIN_ROLE, _admin);
-        _setupRole(MANAGER_ROLE, _admin);
         _setupRole(MANAGER_ROLE, _vault);
 
         vault = _vault;
@@ -192,6 +191,7 @@ contract LiquityStrategy is
 
         uint256 lqtyRewards = lqty.balanceOf(address(this));
         uint256 ethRewards = address(this).balance;
+        // backend to keep track of this and decide when to call reinvestRewards
         emit StrategyRewardsClaimed(lqtyRewards, ethRewards);
 
         // use balance instead of amount since amount could be greater than what was actually withdrawn
@@ -220,7 +220,7 @@ contract LiquityStrategy is
         bytes calldata _lqtySwapData,
         bytes calldata _ethSwapData
     ) external {
-        // claim rewards
+        // call withdrawFromSP with 0 amount only to claim rewards
         stabilityPool.withdrawFromSP(0);
 
         reinvestRewards(_swapTarget, _lqtySwapData, _ethSwapData);
@@ -252,11 +252,11 @@ contract LiquityStrategy is
             revert StrategyNothingToReinvest();
 
         if (lqtyBalance > 0) {
-            swapLQTYforLUSD(lqtyBalance, _swapTarget, _lqtySwapData);
+            swapLQTYtoLUSD(lqtyBalance, _swapTarget, _lqtySwapData);
         }
 
         if (ethBalance > 0) {
-            swapETHforLUSD(ethBalance, _swapTarget, _ethSwapData);
+            swapETHtoLUSD(ethBalance, _swapTarget, _ethSwapData);
         }
 
         // reinvest LUSD gains into the stability pool
@@ -277,7 +277,7 @@ contract LiquityStrategy is
      * @param _swapTarget the address of the '0x' contract performing the tokens swap.
      * @param _lqtySwapData data used to perform LQTY -> LUSD swap.
      */
-    function swapLQTYforLUSD(
+    function swapLQTYtoLUSD(
         uint256 amount,
         address _swapTarget,
         bytes calldata _lqtySwapData
@@ -303,7 +303,7 @@ contract LiquityStrategy is
      * @param _swapTarget the address of the '0x' contract performing the tokens swap.
      * @param _ethSwapData data used to perform ETH -> LUSD swap.
      */
-    function swapETHforLUSD(
+    function swapETHtoLUSD(
         uint256 amount,
         address _swapTarget,
         bytes calldata _ethSwapData
