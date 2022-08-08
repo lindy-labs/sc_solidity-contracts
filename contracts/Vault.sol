@@ -17,7 +17,7 @@ import {IVaultSponsoring} from "./vault/IVaultSponsoring.sol";
 import {IVaultSettings} from "./vault/IVaultSettings.sol";
 import {CurveSwapper} from "./vault/CurveSwapper.sol";
 import {PercentMath} from "./lib/PercentMath.sol";
-import {EmergencyPausable} from "./lib/EmergencyPausable.sol";
+import {ExitPausable} from "./lib/ExitPausable.sol";
 import {IStrategy} from "./strategy/IStrategy.sol";
 import {CustomErrors} from "./interfaces/CustomErrors.sol";
 
@@ -37,7 +37,7 @@ contract Vault is
     AccessControl,
     ReentrancyGuard,
     Pausable,
-    EmergencyPausable,
+    ExitPausable,
     Ownable,
     CustomErrors
 {
@@ -336,7 +336,7 @@ contract Vault is
         external
         override(IVault)
         nonReentrant
-        whenNotEmergencyPaused
+        whenNotExitPaused
     {
         if (_to == address(0)) revert VaultDestinationCannotBe0Address();
 
@@ -372,7 +372,7 @@ contract Vault is
         external
         override(IVault)
         nonReentrant
-        whenNotEmergencyPaused
+        whenNotExitPaused
     {
         if (_to == address(0)) revert VaultDestinationCannotBe0Address();
 
@@ -1124,5 +1124,13 @@ contract Vault is
 
     function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
+    }
+
+    function exitPause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _exitPause();
+    }
+
+    function exitUnpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _exitUnpause();
     }
 }

@@ -2323,13 +2323,13 @@ describe('Vault', () => {
       );
       await addYieldToVault('100');
 
-      await vault.connect(owner).pause();
+      await vault.connect(owner).exitPause();
 
       await expect(
         vault.connect(carol).claimYield(carol.address),
-      ).to.be.revertedWith('Pausable: EmergencyPaused');
+      ).to.be.revertedWith('Pausable: ExitPaused');
 
-      await vault.connect(owner).unpause();
+      await vault.connect(owner).exitUnpause();
     });
   });
 
