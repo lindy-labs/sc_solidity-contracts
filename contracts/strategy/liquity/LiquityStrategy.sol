@@ -253,7 +253,7 @@ contract LiquityStrategy is
 
         if (lqtyBalance > 0) {
             // give approval to the swapTarget
-            if (!lqty.approve(_swapTarget, lqtyRewards)) {
+            if (!lqty.approve(_swapTarget, lqtyBalance)) {
                 revert TokenApprovalFailed(address(lqty));
             }
 

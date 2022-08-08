@@ -1,6 +1,6 @@
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { BigNumber, utils } from 'ethers';
-import { ethers } from 'hardhat';
+import { ethers, upgrades } from 'hardhat';
 import { expect } from 'chai';
 import { time } from '@openzeppelin/test-helpers';
 
@@ -80,13 +80,23 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       'LiquityStrategy',
     );
 
-    strategy = await LiquityStrategyFactory.deploy(
-      vault.address,
-      admin.address,
-      lqtyStabilityPool.address,
-      lqty.address,
-      lusd.address,
+    const strategy_proxy = await upgrades.deployProxy(
+      LiquityStrategyFactory,
+      [
+        vault.address,
+        admin.address,
+        lqtyStabilityPool.address,
+        lqty.address,
+        lusd.address,
+      ],
+      {
+        kind: 'uups',
+      },
     );
+
+    await strategy_proxy.deployed();
+
+    strategy = LiquityStrategyFactory.attach(strategy_proxy.address);
 
     await vault.setStrategy(strategy.address);
 
