@@ -17,6 +17,7 @@ import {IVaultSponsoring} from "./vault/IVaultSponsoring.sol";
 import {IVaultSettings} from "./vault/IVaultSettings.sol";
 import {CurveSwapper} from "./vault/CurveSwapper.sol";
 import {PercentMath} from "./lib/PercentMath.sol";
+import {EmergencyPausable} from "./lib/EmergencyPausable.sol";
 import {IStrategy} from "./strategy/IStrategy.sol";
 import {CustomErrors} from "./interfaces/CustomErrors.sol";
 
@@ -36,6 +37,7 @@ contract Vault is
     AccessControl,
     ReentrancyGuard,
     Pausable,
+    EmergencyPausable,
     Ownable,
     CustomErrors
 {
@@ -334,7 +336,7 @@ contract Vault is
         external
         override(IVault)
         nonReentrant
-        whenNotPaused
+        whenNotEmergencyPaused
     {
         if (_to == address(0)) revert VaultDestinationCannotBe0Address();
 
@@ -370,6 +372,7 @@ contract Vault is
         external
         override(IVault)
         nonReentrant
+        whenNotEmergencyPaused
     {
         if (_to == address(0)) revert VaultDestinationCannotBe0Address();
 

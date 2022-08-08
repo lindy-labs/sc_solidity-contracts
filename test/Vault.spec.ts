@@ -2311,19 +2311,23 @@ describe('Vault', () => {
     });
 
     it('reverts if contract is paused', async () => {
-      await vault.connect(alice).deposit(depositParams.build({
-        amount: parseUnits('100'),
-        inputToken: underlying.address,
-        claims: [
-          claimParams.percent(50).to(carol.address).build(),
-          claimParams.percent(50).to(bob.address).build(),
-        ],
-      }));
+      await vault.connect(alice).deposit(
+        depositParams.build({
+          amount: parseUnits('100'),
+          inputToken: underlying.address,
+          claims: [
+            claimParams.percent(50).to(carol.address).build(),
+            claimParams.percent(50).to(bob.address).build(),
+          ],
+        }),
+      );
       await addYieldToVault('100');
 
       await vault.connect(owner).pause();
 
-      await expect(vault.connect(carol).claimYield(carol.address)).to.be.revertedWith('Pausable: paused');
+      await expect(
+        vault.connect(carol).claimYield(carol.address),
+      ).to.be.revertedWith('Pausable: EmergencyPaused');
 
       await vault.connect(owner).unpause();
     });
