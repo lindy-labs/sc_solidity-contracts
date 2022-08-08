@@ -75,7 +75,7 @@ contract LiquityStrategy is
     }
 
     //
-    // Initialize method (constructor alternative in proxy contracts)
+    // Initialize method (constructor alternative for proxy contracts)
     //
 
     function initialize(
@@ -194,9 +194,8 @@ contract LiquityStrategy is
         uint256 ethRewards = address(this).balance;
         emit StrategyRewardsClaimed(lqtyRewards, ethRewards);
 
-        // transfer underlying to vault
+        // use balance instead of amount since amount could be greater than what was actually withdrawn
         uint256 balance = underlying.balanceOf(address(this));
-        // transfer underlying to vault
         if (!underlying.transfer(vault, balance)) {
             revert TokenTransferFailed(address(underlying));
         }
@@ -243,35 +242,24 @@ contract LiquityStrategy is
         bytes calldata _lqtySwapData,
         bytes calldata _ethSwapData
     ) public onlyAdmin {
+        if (_swapTarget == address(0))
+            revert StrategySwapTargetCannotBe0Address();
+
         uint256 lqtyBalance = lqty.balanceOf(address(this));
         uint256 ethBalance = address(this).balance;
 
         if (lqtyBalance == 0 && ethBalance == 0)
             revert StrategyNothingToReinvest();
 
-        checkSwapData(_swapTarget, _lqtySwapData, _ethSwapData);
-
         if (lqtyBalance > 0) {
-            // give approval to the swapTarget
-            if (!lqty.approve(_swapTarget, lqtyBalance)) {
-                revert TokenApprovalFailed(address(lqty));
-            }
-
-            // swap LQTY reward to LUSD
-            // TODO - response?
-            (bool success, ) = _swapTarget.call{value: 0}(_lqtySwapData);
-            if (!success) revert StrategyLQTYSwapFailed();
+            swapLQTYforLUSD(lqtyBalance, _swapTarget, _lqtySwapData);
         }
 
-        // swap ETH reward to LUSD
         if (ethBalance > 0) {
-            (bool success, ) = _swapTarget.call{value: ethBalance}(
-                _ethSwapData
-            );
-            if (!success) revert StrategyETHSwapFailed();
+            swapETHforLUSD(ethBalance, _swapTarget, _ethSwapData);
         }
 
-        // reinvest gains into the stability pool
+        // reinvest LUSD gains into the stability pool
         uint256 balance = underlying.balanceOf(address(this));
         if (balance > 0) {
             emit StrategyRewardsReinvested(balance);
@@ -280,40 +268,57 @@ contract LiquityStrategy is
         }
     }
 
+    /**
+     * Swaps LQTY tokens held by the strategy to LUSD.
+     *
+     * @notice Arguments provided are real-time data obtained from '0x' api.
+     *
+     * @param amount the amount of LQTY tokens to swap.
+     * @param _swapTarget the address of the '0x' contract performing the tokens swap.
+     * @param _lqtySwapData data used to perform LQTY -> LUSD swap.
+     */
+    function swapLQTYforLUSD(
+        uint256 amount,
+        address _swapTarget,
+        bytes calldata _lqtySwapData
+    ) internal {
+        if (_lqtySwapData.length == 0) revert StrategyLQTYSwapDataEmpty();
+
+        // give approval to the swapTarget
+        if (!lqty.approve(_swapTarget, amount)) {
+            revert TokenApprovalFailed(address(lqty));
+        }
+
+        // perform the swap
+        (bool success, ) = _swapTarget.call{value: 0}(_lqtySwapData);
+        if (!success) revert StrategyLQTYSwapFailed();
+    }
+
+    /**
+     * Swaps ETH held by the strategy to LUSD.
+     *
+     * @notice Arguments provided are real-time data obtained from '0x' api.
+     *
+     * @param amount the amount of ETH to swap.
+     * @param _swapTarget the address of the '0x' contract performing the tokens swap.
+     * @param _ethSwapData data used to perform ETH -> LUSD swap.
+     */
+    function swapETHforLUSD(
+        uint256 amount,
+        address _swapTarget,
+        bytes calldata _ethSwapData
+    ) internal {
+        if (_ethSwapData.length == 0) revert StrategyETHSwapDataEmpty();
+
+        (bool success, ) = _swapTarget.call{value: amount}(_ethSwapData);
+        if (!success) revert StrategyETHSwapFailed();
+    }
+
     function _authorizeUpgrade(address newImplementation)
         internal
         override
         onlyAdmin
     {}
-
-    /**
-     * Checks that the data for swapping LQTY and ETH to LUSD is valid.
-     *
-     * @notice Arguments provided are real-time data obtained from '0x' api.
-     *
-     * @param _swapTarget the address of the '0x' contract performing the tokens swap.
-     * @param _lqtySwapData data used to perform LQTY -> LUSD swap.
-     * @param _ethSwapData data used to perform ETH -> LUSD swap.
-     */
-    function checkSwapData(
-        address _swapTarget,
-        bytes calldata _lqtySwapData,
-        bytes calldata _ethSwapData
-    ) public {
-        // TODO tests
-        if (_swapTarget == address(0))
-            revert StrategySwapTargetCannotBe0Address();
-
-        uint256 lqtyBalance = lqty.balanceOf(address(this));
-
-        if (lqtyBalance > 0 && _lqtySwapData.length == 0)
-            revert StrategyLQTYSwapDataEmpty();
-
-        uint256 ethBalance = address(this).balance;
-
-        if (ethBalance > 0 && _ethSwapData.length == 0)
-            revert StrategyETHSwapDataEmpty();
-    }
 
     /**
      * Strategy has to be able to receive ETH as stability pool rewards.
