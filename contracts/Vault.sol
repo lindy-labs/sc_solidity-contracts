@@ -330,7 +330,12 @@ contract Vault is
     }
 
     /// @inheritdoc IVault
-    function claimYield(address _to) external override(IVault) nonReentrant {
+    function claimYield(address _to)
+        external
+        override(IVault)
+        nonReentrant
+        whenNotPaused
+    {
         if (_to == address(0)) revert VaultDestinationCannotBe0Address();
 
         (uint256 yield, uint256 shares, uint256 fee) = yieldFor(msg.sender);
