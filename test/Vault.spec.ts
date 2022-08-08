@@ -826,6 +826,7 @@ describe('Vault', () => {
       ).to.be.revertedWith('Pausable: paused');
       await vault.connect(owner).unpause();
     });
+
     it('reverts if msg.sender is not sponsor', async () => {
       await expect(
         vault
@@ -2307,6 +2308,24 @@ describe('Vault', () => {
       expect(await vault.sharesOf(carol.address)).to.be.equal(
         parseUnits('25').mul(SHARES_MULTIPLIER),
       );
+    });
+
+    it('reverts if contract is paused', async () => {
+      await vault.connect(alice).deposit(depositParams.build({
+        amount: parseUnits('100'),
+        inputToken: underlying.address,
+        claims: [
+          claimParams.percent(50).to(carol.address).build(),
+          claimParams.percent(50).to(bob.address).build(),
+        ],
+      }));
+      await addYieldToVault('100');
+
+      await vault.connect(owner).pause();
+
+      await expect(vault.connect(carol).claimYield(carol.address)).to.be.revertedWith('Pausable: paused');
+
+      await vault.connect(owner).unpause();
     });
   });
 
