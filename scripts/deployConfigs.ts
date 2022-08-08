@@ -15,10 +15,10 @@ const networkConfigs: Record<number, Config> = {
   // mainnet
   1: {
     investPct: 9000, // 90%
-    perfFeePct: 300, // TODO
-    lossTolerancePct: 200, // TODO
+    perfFeePct: 0,
+    lossTolerancePct: 200,
     multisig: '0x035F210e5d14054E8AE5A6CFA76d643aA200D56E',
-    minLockPeriod: 60 * 60 * 24 * 30, // 30 days
+    minLockPeriod: 60 * 60 * 24 * 90, // 90 days
     ethAnchorRouter: '0xcEF9E167d3f8806771e9bac1d4a0d568c39a9388',
     AUstToUstPriceFeed: '0x7b80a92f7d1e5cEeDDf939d77BF281E7e88f2906',
   },
