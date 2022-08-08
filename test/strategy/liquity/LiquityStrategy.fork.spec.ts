@@ -99,6 +99,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
     strategy = LiquityStrategyFactory.attach(strategy_proxy.address);
 
     await vault.setStrategy(strategy.address);
+    strategy.grantRole(MANAGER_ROLE, admin.address);
 
     lusd.connect(admin).approve(vault.address, ethers.constants.MaxUint256);
   });
@@ -159,7 +160,11 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       expect(await ethers.provider.getBalance(strategy.address)).to.eq('0');
 
       // withdraws gains from stability pool and reinvests
-      await strategy.harvest(SWAP_TARGET, SWAP_LQTY_DATA, SWAP_ETH_DATA);
+      const tx = await strategy.harvest(
+        SWAP_TARGET,
+        SWAP_LQTY_DATA,
+        SWAP_ETH_DATA,
+      );
 
       // assert no funds are held by the strategy after harvest is executed
       expect(await lusd.balanceOf(strategy.address)).to.eq('0');
@@ -168,6 +173,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
 
       // assert rewards collected are being reinvested
       expect(await strategy.investedAssets()).to.gt(initialInvestment);
+      expect(tx).to.emit(strategy, 'StrategyRevardsReinvested');
     });
 
     it('swaps LUSD and ETH already held by the strategy', async () => {
@@ -264,7 +270,9 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
 
       // this will also claim the rewards from the stability pool
       const amountToWithdraw = parseUnits('5000');
-      await strategy.connect(admin).withdrawToVault(amountToWithdraw);
+      const tx = await strategy
+        .connect(admin)
+        .withdrawToVault(amountToWithdraw);
 
       expect(await lusd.balanceOf(strategy.address)).to.eq('0');
       expect(await lqty.balanceOf(strategy.address)).to.eq(
@@ -276,6 +284,9 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
 
       expect(await strategy.investedAssets()).to.eq('4998816139652613137823');
       expect(await lusd.balanceOf(vault.address)).to.eq(amountToWithdraw);
+      expect(tx)
+        .to.emit(strategy, 'StrategyRewardsClaimed')
+        .withArgs(EXPECTED_LQTY_REWARD, EXPECTED_ETH_REWARD);
     });
   });
 });
