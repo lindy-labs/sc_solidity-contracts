@@ -17,6 +17,7 @@ import {IVaultSponsoring} from "./vault/IVaultSponsoring.sol";
 import {IVaultSettings} from "./vault/IVaultSettings.sol";
 import {CurveSwapper} from "./vault/CurveSwapper.sol";
 import {PercentMath} from "./lib/PercentMath.sol";
+import {ExitPausable} from "./lib/ExitPausable.sol";
 import {IStrategy} from "./strategy/IStrategy.sol";
 import {CustomErrors} from "./interfaces/CustomErrors.sol";
 
@@ -36,6 +37,7 @@ contract Vault is
     AccessControl,
     ReentrancyGuard,
     Pausable,
+    ExitPausable,
     Ownable,
     CustomErrors
 {
@@ -330,7 +332,12 @@ contract Vault is
     }
 
     /// @inheritdoc IVault
-    function claimYield(address _to) external override(IVault) nonReentrant {
+    function claimYield(address _to)
+        external
+        override(IVault)
+        nonReentrant
+        whenNotExitPaused
+    {
         if (_to == address(0)) revert VaultDestinationCannotBe0Address();
 
         (uint256 yield, uint256 shares, uint256 fee) = yieldFor(msg.sender);
@@ -365,6 +372,7 @@ contract Vault is
         external
         override(IVault)
         nonReentrant
+        whenNotExitPaused
     {
         if (_to == address(0)) revert VaultDestinationCannotBe0Address();
 
@@ -513,6 +521,7 @@ contract Vault is
     function unsponsor(address _to, uint256[] calldata _ids)
         external
         nonReentrant
+        whenNotExitPaused
     {
         if (_to == address(0)) revert VaultDestinationCannotBe0Address();
 
@@ -1116,5 +1125,13 @@ contract Vault is
 
     function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
         _unpause();
+    }
+
+    function exitPause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _exitPause();
+    }
+
+    function exitUnpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+        _exitUnpause();
     }
 }
