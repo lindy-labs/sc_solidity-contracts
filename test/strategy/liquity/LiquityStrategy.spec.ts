@@ -368,4 +368,3 @@ describe('LiquityStrategy', () => {
 // TODO:
 // add tests for the upgradeable & initialiable part of the contract
 // add tests for the harvest method
-// update fork tests to be compatible with the upgradeable Liquity Strategy contract
