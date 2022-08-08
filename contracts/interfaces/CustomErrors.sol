@@ -115,7 +115,7 @@ interface CustomErrors {
     error VaultDepositNameTooShort();
 
     // Vault: no yield to claim
-    error NoYieldToClaim();
+    error VaultNoYieldToClaim();
 
     //
     // Strategy Errors
