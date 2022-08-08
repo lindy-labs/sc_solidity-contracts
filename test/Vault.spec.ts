@@ -1959,6 +1959,16 @@ describe('Vault', () => {
         'VaultCannotWithdrawWhenYieldNegative',
       );
     });
+
+    it('reverts if contract is exit paused', async () => {
+      await vault.connect(owner).exitPause();
+
+      await expect(
+        vault.connect(alice).withdraw(alice.address, [1]),
+      ).to.be.revertedWith('Pausable: ExitPaused');
+
+      await vault.connect(owner).exitUnpause();
+    });
   });
 
   describe('partialWithdraw', () => {
@@ -2310,7 +2320,7 @@ describe('Vault', () => {
       );
     });
 
-    it('reverts if contract is paused', async () => {
+    it('reverts if contract is exit paused', async () => {
       await vault.connect(alice).deposit(
         depositParams.build({
           amount: parseUnits('100'),
