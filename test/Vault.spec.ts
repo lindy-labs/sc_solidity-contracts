@@ -1961,6 +1961,16 @@ describe('Vault', () => {
         parseUnits('500'),
       );
     });
+
+    it('reverts if contract is exit paused', async () => {
+      await vault.connect(owner).exitPause();
+
+      await expect(
+        vault.connect(alice).forceWithdraw(alice.address, [1]),
+      ).to.be.revertedWith('Pausable: ExitPaused');
+
+      await vault.connect(owner).exitUnpause();
+    });
   });
 
   describe('withdraw', () => {
@@ -2208,6 +2218,18 @@ describe('Vault', () => {
           .connect(alice)
           .partialWithdraw(alice.address, [2], [parseUnits('25')]),
       ).to.be.revertedWith('VaultCannotComputeSharesWithoutPrincipal');
+    });
+
+    it('reverts if contract is exit paused', async () => {
+      await vault.connect(owner).exitPause();
+
+      await expect(
+        vault
+          .connect(alice)
+          .partialWithdraw(alice.address, [2], [parseUnits('25')]),
+      ).to.be.revertedWith('Pausable: ExitPaused');
+
+      await vault.connect(owner).exitUnpause();
     });
   });
 
