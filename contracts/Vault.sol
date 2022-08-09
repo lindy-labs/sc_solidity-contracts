@@ -386,6 +386,7 @@ contract Vault is
     function forceWithdraw(address _to, uint256[] calldata _ids)
         external
         nonReentrant
+        whenNotExitPaused
     {
         if (_to == address(0)) revert VaultDestinationCannotBe0Address();
 
@@ -396,7 +397,7 @@ contract Vault is
         address _to,
         uint256[] calldata _ids,
         uint256[] calldata _amounts
-    ) external nonReentrant {
+    ) external nonReentrant whenNotExitPaused {
         if (_to == address(0)) revert VaultDestinationCannotBe0Address();
 
         _withdrawPartial(_to, _ids, _amounts);
