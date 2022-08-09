@@ -253,6 +253,34 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
         initialInvestment.add(ETH_REWARD_IN_LUSD),
       );
     });
+
+    it('falis if LQTY swap data is incorrect', async () => {
+      const initialInvestment = parseUnits('10000');
+      await ForkHelpers.mintToken(lusd, strategy.address, initialInvestment);
+      await strategy.invest();
+
+      await ForkHelpers.mintToken(lqty, strategy.address, EXPECTED_LQTY_REWARD);
+      await ForkHelpers.setBalance(strategy.address, EXPECTED_ETH_REWARD);
+
+      // send ETH swap data instead of LQTY swap data
+      await expect(
+        strategy.harvest(SWAP_TARGET, SWAP_ETH_DATA, SWAP_ETH_DATA),
+      ).to.be.revertedWith('StrategyLQTYSwapFailed');
+    });
+
+    it('falis if ETH swap data is incorrect', async () => {
+      const initialInvestment = parseUnits('10000');
+      await ForkHelpers.mintToken(lusd, strategy.address, initialInvestment);
+      await strategy.invest();
+
+      await ForkHelpers.mintToken(lqty, strategy.address, EXPECTED_LQTY_REWARD);
+      await ForkHelpers.setBalance(strategy.address, EXPECTED_ETH_REWARD);
+
+      // send LQTY swap data instead of ETH swap data
+      await expect(
+        strategy.harvest(SWAP_TARGET, SWAP_LQTY_DATA, SWAP_LQTY_DATA),
+      ).to.be.revertedWith('StrategyETHSwapFailed');
+    });
   });
 
   describe('#reinvestRewards', () => {
