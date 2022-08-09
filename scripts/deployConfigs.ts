@@ -6,9 +6,8 @@ interface Config {
   perfFeePct?: number;
   lossTolerancePct?: number;
   multisig: string;
+  deploymentAddress: string;
   minLockPeriod?: number;
-  ethAnchorRouter?: string;
-  AUstToUstPriceFeed?: string;
 }
 
 const networkConfigs: Record<number, Config> = {
@@ -18,9 +17,8 @@ const networkConfigs: Record<number, Config> = {
     perfFeePct: 0,
     lossTolerancePct: 200,
     multisig: '0x035F210e5d14054E8AE5A6CFA76d643aA200D56E',
+    deploymentAddress: '0x84f67f75DAf6D57Aef500E0c85C77B7b3bBc92A9',
     minLockPeriod: 60 * 60 * 24 * 90, // 90 days
-    ethAnchorRouter: '0xcEF9E167d3f8806771e9bac1d4a0d568c39a9388',
-    AUstToUstPriceFeed: '0x7b80a92f7d1e5cEeDDf939d77BF281E7e88f2906',
   },
 
   // ropsten
@@ -28,10 +26,9 @@ const networkConfigs: Record<number, Config> = {
     investPct: 9000, // 90%
     perfFeePct: 100, // 1%
     lossTolerancePct: 200,
-    multisig: 'deployer',
+    multisig: '0x8f592F2594C43eA30879f9fbED4d930248D81D41',
+    deploymentAddress: '0x8f592F2594C43eA30879f9fbED4d930248D81D41',
     minLockPeriod: 1, // 1 second
-    ethAnchorRouter: '0x7537aC093cE1315BCE08bBF0bf6f9b86B7475008',
-    AUstToUstPriceFeed: 'TODO',
   },
 
   // docker network
@@ -39,10 +36,9 @@ const networkConfigs: Record<number, Config> = {
     investPct: 9000, // 90%
     perfFeePct: 100, // 1%
     lossTolerancePct: 200,
-    multisig: 'deployer',
+    multisig: '0x8f592F2594C43eA30879f9fbED4d930248D81D41',
+    deploymentAddress: '0x8f592F2594C43eA30879f9fbED4d930248D81D41',
     minLockPeriod: 1, // 1 second
-    ethAnchorRouter: 'TODO',
-    AUstToUstPriceFeed: 'TODO',
   },
 
   // hardhat
@@ -50,20 +46,21 @@ const networkConfigs: Record<number, Config> = {
     investPct: 9000, // 90%
     perfFeePct: 100, // 1%
     lossTolerancePct: 200,
-    multisig: 'deployer',
+    multisig: '0x8f592F2594C43eA30879f9fbED4d930248D81D41',
+    deploymentAddress: '0x8f592F2594C43eA30879f9fbED4d930248D81D41',
     minLockPeriod: 1, // 1 second
-    ethAnchorRouter: 'TODO',
-    AUstToUstPriceFeed: 'TODO',
   },
 
   // polygon mumbai
   80001: {
-    multisig: 'deployer',
+    multisig: '0x8f592F2594C43eA30879f9fbED4d930248D81D41',
+    deploymentAddress: '0x8f592F2594C43eA30879f9fbED4d930248D81D41',
   },
 
   // polygon mainnet
   137: {
-    multisig: 'deployer',
+    multisig: 'deployer', // TODO
+    deploymentAddress: 'deployer', // TODO
   },
 };
 
