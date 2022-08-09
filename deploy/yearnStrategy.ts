@@ -3,10 +3,12 @@ import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { includes } from 'lodash';
 import { ethers } from 'hardhat';
 import { utils } from 'ethers';
+import { getCurrentNetworkConfig } from '../scripts/deployConfigs';
 
 const func = async function (env: HardhatRuntimeEnvironment) {
   const { deployer } = await env.getNamedAccounts();
   const { get, deploy, getNetworkName } = env.deployments;
+  const { multisig } = await getCurrentNetworkConfig();
   const [owner] = await ethers.getSigners();
 
   const vaultAddress = (await get('Vault_LUSD')).address;
@@ -59,11 +61,22 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     });
   }
 
-  const MANAGER_ROLE = utils.keccak256(utils.toUtf8Bytes('MANAGER_ROLE'));
-  await yearnStrategy.connect(owner).grantRole(MANAGER_ROLE, owner.address);
+  await yearnStrategy
+    .connect(owner)
+    .grantRole(
+      utils.keccak256(utils.toUtf8Bytes('MANAGER_ROLE')),
+      owner.address,
+    );
 
-  const setStrategyTx = await vault.setStrategy(yearnStrategy.address);
-  await setStrategyTx.wait();
+  console.log('manager_role granted to owner for strategy');
+
+  await (await vault.connect(owner).setStrategy(yearnStrategy.address)).wait();
+  console.log('strategy set to vault');
+
+  if (owner.address !== multisig) {
+    await (await vault.connect(owner).transferOwnership(multisig)).wait();
+    console.log('ownership transfered to multisig');
+  }
 };
 
 func.tags = ['strategy', 'lusd'];

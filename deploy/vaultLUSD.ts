@@ -23,10 +23,16 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
 
   const curvePool = await get('CurvePool-LUSD-3CRV');
 
-  const { minLockPeriod, investPct, perfFeePct, lossTolerancePct, multisig } =
-    await getCurrentNetworkConfig();
+  const {
+    minLockPeriod,
+    investPct,
+    perfFeePct,
+    lossTolerancePct,
+    multisig,
+    deploymentAddress,
+  } = await getCurrentNetworkConfig();
   const treasury = multisig;
-  const owner = multisig;
+  const owner = deploymentAddress;
 
   const args = [
     lusd.address,
