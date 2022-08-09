@@ -16,6 +16,15 @@ import { depositParams, claimParams } from '../../shared/factories';
 
 const { parseEther } = utils;
 
+// address of the '0x' contract performing the token swap
+const SWAP_TARGET = '0xdef1c0ded9bec7f1a1670819833240f027b25eff';
+// cached response data for swapping LQTY->LUSD from `https://api.0x.org/swap/v1/quote?buyToken=${LUSD}&sellToken=${lqty.address}&sellAmount=${39553740600841980000}` at FORK_BLOCK
+const SWAP_LQTY_DATA =
+  '0xd9627aa4000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000224eb1d830321c860000000000000000000000000000000000000000000000001d9fa402217f685ac000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000030000000000000000000000006dea81c8171d0ba574754ef6f8b412f2ed88c54d000000000000000000000000c02aaa39b223fe8d0a0e5c4f27ead9083c756cc20000000000000000000000005f98805a4e8be255a32880fdec7f6728c6568ba0869584cd00000000000000000000000010000000000000000000000000000000000000110000000000000000000000000000000000000000000000a644841b4262ea7823';
+// cached response data for swapping ETH->LUSD from `https://api.0x.org/swap/v1/quote?buyToken=${LUSD}&sellToken=ETH&sellAmount=${1183860347390000}' at FORK_BLOCK
+const SWAP_ETH_DATA =
+  '0xd9627aa40000000000000000000000000000000000000000000000000000000000000080000000000000000000000000000000000000000000000000000434b6f77848300000000000000000000000000000000000000000000000001a2e21b388f4588200000000000000000000000000000000000000000000000000000000000000010000000000000000000000000000000000000000000000000000000000000002000000000000000000000000eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee0000000000000000000000005f98805a4e8be255a32880fdec7f6728c6568ba0869584cd000000000000000000000000100000000000000000000000000000000000001100000000000000000000000000000000000000000000006155a7e2b862ea7824';
+
 describe('LiquityStrategy', () => {
   let admin: SignerWithAddress;
   let alice: SignerWithAddress;
@@ -320,7 +329,7 @@ describe('LiquityStrategy', () => {
       expect(await strategy.investedAssets()).to.eq(parseEther('70'));
     });
 
-    it('emits an event', async () => {
+    it('emits StrategyWithdrawn event', async () => {
       await depositToVault(parseEther('100'));
       await vault.connect(admin).updateInvested();
 
@@ -347,7 +356,59 @@ describe('LiquityStrategy', () => {
     });
   });
 
-  // describe('#harvest functionality', () => {});
+  describe('#harvest & #reinvestRewards functionality', () => {
+    it('reverts if msg.sender is not admin', async () => {
+      await expect(
+        strategy
+          .connect(alice)
+          .harvest(SWAP_TARGET, SWAP_LQTY_DATA, SWAP_ETH_DATA),
+      ).to.be.revertedWith('StrategyCallerNotAdmin');
+
+      await expect(
+        strategy
+          .connect(alice)
+          .reinvestRewards(SWAP_TARGET, SWAP_LQTY_DATA, SWAP_ETH_DATA),
+      ).to.be.revertedWith('StrategyCallerNotAdmin');
+    });
+
+    it('revert if swapTarget is 0 address', async () => {
+      await expect(
+        strategy
+          .connect(admin)
+          .harvest(constants.AddressZero, SWAP_LQTY_DATA, SWAP_ETH_DATA),
+      ).to.be.revertedWith('StrategySwapTargetCannotBe0Address');
+
+      await expect(
+        strategy
+          .connect(admin)
+          .reinvestRewards(
+            constants.AddressZero,
+            SWAP_LQTY_DATA,
+            SWAP_ETH_DATA,
+          ),
+      ).to.be.revertedWith('StrategySwapTargetCannotBe0Address');
+    });
+
+    it('reverts if eth & lqty rewards balance is zero', async () => {
+      await expect(
+        strategy
+          .connect(admin)
+          .harvest(SWAP_TARGET, SWAP_LQTY_DATA, SWAP_ETH_DATA),
+      ).to.be.revertedWith('StrategyNothingToReinvest');
+
+      await expect(
+        strategy
+          .connect(admin)
+          .reinvestRewards(SWAP_TARGET, SWAP_LQTY_DATA, SWAP_ETH_DATA),
+      ).to.be.revertedWith('StrategyNothingToReinvest');
+    });
+
+    it('reverts if empty swap data', async () => {
+      await expect(
+        strategy.connect(admin).harvest(SWAP_TARGET, '0x00', SWAP_ETH_DATA),
+      ).to.be.revertedWith('StrategyLQTYSwapFailed');
+    });
+  });
 
   const depositToVault = async (amount: BigNumber) => {
     await vault.connect(admin).deposit(

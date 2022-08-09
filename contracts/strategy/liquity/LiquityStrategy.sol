@@ -282,8 +282,6 @@ contract LiquityStrategy is
         address _swapTarget,
         bytes calldata _lqtySwapData
     ) internal {
-        if (_lqtySwapData.length == 0) revert StrategyLQTYSwapDataEmpty();
-
         // give approval to the swapTarget
         if (!lqty.approve(_swapTarget, amount)) {
             revert TokenApprovalFailed(address(lqty));
@@ -308,8 +306,6 @@ contract LiquityStrategy is
         address _swapTarget,
         bytes calldata _ethSwapData
     ) internal {
-        if (_ethSwapData.length == 0) revert StrategyETHSwapDataEmpty();
-
         (bool success, ) = _swapTarget.call{value: amount}(_ethSwapData);
         if (!success) revert StrategyETHSwapFailed();
     }
