@@ -10,6 +10,7 @@
     "ethereum:deploy-local": "cd ethereum && graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 sandclock-eth",
     "ethereum:prep:local": "mustache ./config/local.json ethereum/subgraph.template.yaml > ethereum/subgraph.yaml",
     "ethereum:prep:staging": "mustache ./config/staging.json ethereum/subgraph.template.yaml > ethereum/subgraph.yaml",
+    "ethereum:prep:production": "mustache ./config/production.json ethereum/subgraph.template.yaml > ethereum/subgraph.yaml",
     "ethereum:remove-local": "cd ethereum && graph remove --node http://localhost:8020/ sandclock-eth",
     "ethereum:test": "yarn ethereum:prep:local && cd ethereum && graph test",
     "polygon:all-local": "yarn polygon:prep:local && yarn polygon:codegen && yarn polygon:build && yarn polygon:create-local && yarn polygon:deploy-local --version-label v0.0.1",
@@ -20,6 +21,7 @@
     "polygon:deploy-local": "cd polygon && graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 sandclock-polygon",
     "polygon:prep:local": "mustache ./config/local.json polygon/subgraph.template.yaml > polygon/subgraph.yaml",
     "polygon:prep:staging": "mustache ./config/staging.json polygon/subgraph.template.yaml > polygon/subgraph.yaml",
+    "polygon:prep:production": "mustache ./config/production.json polygon/subgraph.template.yaml > polygon/subgraph.yaml",
     "polygon:remove-local": "cd polygon && graph remove --node http://localhost:8020/ sandclock-polygon",
     "polygon:test": "yarn polygon:prep:local && cd polygon && graph test",
     "test": "yarn ethereum:test && yarn polygon:test"
