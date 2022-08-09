@@ -402,12 +402,6 @@ describe('LiquityStrategy', () => {
           .reinvestRewards(SWAP_TARGET, SWAP_LQTY_DATA, SWAP_ETH_DATA),
       ).to.be.revertedWith('StrategyNothingToReinvest');
     });
-
-    it('reverts if empty swap data', async () => {
-      await expect(
-        strategy.connect(admin).harvest(SWAP_TARGET, '0x00', SWAP_ETH_DATA),
-      ).to.be.revertedWith('StrategyLQTYSwapFailed');
-    });
   });
 
   const depositToVault = async (amount: BigNumber) => {
