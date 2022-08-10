@@ -219,7 +219,7 @@ contract LiquityStrategy is
         address _swapTarget,
         bytes calldata _lqtySwapData,
         bytes calldata _ethSwapData
-    ) external {
+    ) external virtual {
         // call withdrawFromSP with 0 amount only to claim rewards
         stabilityPool.withdrawFromSP(0);
 
@@ -241,7 +241,7 @@ contract LiquityStrategy is
         address _swapTarget,
         bytes calldata _lqtySwapData,
         bytes calldata _ethSwapData
-    ) public onlyAdmin {
+    ) public virtual onlyAdmin {
         if (_swapTarget == address(0))
             revert StrategySwapTargetCannotBe0Address();
 
