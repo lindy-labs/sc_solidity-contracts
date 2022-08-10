@@ -13,7 +13,10 @@ contract MockStabilityPool is IStabilityPool {
 
     mapping(address => uint256) public balances;
 
-    function provideToSP(uint256 _amount, address _frontEndTag) external {
+    function provideToSP(
+        uint256 _amount,
+        address /* _frontEndTag */
+    ) external {
         // transfers lusd from the depositor to this contract and updates the balance
         // the balance must appear on getCompoundedLUSDDeposit
         lusd.transferFrom(msg.sender, address(this), _amount);
@@ -32,19 +35,15 @@ contract MockStabilityPool is IStabilityPool {
         lusd.transfer(msg.sender, _amount);
     }
 
-    function getDepositorETHGain(address _depositor)
-        external
-        view
-        returns (uint256)
-    {
+    function getDepositorETHGain(
+        address /* _depositor */
+    ) external pure returns (uint256) {
         return 0;
     }
 
-    function getDepositorLQTYGain(address _depositor)
-        external
-        view
-        returns (uint256)
-    {
+    function getDepositorLQTYGain(
+        address /* _depositor */
+    ) external pure returns (uint256) {
         return 0;
     }
 

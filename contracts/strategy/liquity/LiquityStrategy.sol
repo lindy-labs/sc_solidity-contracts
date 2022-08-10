@@ -116,6 +116,7 @@ contract LiquityStrategy is
      */
     function transferAdminRights(address _newAdmin) public onlyAdmin {
         if (_newAdmin == address(0x0)) revert StrategyAdminCannotBe0Address();
+
         if (_newAdmin == msg.sender)
             revert StrategyCannotTransferAdminRightsToSelf();
 

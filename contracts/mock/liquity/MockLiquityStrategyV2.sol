@@ -19,9 +19,9 @@ contract MockLiquityStrategyV2 is LiquityStrategy {
 
     // override the harvest method in the new version and switch it off
     function harvest(
-        address _swapTarget,
-        bytes calldata _lqtySwapData,
-        bytes calldata _ethSwapData
+        address, // _swapTarget
+        bytes calldata, // _lqtySwapData
+        bytes calldata // _ethSwapData
     ) external virtual override {
         revert HarvestError();
     }

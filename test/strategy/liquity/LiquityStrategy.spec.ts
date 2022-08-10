@@ -260,7 +260,7 @@ describe('LiquityStrategy', () => {
     });
   });
 
-  describe('#invest function', () => {
+  describe('#invest', () => {
     it('reverts if msg.sender is not manager', async () => {
       await expect(strategy.connect(alice).invest()).to.be.revertedWith(
         'StrategyCallerNotManager',
@@ -302,7 +302,7 @@ describe('LiquityStrategy', () => {
     });
   });
 
-  describe('#withdrawToVault function', () => {
+  describe('#withdrawToVault', () => {
     it('reverts if msg.sender is not manager', async () => {
       await expect(
         strategy.connect(alice).withdrawToVault(1),
@@ -356,7 +356,7 @@ describe('LiquityStrategy', () => {
     });
   });
 
-  describe('#harvest & #reinvestRewards functionality', () => {
+  describe('#harvest & #reinvestRewards', () => {
     it('reverts if msg.sender is not admin', async () => {
       await expect(
         strategy
@@ -414,7 +414,3 @@ describe('LiquityStrategy', () => {
     );
   };
 });
-
-// TODO:
-// add tests for the upgradeable & initialiable part of the contract
-// add tests for the harvest method
