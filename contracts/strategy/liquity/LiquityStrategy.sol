@@ -15,16 +15,12 @@ import {ERC165Query} from "../../lib/ERC165Query.sol";
 /***
  * Liquity Strategy generates yield by investing LUSD assets into Liquity Stability Pool contract.
  * Stability pool gives out LQTY & ETH as rewards for liquidity providers.
- * TODO: check this with diganta
- The strategy must run in epochs
- Deposits & withdrawals will only be opened for a small time (1 - 3 hrs) every week
- Then paused
- Before the opening of the epoch all ETH, LQTY held by the contract must be converted to LUSD
- (USDC held by the contract can be held for as long as possible since the investedAssets method is calculating USDC balance)
- Also the opening period must be small, because since we are not calculating the reward tokens in the investedAssets method
- so during the opening period if a user withdraws then the rewards that he accrues during the opening period are not given to him
- for example, suppose we open withdrwals at 8:00 pm and the user withdraws at 9:00 pm then the rewards accrued by his deposits during
- the time interval from 8 to 9 pm (that small 1 hr) wont be recieved to him (This is also same for any liquidations that happen from 8 to 9 pm)
+ * The LQTY rewards are normal yield rewards
+ * But the Stability Pool achievs ETH rewards by Liquidating Troves using the LUSD we deposited.
+ * So our balance of LUSD goes down and we get an 1.1x (or higher) value of ETH. In short, we make a 10% profit in ETH everytime our LUSD is used for liquidation by the stability pool
+ * the harvest method here withdraws those LQTY & ETH rewards, swaps them into LUSD and then deposits them back to the stability pool.
+ * we should make sure to harvest at regular intervals because if the value of ETH rewards goes below 1x of the LUSD used for liquidation then we will make a net loss on our LUSD.
+ * the contract uses 0xapi for swapping the tokens.
  */
 contract LiquityStrategy is
     IStrategy,

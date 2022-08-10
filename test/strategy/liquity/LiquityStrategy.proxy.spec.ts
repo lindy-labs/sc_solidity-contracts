@@ -2,14 +2,6 @@
  * Tests for the proxy functionality of the Liquity Strategy contract
  */
 
-// todo: tests
-// switching off old methods
-// adding new methods
-// upgrading old virtual methods
-// checking the old storage storage variables are same as before upgrade
-// testing the initialize method is not called again the new upgrade
-// testing the new initializeV2 method is being called
-
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { ethers, upgrades } from 'hardhat';
 import { expect } from 'chai';
@@ -26,7 +18,6 @@ import {
 } from '../../../typechain';
 
 import { generateNewAddress } from '../../shared/';
-import { depositParams, claimParams } from '../../shared/factories';
 
 const { parseEther } = utils;
 
