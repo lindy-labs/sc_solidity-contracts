@@ -42,7 +42,6 @@ contract LiquityStrategy is
     error StrategyLQTYSwapFailed();
     error StrategyETHSwapFailed();
 
-    // TODO: test emitted events
     event StrategyRewardsClaimed(uint256 amountInLQTY, uint256 amountInETH);
     event StrategyRewardsReinvested(uint256 amountInLUSD);
 
