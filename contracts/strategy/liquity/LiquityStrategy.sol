@@ -114,7 +114,7 @@ contract LiquityStrategy is
      *
      * @param _newAdmin The new Strategy admin account.
      */
-    function transferAdminRights(address _newAdmin) public onlyAdmin {
+    function transferAdminRights(address _newAdmin) external onlyAdmin {
         if (_newAdmin == address(0x0)) revert StrategyAdminCannotBe0Address();
 
         if (_newAdmin == msg.sender)

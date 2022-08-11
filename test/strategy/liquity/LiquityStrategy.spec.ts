@@ -356,7 +356,7 @@ describe('LiquityStrategy', () => {
     });
   });
 
-  describe('#harvest & #reinvestRewards', () => {
+  describe('#harvest', () => {
     it('reverts if msg.sender is not admin', async () => {
       await expect(
         strategy
@@ -364,6 +364,26 @@ describe('LiquityStrategy', () => {
           .harvest(SWAP_TARGET, SWAP_LQTY_DATA, SWAP_ETH_DATA),
       ).to.be.revertedWith('StrategyCallerNotAdmin');
 
+      it('revert if swapTarget is 0 address', async () => {
+        await expect(
+          strategy
+            .connect(admin)
+            .harvest(constants.AddressZero, SWAP_LQTY_DATA, SWAP_ETH_DATA),
+        ).to.be.revertedWith('StrategySwapTargetCannotBe0Address');
+      });
+
+      it('reverts if eth & lqty rewards balance is zero', async () => {
+        await expect(
+          strategy
+            .connect(admin)
+            .harvest(SWAP_TARGET, SWAP_LQTY_DATA, SWAP_ETH_DATA),
+        ).to.be.revertedWith('StrategyNothingToReinvest');
+      });
+    });
+  });
+
+  describe('#reinvestRewards', () => {
+    it('reverts if msg.sender is not admin', async () => {
       await expect(
         strategy
           .connect(alice)
@@ -372,12 +392,6 @@ describe('LiquityStrategy', () => {
     });
 
     it('revert if swapTarget is 0 address', async () => {
-      await expect(
-        strategy
-          .connect(admin)
-          .harvest(constants.AddressZero, SWAP_LQTY_DATA, SWAP_ETH_DATA),
-      ).to.be.revertedWith('StrategySwapTargetCannotBe0Address');
-
       await expect(
         strategy
           .connect(admin)
@@ -390,12 +404,6 @@ describe('LiquityStrategy', () => {
     });
 
     it('reverts if eth & lqty rewards balance is zero', async () => {
-      await expect(
-        strategy
-          .connect(admin)
-          .harvest(SWAP_TARGET, SWAP_LQTY_DATA, SWAP_ETH_DATA),
-      ).to.be.revertedWith('StrategyNothingToReinvest');
-
       await expect(
         strategy
           .connect(admin)
