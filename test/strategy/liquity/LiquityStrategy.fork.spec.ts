@@ -146,7 +146,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       // call offset to generate yield in the stability pool
       const lusdDebtToOffset = parseUnits('10000');
       const ethCollateralToAdd = parseUnits('10');
-      await ForkHelpers.setBalance(troveManager.address, ethCollateralToAdd);
+      ForkHelpers.setBalance(troveManager.address, ethCollateralToAdd);
 
       // calling offset will rebalance the stability pool by removing LUSD and adding ETH,
       // while also generating LQTY tokens as rewards for the liquidity providers
@@ -201,7 +201,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       await strategy.invest();
 
       await ForkHelpers.mintToken(lqty, strategy.address, EXPECTED_LQTY_REWARD);
-      await ForkHelpers.setBalance(strategy.address, EXPECTED_ETH_REWARD);
+      ForkHelpers.setBalance(strategy.address, EXPECTED_ETH_REWARD);
 
       await strategy.harvest(SWAP_TARGET, SWAP_LQTY_DATA, SWAP_ETH_DATA);
 
@@ -240,7 +240,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       await ForkHelpers.mintToken(lusd, strategy.address, initialInvestment);
       await strategy.invest();
 
-      await ForkHelpers.setBalance(strategy.address, EXPECTED_ETH_REWARD);
+      ForkHelpers.setBalance(strategy.address, EXPECTED_ETH_REWARD);
 
       await strategy.harvest(SWAP_TARGET, [], SWAP_ETH_DATA);
 
@@ -260,7 +260,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       await strategy.invest();
 
       await ForkHelpers.mintToken(lqty, strategy.address, EXPECTED_LQTY_REWARD);
-      await ForkHelpers.setBalance(strategy.address, EXPECTED_ETH_REWARD);
+      ForkHelpers.setBalance(strategy.address, EXPECTED_ETH_REWARD);
 
       // send ETH swap data instead of LQTY swap data
       await expect(
@@ -274,7 +274,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       await strategy.invest();
 
       await ForkHelpers.mintToken(lqty, strategy.address, EXPECTED_LQTY_REWARD);
-      await ForkHelpers.setBalance(strategy.address, EXPECTED_ETH_REWARD);
+      ForkHelpers.setBalance(strategy.address, EXPECTED_ETH_REWARD);
 
       // send LQTY swap data instead of ETH swap data
       await expect(
@@ -290,7 +290,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       await strategy.invest();
 
       await ForkHelpers.mintToken(lqty, strategy.address, EXPECTED_LQTY_REWARD);
-      await ForkHelpers.setBalance(strategy.address, EXPECTED_ETH_REWARD);
+      ForkHelpers.setBalance(strategy.address, EXPECTED_ETH_REWARD);
 
       await strategy.reinvestRewards(
         SWAP_TARGET,
@@ -334,7 +334,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       // call offset to generate rewards for liquidity providers
       const lusdDebtToOffset = parseUnits('10000');
       const ethCollateralToAdd = parseUnits('10');
-      await ForkHelpers.setBalance(troveManager.address, ethCollateralToAdd);
+      ForkHelpers.setBalance(troveManager.address, ethCollateralToAdd);
 
       await lqtyStabilityPool
         .connect(troveManager)
