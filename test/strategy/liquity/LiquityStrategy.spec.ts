@@ -14,7 +14,7 @@ import {
 import { generateNewAddress } from '../../shared/';
 import { depositParams, claimParams } from '../../shared/factories';
 
-const { parseEther } = utils;
+const { parseUnits } = ethers.utils;
 
 describe('LiquityStrategy', () => {
   let admin: SignerWithAddress;
@@ -48,10 +48,10 @@ describe('LiquityStrategy', () => {
       'LUSD',
       'LUSD',
       18,
-      parseEther('1000000000'),
+      parseUnits('1000000000'),
     );
 
-    lqty = await MockERC20.deploy('LQTY', 'LQTY', 18, parseEther('1000000000'));
+    lqty = await MockERC20.deploy('LQTY', 'LQTY', 18, parseUnits('1000000000'));
 
     const StabilityPoolFactory = await ethers.getContractFactory(
       'MockStabilityPool',
@@ -268,7 +268,7 @@ describe('LiquityStrategy', () => {
     });
 
     it('deposits underlying to the stabilityPool', async () => {
-      let underlyingAmount = utils.parseEther('100');
+      let underlyingAmount = utils.parseUnits('100');
       await depositToVault(underlyingAmount);
 
       expect(await vault.totalUnderlying()).to.eq(underlyingAmount);
@@ -287,7 +287,7 @@ describe('LiquityStrategy', () => {
     });
 
     it('emits a StrategyInvested event', async () => {
-      let underlyingAmount = utils.parseEther('100');
+      let underlyingAmount = utils.parseUnits('100');
       await depositToVault(underlyingAmount);
       const tx = await vault.connect(admin).updateInvested();
       await expect(tx)
@@ -309,25 +309,49 @@ describe('LiquityStrategy', () => {
       ).to.be.revertedWith('StrategyAmountZero');
     });
 
-    it('removes the requested funds from the stabilityPool', async () => {
-      await depositToVault(parseEther('100'));
+    it('reverts if amount is greater than invested assets', async () => {
+      await depositToVault(parseUnits('100'));
       await vault.connect(admin).updateInvested();
 
-      const amountToWithdraw = parseEther('30');
+      const amountToWithdraw = parseUnits('101');
+
+      await expect(
+        strategy.connect(manager).withdrawToVault(amountToWithdraw),
+      ).to.be.revertedWith('StrategyNotEnoughShares');
+    });
+
+    it('works when amount is less than invested assets', async () => {
+      await depositToVault(parseUnits('100'));
+      await vault.connect(admin).updateInvested();
+
+      const amountToWithdraw = parseUnits('30');
 
       await strategy.connect(manager).withdrawToVault(amountToWithdraw);
 
       expect(await stabilityPool.balances(strategy.address)).to.eq(
-        parseEther('70'),
+        parseUnits('70'),
       );
-      expect(await strategy.investedAssets()).to.eq(parseEther('70'));
+      expect(await strategy.investedAssets()).to.eq(parseUnits('70'));
+      expect(await underlying.balanceOf(vault.address)).to.eq(parseUnits('30'));
+    });
+
+    it('works when amount is equal to invested assets', async () => {
+      const depositAmount = parseUnits('100');
+      await depositToVault(depositAmount);
+      await vault.connect(admin).updateInvested();
+
+      await strategy.connect(manager).withdrawToVault(depositAmount);
+
+      expect(await stabilityPool.balances(strategy.address)).to.eq('0');
+      expect(await strategy.investedAssets()).to.eq('0');
+      expect(await underlying.balanceOf(vault.address)).to.eq(depositAmount);
     });
 
     it('emits StrategyWithdrawn event', async () => {
-      await depositToVault(parseEther('100'));
+      await depositToVault(parseUnits('100'));
       await vault.connect(admin).updateInvested();
 
-      const amountToWithdraw = parseEther('30');
+      const amountToWithdraw = parseUnits('30');
 
       let tx = await strategy
         .connect(manager)
@@ -336,17 +360,6 @@ describe('LiquityStrategy', () => {
       await expect(tx)
         .to.emit(strategy, 'StrategyWithdrawn')
         .withArgs(amountToWithdraw);
-    });
-
-    it('fails if the requested funds from the stabilityPool are greater than available', async () => {
-      await depositToVault(parseEther('100'));
-      await vault.connect(admin).updateInvested();
-
-      const amountToWithdraw = parseEther('101');
-
-      await expect(
-        strategy.connect(manager).withdrawToVault(amountToWithdraw),
-      ).to.be.revertedWith('StrategyNotEnoughShares');
     });
   });
 
