@@ -1,4 +1,4 @@
-# Sandclock's Solidity Monorepo
+# ![Sandclock Logo + Wordmark](./sc_logo.png) Solidity Monorepo
 
 ![Build Status](https://github.com/lindy-labs/sc_solidity-contracts/workflows/CI/badge.svg)
 [![Coverage Status](https://coveralls.io/repos/github/lindy-labs/sc_solidity-contracts/badge.svg?branch=main&kill_cache=1)](https://coveralls.io/github/lindy-labs/sc_solidity-contracts)
