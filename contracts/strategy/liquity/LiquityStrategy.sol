@@ -33,8 +33,8 @@ contract LiquityStrategy is
 
     error StrategyStabilityPoolCannotBeAddressZero();
     error StrategyYieldTokenCannotBe0Address();
-    error TokenApprovalFailed(address token);
-    error TokenTransferFailed(address token);
+    error StrategyTokenApprovalFailed(address token);
+    error StrategyTokenTransferFailed(address token);
     error StrategyNothingToReinvest();
     error StrategySwapTargetCannotBe0Address();
     error StrategyLQTYSwapDataEmpty();
