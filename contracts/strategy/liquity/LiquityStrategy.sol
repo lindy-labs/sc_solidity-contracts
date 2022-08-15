@@ -187,7 +187,6 @@ contract LiquityStrategy is
 
         uint256 lqtyRewards = lqty.balanceOf(address(this));
         uint256 ethRewards = address(this).balance;
-        // backend to keep track of this and decide when to call reinvestRewards
         emit StrategyRewardsClaimed(lqtyRewards, ethRewards);
 
         // use balance instead of amount since amount could be greater than what was actually withdrawn
