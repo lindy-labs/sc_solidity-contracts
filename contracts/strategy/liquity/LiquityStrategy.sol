@@ -101,7 +101,7 @@ contract LiquityStrategy is
         lqty = IERC20(_lqty);
 
         if (!underlying.approve(_stabilityPool, type(uint256).max)) {
-            revert TokenApprovalFailed(_underlying);
+            revert StrategyTokenApprovalFailed(_underlying);
         }
     }
 
@@ -192,7 +192,7 @@ contract LiquityStrategy is
         // use balance instead of amount since amount could be greater than what was actually withdrawn
         uint256 balance = underlying.balanceOf(address(this));
         if (!underlying.transfer(vault, balance)) {
-            revert TokenTransferFailed(address(underlying));
+            revert StrategyTokenTransferFailed(address(underlying));
         }
 
         emit StrategyWithdrawn(balance);
@@ -279,7 +279,7 @@ contract LiquityStrategy is
     ) internal {
         // give approval to the swapTarget
         if (!lqty.approve(_swapTarget, amount)) {
-            revert TokenApprovalFailed(address(lqty));
+            revert StrategyTokenApprovalFailed(address(lqty));
         }
 
         // perform the swap
