@@ -76,7 +76,7 @@ contract RyskStrategy is IStrategy, AccessControl, CustomErrors {
         ryskLqPool = IRyskLiquidityPool(_ryskLiquidityPool);
         underlying = IERC20(_underlying);
 
-        underlying.approve(_ryskLiquidityPool, type(uint256).max);
+        underlying.safeApprove(_ryskLiquidityPool, type(uint256).max);
     }
 
     //
