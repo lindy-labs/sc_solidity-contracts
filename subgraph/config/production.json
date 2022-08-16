@@ -1,0 +1,17 @@
+{
+  "vault": {
+    "network": "mainnet",
+    "startBlock": 15308000,
+    "address": "0x4FE4BF4166744BcBc13C19d959722Ed4540d3f6a"
+  },
+  "strategy": {
+    "network": "mainnet",
+    "startBlock": 15308000,
+    "address": "0x9043268b2e280dE7DF8AAfe7FEb86e553bd90FdD"
+  },
+  "donations": {
+    "network": "mumbai",
+    "startBlock": 26556016,
+    "address": "TODO"
+  }
+}

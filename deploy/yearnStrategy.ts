@@ -1,27 +1,22 @@
 import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 
+import { includes } from 'lodash';
 import { ethers } from 'hardhat';
 import { utils } from 'ethers';
+import { getCurrentNetworkConfig } from '../scripts/deployConfigs';
 
 const func = async function (env: HardhatRuntimeEnvironment) {
   const { deployer } = await env.getNamedAccounts();
-  const { get, deploy } = env.deployments;
-  const [owner, _alice, _bob] = await ethers.getSigners();
+  const { get, deploy, getNetworkName } = env.deployments;
+  const { multisig } = await getCurrentNetworkConfig();
+  const [owner] = await ethers.getSigners();
 
-  const vault = await ethers.getContractAt(
-    'Vault',
-    (
-      await get('Vault_LUSD')
-    ).address,
-  );
+  const vaultAddress = (await get('Vault_LUSD')).address;
+  const vault = await ethers.getContractAt('Vault', vaultAddress);
 
   const LUSDDeployment = await get('LUSD');
 
-  // Deploy mock pool for ropsten and local only
-  if (
-    env.network.config.chainId === 3 ||
-    env.network.config.chainId === 31337
-  ) {
+  if (getNetworkName() !== 'mainnet') {
     await deploy('YearnVault', {
       contract: 'MockYearnVault',
       from: deployer,
@@ -32,10 +27,10 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   const yearnVault = await get('YearnVault');
 
   const args = [
-      vault.address,
-      owner.address,
-      yearnVault.address,
-      LUSDDeployment.address,
+    vault.address,
+    owner.address,
+    yearnVault.address,
+    LUSDDeployment.address,
   ];
 
   const yearnStrategyDeployment = await deploy('YearnStrategy', {
@@ -50,7 +45,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     yearnStrategyDeployment.address,
   );
 
-  if (env.network.config.chainId === 1 || env.network.config.chainId === 3) {
+  if (getNetworkName() !== 'hardhat' && getNetworkName() !== 'docker') {
     try {
       await env.run('verify:verify', {
         address: yearnStrategy.address,
@@ -59,27 +54,38 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     } catch (e) {
       console.error((e as Error).message);
     }
-  }
 
-  if (process.env.NODE_ENV !== 'test')
     await env.tenderly.persistArtifacts({
       name: 'YearnStrategy',
       address: yearnStrategy.address,
     });
+  }
 
-  const MANAGER_ROLE = utils.keccak256(utils.toUtf8Bytes('MANAGER_ROLE'));
-  await yearnStrategy.connect(owner).grantRole(MANAGER_ROLE, owner.address);
+  await yearnStrategy
+    .connect(owner)
+    .grantRole(
+      utils.keccak256(utils.toUtf8Bytes('MANAGER_ROLE')),
+      owner.address,
+    );
 
-  const setStrategyTx = await vault.setStrategy(yearnStrategy.address);
-  await setStrategyTx.wait();
+  console.log('manager_role granted to owner for strategy');
+
+  await (await vault.connect(owner).setStrategy(yearnStrategy.address)).wait();
+  console.log('strategy set to vault');
+
+  if (owner.address !== multisig) {
+    await (await vault.connect(owner).transferOwnership(multisig)).wait();
+    console.log('ownership transfered to multisig');
+  }
 };
 
-func.id = 'yearn_strategy';
-func.tags = ['strategy', 'yearn'];
-func.dependencies = ['vaults', 'lusd'];
+func.tags = ['strategy', 'lusd'];
+func.dependencies = ['vault'];
 
-// don't deploy to polygon networks
-func.skip = async (hre) =>
-  hre.network.config.chainId === 137 || hre.network.config.chainId === 80001;
+func.skip = async (env: HardhatRuntimeEnvironment) =>
+  !includes(
+    ['ropsten', 'docker', 'mainnet', 'hardhat'],
+    env.deployments.getNetworkName(),
+  );
 
 export default func;

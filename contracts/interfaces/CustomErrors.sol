@@ -29,7 +29,7 @@ interface CustomErrors {
 
     // Vault: owner cannot be 0x0
     error VaultOwnerCannotBe0Address();
-    
+
     // Vault: cannot transfer ownership to self
     error VaultCannotTransferOwnershipToSelf();
 
@@ -114,15 +114,18 @@ interface CustomErrors {
     // Vault: deposit name for MetaVault too short
     error VaultDepositNameTooShort();
 
+    // Vault: no yield to claim
+    error VaultNoYieldToClaim();
+
     //
     // Strategy Errors
     //
 
-    // Strategy: owner is 0x
-    error StrategyOwnerCannotBe0Address();
+    // Strategy: admin is 0x
+    error StrategyAdminCannotBe0Address();
 
-    // Strategy: cannot transfer ownership to self
-    error StrategyCannotTransferOwnershipToSelf();
+    // Strategy: cannot transfer admin rights to self
+    error StrategyCannotTransferAdminRightsToSelf();
 
     // Strategy: underlying is 0x
     error StrategyUnderlyingCannotBe0Address();
@@ -132,6 +135,12 @@ interface CustomErrors {
 
     // Strategy: caller is not manager
     error StrategyCallerNotManager();
+
+    // Strategy: caller has no settings role
+    error StrategyCallerNotSettings();
+
+    // Strategy: caller is not admin
+    error StrategyCallerNotAdmin();
 
     // Strategy: amount is 0
     error StrategyAmountZero();

@@ -35,7 +35,8 @@ interface IVaultSponsoring {
     function sponsor(
         address _inputToken,
         uint256 _amount,
-        uint256 _lockedUntil
+        uint256 _lockedUntil,
+        uint256 _slippage
     ) external;
 
     /**

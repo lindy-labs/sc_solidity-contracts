@@ -29,7 +29,7 @@ describe('Audit Tests 2', () => {
   const INVEST_PCT = BigNumber.from('9000');
 
   const fixtures = deployments.createFixture(async ({ deployments }) => {
-    await deployments.fixture(['vaults']);
+    await deployments.fixture(['vault']);
     [owner] = await ethers.getSigners();
     const lusdDeployment = await deployments.get('LUSD');
     const lusdVaultDeployment = await deployments.get('Vault_LUSD');
@@ -110,7 +110,7 @@ describe('Audit Tests 2', () => {
 
       await time.increase(24 * 60 * 60);
 
-      await vault.connect(alice).claimYield(alice.address);
+      await expect(vault.connect(alice).claimYield(alice.address)).to.be.revertedWith('VaultNoYieldToClaim');
       await vault.connect(alice).withdraw(alice.address, [2]);
 
       await underlying

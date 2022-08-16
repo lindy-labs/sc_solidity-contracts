@@ -103,6 +103,7 @@ const config: HardhatUserConfig = {
   etherscan: {
     apiKey: {
       ropsten: process.env.ETHERSCAN_KEY || 'missing-key',
+      mainnet: process.env.ETHERSCAN_KEY || 'missing-key',
       polygonMumbai: process.env.POLYSCAN_KEY || 'missing-key',
     },
   },

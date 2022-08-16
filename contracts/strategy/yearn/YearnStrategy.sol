@@ -3,7 +3,6 @@ pragma solidity =0.8.10;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 
 import {PercentMath} from "../../lib/PercentMath.sol";
@@ -18,36 +17,51 @@ import {IVault} from "../../vault/IVault.sol";
  *
  * @notice This strategy is syncrhonous (supports immediate withdrawals).
  */
-contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
+contract YearnStrategy is IStrategy, AccessControl, CustomErrors {
     using SafeERC20 for IERC20;
     using PercentMath for uint256;
     using ERC165Query for address;
 
+    /**
+     * Emmited when the maxLossOnWithdraw (from Yearn vault) is changed.
+     *
+     * @param maxLoss new value for max loss withdraw param
+     */
+    event StrategyMaxLossOnWithdrawChanged(uint256 maxLoss);
+
     // yearn vault is 0x
     error StrategyYearnVaultCannotBe0Address();
+    // max loss on withdraw from yearn > 100%
+    error StrategyMaxLossOnWithdrawTooLarge();
 
     /// role allowed to invest/withdraw from yearn vault
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
+    /// role allowed to change settings such as max loss on withdraw from yearn vault
+    bytes32 public constant SETTINGS_ROLE = keccak256("SETTINGS_ROLE");
     // underlying ERC20 token
     IERC20 public immutable underlying;
     /// @inheritdoc IStrategy
     address public immutable override(IStrategy) vault;
     // yearn vault that this strategy is interacting with
     IYearnVault public immutable yVault;
+    // multiplier for underlying convertion to shares
+    uint128 public immutable conversionMultiplier;
+    // used when withdrawing from yearn vault, 1 = 0.01%
+    uint128 public maxLossOnWithdraw = 1;
 
     /**
      * @param _vault address of the vault that will use this strategy
-     * @param _owner address of the owner of this strategy
+     * @param _admin address of the administrator account for this strategy
      * @param _yVault address of the yearn vault that this strategy is using
      * @param _underlying address of the underlying token
      */
     constructor(
         address _vault,
-        address _owner,
+        address _admin,
         address _yVault,
         address _underlying
     ) {
-        if (_owner == address(0)) revert StrategyOwnerCannotBe0Address();
+        if (_admin == address(0)) revert StrategyAdminCannotBe0Address();
         if (_yVault == address(0)) revert StrategyYearnVaultCannotBe0Address();
         if (_underlying == address(0))
             revert StrategyUnderlyingCannotBe0Address();
@@ -55,11 +69,14 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
         if (!_vault.doesContractImplementInterface(type(IVault).interfaceId))
             revert StrategyNotIVault();
 
-        _setupRole(DEFAULT_ADMIN_ROLE, _owner);
+        _setupRole(DEFAULT_ADMIN_ROLE, _admin);
+        _setupRole(SETTINGS_ROLE, _admin);
         _setupRole(MANAGER_ROLE, _vault);
 
         vault = _vault;
         yVault = IYearnVault(_yVault);
+        conversionMultiplier = uint128(10**yVault.decimals());
+
         underlying = IERC20(_underlying);
 
         underlying.approve(_yVault, type(uint256).max);
@@ -75,27 +92,36 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
         _;
     }
 
-    //
-    // Ownable
-    //
+    modifier onlySettings() {
+        if (!hasRole(SETTINGS_ROLE, msg.sender))
+            revert StrategyCallerNotSettings();
+        _;
+    }
+
+    modifier onlyAdmin() {
+        if (!hasRole(DEFAULT_ADMIN_ROLE, msg.sender))
+            revert StrategyCallerNotAdmin();
+        _;
+    }
 
     /**
-     * Transfers ownership of the Strategy to another account, 
-     * revoking previous owner's ADMIN role and setting up ADMIN role for the new owner.
-     * 
-     * @notice Can only be called by the current owner.
+     * Transfers administrator rights for the Strategy to another account,
+     * revoking current admin roles and setting up the roles for the new admin.
      *
-     * @param _newOwner The new owner of the contract.
+     * @notice Can only be called by the account with the ADMIN role.
+     *
+     * @param _newAdmin The new Strategy admin account.
      */
-    function transferOwnership(address _newOwner) public override(Ownable) onlyOwner {
-        if (_newOwner == address(0x0)) revert StrategyOwnerCannotBe0Address();
-        if (_newOwner == msg.sender) revert StrategyCannotTransferOwnershipToSelf();
+    function transferAdminRights(address _newAdmin) external onlyAdmin {
+        if (_newAdmin == address(0x0)) revert StrategyAdminCannotBe0Address();
+        if (_newAdmin == msg.sender)
+            revert StrategyCannotTransferAdminRightsToSelf();
 
-        _transferOwnership(_newOwner);
-
-        _setupRole(DEFAULT_ADMIN_ROLE, _newOwner);
+        _setupRole(DEFAULT_ADMIN_ROLE, _newAdmin);
+        _setupRole(SETTINGS_ROLE, _newAdmin);
 
         _revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _revokeRole(SETTINGS_ROLE, msg.sender);
     }
 
     /**
@@ -126,40 +152,68 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
         override(IStrategy)
         returns (uint256)
     {
-        return
-            _sharesToUnderlying(_getShares()) + _getUnderlyingBalance();
+        return _sharesToUnderlying(_getShares()) + _getUnderlyingBalance();
     }
 
     /// @inheritdoc IStrategy
     function invest() external virtual override(IStrategy) onlyManager {
-        uint256 balance = _getUnderlyingBalance();
-        if (balance == 0) revert StrategyNoUnderlying();
+        uint256 beforeBalance = _getUnderlyingBalance();
+        if (beforeBalance == 0) revert StrategyNoUnderlying();
 
-        yVault.deposit(balance, address(this));
+        yVault.deposit(type(uint256).max, address(this));
 
-        emit StrategyInvested(balance);
+        uint256 afterBalance = _getUnderlyingBalance();
+
+        emit StrategyInvested(beforeBalance - afterBalance);
     }
 
     /// @inheritdoc IStrategy
-    function withdrawToVault(uint256 amount)
+    function withdrawToVault(uint256 _amount)
         external
         virtual
         override(IStrategy)
         onlyManager
     {
-        if (amount == 0) revert StrategyAmountZero();
+        if (_amount == 0) revert StrategyAmountZero();
+        uint256 uninvestedUnderlying = _getUnderlyingBalance();
 
-        uint256 _sharesToWithdraw = _underlyingToShares(amount);
+        if (_amount > uninvestedUnderlying) {
+            uint256 sharesToWithdraw = _underlyingToShares(
+                _amount - uninvestedUnderlying
+            );
 
-        if (_sharesToWithdraw > _getShares()) revert StrategyNotEnoughShares();
+            if (sharesToWithdraw > _getShares())
+                revert StrategyNotEnoughShares();
 
-        // burn shares and withdraw required underlying to strategy
-        yVault.withdraw(_sharesToWithdraw, address(this), 1);
+            // burn shares and withdraw required underlying to strategy
+            uint256 withdrawnFromYearn = yVault.withdraw(
+                sharesToWithdraw,
+                address(this),
+                maxLossOnWithdraw
+            );
+
+            _amount = uninvestedUnderlying + withdrawnFromYearn;
+        }
 
         // transfer underlying to vault
-        underlying.safeTransfer(vault, amount);
+        underlying.safeTransfer(vault, _amount);
 
-        emit StrategyWithdrawn(amount);
+        emit StrategyWithdrawn(_amount);
+    }
+
+    /**
+     * Sets the max loss percentage used when withdrawing from the Yearn vault.
+     *
+     * @notice Can only be called by the account with settings role.
+     *
+     * @param _maxLoss The max loss percentage to use when withdrawing from the Yearn vault. Value of 1 equals 0.01% loss.
+     */
+    function setMaxLossOnWithdraw(uint128 _maxLoss) external onlySettings {
+        if (_maxLoss > 10000) revert StrategyMaxLossOnWithdrawTooLarge();
+
+        maxLossOnWithdraw = _maxLoss;
+
+        emit StrategyMaxLossOnWithdrawChanged(_maxLoss);
     }
 
     /**
@@ -192,7 +246,7 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
         view
         returns (uint256)
     {
-        return (_shares * yVault.pricePerShare()) / 1e18;
+        return (_shares * yVault.pricePerShare()) / conversionMultiplier;
     }
 
     /**
@@ -207,6 +261,6 @@ contract YearnStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
         view
         returns (uint256)
     {
-        return (_underlying * 1e18) / yVault.pricePerShare();
+        return (_underlying * conversionMultiplier) / yVault.pricePerShare();
     }
 }

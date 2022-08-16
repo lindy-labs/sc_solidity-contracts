@@ -11,7 +11,11 @@ import {
   MockChainlinkPriceFeed__factory,
   IERC20__factory,
 } from '../../../../typechain';
-import { generateNewAddress, ForkHelpers } from '../../../shared';
+import {
+  generateNewAddress,
+  ForkHelpers,
+  CURVE_SLIPPAGE,
+} from '../../../shared';
 import config from './config.json';
 
 describe('AnchorStrategy Mainnet fork', () => {
@@ -109,6 +113,7 @@ describe('AnchorStrategy Mainnet fork', () => {
         ],
         lockDuration: TWO_WEEKS,
         name: 'Foundation name',
+        slippage: CURVE_SLIPPAGE,
       });
       expect(await ustToken.balanceOf(vault.address)).to.be.equal(amount);
       let exchangeRate = (await mockAUstUstFeed.latestRoundData()).answer;
@@ -163,6 +168,7 @@ describe('AnchorStrategy Mainnet fork', () => {
         ],
         lockDuration: TWO_WEEKS,
         name: 'Foundation name',
+        slippage: CURVE_SLIPPAGE,
       });
 
       expect(await vault.totalUnderlying()).to.be.equal(
@@ -266,6 +272,7 @@ describe('AnchorStrategy Mainnet fork', () => {
         ],
         lockDuration: TWO_WEEKS,
         name: 'Foundation name',
+        slippage: CURVE_SLIPPAGE,
       });
       expect(await ustToken.balanceOf(vault.address)).to.be.equal(amount);
       let exchangeRate = utils.parseEther('1.17');
@@ -320,6 +327,7 @@ describe('AnchorStrategy Mainnet fork', () => {
         ],
         lockDuration: TWO_WEEKS,
         name: 'Foundation name',
+        slippage: CURVE_SLIPPAGE,
       });
 
       expect(await vault.totalUnderlying()).to.be.equal(
