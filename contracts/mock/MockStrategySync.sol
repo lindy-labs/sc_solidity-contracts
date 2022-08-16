@@ -6,26 +6,16 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 
 import {IStrategy} from "../strategy/IStrategy.sol";
+import {BaseStrategy} from "../strategy/BaseStrategy.sol";
 import {CustomErrors} from "../interfaces/CustomErrors.sol";
 
-contract MockStrategySync is IStrategy, AccessControl, CustomErrors {
-    using SafeERC20 for IERC20;
-
-    bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
-
-    address public immutable override(IStrategy) vault;
-
-    IERC20 public immutable underlying;
-
-    modifier onlyManager() {
-        if (!hasRole(MANAGER_ROLE, msg.sender))
-            revert StrategyCallerNotManager();
-        _;
-    }
-
-    constructor(address _vault, IERC20 _underlying) {
-        vault = _vault;
-        underlying = _underlying;
+contract MockStrategySync is BaseStrategy {
+    constructor(
+        address _vault,
+        IERC20 _underlying,
+        address _admin
+    ) {
+        setup(_vault, address(_underlying), _admin);
     }
 
     function isSync() external pure virtual override(IStrategy) returns (bool) {
@@ -50,4 +40,10 @@ contract MockStrategySync is IStrategy, AccessControl, CustomErrors {
     function hasAssets() external view override(IStrategy) returns (bool) {
         return underlying.balanceOf(address(this)) > 0;
     }
+
+    function transferAdminRights(address newAdmin)
+        external
+        override(BaseStrategy)
+        onlyManager
+    {}
 }
