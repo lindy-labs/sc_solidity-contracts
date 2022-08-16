@@ -19,7 +19,7 @@ import {IVault} from "../../vault/IVault.sol";
  *
  * @notice This strategy is asyncrhonous (doesn't support immediate withdrawals).
  */
-contract RyskStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
+contract RyskStrategy is IStrategy, AccessControl, CustomErrors {
     using SafeERC20 for IERC20;
     using PercentMath for uint256;
     using ERC165Query for address;
@@ -42,7 +42,7 @@ contract RyskStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
      */
     event RyskWithdrawalInitiated(uint256 shares);
 
-    // rysk liquidity pool is 0x
+    // rysk liquidity pool cannot be 0 address
     error RyskLiquidityPoolCannotBe0Address();
     // no withdrawal initiated
     error RyskNoWithdrawalInitiated();
@@ -51,17 +51,17 @@ contract RyskStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
 
     /**
      * @param _vault address of the vault that will use this strategy
-     * @param _owner address of the owner of this strategy
+     * @param _admin address of the administrator account for this strategy
      * @param _ryskLiquidityPool address of the rysk liquidity pool that this strategy is using
      * @param _underlying address of the underlying token
      */
     constructor(
         address _vault,
-        address _owner,
+        address _admin,
         address _ryskLiquidityPool,
         address _underlying
     ) {
-        if (_owner == address(0)) revert StrategyOwnerCannotBe0Address();
+        if (_admin == address(0)) revert StrategyAdminCannotBe0Address();
         if (_ryskLiquidityPool == address(0))
             revert RyskLiquidityPoolCannotBe0Address();
         if (_underlying == address(0))
@@ -69,7 +69,7 @@ contract RyskStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
         if (!_vault.doesContractImplementInterface(type(IVault).interfaceId))
             revert StrategyNotIVault();
 
-        _setupRole(DEFAULT_ADMIN_ROLE, _owner);
+        _setupRole(DEFAULT_ADMIN_ROLE, _admin);
         _setupRole(MANAGER_ROLE, _vault);
 
         vault = _vault;
@@ -89,30 +89,30 @@ contract RyskStrategy is IStrategy, AccessControl, Ownable, CustomErrors {
         _;
     }
 
+    modifier onlyAdmin() {
+        if (!hasRole(DEFAULT_ADMIN_ROLE, msg.sender))
+            revert StrategyCallerNotAdmin();
+        _;
+    }
+
     //
     // Ownable
     //
 
     /**
-     * Transfers ownership of the Strategy to another account,
-     * revoking previous owner's ADMIN role and setting up ADMIN role for the new owner.
+     * Transfers administrator rights for the Strategy to another account,
+     * revoking current admin roles and setting up the roles for the new admin.
      *
-     * @notice Can only be called by the current owner.
+     * @notice Can only be called by the account with the ADMIN role.
      *
-     * @param _newOwner The new owner of the contract.
+     * @param _newAdmin The new Strategy admin account.
      */
-    function transferOwnership(address _newOwner)
-        public
-        override(Ownable)
-        onlyOwner
-    {
-        if (_newOwner == address(0x0)) revert StrategyOwnerCannotBe0Address();
-        if (_newOwner == msg.sender)
-            revert StrategyCannotTransferOwnershipToSelf();
+    function transferAdminRights(address _newAdmin) public onlyAdmin {
+        if (_newAdmin == address(0x0)) revert StrategyAdminCannotBe0Address();
+        if (_newAdmin == msg.sender)
+            revert StrategyCannotTransferAdminRightsToSelf();
 
-        _transferOwnership(_newOwner);
-
-        _setupRole(DEFAULT_ADMIN_ROLE, _newOwner);
+        _setupRole(DEFAULT_ADMIN_ROLE, _newAdmin);
 
         _revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }

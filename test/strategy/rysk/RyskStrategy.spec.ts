@@ -15,7 +15,7 @@ import { generateNewAddress } from '../../shared/';
 import { parseUnits } from 'ethers/lib/utils';
 
 describe('RyskStrategy', () => {
-  let owner: SignerWithAddress;
+  let admin: SignerWithAddress;
   let alice: SignerWithAddress;
   let manager: SignerWithAddress;
   let vault: Vault;
@@ -29,7 +29,7 @@ describe('RyskStrategy', () => {
   const MANAGER_ROLE = utils.keccak256(utils.toUtf8Bytes('MANAGER_ROLE'));
 
   beforeEach(async () => {
-    [owner, alice, manager] = await ethers.getSigners();
+    [admin, alice, manager] = await ethers.getSigners();
 
     const MockERC20 = await ethers.getContractFactory('MockUSDC');
     underlying = await MockERC20.deploy(parseUnits('1000000000'));
@@ -51,7 +51,7 @@ describe('RyskStrategy', () => {
       1, // MIN_LOCK_PERIOD
       BigNumber.from('10000'), // INVEST_PCT
       generateNewAddress(), // TREASURY
-      owner.address,
+      admin.address,
       BigNumber.from('0'), // PERFORMANCE_FEE_PCT
       BigNumber.from('0'), // INVESTMENT_FEE_PCT,
       [],
@@ -61,22 +61,22 @@ describe('RyskStrategy', () => {
 
     strategy = await RyskStrategyFactory.deploy(
       vault.address,
-      owner.address,
+      admin.address,
       ryskLqPool.address,
       underlying.address,
     );
 
-    await strategy.connect(owner).grantRole(MANAGER_ROLE, manager.address);
+    await strategy.connect(admin).grantRole(MANAGER_ROLE, manager.address);
 
     await vault.setStrategy(strategy.address);
 
     await underlying
-      .connect(owner)
+      .connect(admin)
       .approve(vault.address, constants.MaxUint256);
   });
 
   describe('#constructor', () => {
-    it('reverts if owner is address(0)', async () => {
+    it('reverts if the admin is address(0)', async () => {
       await expect(
         RyskStrategyFactory.deploy(
           vault.address,
@@ -84,14 +84,14 @@ describe('RyskStrategy', () => {
           ryskLqPool.address,
           underlying.address,
         ),
-      ).to.be.revertedWith('StrategyOwnerCannotBe0Address');
+      ).to.be.revertedWith('StrategyAdminCannotBe0Address');
     });
 
     it('reverts if the Rysk liquidity pool is address(0)', async () => {
       await expect(
         RyskStrategyFactory.deploy(
           vault.address,
-          owner.address,
+          admin.address,
           constants.AddressZero,
           underlying.address,
         ),
@@ -102,7 +102,7 @@ describe('RyskStrategy', () => {
       await expect(
         RyskStrategyFactory.deploy(
           vault.address,
-          owner.address,
+          admin.address,
           ryskLqPool.address,
           constants.AddressZero,
         ),
@@ -113,7 +113,7 @@ describe('RyskStrategy', () => {
       await expect(
         RyskStrategyFactory.deploy(
           manager.address, // vault param
-          owner.address,
+          admin.address,
           ryskLqPool.address,
           underlying.address,
         ),
@@ -122,13 +122,12 @@ describe('RyskStrategy', () => {
 
     it('sets initial values as expected', async () => {
       expect(await strategy.vault()).to.eq(vault.address);
-      expect(await strategy.owner()).to.eq(owner.address);
       expect(await strategy.ryskLqPool()).to.eq(ryskLqPool.address);
       expect(await strategy.underlying()).to.eq(underlying.address);
 
       expect(await strategy.isSync()).to.be.false;
 
-      expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, owner.address)).to.be
+      expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, admin.address)).to.be
         .true;
       expect(await strategy.hasRole(MANAGER_ROLE, vault.address)).to.be.true;
 
@@ -138,39 +137,32 @@ describe('RyskStrategy', () => {
     });
   });
 
-  describe('#transferOwnership', () => {
-    it('can only be called by the current owner', async () => {
+  describe('#transferAdminRights', () => {
+    it('can only be called by the current admin', async () => {
       await expect(
-        strategy.connect(alice).transferOwnership(alice.address),
-      ).to.be.revertedWith('Ownable: caller is not the owner');
+        strategy.connect(alice).transferAdminRights(alice.address),
+      ).to.be.revertedWith('StrategyCallerNotAdmin');
     });
 
-    it('reverts if new owner is address(0)', async () => {
+    it('reverts if new admin is address(0)', async () => {
       await expect(
-        strategy.connect(owner).transferOwnership(constants.AddressZero),
-      ).to.be.revertedWith('StrategyOwnerCannotBe0Address');
+        strategy.connect(admin).transferAdminRights(constants.AddressZero),
+      ).to.be.revertedWith('StrategyAdminCannotBe0Address');
     });
 
-    it('reverts if the new owner is the same as the current one', async () => {
+    it('reverts if the new admin is the same as the current one', async () => {
       await expect(
-        strategy.connect(owner).transferOwnership(owner.address),
-      ).to.be.revertedWith('StrategyCannotTransferOwnershipToSelf');
+        strategy.connect(admin).transferAdminRights(admin.address),
+      ).to.be.revertedWith('StrategyCannotTransferAdminRightsToSelf');
     });
 
-    it('changes ownership to the new owner', async () => {
-      await strategy.connect(owner).transferOwnership(alice.address);
-
-      expect(await strategy.owner()).to.be.equal(alice.address);
-    });
-
-    it("revokes previous owner's ADMIN role and sets up ADMIN role for the new owner", async () => {
-      // assert that the owner has the ADMIN role
-      expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, owner.address)).to.be
+    it('transfers admin rights from current account to the new one', async () => {
+      expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, admin.address)).to.be
         .true;
 
-      await strategy.connect(owner).transferOwnership(alice.address);
+      await strategy.connect(admin).transferAdminRights(alice.address);
 
-      expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, owner.address)).to.be
+      expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, admin.address)).to.be
         .false;
 
       expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, alice.address)).to.be
