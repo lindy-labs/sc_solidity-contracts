@@ -120,10 +120,8 @@ contract LiquityStrategy is
             revert StrategyCannotTransferAdminRightsToSelf();
 
         _setupRole(DEFAULT_ADMIN_ROLE, _newAdmin);
-        _setupRole(MANAGER_ROLE, _newAdmin);
 
         _revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _revokeRole(MANAGER_ROLE, msg.sender);
     }
 
     //
