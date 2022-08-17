@@ -73,7 +73,3 @@ with the tx-hash of the respective transaction you want to debug.
 ### Deployed contracts
 
 Check the [deployments folder](./deployments)
-
-```
-
-```
