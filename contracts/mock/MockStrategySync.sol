@@ -44,6 +44,6 @@ contract MockStrategySync is BaseStrategy {
     function transferAdminRights(address newAdmin)
         external
         override(BaseStrategy)
-        onlyManager
+        onlyAdmin
     {}
 }
