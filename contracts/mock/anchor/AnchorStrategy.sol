@@ -85,7 +85,7 @@ contract AnchorStrategy is IAnchorStrategy, BaseStrategy {
         IERC20 _ustToken,
         IERC20 _aUstToken,
         address _admin
-    ) {
+    ) BaseStrategy(_vault, address(_ustToken), _admin) {
         if (_admin == address(0)) revert StrategyAdminCannotBe0Address();
         if (_ethAnchorRouter == address(0))
             revert StrategyRouterCannotBe0Address();

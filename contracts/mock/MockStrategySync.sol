@@ -12,11 +12,9 @@ import {CustomErrors} from "../interfaces/CustomErrors.sol";
 contract MockStrategySync is BaseStrategy {
     constructor(
         address _vault,
-        IERC20 _underlying,
+        address _underlying,
         address _admin
-    ) {
-        _setup(_vault, address(_underlying), _admin);
-    }
+    ) BaseStrategy(_vault, _underlying, _admin) {}
 
     function isSync() external pure virtual override(IStrategy) returns (bool) {
         return true;

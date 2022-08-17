@@ -53,9 +53,7 @@ contract YearnStrategy is BaseStrategy {
         address _admin,
         address _yVault,
         address _underlying
-    ) {
-        _setup(_vault, _underlying, _admin);
-
+    ) BaseStrategy(_vault, _underlying, _admin) {
         if (_yVault == address(0)) revert StrategyYearnVaultCannotBe0Address();
 
         yVault = IYearnVault(_yVault);

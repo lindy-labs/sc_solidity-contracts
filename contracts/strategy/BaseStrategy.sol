@@ -27,6 +27,29 @@ abstract contract BaseStrategy is IStrategy, AccessControl, CustomErrors {
     // the vault linked to this strategy
     address public vault;
 
+    /**
+     * @param _vault address of the vault that will use this strategy
+     * @param _underlying address of the underlying token
+     * @param _admin address of the administrator account
+     */
+    constructor(
+        address _vault,
+        address _underlying,
+        address _admin
+    ) {
+        if (_admin == address(0)) revert StrategyAdminCannotBe0Address();
+        if (_underlying == address(0))
+            revert StrategyUnderlyingCannotBe0Address();
+        if (!_vault.doesContractImplementInterface(type(IVault).interfaceId))
+            revert StrategyNotIVault();
+
+        vault = _vault;
+        underlying = IERC20(_underlying);
+
+        _setupRole(DEFAULT_ADMIN_ROLE, _admin);
+        _setupRole(MANAGER_ROLE, _vault);
+    }
+
     //
     // Modifiers
     //
@@ -59,33 +82,6 @@ abstract contract BaseStrategy is IStrategy, AccessControl, CustomErrors {
      */
     function transferAdminRights(address _newAdmin) external virtual onlyAdmin {
         _doTransferAdminRights(_newAdmin);
-    }
-
-    /**
-     * Sets up the essential fields required for any strategy implementation.
-     *
-     * @notice This is ment to be called only from the #constructor of the implemeting contracts.
-     *
-     * @param _vault address of the vault that will use this strategy
-     * @param _underlying address of the underlying token
-     * @param _admin address of the administrator account
-     */
-    function _setup(
-        address _vault,
-        address _underlying,
-        address _admin
-    ) internal {
-        if (_admin == address(0)) revert StrategyAdminCannotBe0Address();
-        if (_underlying == address(0))
-            revert StrategyUnderlyingCannotBe0Address();
-        if (!_vault.doesContractImplementInterface(type(IVault).interfaceId))
-            revert StrategyNotIVault();
-
-        vault = _vault;
-        underlying = IERC20(_underlying);
-
-        _setupRole(DEFAULT_ADMIN_ROLE, _admin);
-        _setupRole(MANAGER_ROLE, _vault);
     }
 
     /**

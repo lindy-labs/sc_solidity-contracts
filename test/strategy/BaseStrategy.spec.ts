@@ -60,7 +60,7 @@ describe('BaseStrategy', () => {
     await vault.setStrategy(strategy.address);
   });
 
-  describe('#setup/#constructor', () => {
+  describe('#constructor', () => {
     it('reverts if admin is address(0)', async () => {
       await expect(
         BaseStrategyFactory.deploy(
@@ -101,7 +101,7 @@ describe('BaseStrategy', () => {
     });
   });
 
-  describe('#changeAdmin/#transferAdminRights', () => {
+  describe('#transferAdminRights', () => {
     it('reverts if caller is not admin', async () => {
       await expect(
         strategy.connect(alice).transferAdminRights(alice.address),
