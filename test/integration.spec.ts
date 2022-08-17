@@ -86,13 +86,20 @@ describe('Integration', () => {
     underlying.connect(bob).approve(vault.address, MaxUint256);
     underlying.connect(carol).approve(vault.address, MaxUint256);
 
-    strategy = await MockStrategy.deploy(vault.address, underlying.address);
+    strategy = await MockStrategy.deploy(
+      vault.address,
+      underlying.address,
+      owner.address,
+    );
 
-    ({ addUnderlyingBalance, addYieldToVault, removeUnderlyingFromVault } =
-      createVaultHelpers({
-        vault,
-        underlying,
-      }));
+    ({
+      addUnderlyingBalance,
+      addYieldToVault,
+      removeUnderlyingFromVault,
+    } = createVaultHelpers({
+      vault,
+      underlying,
+    }));
   });
 
   describe('single deposit, single sponsor and single claimer', () => {
@@ -163,7 +170,9 @@ describe('Integration', () => {
       await moveForwardTwoWeeks();
       await removeUnderlyingFromVault('2500');
 
-      await expect(vault.connect(carol).claimYield(carol.address)).to.be.revertedWith('VaultNoYieldToClaim');
+      await expect(
+        vault.connect(carol).claimYield(carol.address),
+      ).to.be.revertedWith('VaultNoYieldToClaim');
       // we expect the withdraw to fail because there are not enough funds in the vault
       await expect(
         vault.connect(alice).withdraw(alice.address, [2]),
@@ -201,7 +210,9 @@ describe('Integration', () => {
 
       await moveForwardTwoWeeks();
 
-      await expect(vault.connect(carol).claimYield(carol.address)).to.be.revertedWith('VaultNoYieldToClaim');
+      await expect(
+        vault.connect(carol).claimYield(carol.address),
+      ).to.be.revertedWith('VaultNoYieldToClaim');
       await vault.connect(alice).withdraw(alice.address, [2]);
       await vault.connect(bob).unsponsor(bob.address, [1]);
 

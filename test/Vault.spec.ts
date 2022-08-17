@@ -99,13 +99,20 @@ describe('Vault', () => {
     underlying.connect(bob).approve(vault.address, MaxUint256);
     underlying.connect(carol).approve(vault.address, MaxUint256);
 
-    strategy = await MockStrategy.deploy(vault.address, underlying.address);
+    strategy = await MockStrategy.deploy(
+      vault.address,
+      underlying.address,
+      owner.address,
+    );
 
-    ({ addUnderlyingBalance, addYieldToVault, removeUnderlyingFromVault } =
-      createVaultHelpers({
-        vault,
-        underlying,
-      }));
+    ({
+      addUnderlyingBalance,
+      addYieldToVault,
+      removeUnderlyingFromVault,
+    } = createVaultHelpers({
+      vault,
+      underlying,
+    }));
 
     await addUnderlyingBalance(alice, '1000');
     await addUnderlyingBalance(bob, '1000');
@@ -765,6 +772,7 @@ describe('Vault', () => {
       const newStrategy = await MockStrategy.deploy(
         vault.address,
         underlying.address,
+        owner.address,
       );
 
       const tx = await vault.connect(owner).setStrategy(newStrategy.address);
@@ -786,6 +794,7 @@ describe('Vault', () => {
       const newStrategy = await MockStrategy.deploy(
         vault.address,
         underlying.address,
+        owner.address,
       );
 
       await expect(

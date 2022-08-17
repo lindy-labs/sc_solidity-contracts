@@ -11,6 +11,7 @@ import {ERC165Query} from "../../lib/ERC165Query.sol";
 import {IVault} from "../../vault/IVault.sol";
 import {IAnchorStrategy} from "./IAnchorStrategy.sol";
 import {IStrategy} from "../../strategy/IStrategy.sol";
+import {BaseStrategy} from "../../strategy/BaseStrategy.sol";
 import {IEthAnchorRouter} from "./IEthAnchorRouter.sol";
 import {CustomErrors} from "../../interfaces/CustomErrors.sol";
 
@@ -18,12 +19,7 @@ import {CustomErrors} from "../../interfaces/CustomErrors.sol";
  * Base eth anchor strategy that handles UST tokens and invests them via the EthAnchor
  * protocol (https://docs.anchorprotocol.com/ethanchor/ethanchor)
  */
-contract AnchorStrategy is
-    IAnchorStrategy,
-    IStrategy,
-    AccessControl,
-    CustomErrors
-{
+contract AnchorStrategy is IAnchorStrategy, BaseStrategy {
     using SafeERC20 for IERC20;
     using PercentMath for uint256;
     using ERC165Query for address;
@@ -40,11 +36,6 @@ contract AnchorStrategy is
     error StrategyRouterCannotBe0Address();
     // AnchorStrategy: yield token is 0x
     error StrategyYieldTokenCannotBe0Address();
-
-    bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
-
-    /// @inheritdoc IStrategy
-    address public immutable override(IStrategy) vault;
 
     // UST token address
     IERC20 public immutable ustToken;
@@ -116,16 +107,6 @@ contract AnchorStrategy is
 
         _aUstToUstFeedMultiplier = 10**_aUstToUstFeed.decimals();
         _allRedeemed = true;
-    }
-
-    //
-    // Modifiers
-    //
-
-    modifier onlyManager() {
-        if (!hasRole(MANAGER_ROLE, msg.sender))
-            revert StrategyCallerNotManager();
-        _;
     }
 
     //
@@ -353,6 +334,13 @@ contract AnchorStrategy is
     function redeemOperationLength() external view returns (uint256) {
         return redeemOperations.length;
     }
+
+    /// @inheritdoc BaseStrategy
+    function transferAdminRights(address newAdmin)
+        external
+        override(BaseStrategy)
+        onlyManager
+    {}
 
     /**
      * @return AUST value of UST amount
