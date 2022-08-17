@@ -149,7 +149,7 @@ describe('YearnStrategy', () => {
   });
 
   describe('#transferAdminRights', () => {
-    it('can only be called by the current admin', async () => {
+    it('reverts if caller is not admin', async () => {
       await expect(
         strategy.connect(alice).transferAdminRights(alice.address),
       ).to.be.revertedWith('StrategyCallerNotAdmin');

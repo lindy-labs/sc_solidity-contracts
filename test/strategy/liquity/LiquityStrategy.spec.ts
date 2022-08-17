@@ -74,7 +74,7 @@ describe('LiquityStrategy', () => {
 
     LiquityStrategyFactory = await ethers.getContractFactory('LiquityStrategy');
 
-    const strategy_proxy = await upgrades.deployProxy(
+    const strategyProxy = await upgrades.deployProxy(
       LiquityStrategyFactory,
       [
         vault.address,
@@ -88,9 +88,9 @@ describe('LiquityStrategy', () => {
       },
     );
 
-    await strategy_proxy.deployed();
+    await strategyProxy.deployed();
 
-    strategy = LiquityStrategyFactory.attach(strategy_proxy.address);
+    strategy = LiquityStrategyFactory.attach(strategyProxy.address);
 
     await strategy.connect(admin).grantRole(MANAGER_ROLE, manager.address);
 
@@ -210,7 +210,7 @@ describe('LiquityStrategy', () => {
   });
 
   describe('#transferAdminRights', () => {
-    it('can only be called by the current admin', async () => {
+    it('reverts if caller is not admin', async () => {
       await expect(
         strategy.connect(alice).transferAdminRights(alice.address),
       ).to.be.revertedWith('StrategyCallerNotAdmin');
@@ -229,28 +229,15 @@ describe('LiquityStrategy', () => {
     });
 
     it('transfers admin role to the new admin account', async () => {
-      expect(
-        await strategy.hasRole(DEFAULT_ADMIN_ROLE, alice.address),
-      ).to.be.equal(false);
-
-      await strategy.connect(admin).transferAdminRights(alice.address);
-
-      expect(
-        await strategy.hasRole(DEFAULT_ADMIN_ROLE, alice.address),
-      ).to.be.equal(true);
-    });
-
-    it("revokes previous owner's ADMIN role and sets up ADMIN role for the new owner", async () => {
-      expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, admin.address)).to.be
-        .true;
-
-      await strategy.connect(admin).transferAdminRights(alice.address);
-
-      expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, admin.address)).to.be
+      expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, alice.address)).to.be
         .false;
+
+      await strategy.connect(admin).transferAdminRights(alice.address);
 
       expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, alice.address)).to.be
         .true;
+      expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, admin.address)).to.be
+        .false;
     });
   });
 

@@ -96,7 +96,7 @@ describe('LiquityStrategy Proxy', () => {
       'MockLiquityStrategyV2',
     );
 
-    const strategy_proxy = await upgrades.deployProxy(
+    const strategyProxy = await upgrades.deployProxy(
       LiquityStrategyFactory,
       [
         vault.address,
@@ -110,9 +110,9 @@ describe('LiquityStrategy Proxy', () => {
       },
     );
 
-    await strategy_proxy.deployed();
+    await strategyProxy.deployed();
 
-    strategy = LiquityStrategyFactory.attach(strategy_proxy.address);
+    strategy = LiquityStrategyFactory.attach(strategyProxy.address);
 
     await vault.setStrategy(strategy.address);
 
@@ -162,7 +162,7 @@ describe('LiquityStrategy Proxy', () => {
       expect(await strategyV2.newToken()).to.equal(testToken.address);
     });
 
-    it('closing an old method workds', async () => {
+    it('closing an old method works', async () => {
       await expect(
         strategyV2.harvest(SWAP_TARGET, SWAP_LQTY_DATA, SWAP_ETH_DATA),
       ).to.be.revertedWith('HarvestError');

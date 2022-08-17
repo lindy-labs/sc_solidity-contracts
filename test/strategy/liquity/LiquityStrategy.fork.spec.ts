@@ -87,7 +87,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       'LiquityStrategy',
     );
 
-    const strategy_proxy = await upgrades.deployProxy(
+    const strategyProxy = await upgrades.deployProxy(
       LiquityStrategyFactory,
       [
         vault.address,
@@ -101,9 +101,9 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       },
     );
 
-    await strategy_proxy.deployed();
+    await strategyProxy.deployed();
 
-    strategy = LiquityStrategyFactory.attach(strategy_proxy.address);
+    strategy = LiquityStrategyFactory.attach(strategyProxy.address);
 
     await vault.setStrategy(strategy.address);
     strategy.grantRole(MANAGER_ROLE, admin.address);
