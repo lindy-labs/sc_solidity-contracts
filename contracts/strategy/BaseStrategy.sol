@@ -58,7 +58,7 @@ abstract contract BaseStrategy is IStrategy, AccessControl, CustomErrors {
      * @param _newAdmin The new ADMIN account.
      */
     function transferAdminRights(address _newAdmin) external virtual onlyAdmin {
-        _changeAdmin(_newAdmin);
+        _doTransferAdminRights(_newAdmin);
     }
 
     /**
@@ -95,7 +95,7 @@ abstract contract BaseStrategy is IStrategy, AccessControl, CustomErrors {
      *
      * @param _newAdmin The new admin account for the strategy.
      */
-    function _changeAdmin(address _newAdmin) internal {
+    function _doTransferAdminRights(address _newAdmin) internal {
         if (_newAdmin == address(0)) revert StrategyAdminCannotBe0Address();
         if (_newAdmin == msg.sender)
             revert StrategyCannotTransferAdminRightsToSelf();

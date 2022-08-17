@@ -79,7 +79,7 @@ contract YearnStrategy is BaseStrategy {
         override(BaseStrategy)
         onlyAdmin
     {
-        _changeAdmin(_newAdmin);
+        _doTransferAdminRights(_newAdmin);
 
         _setupRole(SETTINGS_ROLE, _newAdmin);
 
