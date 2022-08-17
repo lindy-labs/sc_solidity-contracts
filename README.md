@@ -5,7 +5,7 @@
 
 Solidity implementation of [Sandclock](https://sandclock.org)'s vaults, strategies, and peripheral contracts.
 
-Read the [contracts specification](./documentaion/spec.md).
+Read the [contracts specification](./documentation/spec.md).
 
 ## Build
 
