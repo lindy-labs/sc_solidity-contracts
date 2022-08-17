@@ -12,14 +12,7 @@ contract MockBaseStrategy is BaseStrategy {
         address _underlying,
         address _admin
     ) {
-        setup(_vault, _underlying, _admin);
-    }
-
-    function transferAdminRights(address newAdmin)
-        external
-        override(BaseStrategy)
-    {
-        changeAdmin(newAdmin);
+        _setup(_vault, _underlying, _admin);
     }
 
     function isSync() external pure virtual override(IStrategy) returns (bool) {

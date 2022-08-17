@@ -15,7 +15,7 @@ contract MockStrategySync is BaseStrategy {
         IERC20 _underlying,
         address _admin
     ) {
-        setup(_vault, address(_underlying), _admin);
+        _setup(_vault, address(_underlying), _admin);
     }
 
     function isSync() external pure virtual override(IStrategy) returns (bool) {

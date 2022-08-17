@@ -50,6 +50,18 @@ abstract contract BaseStrategy is IStrategy, AccessControl, CustomErrors {
     }
 
     /**
+     * Transfers administrator rights for the Strategy to another account,
+     * revoking current admin roles and setting up the roles for the new admin.
+     *
+     * @notice Can only be called by the account with the ADMIN role.
+     *
+     * @param _newAdmin The new ADMIN account.
+     */
+    function transferAdminRights(address _newAdmin) external virtual onlyAdmin {
+        _changeAdmin(_newAdmin);
+    }
+
+    /**
      * Sets up the essential fields required for any strategy implementation.
      *
      * @notice This is ment to be called only from the #constructor of the implemeting contracts.
@@ -58,7 +70,7 @@ abstract contract BaseStrategy is IStrategy, AccessControl, CustomErrors {
      * @param _underlying address of the underlying token
      * @param _admin address of the administrator account
      */
-    function setup(
+    function _setup(
         address _vault,
         address _underlying,
         address _admin
@@ -83,7 +95,7 @@ abstract contract BaseStrategy is IStrategy, AccessControl, CustomErrors {
      *
      * @param _newAdmin The new admin account for the strategy.
      */
-    function changeAdmin(address _newAdmin) internal {
+    function _changeAdmin(address _newAdmin) internal {
         if (_newAdmin == address(0)) revert StrategyAdminCannotBe0Address();
         if (_newAdmin == msg.sender)
             revert StrategyCannotTransferAdminRightsToSelf();
@@ -92,14 +104,4 @@ abstract contract BaseStrategy is IStrategy, AccessControl, CustomErrors {
 
         _revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
-
-    /**
-     * Transfers administrator rights for the Strategy to another account,
-     * revoking current admin roles and setting up the roles for the new admin.
-     *
-     * @notice Can only be called by the account with the ADMIN role.
-     *
-     * @param _newAdmin The new ADMIN account.
-     */
-    function transferAdminRights(address _newAdmin) external virtual;
 }

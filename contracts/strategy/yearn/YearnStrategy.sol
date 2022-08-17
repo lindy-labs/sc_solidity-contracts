@@ -54,7 +54,7 @@ contract YearnStrategy is BaseStrategy {
         address _yVault,
         address _underlying
     ) {
-        setup(_vault, _underlying, _admin);
+        _setup(_vault, _underlying, _admin);
 
         if (_yVault == address(0)) revert StrategyYearnVaultCannotBe0Address();
 
@@ -79,7 +79,7 @@ contract YearnStrategy is BaseStrategy {
         override(BaseStrategy)
         onlyAdmin
     {
-        changeAdmin(_newAdmin);
+        _changeAdmin(_newAdmin);
 
         _setupRole(SETTINGS_ROLE, _newAdmin);
 

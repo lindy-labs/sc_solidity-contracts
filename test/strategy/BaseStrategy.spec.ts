@@ -102,6 +102,12 @@ describe('BaseStrategy', () => {
   });
 
   describe('#changeAdmin/#transferAdminRights', () => {
+    it('reverts if caller is not admin', async () => {
+      await expect(
+        strategy.connect(alice).transferAdminRights(alice.address),
+      ).to.be.revertedWith('StrategyCallerNotAdmin');
+    });
+
     it('reverts if new admin is address(0)', async () => {
       await expect(
         strategy.connect(admin).transferAdminRights(constants.AddressZero),
