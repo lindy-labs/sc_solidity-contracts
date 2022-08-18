@@ -22,6 +22,7 @@ type Foundation @entity {
 
 type Deposit @entity {
   id: ID!
+  vault: Vault!
   amount: BigInt!
   claimer: Claimer!
   depositor: Bytes!
@@ -45,6 +46,7 @@ type Claimer @entity {
 
 type Donation @entity {
   id: ID!
+  vault: Vault!
   txHash: Bytes!
   amount: BigInt!
   owner: Bytes!
@@ -59,6 +61,7 @@ type DonationMint @entity {
 
 type Sponsor @entity {
   id: ID!
+  vault: Vault!
   depositor: Bytes!
   amount: BigInt!
   lockedUntil: BigInt!
