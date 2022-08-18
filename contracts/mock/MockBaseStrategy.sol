@@ -9,11 +9,9 @@ import {BaseStrategy} from "../strategy/BaseStrategy.sol";
 contract MockBaseStrategy is BaseStrategy {
     constructor(
         address _vault,
-        address _underlying,
+        IERC20 _underlying,
         address _admin
-    ) {
-        _setup(_vault, _underlying, _admin);
-    }
+    ) BaseStrategy(_vault, _underlying, _admin) {}
 
     function isSync() external pure virtual override(IStrategy) returns (bool) {
         return true;

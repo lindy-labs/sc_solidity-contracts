@@ -192,7 +192,7 @@ describe('AnchorStrategy', () => {
       expect(await strategy.aUstToUstFeed()).to.be.equal(
         mockAUstUstFeed.address,
       );
-      expect(await strategy.ustToken()).to.be.equal(ustToken.address);
+      expect(await strategy.underlying()).to.be.equal(ustToken.address);
       expect(await strategy.aUstToken()).to.be.equal(aUstToken.address);
       expect(await strategy.hasAssets()).to.be.equal(false);
     });
