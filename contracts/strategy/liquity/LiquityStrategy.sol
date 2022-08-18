@@ -143,7 +143,7 @@ contract LiquityStrategy is
         override(IStrategy)
         returns (bool)
     {
-        return investedAssets() > 0;
+        return investedAssets() != 0;
     }
 
     /// @inheritdoc IStrategy
@@ -244,17 +244,17 @@ contract LiquityStrategy is
         if (lqtyBalance == 0 && ethBalance == 0)
             revert StrategyNothingToReinvest();
 
-        if (lqtyBalance > 0) {
+        if (lqtyBalance != 0) {
             swapLQTYtoLUSD(lqtyBalance, _swapTarget, _lqtySwapData);
         }
 
-        if (ethBalance > 0) {
+        if (ethBalance != 0) {
             swapETHtoLUSD(ethBalance, _swapTarget, _ethSwapData);
         }
 
         // reinvest LUSD gains into the stability pool
         uint256 balance = underlying.balanceOf(address(this));
-        if (balance > 0) {
+        if (balance != 0) {
             emit StrategyRewardsReinvested(balance);
 
             stabilityPool.provideToSP(balance, address(0));
