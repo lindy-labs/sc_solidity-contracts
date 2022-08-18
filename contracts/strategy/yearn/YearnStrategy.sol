@@ -59,7 +59,7 @@ contract YearnStrategy is BaseStrategy {
         yVault = IYearnVault(_yVault);
         conversionMultiplier = uint128(10**yVault.decimals());
 
-        _setupRole(SETTINGS_ROLE, _admin);
+        _grantRole(SETTINGS_ROLE, _admin);
 
         underlying.approve(_yVault, type(uint256).max);
     }
@@ -79,7 +79,7 @@ contract YearnStrategy is BaseStrategy {
     {
         _doTransferAdminRights(_newAdmin);
 
-        _setupRole(SETTINGS_ROLE, _newAdmin);
+        _grantRole(SETTINGS_ROLE, _newAdmin);
 
         _revokeRole(SETTINGS_ROLE, msg.sender);
     }
