@@ -29,7 +29,7 @@ contract MockAnchorStrategy is AnchorStrategy {
     function invest() external override(AnchorStrategy) onlyManager {}
 
     function withdrawToVault(uint256 amount) external override onlyManager {
-        ustToken.safeTransfer(vault, amount);
+        underlying.safeTransfer(vault, amount);
     }
 
     function investedAssets() external view override returns (uint256) {

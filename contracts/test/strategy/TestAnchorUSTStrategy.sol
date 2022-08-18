@@ -44,6 +44,6 @@ contract TestAnchorUSTStrategy is AnchorStrategy {
 
     // get aUST/UST exchange rate from eth anchor ExchangeRateFeeder contract
     function _aUstToUstExchangeRate() internal view override returns (uint256) {
-        return exchangeRateFeeder.exchangeRateOf(address(ustToken), true);
+        return exchangeRateFeeder.exchangeRateOf(address(underlying), true);
     }
 }
