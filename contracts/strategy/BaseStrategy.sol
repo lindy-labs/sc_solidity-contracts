@@ -34,11 +34,11 @@ abstract contract BaseStrategy is IStrategy, AccessControl, CustomErrors {
      */
     constructor(
         address _vault,
-        address _underlying,
+        IERC20 _underlying,
         address _admin
     ) {
         if (_admin == address(0)) revert StrategyAdminCannotBe0Address();
-        if (_underlying == address(0))
+        if (address(_underlying) == address(0))
             revert StrategyUnderlyingCannotBe0Address();
         if (!_vault.doesContractImplementInterface(type(IVault).interfaceId))
             revert StrategyNotIVault();

@@ -12,7 +12,7 @@ import {CustomErrors} from "../interfaces/CustomErrors.sol";
 contract MockStrategySync is BaseStrategy {
     constructor(
         address _vault,
-        address _underlying,
+        IERC20 _underlying,
         address _admin
     ) BaseStrategy(_vault, _underlying, _admin) {}
 

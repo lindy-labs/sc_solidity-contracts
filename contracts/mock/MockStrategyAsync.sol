@@ -8,7 +8,7 @@ import {MockStrategySync} from "./MockStrategySync.sol";
 contract MockStrategyAsync is MockStrategySync {
     constructor(
         address _vault,
-        address _underlying,
+        IERC20 _underlying,
         address _admin
     ) MockStrategySync(_vault, _underlying, _admin) {}
 

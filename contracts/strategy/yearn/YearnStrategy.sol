@@ -52,7 +52,7 @@ contract YearnStrategy is BaseStrategy {
         address _vault,
         address _admin,
         address _yVault,
-        address _underlying
+        IERC20 _underlying
     ) BaseStrategy(_vault, _underlying, _admin) {
         if (_yVault == address(0)) revert StrategyYearnVaultCannotBe0Address();
 
