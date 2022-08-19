@@ -3,13 +3,11 @@ pragma solidity =0.8.10;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 
 import {PercentMath} from "../../lib/PercentMath.sol";
 import {ERC165Query} from "../../lib/ERC165Query.sol";
 import {IStrategy} from "../IStrategy.sol";
-import {CustomErrors} from "../../interfaces/CustomErrors.sol";
+import {BaseStrategy} from "../BaseStrategy.sol";
 import {IRyskLiquidityPool} from "../../interfaces/rysk/IRyskLiquidityPool.sol";
 import {IVault} from "../../vault/IVault.sol";
 
@@ -19,17 +17,10 @@ import {IVault} from "../../vault/IVault.sol";
  *
  * @notice This strategy is asyncrhonous (doesn't support immediate withdrawals).
  */
-contract RyskStrategy is IStrategy, AccessControl, CustomErrors {
+contract RyskStrategy is BaseStrategy {
     using SafeERC20 for IERC20;
     using PercentMath for uint256;
-    using ERC165Query for address;
 
-    /// role allowed to deposit/withdraw from the Rysk liquidity pool
-    bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
-    // underlying ERC20 token
-    IERC20 public immutable underlying;
-    /// @inheritdoc IStrategy
-    address public immutable override(IStrategy) vault;
     // rysk liquidity pool that this strategy is interacting with
     IRyskLiquidityPool public immutable ryskLqPool;
     // pending withdrawal receipt
@@ -59,62 +50,14 @@ contract RyskStrategy is IStrategy, AccessControl, CustomErrors {
         address _vault,
         address _admin,
         address _ryskLiquidityPool,
-        address _underlying
-    ) {
-        if (_admin == address(0)) revert StrategyAdminCannotBe0Address();
+        IERC20 _underlying
+    ) BaseStrategy(_vault, _underlying, _admin) {
         if (_ryskLiquidityPool == address(0))
             revert RyskLiquidityPoolCannotBe0Address();
-        if (_underlying == address(0))
-            revert StrategyUnderlyingCannotBe0Address();
-        if (!_vault.doesContractImplementInterface(type(IVault).interfaceId))
-            revert StrategyNotIVault();
 
-        _setupRole(DEFAULT_ADMIN_ROLE, _admin);
-        _setupRole(MANAGER_ROLE, _vault);
-
-        vault = _vault;
         ryskLqPool = IRyskLiquidityPool(_ryskLiquidityPool);
-        underlying = IERC20(_underlying);
 
-        underlying.safeApprove(_ryskLiquidityPool, type(uint256).max);
-    }
-
-    //
-    // Modifiers
-    //
-
-    modifier onlyManager() {
-        if (!hasRole(MANAGER_ROLE, msg.sender))
-            revert StrategyCallerNotManager();
-        _;
-    }
-
-    modifier onlyAdmin() {
-        if (!hasRole(DEFAULT_ADMIN_ROLE, msg.sender))
-            revert StrategyCallerNotAdmin();
-        _;
-    }
-
-    //
-    // Ownable
-    //
-
-    /**
-     * Transfers administrator rights for the Strategy to another account,
-     * revoking current admin roles and setting up the roles for the new admin.
-     *
-     * @notice Can only be called by the account with the ADMIN role.
-     *
-     * @param _newAdmin The new Strategy admin account.
-     */
-    function transferAdminRights(address _newAdmin) external onlyAdmin {
-        if (_newAdmin == address(0x0)) revert StrategyAdminCannotBe0Address();
-        if (_newAdmin == msg.sender)
-            revert StrategyCannotTransferAdminRightsToSelf();
-
-        _setupRole(DEFAULT_ADMIN_ROLE, _newAdmin);
-
-        _revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        underlying.safeIncreaseAllowance(_ryskLiquidityPool, type(uint256).max);
     }
 
     //
