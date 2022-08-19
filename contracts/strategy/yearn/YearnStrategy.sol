@@ -8,6 +8,7 @@ import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {PercentMath} from "../../lib/PercentMath.sol";
 import {ERC165Query} from "../../lib/ERC165Query.sol";
 import {IStrategy} from "../IStrategy.sol";
+import {BaseStrategy} from "../BaseStrategy.sol";
 import {CustomErrors} from "../../interfaces/CustomErrors.sol";
 import {IYearnVault} from "../../interfaces/yearn/IYearnVault.sol";
 import {IVault} from "../../vault/IVault.sol";
@@ -17,7 +18,7 @@ import {IVault} from "../../vault/IVault.sol";
  *
  * @notice This strategy is syncrhonous (supports immediate withdrawals).
  */
-contract YearnStrategy is IStrategy, AccessControl, CustomErrors {
+contract YearnStrategy is BaseStrategy {
     using SafeERC20 for IERC20;
     using PercentMath for uint256;
     using ERC165Query for address;
@@ -34,14 +35,6 @@ contract YearnStrategy is IStrategy, AccessControl, CustomErrors {
     // max loss on withdraw from yearn > 100%
     error StrategyMaxLossOnWithdrawTooLarge();
 
-    /// role allowed to invest/withdraw from yearn vault
-    bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
-    /// role allowed to change settings such as max loss on withdraw from yearn vault
-    bytes32 public constant SETTINGS_ROLE = keccak256("SETTINGS_ROLE");
-    // underlying ERC20 token
-    IERC20 public immutable underlying;
-    /// @inheritdoc IStrategy
-    address public immutable override(IStrategy) vault;
     // yearn vault that this strategy is interacting with
     IYearnVault public immutable yVault;
     // multiplier for underlying convertion to shares
@@ -59,49 +52,16 @@ contract YearnStrategy is IStrategy, AccessControl, CustomErrors {
         address _vault,
         address _admin,
         address _yVault,
-        address _underlying
-    ) {
-        if (_admin == address(0)) revert StrategyAdminCannotBe0Address();
+        IERC20 _underlying
+    ) BaseStrategy(_vault, _underlying, _admin) {
         if (_yVault == address(0)) revert StrategyYearnVaultCannotBe0Address();
-        if (_underlying == address(0))
-            revert StrategyUnderlyingCannotBe0Address();
 
-        if (!_vault.doesContractImplementInterface(type(IVault).interfaceId))
-            revert StrategyNotIVault();
-
-        _setupRole(DEFAULT_ADMIN_ROLE, _admin);
-        _setupRole(SETTINGS_ROLE, _admin);
-        _setupRole(MANAGER_ROLE, _vault);
-
-        vault = _vault;
         yVault = IYearnVault(_yVault);
         conversionMultiplier = uint128(10**yVault.decimals());
 
-        underlying = IERC20(_underlying);
+        _grantRole(SETTINGS_ROLE, _admin);
 
         underlying.approve(_yVault, type(uint256).max);
-    }
-
-    //
-    // Modifiers
-    //
-
-    modifier onlyManager() {
-        if (!hasRole(MANAGER_ROLE, msg.sender))
-            revert StrategyCallerNotManager();
-        _;
-    }
-
-    modifier onlySettings() {
-        if (!hasRole(SETTINGS_ROLE, msg.sender))
-            revert StrategyCallerNotSettings();
-        _;
-    }
-
-    modifier onlyAdmin() {
-        if (!hasRole(DEFAULT_ADMIN_ROLE, msg.sender))
-            revert StrategyCallerNotAdmin();
-        _;
     }
 
     /**
@@ -112,15 +72,15 @@ contract YearnStrategy is IStrategy, AccessControl, CustomErrors {
      *
      * @param _newAdmin The new Strategy admin account.
      */
-    function transferAdminRights(address _newAdmin) external onlyAdmin {
-        if (_newAdmin == address(0x0)) revert StrategyAdminCannotBe0Address();
-        if (_newAdmin == msg.sender)
-            revert StrategyCannotTransferAdminRightsToSelf();
+    function transferAdminRights(address _newAdmin)
+        external
+        override(BaseStrategy)
+        onlyAdmin
+    {
+        _doTransferAdminRights(_newAdmin);
 
-        _setupRole(DEFAULT_ADMIN_ROLE, _newAdmin);
-        _setupRole(SETTINGS_ROLE, _newAdmin);
+        _grantRole(SETTINGS_ROLE, _newAdmin);
 
-        _revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _revokeRole(SETTINGS_ROLE, msg.sender);
     }
 

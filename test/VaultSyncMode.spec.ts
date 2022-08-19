@@ -74,7 +74,11 @@ describe('Vault in sync mode', () => {
     underlying.connect(alice).approve(vault.address, MaxUint256);
     underlying.connect(bob).approve(vault.address, MaxUint256);
 
-    strategy = await MockStrategy.deploy(vault.address, underlying.address);
+    strategy = await MockStrategy.deploy(
+      vault.address,
+      underlying.address,
+      owner.address,
+    );
 
     await vault.connect(owner).setStrategy(strategy.address);
 

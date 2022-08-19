@@ -11,6 +11,7 @@ import {ERC165Query} from "../../lib/ERC165Query.sol";
 import {IVault} from "../../vault/IVault.sol";
 import {IAnchorStrategy} from "./IAnchorStrategy.sol";
 import {IStrategy} from "../../strategy/IStrategy.sol";
+import {BaseStrategy} from "../../strategy/BaseStrategy.sol";
 import {IEthAnchorRouter} from "./IEthAnchorRouter.sol";
 import {CustomErrors} from "../../interfaces/CustomErrors.sol";
 
@@ -18,15 +19,9 @@ import {CustomErrors} from "../../interfaces/CustomErrors.sol";
  * Base eth anchor strategy that handles UST tokens and invests them via the EthAnchor
  * protocol (https://docs.anchorprotocol.com/ethanchor/ethanchor)
  */
-contract AnchorStrategy is
-    IAnchorStrategy,
-    IStrategy,
-    AccessControl,
-    CustomErrors
-{
+contract AnchorStrategy is IAnchorStrategy, BaseStrategy {
     using SafeERC20 for IERC20;
     using PercentMath for uint256;
-    using ERC165Query for address;
 
     // AnchorStrategy: no ust exist
     error StrategyNoUST();
@@ -40,14 +35,6 @@ contract AnchorStrategy is
     error StrategyRouterCannotBe0Address();
     // AnchorStrategy: yield token is 0x
     error StrategyYieldTokenCannotBe0Address();
-
-    bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
-
-    /// @inheritdoc IStrategy
-    address public immutable override(IStrategy) vault;
-
-    // UST token address
-    IERC20 public immutable ustToken;
 
     // aUST token address (wrapped Anchor UST, received to accrue interest for an Anchor deposit)
     IERC20 public immutable aUstToken;
@@ -94,38 +81,18 @@ contract AnchorStrategy is
         IERC20 _ustToken,
         IERC20 _aUstToken,
         address _admin
-    ) {
-        if (_admin == address(0)) revert StrategyAdminCannotBe0Address();
+    ) BaseStrategy(_vault, _ustToken, _admin) {
         if (_ethAnchorRouter == address(0))
             revert StrategyRouterCannotBe0Address();
-        if (address(_ustToken) == address(0))
-            revert StrategyUnderlyingCannotBe0Address();
         if (address(_aUstToken) == address(0))
             revert StrategyYieldTokenCannotBe0Address();
-        if (!_vault.doesContractImplementInterface(type(IVault).interfaceId))
-            revert StrategyNotIVault();
 
-        _setupRole(DEFAULT_ADMIN_ROLE, _admin);
-        _setupRole(MANAGER_ROLE, _vault);
-
-        vault = _vault;
         ethAnchorRouter = IEthAnchorRouter(_ethAnchorRouter);
         aUstToUstFeed = _aUstToUstFeed;
-        ustToken = _ustToken;
         aUstToken = _aUstToken;
 
         _aUstToUstFeedMultiplier = 10**_aUstToUstFeed.decimals();
         _allRedeemed = true;
-    }
-
-    //
-    // Modifiers
-    //
-
-    modifier onlyManager() {
-        if (!hasRole(MANAGER_ROLE, msg.sender))
-            revert StrategyCallerNotManager();
-        _;
     }
 
     //
@@ -183,7 +150,7 @@ contract AnchorStrategy is
         if (ustBalance == 0) revert StrategyNoUST();
         pendingDeposits += ustBalance;
 
-        ustToken.safeIncreaseAllowance(address(ethAnchorRouter), ustBalance);
+        underlying.safeIncreaseAllowance(address(ethAnchorRouter), ustBalance);
         address operator = ethAnchorRouter.initDepositStable(ustBalance);
         depositOperations.push(
             Operation({operator: operator, amount: ustBalance})
@@ -305,7 +272,7 @@ contract AnchorStrategy is
 
         redeemOperations.pop();
 
-        ustToken.safeTransfer(vault, _getUnderlyingBalance());
+        underlying.safeTransfer(vault, _getUnderlyingBalance());
 
         emit FinishRedeemStable(operator, aUstAmount, ustAmount, ustAmount);
     }
@@ -323,14 +290,14 @@ contract AnchorStrategy is
      * @return underlying balance of strategy
      */
     function _getUnderlyingBalance() internal view returns (uint256) {
-        return ustToken.balanceOf(address(this));
+        return underlying.balanceOf(address(this));
     }
 
     /**
      * @return UST balance of strategy
      */
     function _getUstBalance() internal view returns (uint256) {
-        return ustToken.balanceOf(address(this));
+        return underlying.balanceOf(address(this));
     }
 
     /**
@@ -353,6 +320,13 @@ contract AnchorStrategy is
     function redeemOperationLength() external view returns (uint256) {
         return redeemOperations.length;
     }
+
+    /// @inheritdoc BaseStrategy
+    function transferAdminRights(address newAdmin)
+        external
+        override(BaseStrategy)
+        onlyManager
+    {}
 
     /**
      * @return AUST value of UST amount
