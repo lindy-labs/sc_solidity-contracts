@@ -157,10 +157,10 @@ contract Vault is
 
         _transferOwnership(_owner);
 
-        _setupRole(DEFAULT_ADMIN_ROLE, _owner);
-        _setupRole(INVESTOR_ROLE, _owner);
-        _setupRole(SETTINGS_ROLE, _owner);
-        _setupRole(SPONSOR_ROLE, _owner);
+        _grantRole(DEFAULT_ADMIN_ROLE, _owner);
+        _grantRole(INVESTOR_ROLE, _owner);
+        _grantRole(SETTINGS_ROLE, _owner);
+        _grantRole(SPONSOR_ROLE, _owner);
 
         investPct = _investPct;
         underlying = _underlying;
@@ -199,10 +199,10 @@ contract Vault is
 
         _transferOwnership(_newOwner);
 
-        _setupRole(DEFAULT_ADMIN_ROLE, _newOwner);
-        _setupRole(INVESTOR_ROLE, _newOwner);
-        _setupRole(SETTINGS_ROLE, _newOwner);
-        _setupRole(SPONSOR_ROLE, _newOwner);
+        _grantRole(DEFAULT_ADMIN_ROLE, _newOwner);
+        _grantRole(INVESTOR_ROLE, _newOwner);
+        _grantRole(SETTINGS_ROLE, _newOwner);
+        _grantRole(SPONSOR_ROLE, _newOwner);
 
         _revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _revokeRole(INVESTOR_ROLE, msg.sender);

@@ -46,8 +46,8 @@ abstract contract BaseStrategy is IStrategy, AccessControl, CustomErrors {
         vault = _vault;
         underlying = IERC20(_underlying);
 
-        _setupRole(DEFAULT_ADMIN_ROLE, _admin);
-        _setupRole(MANAGER_ROLE, _vault);
+        _grantRole(DEFAULT_ADMIN_ROLE, _admin);
+        _grantRole(MANAGER_ROLE, _vault);
     }
 
     //
@@ -96,7 +96,7 @@ abstract contract BaseStrategy is IStrategy, AccessControl, CustomErrors {
         if (_newAdmin == msg.sender)
             revert StrategyCannotTransferAdminRightsToSelf();
 
-        _setupRole(DEFAULT_ADMIN_ROLE, _newAdmin);
+        _grantRole(DEFAULT_ADMIN_ROLE, _newAdmin);
 
         _revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
