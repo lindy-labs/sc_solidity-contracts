@@ -29,14 +29,18 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
     env.network.config.chainId === 80001 ||
     env.network.config.chainId === 137
   ) {
+    console.log('before verify');
     try {
       await env.run('verify:verify', {
         address: donationsDeployment.address,
         constructorArguments: args,
       });
     } catch (e) {
+      console.log(e);
       console.error((e as Error).message);
+      console.log('error block');
     }
+    console.log('after verify');
   }
 };
 

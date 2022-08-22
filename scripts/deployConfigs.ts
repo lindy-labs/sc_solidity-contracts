@@ -59,8 +59,8 @@ const networkConfigs: Record<number, Config> = {
 
   // polygon mainnet
   137: {
-    multisig: 'deployer', // TODO
-    deploymentAddress: 'deployer', // TODO
+    multisig: '0x035F210e5d14054E8AE5A6CFA76d643aA200D56E',
+    deploymentAddress: '0x8f592F2594C43eA30879f9fbED4d930248D81D41',
   },
 };
 
