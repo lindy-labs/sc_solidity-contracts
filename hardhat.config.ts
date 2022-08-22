@@ -74,7 +74,7 @@ const config: HardhatUserConfig = {
       url: process.env.POLYGON_RPC || 'missing-rpc-endpoint',
       chainId: 137,
       accounts: {
-        mnemonic: process.env.TESTNET_MNEMONIC || 'TODO',
+        mnemonic: process.env.MAINNET_MNEMONIC || 'TODO',
       },
     },
   },
@@ -106,6 +106,7 @@ const config: HardhatUserConfig = {
       ropsten: process.env.ETHERSCAN_KEY || 'missing-key',
       mainnet: process.env.ETHERSCAN_KEY || 'missing-key',
       polygonMumbai: process.env.POLYSCAN_KEY || 'missing-key',
+      polygon: process.env.POLYSCAN_KEY || 'missing-key',
     },
   },
 };
