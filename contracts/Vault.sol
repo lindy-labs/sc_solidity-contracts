@@ -10,7 +10,6 @@ import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import {Pausable} from "@openzeppelin/contracts/security/Pausable.sol";
 import {Counters} from "@openzeppelin/contracts/utils/Counters.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 import {IVault} from "./vault/IVault.sol";
 import {IVaultSponsoring} from "./vault/IVaultSponsoring.sol";
@@ -38,7 +37,6 @@ contract Vault is
     ReentrancyGuard,
     Pausable,
     ExitPausable,
-    Ownable,
     CustomErrors
 {
     using SafeERC20 for IERC20;
@@ -130,7 +128,7 @@ contract Vault is
      * @param _minLockPeriod Minimum lock period to deposit
      * @param _investPct Percentage of the total underlying to invest in the strategy
      * @param _treasury Treasury address to collect performance fee
-     * @param _owner Vault admin address
+     * @param _admin Vault admin address
      * @param _perfFeePct Performance fee percentage
      * @param _lossTolerancePct Loss tolerance when investing through the strategy
      * @param _swapPools Swap pools used to automatically convert tokens to underlying
@@ -140,7 +138,7 @@ contract Vault is
         uint64 _minLockPeriod,
         uint16 _investPct,
         address _treasury,
-        address _owner,
+        address _admin,
         uint16 _perfFeePct,
         uint16 _lossTolerancePct,
         SwapPoolParam[] memory _swapPools
@@ -151,16 +149,14 @@ contract Vault is
         if (address(_underlying) == address(0x0))
             revert VaultUnderlyingCannotBe0Address();
         if (_treasury == address(0x0)) revert VaultTreasuryCannotBe0Address();
-        if (_owner == address(0x0)) revert VaultOwnerCannotBe0Address();
+        if (_admin == address(0x0)) revert VaultAdminCannotBe0Address();
         if (_minLockPeriod == 0 || _minLockPeriod > MAX_DEPOSIT_LOCK_DURATION)
             revert VaultInvalidMinLockPeriod();
 
-        _transferOwnership(_owner);
-
-        _grantRole(DEFAULT_ADMIN_ROLE, _owner);
-        _grantRole(INVESTOR_ROLE, _owner);
-        _grantRole(SETTINGS_ROLE, _owner);
-        _grantRole(SPONSOR_ROLE, _owner);
+        _grantRole(DEFAULT_ADMIN_ROLE, _admin);
+        _grantRole(INVESTOR_ROLE, _admin);
+        _grantRole(SETTINGS_ROLE, _admin);
+        _grantRole(SPONSOR_ROLE, _admin);
 
         investPct = _investPct;
         underlying = _underlying;
@@ -177,32 +173,49 @@ contract Vault is
     }
 
     //
-    // Ownable
+    // Modifiers
     //
 
+    modifier onlyAdmin() {
+        if (!hasRole(DEFAULT_ADMIN_ROLE, msg.sender))
+            revert VaultCallerNotAdmin();
+        _;
+    }
+
+    modifier onlySettings() {
+        if (!hasRole(SETTINGS_ROLE, msg.sender))
+            revert VaultCallerNotSettings();
+        _;
+    }
+
+    modifier onlyInvestor() {
+        if (!hasRole(INVESTOR_ROLE, msg.sender))
+            revert VaultCallerNotInvestor();
+        _;
+    }
+
+    modifier onlySponsor() {
+        if (!hasRole(SPONSOR_ROLE, msg.sender)) revert VaultCallerNotSponsor();
+        _;
+    }
+
     /**
-     * Transfers ownership of the Vault to another account,
-     * revoking all of previous owner's roles and setting them up for the new owner.
+     * Transfers administrator rights for the Vault to another account,
+     * revoking all current admin's roles and setting up the roles for the new admin.
      *
-     * @notice Can only be called by the current owner.
+     * @notice Can only be called by the admin.
      *
-     * @param _newOwner The new owner of the contract.
+     * @param _newAdmin The new admin account.
      */
-    function transferOwnership(address _newOwner)
-        public
-        override(Ownable)
-        onlyOwner
-    {
-        if (_newOwner == address(0x0)) revert VaultOwnerCannotBe0Address();
-        if (_newOwner == msg.sender)
-            revert VaultCannotTransferOwnershipToSelf();
+    function transferAdminRights(address _newAdmin) external onlyAdmin {
+        if (_newAdmin == address(0x0)) revert VaultAdminCannotBe0Address();
+        if (_newAdmin == msg.sender)
+            revert VaultCannotTransferAdminRightsToSelf();
 
-        _transferOwnership(_newOwner);
-
-        _grantRole(DEFAULT_ADMIN_ROLE, _newOwner);
-        _grantRole(INVESTOR_ROLE, _newOwner);
-        _grantRole(SETTINGS_ROLE, _newOwner);
-        _grantRole(SPONSOR_ROLE, _newOwner);
+        _grantRole(DEFAULT_ADMIN_ROLE, _newAdmin);
+        _grantRole(INVESTOR_ROLE, _newAdmin);
+        _grantRole(SETTINGS_ROLE, _newAdmin);
+        _grantRole(SPONSOR_ROLE, _newAdmin);
 
         _revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _revokeRole(INVESTOR_ROLE, msg.sender);
@@ -419,11 +432,7 @@ contract Vault is
     }
 
     /// @inheritdoc IVault
-    function updateInvested()
-        external
-        override(IVault)
-        onlyRole(INVESTOR_ROLE)
-    {
+    function updateInvested() external override(IVault) onlyInvestor {
         if (address(strategy) == address(0)) revert VaultStrategyNotSet();
 
         (uint256 maxInvestableAmount, uint256 alreadyInvested) = investState();
@@ -457,11 +466,7 @@ contract Vault is
     }
 
     /// @inheritdoc IVault
-    function withdrawPerformanceFee()
-        external
-        override(IVault)
-        onlyRole(INVESTOR_ROLE)
-    {
+    function withdrawPerformanceFee() external override(IVault) onlyInvestor {
         uint256 _perfFee = accumulatedPerfFee;
         if (_perfFee == 0) revert VaultNoPerformanceFee();
 
@@ -486,7 +491,7 @@ contract Vault is
         external
         override(IVaultSponsoring)
         nonReentrant
-        onlyRole(SPONSOR_ROLE)
+        onlySponsor
         whenNotPaused
     {
         if (_amount == 0) revert VaultCannotSponsor0();
@@ -546,20 +551,14 @@ contract Vault is
     /// Adds a new curve swap pool from an input token to {underlying}
     ///
     /// @param _param Swap pool params
-    function addPool(SwapPoolParam memory _param)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function addPool(SwapPoolParam memory _param) external onlyAdmin {
         _addPool(_param);
     }
 
     /// Removes an existing swap pool, and the ability to deposit the given token as underlying
     ///
     /// @param _inputToken the token to remove
-    function removePool(address _inputToken)
-        external
-        onlyRole(DEFAULT_ADMIN_ROLE)
-    {
+    function removePool(address _inputToken) external onlyAdmin {
         _removePool(_inputToken);
     }
 
@@ -571,7 +570,7 @@ contract Vault is
     function setInvestPct(uint16 _investPct)
         external
         override(IVaultSettings)
-        onlyRole(SETTINGS_ROLE)
+        onlySettings
     {
         if (!PercentMath.validPct(_investPct)) revert VaultInvalidInvestpct();
 
@@ -584,7 +583,7 @@ contract Vault is
     function setTreasury(address _treasury)
         external
         override(IVaultSettings)
-        onlyRole(SETTINGS_ROLE)
+        onlySettings
     {
         if (address(_treasury) == address(0x0))
             revert VaultTreasuryCannotBe0Address();
@@ -596,7 +595,7 @@ contract Vault is
     function setPerfFeePct(uint16 _perfFeePct)
         external
         override(IVaultSettings)
-        onlyRole(SETTINGS_ROLE)
+        onlySettings
     {
         if (!PercentMath.validPct(_perfFeePct))
             revert VaultInvalidPerformanceFee();
@@ -608,7 +607,7 @@ contract Vault is
     function setStrategy(address _strategy)
         external
         override(IVaultSettings)
-        onlyRole(SETTINGS_ROLE)
+        onlySettings
     {
         if (_strategy == address(0)) revert VaultStrategyNotSet();
         if (IStrategy(_strategy).vault() != address(this))
@@ -625,7 +624,7 @@ contract Vault is
     function setLossTolerancePct(uint16 pct)
         external
         override(IVaultSettings)
-        onlyRole(SETTINGS_ROLE)
+        onlySettings
     {
         if (!pct.validPct()) revert VaultInvalidLossTolerance();
 
@@ -1120,11 +1119,11 @@ contract Vault is
         return claimer[claimerId].totalPrincipal;
     }
 
-    function pause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function pause() external onlyAdmin {
         _pause();
     }
 
-    function unpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function unpause() external onlyAdmin {
         _unpause();
     }
 
