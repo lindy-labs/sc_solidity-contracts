@@ -84,7 +84,9 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
 
 func.skip = async (env: HardhatRuntimeEnvironment) =>
   !includes(
-    ['ropsten', 'docker', 'mainnet', 'hardhat'],
+    // TODO: stability pool mock needed for local & staging deployment
+    // ['ropsten', 'docker', 'mainnet', 'hardhat'], 
+    ['mainnet'],
     env.deployments.getNetworkName(),
   );
 

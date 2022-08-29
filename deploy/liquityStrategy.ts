@@ -16,23 +16,6 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
   const LUSDDeployment = await get('LUSD');
 
-  // if (getNetworkName() !== 'mainnet') {
-  //   await deploy('YearnVault', {
-  //     contract: 'MockYearnVault',
-  //     from: deployer,
-  //     args: ['LUSD Yearn Vault', 'LUSD', LUSDDeployment.address],
-  //   });
-  // }
-
-  // const yearnVault = await get('YearnVault');
-
-  // const args = [
-  //   vault.address,
-  //   owner.address,
-  //   yearnVault.address,
-  //   LUSDDeployment.address,
-  // ];
-
   const liquityStrategyDeployment = await deploy('LiquityStrategy', {
     contract: 'LiquityStrategy',
     from: deployer,
@@ -61,14 +44,19 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     });
   }
 
+  const stabilityPool = await get('LiquityStabilityPool'); // TODO: local mock
+  const LQTYDeployment = await get('LQTY');
+
   // initialize strategy
-  await (await liquityStrategy.initialize(
-    vault.address,
-    multisig,
-    '0x66017d22b0f8556afdd19fc67041899eb65a21bb',
-    '0x6DEA81C8171D0bA574754EF6F8b412F2Ed88c54D', // TODO: dynamically set LQTY address
-    LUSDDeployment.address,
-  )).wait();
+  await (
+    await liquityStrategy.initialize(
+      vault.address,
+      multisig,
+      stabilityPool.address,
+      LQTYDeployment.address,
+      LUSDDeployment.address,
+    )
+  ).wait();
 
   console.log('LquityStrategy initialized');
 
@@ -98,7 +86,9 @@ func.dependencies = ['vault'];
 
 func.skip = async (env: HardhatRuntimeEnvironment) =>
   !includes(
-    ['ropsten', 'docker', 'mainnet', 'hardhat'],
+    // TODO: stability pool mock needed for local & staging deployment
+    // ['ropsten', 'docker', 'mainnet', 'hardhat'], 
+    ['mainnet'],
     env.deployments.getNetworkName(),
   );
 
