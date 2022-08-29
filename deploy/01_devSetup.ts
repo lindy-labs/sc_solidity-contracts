@@ -9,6 +9,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   if (includes(['docker', 'hardhat'], env.deployments.getNetworkName())) {
     await deployDevToken(env, 'DAI', 'MockDAI');
     await deployDevToken(env, 'USDC', 'MockUSDC');
+    await deployDevToken(env, 'LQTY', 'MockLQTY');
   }
 
   await deployDevToken(env, 'LUSD', 'MockLUSD');
