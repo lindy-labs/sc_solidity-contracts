@@ -102,7 +102,7 @@ describe('Vault', () => {
     strategy = await MockStrategy.deploy(
       vault.address,
       underlying.address,
-      owner.address,
+      admin.address,
     );
 
     ({
@@ -768,7 +768,7 @@ describe('Vault', () => {
       const newStrategy = await MockStrategy.deploy(
         vault.address,
         underlying.address,
-        owner.address,
+        admin.address,
       );
 
       const tx = await vault.connect(admin).setStrategy(newStrategy.address);
@@ -790,7 +790,7 @@ describe('Vault', () => {
       const newStrategy = await MockStrategy.deploy(
         vault.address,
         underlying.address,
-        owner.address,
+        admin.address,
       );
 
       await expect(
@@ -1181,10 +1181,10 @@ describe('Vault', () => {
     });
 
     it('reverts if contract is exit paused', async () => {
-      await addUnderlyingBalance(owner, '1000');
+      await addUnderlyingBalance(admin, '1000');
 
       await vault
-        .connect(owner)
+        .connect(admin)
         .sponsor(
           underlying.address,
           parseUnits('500'),
@@ -1194,13 +1194,13 @@ describe('Vault', () => {
 
       await moveForwardTwoWeeks();
 
-      await vault.connect(owner).exitPause();
+      await vault.connect(admin).exitPause();
 
       await expect(
-        vault.connect(owner).unsponsor(bob.address, [1]),
+        vault.connect(admin).unsponsor(bob.address, [1]),
       ).to.be.revertedWith('Pausable: ExitPaused');
 
-      await vault.connect(owner).exitUnpause();
+      await vault.connect(admin).exitUnpause();
     });
   });
 
@@ -1967,13 +1967,13 @@ describe('Vault', () => {
     });
 
     it('reverts if contract is exit paused', async () => {
-      await vault.connect(owner).exitPause();
+      await vault.connect(admin).exitPause();
 
       await expect(
         vault.connect(alice).forceWithdraw(alice.address, [1]),
       ).to.be.revertedWith('Pausable: ExitPaused');
 
-      await vault.connect(owner).exitUnpause();
+      await vault.connect(admin).exitUnpause();
     });
   });
 
@@ -1998,13 +1998,13 @@ describe('Vault', () => {
     });
 
     it('reverts if contract is exit paused', async () => {
-      await vault.connect(owner).exitPause();
+      await vault.connect(admin).exitPause();
 
       await expect(
         vault.connect(alice).withdraw(alice.address, [1]),
       ).to.be.revertedWith('Pausable: ExitPaused');
 
-      await vault.connect(owner).exitUnpause();
+      await vault.connect(admin).exitUnpause();
     });
   });
 
@@ -2225,7 +2225,7 @@ describe('Vault', () => {
     });
 
     it('reverts if contract is exit paused', async () => {
-      await vault.connect(owner).exitPause();
+      await vault.connect(admin).exitPause();
 
       await expect(
         vault
@@ -2233,7 +2233,7 @@ describe('Vault', () => {
           .partialWithdraw(alice.address, [2], [parseUnits('25')]),
       ).to.be.revertedWith('Pausable: ExitPaused');
 
-      await vault.connect(owner).exitUnpause();
+      await vault.connect(admin).exitUnpause();
     });
   });
 
@@ -2382,13 +2382,13 @@ describe('Vault', () => {
       );
       await addYieldToVault('100');
 
-      await vault.connect(owner).exitPause();
+      await vault.connect(admin).exitPause();
 
       await expect(
         vault.connect(carol).claimYield(carol.address),
       ).to.be.revertedWith('Pausable: ExitPaused');
 
-      await vault.connect(owner).exitUnpause();
+      await vault.connect(admin).exitUnpause();
     });
   });
 

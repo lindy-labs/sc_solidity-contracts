@@ -153,10 +153,10 @@ contract Vault is
         if (_minLockPeriod == 0 || _minLockPeriod > MAX_DEPOSIT_LOCK_DURATION)
             revert VaultInvalidMinLockPeriod();
 
-        _setupRole(DEFAULT_ADMIN_ROLE, _admin);
-        _setupRole(INVESTOR_ROLE, _admin);
-        _setupRole(SETTINGS_ROLE, _admin);
-        _setupRole(SPONSOR_ROLE, _admin);
+        _grantRole(DEFAULT_ADMIN_ROLE, _admin);
+        _grantRole(INVESTOR_ROLE, _admin);
+        _grantRole(SETTINGS_ROLE, _admin);
+        _grantRole(SPONSOR_ROLE, _admin);
 
         investPct = _investPct;
         underlying = _underlying;
@@ -212,10 +212,10 @@ contract Vault is
         if (_newAdmin == msg.sender)
             revert VaultCannotTransferAdminRightsToSelf();
 
-        _setupRole(DEFAULT_ADMIN_ROLE, _newAdmin);
-        _setupRole(INVESTOR_ROLE, _newAdmin);
-        _setupRole(SETTINGS_ROLE, _newAdmin);
-        _setupRole(SPONSOR_ROLE, _newAdmin);
+        _grantRole(DEFAULT_ADMIN_ROLE, _newAdmin);
+        _grantRole(INVESTOR_ROLE, _newAdmin);
+        _grantRole(SETTINGS_ROLE, _newAdmin);
+        _grantRole(SPONSOR_ROLE, _newAdmin);
 
         _revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _revokeRole(INVESTOR_ROLE, msg.sender);
