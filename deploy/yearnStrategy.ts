@@ -9,7 +9,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   const { deployer } = await env.getNamedAccounts();
   const { get, deploy, getNetworkName } = env.deployments;
   const { multisig } = await getCurrentNetworkConfig();
-  const [owner] = await ethers.getSigners();
+  const [admin] = await ethers.getSigners();
 
   const vaultAddress = (await get('Vault_LUSD')).address;
   const vault = await ethers.getContractAt('Vault', vaultAddress);
@@ -28,7 +28,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
   const args = [
     vault.address,
-    owner.address,
+    admin.address,
     yearnVault.address,
     LUSDDeployment.address,
   ];
@@ -62,20 +62,20 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   }
 
   await yearnStrategy
-    .connect(owner)
+    .connect(admin)
     .grantRole(
       utils.keccak256(utils.toUtf8Bytes('MANAGER_ROLE')),
-      owner.address,
+      admin.address,
     );
 
-  console.log('manager_role granted to owner for strategy');
+  console.log('manager_role granted to the admin of the strategy');
 
-  await (await vault.connect(owner).setStrategy(yearnStrategy.address)).wait();
+  await (await vault.connect(admin).setStrategy(yearnStrategy.address)).wait();
   console.log('strategy set to vault');
 
-  if (owner.address !== multisig) {
-    await (await vault.connect(owner).transferOwnership(multisig)).wait();
-    console.log('ownership transfered to multisig');
+  if (admin.address !== multisig) {
+    await (await vault.connect(admin).transferAdminRights(multisig)).wait();
+    console.log('admin rights transfered to multisig');
   }
 };
 
