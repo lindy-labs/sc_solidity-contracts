@@ -48,6 +48,14 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     console.log('liquity strategy persistArtifacts');
   }
 
+  if (getNetworkName() !== 'mainnet') {
+    await deploy('LiquityStabilityPool', {
+      contract: 'MockStabilityPool',
+      from: deployer,
+      args: [LUSDDeployment.address],
+    });
+  }
+
   const stabilityPool = await get('LiquityStabilityPool');
   const LQTYDeployment = await get('LQTY');
 
@@ -90,9 +98,7 @@ func.dependencies = ['vault'];
 
 func.skip = async (env: HardhatRuntimeEnvironment) =>
   !includes(
-    // TODO: stability pool mock needed for local & staging deployment
-    // ['ropsten', 'docker', 'mainnet', 'hardhat'], 
-    ['mainnet'],
+    ['ropsten', 'docker', 'mainnet', 'hardhat'], 
     env.deployments.getNetworkName(),
   );
 
