@@ -790,7 +790,7 @@ contract Vault is
         uint256 sponsorAmount;
         uint256 idsLen = _ids.length;
 
-        for (uint8 i; i < idsLen; ++i) {
+        for (uint8 i = 0; i < idsLen; ++i) {
             uint256 tokenId = _ids[i];
             uint256 amount = deposits[tokenId].amount;
 
@@ -818,7 +818,7 @@ contract Vault is
         uint256 sponsorAmount;
         uint256 idsLen = _ids.length;
 
-        for (uint8 i; i < idsLen; ++i) {
+        for (uint8 i = 0; i < idsLen; ++i) {
             uint256 tokenId = _ids[i];
             uint256 amount = _amounts[i];
 
@@ -849,11 +849,12 @@ contract Vault is
 
         if (_amount != _deposit.amount) {
             deposits[_id].amount -= _amount;
-        } else {
-            delete deposits[_id];
-
-            emit Unsponsored(_id);
+            return;
         }
+
+        delete deposits[_id];
+
+        emit Unsponsored(_id);
     }
 
     /**
