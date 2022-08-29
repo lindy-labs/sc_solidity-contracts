@@ -38,20 +38,24 @@ const func = async function (env: HardhatRuntimeEnvironment) {
       console.error((e as Error).message);
     }
 
+    console.log('verified liquity strategy');
+
     await env.tenderly.persistArtifacts({
       name: 'LiquityStrategy',
       address: liquityStrategy.address,
     });
+
+    console.log('liquity strategy persistArtifacts');
   }
 
-  const stabilityPool = await get('LiquityStabilityPool'); // TODO: local mock
+  const stabilityPool = await get('LiquityStabilityPool');
   const LQTYDeployment = await get('LQTY');
 
   // initialize strategy
   await (
     await liquityStrategy.initialize(
       vault.address,
-      multisig,
+      owner.address,
       stabilityPool.address,
       LQTYDeployment.address,
       LUSDDeployment.address,
