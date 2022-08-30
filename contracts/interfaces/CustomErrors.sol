@@ -27,11 +27,23 @@ interface CustomErrors {
     // Vault: treasury cannot be 0x0
     error VaultTreasuryCannotBe0Address();
 
-    // Vault: owner cannot be 0x0
-    error VaultOwnerCannotBe0Address();
+    // Vault: admin cannot be 0x0
+    error VaultAdminCannotBe0Address();
 
-    // Vault: cannot transfer ownership to self
-    error VaultCannotTransferOwnershipToSelf();
+    // Vault: cannot transfer admin rights to self
+    error VaultCannotTransferAdminRightsToSelf();
+
+    // Vault: caller is not admin
+    error VaultCallerNotAdmin();
+
+    // Vault: caller is not settings
+    error VaultCallerNotSettings();
+
+    // Vault: caller is not investor
+    error VaultCallerNotInvestor();
+
+    // Vault: caller is not sponsor
+    error VaultCallerNotSponsor();
 
     // Vault: destination address is 0x
     error VaultDestinationCannotBe0Address();

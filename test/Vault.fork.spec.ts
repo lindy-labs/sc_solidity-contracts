@@ -132,9 +132,7 @@ describe('Vault (fork tests)', () => {
         underlyingI: curveIndexes.ust,
       });
 
-      await expect(action).to.be.revertedWith(
-        getRoleErrorMsg(alice, DEFAULT_ADMIN_ROLE),
-      );
+      await expect(action).to.be.revertedWith('VaultCallerNotAdmin');
     });
   });
 
@@ -158,9 +156,7 @@ describe('Vault (fork tests)', () => {
     it('is not callable by a non-admin', async () => {
       const action = vault.connect(alice).removePool(dai.address);
 
-      await expect(action).to.be.revertedWith(
-        getRoleErrorMsg(alice, DEFAULT_ADMIN_ROLE),
-      );
+      await expect(action).to.be.revertedWith('VaultCallerNotAdmin');
     });
   });
 

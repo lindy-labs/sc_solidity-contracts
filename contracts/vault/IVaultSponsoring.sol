@@ -46,8 +46,28 @@ interface IVaultSponsoring {
      * It fails if the vault is underperforming and there are not enough funds
      * to withdraw the sponsored amount.
      *
+     * @notice the NFTs of the deposits will be burned.
+     *
      * @param _to Address that will receive the funds.
      * @param _ids Array with the ids of the deposits.
      */
-    function unsponsor(address _to, uint256[] memory _ids) external;
+    function unsponsor(address _to, uint256[] calldata _ids) external;
+
+    /**
+     * Withdraws the specified sponsored amounts @param _amounts for the deposits with the ids provided
+     * in @param _ids and sends it to @param _to.
+     *
+     * It fails if there are not enough funds to withdraw the specified amounts.
+     *
+     * @notice the NFTs of the deposits will be burned only if the whole deposit amount is withdrawn.
+     *
+     * @param _to Address that will receive the funds.
+     * @param _ids Array with the ids of the deposits.
+     * @param _amounts Array with the amounts to withdraw.
+     */
+    function partialUnsponsor(
+        address _to,
+        uint256[] calldata _ids,
+        uint256[] calldata _amounts
+    ) external;
 }
