@@ -1029,6 +1029,313 @@ describe('Vault', () => {
     });
   });
 
+  describe('partialUnspsonsor', () => {
+    it("doesn't remove the sponsor from the vault if amount withdrawn is less than deposited amount", async () => {
+      await addUnderlyingBalance(admin, '1000');
+
+      await vault
+        .connect(admin)
+        .sponsor(
+          underlying.address,
+          parseUnits('500'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
+      await vault
+        .connect(admin)
+        .sponsor(
+          underlying.address,
+          parseUnits('500'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
+
+      await moveForwardTwoWeeks();
+      await vault
+        .connect(admin)
+        .partialUnsponsor(
+          newAccount.address,
+          [1, 2],
+          [parseUnits('200'), parseUnits('300')],
+        );
+
+      expect(await vault.totalSponsored()).to.eq(parseUnits('500'));
+      expect(await underlying.balanceOf(newAccount.address)).to.eq(
+        parseUnits('500'),
+      );
+      expect((await vault.deposits(1)).amount).to.eq(parseUnits('300'));
+      expect((await vault.deposits(2)).amount).to.eq(parseUnits('200'));
+    });
+
+    it('removes a sponsor from the vault if amount withdrawn equals deposited amount', async () => {
+      await addUnderlyingBalance(admin, '1000');
+
+      await vault
+        .connect(admin)
+        .sponsor(
+          underlying.address,
+          parseUnits('500'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
+      await vault
+        .connect(admin)
+        .sponsor(
+          underlying.address,
+          parseUnits('500'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
+
+      await moveForwardTwoWeeks();
+
+      await vault
+        .connect(admin)
+        .partialUnsponsor(
+          newAccount.address,
+          [1, 2],
+          [parseUnits('200'), parseUnits('500')],
+        );
+
+      expect(await vault.totalSponsored()).to.eq(parseUnits('300'));
+      expect(await underlying.balanceOf(newAccount.address)).to.eq(
+        parseUnits('700'),
+      );
+      expect((await vault.deposits(1)).amount).to.eq(parseUnits('300'));
+      expect((await vault.deposits(2)).amount).to.eq('0');
+    });
+
+    it('fails if amount withdrawn is greater than deposited amount', async () => {
+      await addUnderlyingBalance(admin, '1000');
+      await addYieldToVault('1000');
+
+      await vault
+        .connect(admin)
+        .sponsor(
+          underlying.address,
+          parseUnits('1000'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
+
+      await moveForwardTwoWeeks();
+
+      await expect(
+        vault
+          .connect(admin)
+          .partialUnsponsor(newAccount.address, [1], [parseUnits('1100')]),
+      ).to.be.revertedWith('VaultCannotWithdrawMoreThanAvailable');
+    });
+
+    it("doesn't emit 'Unsponsored event' if amount withdrawn is less than deposited amount", async () => {
+      await addUnderlyingBalance(admin, '1000');
+
+      await vault
+        .connect(admin)
+        .sponsor(
+          underlying.address,
+          parseUnits('1000'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
+
+      await moveForwardTwoWeeks();
+      const tx = await vault
+        .connect(admin)
+        .partialUnsponsor(bob.address, [1], [parseUnits('500')]);
+
+      await expect(tx).not.to.emit(vault, 'Unsponsored');
+    });
+
+    it("emits 'Unsponsored' event if amount withdrawn equals deposited amount", async () => {
+      await addUnderlyingBalance(admin, '1000');
+
+      await vault
+        .connect(admin)
+        .sponsor(
+          underlying.address,
+          parseUnits('1000'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
+
+      await moveForwardTwoWeeks();
+      const tx = await vault
+        .connect(admin)
+        .partialUnsponsor(bob.address, [1], [parseUnits('1000')]);
+
+      await expect(tx).to.emit(vault, 'Unsponsored').withArgs(1);
+    });
+
+    it('fails if the caller is not the deposit owner', async () => {
+      await addUnderlyingBalance(admin, '1000');
+
+      await vault
+        .connect(admin)
+        .sponsor(
+          underlying.address,
+          parseUnits('1000'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
+
+      await vault.connect(admin).grantRole(SPONSOR_ROLE, bob.address);
+      await expect(
+        vault
+          .connect(bob)
+          .partialUnsponsor(admin.address, [1], [parseUnits('500')]),
+      ).to.be.revertedWith('VaultNotAllowed');
+    });
+
+    it('fails if the destination address is 0x', async () => {
+      await addUnderlyingBalance(admin, '1000');
+
+      await vault
+        .connect(admin)
+        .sponsor(
+          underlying.address,
+          parseUnits('1000'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
+
+      await expect(
+        vault
+          .connect(admin)
+          .partialUnsponsor(constants.AddressZero, [1], [parseUnits('1000')]),
+      ).to.be.revertedWith('VaultDestinationCannotBe0Address');
+    });
+
+    it('fails if the amount is still locked', async () => {
+      await addUnderlyingBalance(admin, '1000');
+
+      await vault
+        .connect(admin)
+        .sponsor(
+          underlying.address,
+          parseUnits('1000'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
+
+      await expect(
+        vault
+          .connect(admin)
+          .partialUnsponsor(admin.address, [1], [parseUnits('500')]),
+      ).to.be.revertedWith('VaultAmountLocked');
+    });
+
+    it('fails if the token id belongs to a withdraw', async () => {
+      await addUnderlyingBalance(admin, '1000');
+
+      await vault.connect(admin).deposit(
+        depositParams.build({
+          lockDuration: TWO_WEEKS,
+          amount: parseUnits('500'),
+          inputToken: underlying.address,
+          claims: [claimParams.percent(100).to(admin.address).build()],
+        }),
+      );
+      await vault
+        .connect(admin)
+        .sponsor(
+          underlying.address,
+          parseUnits('500'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
+
+      await moveForwardTwoWeeks();
+
+      await expect(
+        vault
+          .connect(admin)
+          .partialUnsponsor(
+            admin.address,
+            [1, 2],
+            [parseUnits('500'), parseUnits('500')],
+          ),
+      ).to.be.revertedWith('VaultNotSponsor');
+    });
+
+    it('fails if there are not enough funds', async () => {
+      await addUnderlyingBalance(admin, '1000');
+
+      await vault
+        .connect(admin)
+        .sponsor(
+          underlying.address,
+          parseUnits('1000'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
+      await moveForwardTwoWeeks();
+
+      await removeUnderlyingFromVault('500');
+
+      await expect(
+        vault
+          .connect(admin)
+          .partialUnsponsor(admin.address, [1], [parseUnits('600')]),
+      ).to.be.revertedWith('VaultNotEnoughFunds');
+    });
+
+    it('fails if contract is exit paused', async () => {
+      await addUnderlyingBalance(admin, '1000');
+
+      await vault
+        .connect(admin)
+        .sponsor(
+          underlying.address,
+          parseUnits('1000'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
+
+      await moveForwardTwoWeeks();
+
+      await vault.connect(admin).exitPause();
+
+      await expect(
+        vault
+          .connect(admin)
+          .partialUnsponsor(bob.address, [1], [parseUnits('500')]),
+      ).to.be.revertedWith('Pausable: ExitPaused');
+    });
+
+    it('works when there are not enough funds in the vault by withdrawing from sync strategy', async () => {
+      expect(await strategy.isSync()).to.be.true;
+      await vault.setStrategy(strategy.address);
+      await underlying.mint(admin.address, parseUnits('1000'));
+
+      await vault
+        .connect(admin)
+        .sponsor(
+          underlying.address,
+          parseUnits('1000'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
+      await vault.connect(admin).updateInvested();
+      await moveForwardTwoWeeks();
+
+      expect(await strategy.investedAssets()).to.eq(parseUnits('900'));
+      expect(await underlying.balanceOf(vault.address)).to.eq(
+        parseUnits('100'),
+      );
+
+      await vault
+        .connect(admin)
+        .partialUnsponsor(admin.address, [1], [parseUnits('500')]);
+
+      expect(await strategy.investedAssets()).to.eq(parseUnits('450'));
+      expect(await underlying.balanceOf(vault.address)).to.eq(parseUnits('50'));
+      expect(await underlying.balanceOf(admin.address)).to.eq(
+        parseUnits('500'),
+      );
+    });
+  });
+
   describe('unsponsor', () => {
     it('removes a sponsor from the vault', async () => {
       await addUnderlyingBalance(admin, '1000');
@@ -1180,7 +1487,7 @@ describe('Vault', () => {
       ).to.be.revertedWith('VaultNotEnoughFunds');
     });
 
-    it('reverts if contract is exit paused', async () => {
+    it('fails if contract is exit paused', async () => {
       await addUnderlyingBalance(admin, '1000');
 
       await vault
@@ -1199,8 +1506,6 @@ describe('Vault', () => {
       await expect(
         vault.connect(admin).unsponsor(bob.address, [1]),
       ).to.be.revertedWith('Pausable: ExitPaused');
-
-      await vault.connect(admin).exitUnpause();
     });
   });
 

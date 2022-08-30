@@ -534,6 +534,17 @@ contract Vault is
         _unsponsor(_to, _ids);
     }
 
+    /// @inheritdoc IVaultSponsoring
+    function partialUnsponsor(
+        address _to,
+        uint256[] calldata _ids,
+        uint256[] calldata _amounts
+    ) external nonReentrant whenNotExitPaused {
+        if (_to == address(0)) revert VaultDestinationCannotBe0Address();
+
+        _partialUnsponsor(_to, _ids, _amounts);
+    }
+
     //
     // CurveSwapper
     //
@@ -778,34 +789,89 @@ contract Vault is
         uint256 sponsorAmount;
         uint256 idsLen = _ids.length;
 
-        for (uint8 i; i < idsLen; ++i) {
+        for (uint8 i = 0; i < idsLen; ++i) {
             uint256 tokenId = _ids[i];
+            uint256 amount = deposits[tokenId].amount;
 
-            Deposit memory _deposit = deposits[tokenId];
-            uint256 lockedUntil = _deposit.lockedUntil;
-            address claimerId = _deposit.claimerId;
-
-            address owner = _deposit.owner;
-            uint256 amount = _deposit.amount;
-
-            if (owner != msg.sender) revert VaultNotAllowed();
-            if (lockedUntil > block.timestamp) revert VaultAmountLocked();
-            if (claimerId != address(0)) revert VaultNotSponsor();
+            _unsponsorSingle(tokenId, amount);
 
             sponsorAmount += amount;
-
-            delete deposits[tokenId];
-
-            emit Unsponsored(tokenId);
         }
 
-        if (sponsorAmount > totalUnderlying()) revert VaultNotEnoughFunds();
+        _decreaseTotalSponsoredAndTransfer(_to, sponsorAmount);
+    }
 
-        totalSponsored -= sponsorAmount;
+    /**
+     * Withdraws the specified sponsored amounts @param _amounts for the deposits with the ids provided
+     * in @param _ids and sends it to @param _to.
+     *
+     * @param _to Address that will receive the funds.
+     * @param _ids Array with the ids of the deposits.
+     * @param _amounts Array with the amounts to withdraw.
+     */
+    function _partialUnsponsor(
+        address _to,
+        uint256[] calldata _ids,
+        uint256[] calldata _amounts
+    ) internal {
+        uint256 sponsorAmount;
+        uint256 idsLen = _ids.length;
 
-        _rebalanceBeforeWithdrawing(sponsorAmount);
+        for (uint8 i = 0; i < idsLen; ++i) {
+            uint256 tokenId = _ids[i];
+            uint256 amount = _amounts[i];
 
-        underlying.safeTransfer(_to, sponsorAmount);
+            _unsponsorSingle(tokenId, amount);
+
+            sponsorAmount += amount;
+        }
+
+        _decreaseTotalSponsoredAndTransfer(_to, sponsorAmount);
+    }
+
+    /**
+     * Validates conditions for unsponsoring amount @param _amount of the deposit with the id @param _id.
+     *
+     * @notice The NFTs of the deposit will be burned if the deposited amount is equal to the amount being withdrawn.
+     *
+     * @param _id Id of the deposit.
+     * @param _amount Amount to be unsponsored/withdrawn.
+     */
+    function _unsponsorSingle(uint256 _id, uint256 _amount) internal {
+        Deposit memory _deposit = deposits[_id];
+
+        if (_deposit.owner != msg.sender) revert VaultNotAllowed();
+        if (_deposit.lockedUntil > block.timestamp) revert VaultAmountLocked();
+        if (_deposit.claimerId != address(0)) revert VaultNotSponsor();
+        if (_deposit.amount < _amount)
+            revert VaultCannotWithdrawMoreThanAvailable();
+
+        if (_amount != _deposit.amount) {
+            deposits[_id].amount -= _amount;
+            return;
+        }
+
+        delete deposits[_id];
+
+        emit Unsponsored(_id);
+    }
+
+    /**
+     * Updates totalSponsored by subtracting the amount @param _amount and performing a transfer to @param _to.
+     *
+     * @param _to Adress that will receive the funds.
+     * @param _amount Amount being unsponsored.
+     */
+    function _decreaseTotalSponsoredAndTransfer(address _to, uint256 _amount)
+        internal
+    {
+        if (_amount > totalUnderlying()) revert VaultNotEnoughFunds();
+
+        totalSponsored -= _amount;
+
+        _rebalanceBeforeWithdrawing(_amount);
+
+        underlying.safeTransfer(_to, _amount);
     }
 
     /**
