@@ -386,7 +386,7 @@ describe('RyskStrategy', () => {
       await strategy.connect(manager).withdrawToVault(parseUnits('50'));
 
       await expect(strategy.completeWithdrawal()).to.be.revertedWith(
-        'RyskCannotComipleteWithdrawalInSameEpoch',
+        'RyskCannotCompleteWithdrawalInSameEpoch',
       );
     });
 

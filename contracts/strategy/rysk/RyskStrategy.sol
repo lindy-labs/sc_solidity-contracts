@@ -38,7 +38,7 @@ contract RyskStrategy is BaseStrategy {
     // no withdrawal initiated
     error RyskNoWithdrawalInitiated();
     // cannot complete withdrawal in the same epoch
-    error RyskCannotComipleteWithdrawalInSameEpoch();
+    error RyskCannotCompleteWithdrawalInSameEpoch();
 
     /**
      * @param _vault address of the vault that will use this strategy
@@ -144,7 +144,7 @@ contract RyskStrategy is BaseStrategy {
     function completeWithdrawal() external {
         if (pendingWithdrawal.epoch == 0) revert RyskNoWithdrawalInitiated();
         if (pendingWithdrawal.epoch == ryskLqPool.epoch())
-            revert RyskCannotComipleteWithdrawalInSameEpoch();
+            revert RyskCannotCompleteWithdrawalInSameEpoch();
 
         uint256 sharesToWithdraw = ryskLqPool
             .withdrawalReceipts(address(this))
