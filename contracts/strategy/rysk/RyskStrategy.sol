@@ -11,6 +11,8 @@ import {BaseStrategy} from "../BaseStrategy.sol";
 import {IRyskLiquidityPool} from "../../interfaces/rysk/IRyskLiquidityPool.sol";
 import {IVault} from "../../vault/IVault.sol";
 
+import "hardhat/console.sol";
+
 /**
  * RyskStrategy generates yield by investing into a Rysk LiquidityPool,
  * that serves to provide liquidity for a dynamic hedging options AMM.
@@ -24,7 +26,7 @@ contract RyskStrategy is BaseStrategy {
     // rysk liquidity pool that this strategy is interacting with
     IRyskLiquidityPool public immutable ryskLqPool;
     // pending withdrawal receipt
-    IRyskLiquidityPool.WithdrawalReceipt pendingWithdrawal;
+    IRyskLiquidityPool.WithdrawalReceipt public pendingWithdrawal;
 
     /**
      * Emmited when a withdrawal has been initiated.
@@ -39,6 +41,8 @@ contract RyskStrategy is BaseStrategy {
     error RyskNoWithdrawalInitiated();
     // cannot complete withdrawal in the same epoch
     error RyskCannotCompleteWithdrawalInSameEpoch();
+    // cannot initiate a withdrawal before pending withdrawal is completed
+    error RyskWithdrawalMustBeCompletedBeforeNewIsInitiated();
 
     /**
      * @param _vault address of the vault that will use this strategy
@@ -115,20 +119,32 @@ contract RyskStrategy is BaseStrategy {
     {
         if (_amount == 0) revert StrategyAmountZero();
 
-        uint256 shares = _underlyingToShares(_amount);
+        uint256 currentEpoch = ryskLqPool.withdrawalEpoch();
 
-        _resetPendingWithdrawalIfEpochAdvanced();
+        // rysk doesn't allow another withdrawal to be initiated in new epoch if the previous one isn't completed
+        if (
+            pendingWithdrawal.epoch != 0 &&
+            pendingWithdrawal.epoch != currentEpoch
+        ) {
+            revert RyskWithdrawalMustBeCompletedBeforeNewIsInitiated();
+        }
 
-        // because the vault can call updateInvested => withdrawToVault multiple times during the same epoch,
-        // and rysk liquidity pool aggregates withdrawal amounts inititated during the same epoch,
-        // we cannot withdraw less than already pending amount
-        if (pendingWithdrawal.shares >= shares) return;
+        uint256 sharesToWithdraw = _underlyingToShares(_amount);
 
-        uint256 sharesToWithdraw = shares - pendingWithdrawal.shares;
         if (!_hasEnoughShares(sharesToWithdraw))
             revert StrategyNotEnoughShares();
 
+        console.log("SC pending epoch:", pendingWithdrawal.epoch);
+        console.log("SC pending shares:", pendingWithdrawal.shares);
+
+        // TODO check uint types
+        if (pendingWithdrawal.epoch == 0) {
+            pendingWithdrawal.epoch = uint128(currentEpoch);
+        }
         pendingWithdrawal.shares += uint128(sharesToWithdraw);
+
+        console.log("SC pending epoch:", pendingWithdrawal.epoch);
+        console.log("SC pending shares:", pendingWithdrawal.shares);
 
         emit RyskWithdrawalInitiated(sharesToWithdraw);
         ryskLqPool.initiateWithdraw(sharesToWithdraw);
@@ -143,17 +159,17 @@ contract RyskStrategy is BaseStrategy {
      */
     function completeWithdrawal() external {
         if (pendingWithdrawal.epoch == 0) revert RyskNoWithdrawalInitiated();
-        if (pendingWithdrawal.epoch == ryskLqPool.epoch())
+        if (pendingWithdrawal.epoch == ryskLqPool.withdrawalEpoch())
             revert RyskCannotCompleteWithdrawalInSameEpoch();
 
-        uint256 sharesToWithdraw = ryskLqPool
-            .withdrawalReceipts(address(this))
-            .shares;
-
-        uint256 amountWithdrawn = ryskLqPool.completeWithdraw(sharesToWithdraw);
+        uint256 amountWithdrawn = ryskLqPool.completeWithdraw(
+            pendingWithdrawal.shares
+        );
 
         emit StrategyWithdrawn(amountWithdrawn);
         underlying.safeTransfer(vault, amountWithdrawn);
+
+        delete pendingWithdrawal;
     }
 
     /**
@@ -169,7 +185,7 @@ contract RyskStrategy is BaseStrategy {
     }
 
     /**
-     * Calculates the value of Rysk liquidity pool vault shares in underlying.
+     * Calculates the value of Rysk liquidity pool shares in underlying.
      *
      * @param _shares number of shares
      *
@@ -181,7 +197,8 @@ contract RyskStrategy is BaseStrategy {
         returns (uint256)
     {
         return
-            (_shares * ryskLqPool.epochPricePerShare(ryskLqPool.epoch())) /
+            (_shares *
+                ryskLqPool.epochPricePerShare(ryskLqPool.withdrawalEpoch())) /
             1e18;
     }
 
@@ -199,7 +216,7 @@ contract RyskStrategy is BaseStrategy {
     {
         return
             (_underlying * 1e18) /
-            ryskLqPool.epochPricePerShare(ryskLqPool.epoch());
+            ryskLqPool.epochPricePerShare(ryskLqPool.withdrawalEpoch());
     }
 
     /**
@@ -214,21 +231,5 @@ contract RyskStrategy is BaseStrategy {
     {
         return
             _sharesToWithdraw <= _getTotalShares() - pendingWithdrawal.shares;
-    }
-
-    /**
-     * Resets the pending withdrawal if the epoch when withdrawal receipt was created
-     * is older than the current epoch.
-     */
-    function _resetPendingWithdrawalIfEpochAdvanced() internal {
-        uint256 currentEpoch = ryskLqPool.epoch();
-
-        // we need to check epoch here because if epoch has advanced,
-        // previous withdrawal receipt will be overridden
-        if (pendingWithdrawal.epoch != currentEpoch) {
-            // reset pending withdrawal amount since the receipt will be overridden
-            pendingWithdrawal.shares = 0;
-            pendingWithdrawal.epoch = uint128(currentEpoch);
-        }
     }
 }

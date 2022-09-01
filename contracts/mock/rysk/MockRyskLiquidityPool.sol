@@ -9,18 +9,21 @@ import {IRyskLiquidityPool} from "../../interfaces/rysk/IRyskLiquidityPool.sol";
 // This contract aims to mimic the Rysk LiquidityPool contract as much as possible. For instance,
 // the LiquidityPool has the 'epoch' (or 'depositReceipts', etc.) public field and to match that
 // we have the same field implemented here.
-// 
+//
 // Because we want to interact with the LiquidityPool contract's fields in our strategy through an interface,
 // and we cannot declare a field on an interface, we do not implement the IRyskLiquidityPool interface here.
 // Instead, our strategy tests ensure that the API defined by IRyskLiquidityPool and the actual API of the LiquidityPool
-// (MockRyskLiquidityPool) are indeed a match, implying that public fields from the LiquidityPool are accessible 
+// (MockRyskLiquidityPool) are indeed a match, implying that public fields from the LiquidityPool are accessible
 // through methods with the same name described by the IRyskLiquidityPool interface.
 contract MockRyskLiquidityPool is ERC20 {
     IERC20 immutable underlying;
-    uint256 public epoch;
+    uint256 public depositEpoch;
+    uint256 public withdrawalEpoch;
     mapping(uint256 => uint256) public epochPricePerShare;
-    mapping(address => IRyskLiquidityPool.DepositReceipt) public depositReceipts;
-    mapping(address => IRyskLiquidityPool.WithdrawalReceipt) public withdrawalReceipts;
+    mapping(address => IRyskLiquidityPool.DepositReceipt)
+        public depositReceipts;
+    mapping(address => IRyskLiquidityPool.WithdrawalReceipt)
+        public withdrawalReceipts;
 
     constructor(
         string memory _name,
@@ -29,8 +32,10 @@ contract MockRyskLiquidityPool is ERC20 {
     ) ERC20(_name, _symbol) {
         underlying = IERC20(_underlying);
 
-        epoch++;
-        epochPricePerShare[epoch] = 1e18;
+        depositEpoch++;
+        epochPricePerShare[depositEpoch] = 1e18;
+        withdrawalEpoch++;
+        epochPricePerShare[withdrawalEpoch] = 1e18;
     }
 
     function deposit(uint256 _amount) external returns (bool) {
@@ -41,8 +46,11 @@ contract MockRyskLiquidityPool is ERC20 {
         uint256 toMint = _getSharesForAmount(_amount);
         _mint(address(this), toMint);
 
-        IRyskLiquidityPool.DepositReceipt storage receipt = depositReceipts[msg.sender];
-        receipt.epoch = uint128(epoch);
+        IRyskLiquidityPool.DepositReceipt storage receipt = depositReceipts[
+            msg.sender
+        ];
+
+        receipt.epoch = uint128(depositEpoch);
         receipt.amount += uint128(_amount);
         receipt.unredeemedShares += toMint;
 
@@ -57,19 +65,20 @@ contract MockRyskLiquidityPool is ERC20 {
 
         _redeemUnredeemedShares();
 
-        IRyskLiquidityPool.WithdrawalReceipt storage withdrawalReceipt = withdrawalReceipts[
-            msg.sender
-        ];
+        IRyskLiquidityPool.WithdrawalReceipt
+            storage withdrawalReceipt = withdrawalReceipts[msg.sender];
 
-        if (withdrawalReceipt.epoch == epoch) {
+        if (withdrawalReceipt.epoch == withdrawalEpoch) {
             require(
                 withdrawalReceipt.shares + _shares <=
                     this.balanceOf(msg.sender),
                 "Not enough shares to withdraw"
             );
-            
+
             // add to the previous receipt
-            withdrawalReceipt.shares = uint128(withdrawalReceipt.shares + _shares);
+            withdrawalReceipt.shares = uint128(
+                withdrawalReceipt.shares + _shares
+            );
         } else {
             require(
                 _shares <= this.balanceOf(msg.sender),
@@ -77,9 +86,9 @@ contract MockRyskLiquidityPool is ERC20 {
             );
 
             // override the previous receipt
-            withdrawalReceipt.epoch = uint128(epoch);
+            withdrawalReceipt.epoch = uint128(withdrawalEpoch);
             withdrawalReceipt.shares = uint128(_shares);
-        }         
+        }
     }
 
     function completeWithdraw(uint256 _shares) external returns (uint256) {
@@ -87,7 +96,8 @@ contract MockRyskLiquidityPool is ERC20 {
 
         uint256 sharesToWithdraw = withdrawalReceipts[msg.sender].shares;
 
-        uint256 amount = (sharesToWithdraw * epochPricePerShare[epoch]) / 1e18;
+        uint256 amount = (sharesToWithdraw *
+            epochPricePerShare[withdrawalEpoch]) / 1e18;
 
         underlying.transfer(msg.sender, amount);
         _burn(msg.sender, sharesToWithdraw);
@@ -95,10 +105,21 @@ contract MockRyskLiquidityPool is ERC20 {
         return amount;
     }
 
-    function advanceEpoch() external {
-        epoch++;
+    function advanceDepositEpoch() public {
+        depositEpoch++;
         uint256 pricePerShare = (totalAssets() * 1e18) / totalSupply();
-        epochPricePerShare[epoch] = pricePerShare;
+        epochPricePerShare[depositEpoch] = pricePerShare;
+    }
+
+    function advanceWithdrawalEpoch() public {
+        withdrawalEpoch++;
+        uint256 pricePerShare = (totalAssets() * 1e18) / totalSupply();
+        epochPricePerShare[withdrawalEpoch] = pricePerShare;
+    }
+
+    function advanceDepositAndWithdrawalEpochs() external {
+        advanceDepositEpoch();
+        advanceWithdrawalEpoch();
     }
 
     function totalAssets() internal view returns (uint256) {
@@ -110,7 +131,7 @@ contract MockRyskLiquidityPool is ERC20 {
         view
         returns (uint256)
     {
-        return (_amount * 1e18) / epochPricePerShare[epoch];
+        return (_amount * 1e18) / epochPricePerShare[withdrawalEpoch];
     }
 
     function _redeemUnredeemedShares() internal {

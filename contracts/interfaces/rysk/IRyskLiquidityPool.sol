@@ -17,7 +17,10 @@ interface IRyskLiquidityPool is IERC20 {
      *
      * @return the current epoch number
      */
-    function epoch() external view returns (uint256);
+
+    function depositEpoch() external view returns (uint256);
+
+    function withdrawalEpoch() external view returns (uint256);
 
     /**
      * Gets the price per share for the requrested epoch.
