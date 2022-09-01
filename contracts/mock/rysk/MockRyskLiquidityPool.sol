@@ -19,7 +19,7 @@ contract MockRyskLiquidityPool is ERC20 {
     IERC20 immutable underlying;
     uint256 public depositEpoch;
     uint256 public withdrawalEpoch;
-    mapping(uint256 => uint256) public epochPricePerShare;
+    mapping(uint256 => uint256) public withdrawalEpochPricePerShare;
     mapping(address => IRyskLiquidityPool.DepositReceipt)
         public depositReceipts;
     mapping(address => IRyskLiquidityPool.WithdrawalReceipt)
@@ -33,9 +33,9 @@ contract MockRyskLiquidityPool is ERC20 {
         underlying = IERC20(_underlying);
 
         depositEpoch++;
-        epochPricePerShare[depositEpoch] = 1e18;
+        withdrawalEpochPricePerShare[depositEpoch] = 1e18;
         withdrawalEpoch++;
-        epochPricePerShare[withdrawalEpoch] = 1e18;
+        withdrawalEpochPricePerShare[withdrawalEpoch] = 1e18;
     }
 
     function deposit(uint256 _amount) external returns (bool) {
@@ -97,7 +97,7 @@ contract MockRyskLiquidityPool is ERC20 {
         uint256 sharesToWithdraw = withdrawalReceipts[msg.sender].shares;
 
         uint256 amount = (sharesToWithdraw *
-            epochPricePerShare[withdrawalEpoch]) / 1e18;
+            withdrawalEpochPricePerShare[withdrawalEpoch]) / 1e18;
 
         underlying.transfer(msg.sender, amount);
         _burn(msg.sender, sharesToWithdraw);
@@ -105,21 +105,10 @@ contract MockRyskLiquidityPool is ERC20 {
         return amount;
     }
 
-    function advanceDepositEpoch() public {
-        depositEpoch++;
-        uint256 pricePerShare = (totalAssets() * 1e18) / totalSupply();
-        epochPricePerShare[depositEpoch] = pricePerShare;
-    }
-
     function advanceWithdrawalEpoch() public {
         withdrawalEpoch++;
         uint256 pricePerShare = (totalAssets() * 1e18) / totalSupply();
-        epochPricePerShare[withdrawalEpoch] = pricePerShare;
-    }
-
-    function advanceDepositAndWithdrawalEpochs() external {
-        advanceDepositEpoch();
-        advanceWithdrawalEpoch();
+        withdrawalEpochPricePerShare[withdrawalEpoch] = pricePerShare;
     }
 
     function totalAssets() internal view returns (uint256) {
@@ -131,7 +120,7 @@ contract MockRyskLiquidityPool is ERC20 {
         view
         returns (uint256)
     {
-        return (_amount * 1e18) / epochPricePerShare[withdrawalEpoch];
+        return (_amount * 1e18) / withdrawalEpochPricePerShare[withdrawalEpoch];
     }
 
     function _redeemUnredeemedShares() internal {

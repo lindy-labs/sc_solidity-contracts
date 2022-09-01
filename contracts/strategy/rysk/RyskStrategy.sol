@@ -11,13 +11,14 @@ import {BaseStrategy} from "../BaseStrategy.sol";
 import {IRyskLiquidityPool} from "../../interfaces/rysk/IRyskLiquidityPool.sol";
 import {IVault} from "../../vault/IVault.sol";
 
-import "hardhat/console.sol";
-
 /**
  * RyskStrategy generates yield by investing into a Rysk LiquidityPool,
  * that serves to provide liquidity for a dynamic hedging options AMM.
  *
  * @notice This strategy is asyncrhonous (doesn't support immediate withdrawals).
+ *
+ * @dev A few notes on the Rysk Liquidity Poll deposit/withdrawal mechanism:
+ * 1.
  */
 contract RyskStrategy is BaseStrategy {
     using SafeERC20 for IERC20;
@@ -27,6 +28,9 @@ contract RyskStrategy is BaseStrategy {
     IRyskLiquidityPool public immutable ryskLqPool;
     // pending withdrawal receipt
     IRyskLiquidityPool.WithdrawalReceipt public pendingWithdrawal;
+
+    // number of decimal places for LiquidityPool share (ERC20)
+    uint256 constant SHARES_CONVERSION_FACTOR = 1e18;
 
     /**
      * Emmited when a withdrawal has been initiated.
@@ -42,7 +46,7 @@ contract RyskStrategy is BaseStrategy {
     // cannot complete withdrawal in the same epoch
     error RyskCannotCompleteWithdrawalInSameEpoch();
     // cannot initiate a withdrawal before pending withdrawal is completed
-    error RyskWithdrawalMustBeCompletedBeforeNewIsInitiated();
+    error RyskPendingWithdrawalNotCompleted();
 
     /**
      * @param _vault address of the vault that will use this strategy
@@ -96,7 +100,11 @@ contract RyskStrategy is BaseStrategy {
         override(IStrategy)
         returns (uint256)
     {
-        return _sharesToUnderlying(_getTotalShares());
+        return
+            (_getTotalShares() *
+                ryskLqPool.withdrawalEpochPricePerShare(
+                    ryskLqPool.withdrawalEpoch()
+                )) / SHARES_CONVERSION_FACTOR;
     }
 
     /// @inheritdoc IStrategy
@@ -121,41 +129,31 @@ contract RyskStrategy is BaseStrategy {
 
         uint256 currentEpoch = ryskLqPool.withdrawalEpoch();
 
-        // rysk doesn't allow another withdrawal to be initiated in new epoch if the previous one isn't completed
-        if (
-            pendingWithdrawal.epoch != 0 &&
-            pendingWithdrawal.epoch != currentEpoch
-        ) {
-            revert RyskWithdrawalMustBeCompletedBeforeNewIsInitiated();
+        if (pendingWithdrawal.epoch == 0) {
+            pendingWithdrawal.epoch = uint128(currentEpoch);
+        } else if (pendingWithdrawal.epoch != currentEpoch) {
+            // rysk liquidity pool doesn't allow a withdrawal to be initiated in a new epoch
+            // if a pending withdrawal from a previous epoch isn't completed
+            revert RyskPendingWithdrawalNotCompleted();
         }
 
         uint256 sharesToWithdraw = _underlyingToShares(_amount);
 
-        if (!_hasEnoughShares(sharesToWithdraw))
+        if (!_hasEnoughSharesToWithdraw(sharesToWithdraw))
             revert StrategyNotEnoughShares();
 
-        console.log("SC pending epoch:", pendingWithdrawal.epoch);
-        console.log("SC pending shares:", pendingWithdrawal.shares);
-
-        // TODO check uint types
-        if (pendingWithdrawal.epoch == 0) {
-            pendingWithdrawal.epoch = uint128(currentEpoch);
-        }
         pendingWithdrawal.shares += uint128(sharesToWithdraw);
-
-        console.log("SC pending epoch:", pendingWithdrawal.epoch);
-        console.log("SC pending shares:", pendingWithdrawal.shares);
 
         emit RyskWithdrawalInitiated(sharesToWithdraw);
         ryskLqPool.initiateWithdraw(sharesToWithdraw);
     }
 
     /**
-     * Completes the withdrawal initiated by withdrawToVault.
+     * Completes the pending withdrawal initiated in an earlier epoch.
      *
-     * @notice Expected to be called by the backend once the Rysk liquidity pool enters a new epoch.
-     * Backend should subscribe to 'EpochExecuted' event on Rysk LiquidityPool contract,
-     * and act by calling this function when the event is emitted to complete ongoing withdrawal.
+     * @notice Expected to be called by the backend once the Rysk liquidity pool enters a new withdrawal epoch.
+     * Backend should subscribe to 'WithdrawalEpochExecuted' event on the Rysk LiquidityPool contract,
+     * and act by calling this function when the event is emitted to complete pending withdrawal.
      */
     function completeWithdrawal() external {
         if (pendingWithdrawal.epoch == 0) revert RyskNoWithdrawalInitiated();
@@ -166,40 +164,22 @@ contract RyskStrategy is BaseStrategy {
             pendingWithdrawal.shares
         );
 
+        delete pendingWithdrawal;
+
         emit StrategyWithdrawn(amountWithdrawn);
         underlying.safeTransfer(vault, amountWithdrawn);
-
-        delete pendingWithdrawal;
     }
 
     /**
      * Get the number of Rysk liquidity pool shares owned by the strategy.
      *
-     * @return shares owned by the strategy
+     * @return shares owned by the strategy including unredeemed shares
      */
     function _getTotalShares() internal view returns (uint256) {
         // total shares = redeemed shares + unredeemed shares
         return
             ryskLqPool.balanceOf(address(this)) +
             ryskLqPool.depositReceipts(address(this)).unredeemedShares;
-    }
-
-    /**
-     * Calculates the value of Rysk liquidity pool shares in underlying.
-     *
-     * @param _shares number of shares
-     *
-     * @return underlying value of shares
-     */
-    function _sharesToUnderlying(uint256 _shares)
-        internal
-        view
-        returns (uint256)
-    {
-        return
-            (_shares *
-                ryskLqPool.epochPricePerShare(ryskLqPool.withdrawalEpoch())) /
-            1e18;
     }
 
     /**
@@ -215,16 +195,19 @@ contract RyskStrategy is BaseStrategy {
         returns (uint256)
     {
         return
-            (_underlying * 1e18) /
-            ryskLqPool.epochPricePerShare(ryskLqPool.withdrawalEpoch());
+            (_underlying * SHARES_CONVERSION_FACTOR) /
+            ryskLqPool.withdrawalEpochPricePerShare(
+                ryskLqPool.withdrawalEpoch()
+            );
     }
 
     /**
-     * Checks if the strategy has enough shares to withdraw.
+     * Checks if the strategy has enough shares to withdraw
+     * considering both existing shares and shares included in the pending withdrawal.
      *
      * @param _sharesToWithdraw number of shares to withdraw
      */
-    function _hasEnoughShares(uint256 _sharesToWithdraw)
+    function _hasEnoughSharesToWithdraw(uint256 _sharesToWithdraw)
         internal
         view
         returns (bool)
