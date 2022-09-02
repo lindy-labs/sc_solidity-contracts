@@ -88,7 +88,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   console.log('strategy set to vault');
 
   if (owner.address !== multisig) {
-    await (await vault.connect(owner).transferOwnership(multisig)).wait();
+    await (await vault.connect(owner).transferAdminRights(multisig)).wait();
     console.log('ownership transfered to multisig');
   }
 };
@@ -98,7 +98,7 @@ func.dependencies = ['vault'];
 
 func.skip = async (env: HardhatRuntimeEnvironment) =>
   !includes(
-    ['ropsten', 'docker', 'mainnet', 'hardhat'], 
+    ['ropsten', 'docker', 'mainnet', 'hardhat'],
     env.deployments.getNetworkName(),
   );
 
