@@ -28,7 +28,7 @@ const { parseUnits } = ethers.utils;
 const { MaxUint256 } = ethers.constants;
 
 describe('Vault', () => {
-  let owner: SignerWithAddress;
+  let admin: SignerWithAddress;
   let alice: SignerWithAddress;
   let bob: SignerWithAddress;
   let carol: SignerWithAddress;
@@ -65,19 +65,19 @@ describe('Vault', () => {
   const fixtures = deployments.createFixture(async ({ deployments }) => {
     await deployments.fixture(['vault']);
 
-    [owner] = await ethers.getSigners();
+    [admin] = await ethers.getSigners();
 
     const lusdDeployment = await deployments.get('LUSD');
     const lusdVaultDeployment = await deployments.get('Vault_LUSD');
 
-    underlying = MockLUSD__factory.connect(lusdDeployment.address, owner);
-    vault = Vault__factory.connect(lusdVaultDeployment.address, owner);
+    underlying = MockLUSD__factory.connect(lusdDeployment.address, admin);
+    vault = Vault__factory.connect(lusdVaultDeployment.address, admin);
   });
 
   beforeEach(() => fixtures());
 
   beforeEach(async () => {
-    [owner, alice, bob, carol, newAccount] = await ethers.getSigners();
+    [admin, alice, bob, carol, newAccount] = await ethers.getSigners();
 
     let Vault = await ethers.getContractFactory('Vault');
 
@@ -88,13 +88,13 @@ describe('Vault', () => {
       TWO_WEEKS,
       INVEST_PCT,
       TREASURY,
-      owner.address,
+      admin.address,
       PERFORMANCE_FEE_PCT,
       INVESTMENT_FEE_PCT,
       [],
     );
 
-    underlying.connect(owner).approve(vault.address, MaxUint256);
+    underlying.connect(admin).approve(vault.address, MaxUint256);
     underlying.connect(alice).approve(vault.address, MaxUint256);
     underlying.connect(bob).approve(vault.address, MaxUint256);
     underlying.connect(carol).approve(vault.address, MaxUint256);
@@ -102,7 +102,7 @@ describe('Vault', () => {
     strategy = await MockStrategy.deploy(
       vault.address,
       underlying.address,
-      owner.address,
+      admin.address,
     );
 
     ({
@@ -198,7 +198,7 @@ describe('Vault', () => {
           TWO_WEEKS,
           INVEST_PCT,
           TREASURY,
-          owner.address,
+          admin.address,
           PERFORMANCE_FEE_PCT,
           INVESTMENT_FEE_PCT,
           [],
@@ -213,7 +213,7 @@ describe('Vault', () => {
           0,
           INVEST_PCT,
           TREASURY,
-          owner.address,
+          admin.address,
           PERFORMANCE_FEE_PCT,
           INVESTMENT_FEE_PCT,
           [],
@@ -228,7 +228,7 @@ describe('Vault', () => {
           MAX_DEPOSIT_LOCK_DURATION.add(BigNumber.from('1')),
           INVEST_PCT,
           TREASURY,
-          owner.address,
+          admin.address,
           PERFORMANCE_FEE_PCT,
           INVESTMENT_FEE_PCT,
           [],
@@ -243,7 +243,7 @@ describe('Vault', () => {
           TWO_WEEKS,
           DENOMINATOR.add(BigNumber.from('1')),
           TREASURY,
-          owner.address,
+          admin.address,
           PERFORMANCE_FEE_PCT,
           INVESTMENT_FEE_PCT,
           [],
@@ -258,7 +258,7 @@ describe('Vault', () => {
           TWO_WEEKS,
           INVEST_PCT,
           TREASURY,
-          owner.address,
+          admin.address,
           DENOMINATOR.add(BigNumber.from('1')),
           INVESTMENT_FEE_PCT,
           [],
@@ -273,7 +273,7 @@ describe('Vault', () => {
           TWO_WEEKS,
           INVEST_PCT,
           constants.AddressZero,
-          owner.address,
+          admin.address,
           PERFORMANCE_FEE_PCT,
           INVESTMENT_FEE_PCT,
           [],
@@ -281,7 +281,7 @@ describe('Vault', () => {
       ).to.be.revertedWith('VaultTreasuryCannotBe0Address');
     });
 
-    it('reverts if owner is address(0)', async () => {
+    it('reverts if admin is address(0)', async () => {
       await expect(
         VaultFactory.deploy(
           underlying.address,
@@ -293,7 +293,7 @@ describe('Vault', () => {
           INVESTMENT_FEE_PCT,
           [],
         ),
-      ).to.be.revertedWith('VaultOwnerCannotBe0Address');
+      ).to.be.revertedWith('VaultAdminCannotBe0Address');
     });
 
     it('reverts if invalid investment fee', async () => {
@@ -303,7 +303,7 @@ describe('Vault', () => {
           TWO_WEEKS,
           INVEST_PCT,
           TREASURY,
-          owner.address,
+          admin.address,
           PERFORMANCE_FEE_PCT,
           BigNumber.from('10001'),
           [],
@@ -313,12 +313,12 @@ describe('Vault', () => {
 
     it('Check initial values', async () => {
       expect(
-        await vault.hasRole(DEFAULT_ADMIN_ROLE, owner.address),
+        await vault.hasRole(DEFAULT_ADMIN_ROLE, admin.address),
       ).to.be.equal(true);
-      expect(await vault.hasRole(INVESTOR_ROLE, owner.address)).to.be.equal(
+      expect(await vault.hasRole(INVESTOR_ROLE, admin.address)).to.be.equal(
         true,
       );
-      expect(await vault.hasRole(SPONSOR_ROLE, owner.address)).to.be.equal(
+      expect(await vault.hasRole(SPONSOR_ROLE, admin.address)).to.be.equal(
         true,
       );
 
@@ -336,45 +336,41 @@ describe('Vault', () => {
     });
   });
 
-  describe('transferOwnership', () => {
-    it('can only be called by the current owner', async () => {
-      await expect(
-        vault.connect(alice).transferOwnership(alice.address),
-      ).to.be.revertedWith('Ownable: caller is not the owner');
-    });
-
-    it('reverts if new owner is address(0)', async () => {
-      await expect(
-        vault.connect(owner).transferOwnership(constants.AddressZero),
-      ).to.be.revertedWith('VaultOwnerCannotBe0Address');
-    });
-
-    it('reverts if the new owner is the same as the current one', async () => {
-      await expect(
-        vault.connect(owner).transferOwnership(owner.address),
-      ).to.be.revertedWith('VaultCannotTransferOwnershipToSelf');
-    });
-
-    it('changes ownership to the new owner', async () => {
-      await vault.connect(owner).transferOwnership(alice.address);
-
-      expect(await vault.owner()).to.be.equal(alice.address);
-    });
-
-    it("revokes all previous owner's roles and sets them for the new owner", async () => {
-      // assert that the owner has all the roles
-      expect(await vault.hasRole(DEFAULT_ADMIN_ROLE, owner.address)).to.be.true;
-      expect(await vault.hasRole(INVESTOR_ROLE, owner.address)).to.be.true;
-      expect(await vault.hasRole(SETTINGS_ROLE, owner.address)).to.be.true;
-      expect(await vault.hasRole(SPONSOR_ROLE, owner.address)).to.be.true;
-
-      await vault.connect(owner).transferOwnership(alice.address);
-
-      expect(await vault.hasRole(DEFAULT_ADMIN_ROLE, owner.address)).to.be
+  describe('transferAdminRights', () => {
+    it('can only be called by the current admin', async () => {
+      expect(await vault.hasRole(DEFAULT_ADMIN_ROLE, alice.address)).to.be
         .false;
-      expect(await vault.hasRole(INVESTOR_ROLE, owner.address)).to.be.false;
-      expect(await vault.hasRole(SETTINGS_ROLE, owner.address)).to.be.false;
-      expect(await vault.hasRole(SPONSOR_ROLE, owner.address)).to.be.false;
+
+      await expect(
+        vault.connect(alice).transferAdminRights(alice.address),
+      ).to.be.revertedWith('VaultCallerNotAdmin');
+    });
+
+    it('reverts if new admin is address(0)', async () => {
+      await expect(
+        vault.connect(admin).transferAdminRights(constants.AddressZero),
+      ).to.be.revertedWith('VaultAdminCannotBe0Address');
+    });
+
+    it('reverts if the new admin is the same as the current one', async () => {
+      await expect(
+        vault.connect(admin).transferAdminRights(admin.address),
+      ).to.be.revertedWith('VaultCannotTransferAdminRightsToSelf');
+    });
+
+    it("revokes all previous admin's roles and sets them for the new admin", async () => {
+      expect(await vault.hasRole(DEFAULT_ADMIN_ROLE, admin.address)).to.be.true;
+      expect(await vault.hasRole(INVESTOR_ROLE, admin.address)).to.be.true;
+      expect(await vault.hasRole(SETTINGS_ROLE, admin.address)).to.be.true;
+      expect(await vault.hasRole(SPONSOR_ROLE, admin.address)).to.be.true;
+
+      await vault.connect(admin).transferAdminRights(alice.address);
+
+      expect(await vault.hasRole(DEFAULT_ADMIN_ROLE, admin.address)).to.be
+        .false;
+      expect(await vault.hasRole(INVESTOR_ROLE, admin.address)).to.be.false;
+      expect(await vault.hasRole(SETTINGS_ROLE, admin.address)).to.be.false;
+      expect(await vault.hasRole(SPONSOR_ROLE, admin.address)).to.be.false;
 
       expect(await vault.hasRole(DEFAULT_ADMIN_ROLE, alice.address)).to.be.true;
       expect(await vault.hasRole(INVESTOR_ROLE, alice.address)).to.be.true;
@@ -384,21 +380,21 @@ describe('Vault', () => {
   });
 
   describe('setTreasury', () => {
-    it('reverts if msg.sender is not admin', async () => {
+    it('reverts if the caller does not have settings role', async () => {
       await expect(
         vault.connect(alice).setTreasury(TREASURY),
-      ).to.be.revertedWith(getRoleErrorMsg(alice, SETTINGS_ROLE));
+      ).to.be.revertedWith('VaultCallerNotSettings');
     });
 
     it('reverts if treasury is address(0)', async () => {
       await expect(
-        vault.connect(owner).setTreasury(constants.AddressZero),
+        vault.connect(admin).setTreasury(constants.AddressZero),
       ).to.be.revertedWith('VaultTreasuryCannotBe0Address');
     });
 
     it('change treasury and emit TreasuryUpdated event', async () => {
       const newTreasury = generateNewAddress();
-      const tx = await vault.connect(owner).setTreasury(newTreasury);
+      const tx = await vault.connect(admin).setTreasury(newTreasury);
 
       await expect(tx).emit(vault, 'TreasuryUpdated').withArgs(newTreasury);
       expect(await vault.treasury()).to.be.equal(newTreasury);
@@ -406,23 +402,23 @@ describe('Vault', () => {
   });
 
   describe('setPerfFeePct', () => {
-    it('reverts if msg.sender is not admin', async () => {
+    it('reverts if the caller does not have settings role', async () => {
       await expect(vault.connect(alice).setPerfFeePct(100)).to.be.revertedWith(
-        getRoleErrorMsg(alice, SETTINGS_ROLE),
+        'VaultCallerNotSettings',
       );
     });
 
     it('reverts if performance fee percentage is greater than 100%', async () => {
       await expect(
         vault
-          .connect(owner)
+          .connect(admin)
           .setPerfFeePct(DENOMINATOR.add(BigNumber.from('1'))),
       ).to.be.revertedWith('VaultInvalidPerformanceFee');
     });
 
     it('change perfFeePct and emit PerfFeePctUpdated event', async () => {
       const newFeePct = 100;
-      const tx = await vault.connect(owner).setPerfFeePct(newFeePct);
+      const tx = await vault.connect(admin).setPerfFeePct(newFeePct);
 
       await expect(tx).emit(vault, 'PerfFeePctUpdated').withArgs(newFeePct);
       expect(await vault.perfFeePct()).to.be.equal(newFeePct);
@@ -430,21 +426,21 @@ describe('Vault', () => {
   });
 
   describe('setInvestPct', () => {
-    it('reverts if msg.sender is not admin', async () => {
+    it('reverts if the caller does not have settings role', async () => {
       await expect(vault.connect(alice).setInvestPct(100)).to.be.revertedWith(
-        getRoleErrorMsg(alice, SETTINGS_ROLE),
+        'VaultCallerNotSettings',
       );
     });
 
     it('reverts if invest percentage is greater than 100%', async () => {
       await expect(
-        vault.connect(owner).setInvestPct(DENOMINATOR.add(BigNumber.from('1'))),
+        vault.connect(admin).setInvestPct(DENOMINATOR.add(BigNumber.from('1'))),
       ).to.be.revertedWith('VaultInvalidInvestpct');
     });
 
     it('change investPct and emit InvestPercentageUpdated event', async () => {
       const newInvestPct = 8000;
-      const tx = await vault.connect(owner).setInvestPct(newInvestPct);
+      const tx = await vault.connect(admin).setInvestPct(newInvestPct);
 
       await expect(tx).emit(vault, 'InvestPctUpdated').withArgs(newInvestPct);
       expect(await vault.investPct()).to.be.equal(newInvestPct);
@@ -452,16 +448,16 @@ describe('Vault', () => {
   });
 
   describe('setLossTolerancePct', () => {
-    it('reverts if msg.sender is not admin', async () => {
+    it('reverts if the caller does not have settings role', async () => {
       await expect(
         vault.connect(alice).setLossTolerancePct(100),
-      ).to.be.revertedWith(getRoleErrorMsg(alice, SETTINGS_ROLE));
+      ).to.be.revertedWith('VaultCallerNotSettings');
     });
 
     it('reverts if invest percentage is greater than 100%', async () => {
       await expect(
         vault
-          .connect(owner)
+          .connect(admin)
           .setLossTolerancePct(DENOMINATOR.add(BigNumber.from('1'))),
       ).to.be.revertedWith('VaultInvalidLossTolerance');
     });
@@ -469,7 +465,7 @@ describe('Vault', () => {
     it('change lossTolerancePct and emit InvestPercentageUpdated event', async () => {
       const newLossTolerancePct = 200;
       const tx = await vault
-        .connect(owner)
+        .connect(admin)
         .setLossTolerancePct(newLossTolerancePct);
 
       await expect(tx)
@@ -481,9 +477,9 @@ describe('Vault', () => {
 
   describe('totalUnderlyingMinusSponsored', async () => {
     it('returns 0 when the total underlying is less than total sponsored + accumulated performance fee', async () => {
-      await addUnderlyingBalance(owner, '500');
+      await addUnderlyingBalance(admin, '500');
       await vault
-        .connect(owner)
+        .connect(admin)
         .sponsor(
           underlying.address,
           parseUnits('500'),
@@ -508,7 +504,7 @@ describe('Vault', () => {
     });
 
     it('returns underlying balance + strategy fund', async () => {
-      await vault.connect(owner).setStrategy(strategy.address);
+      await vault.connect(admin).setStrategy(strategy.address);
 
       await underlying.mint(vault.address, parseUnits('100'));
       await underlying.mint(strategy.address, parseUnits('50'));
@@ -536,14 +532,14 @@ describe('Vault', () => {
       perfFee = newYield.mul(PERFORMANCE_FEE_PCT).div(DENOMINATOR);
     });
 
-    it('reverts if msg.sender is not investor', async () => {
+    it('reverts if the caller is not investor', async () => {
       await expect(
         vault.connect(alice).withdrawPerformanceFee(),
-      ).to.be.revertedWith(getRoleErrorMsg(alice, INVESTOR_ROLE));
+      ).to.be.revertedWith('VaultCallerNotInvestor');
     });
 
     it('withdraw performance fee and emit FeeWithdrawn event', async () => {
-      const tx = await vault.connect(owner).withdrawPerformanceFee();
+      const tx = await vault.connect(admin).withdrawPerformanceFee();
 
       expect(await underlying.balanceOf(TREASURY)).to.be.equal(perfFee);
       await expect(tx).to.emit(vault, 'FeeWithdrawn').withArgs(perfFee);
@@ -552,52 +548,52 @@ describe('Vault', () => {
     });
 
     it('reverts if nothing to withdraw', async () => {
-      await vault.connect(owner).withdrawPerformanceFee();
+      await vault.connect(admin).withdrawPerformanceFee();
 
       await expect(
-        vault.connect(owner).withdrawPerformanceFee(),
+        vault.connect(admin).withdrawPerformanceFee(),
       ).to.be.revertedWith('VaultNoPerformanceFee');
     });
   });
 
   describe('updateInvested', () => {
-    it('reverts if msg.sender is not investor', async () => {
+    it('reverts if the caller is not investor', async () => {
       await expect(vault.connect(alice).updateInvested()).to.be.revertedWith(
-        getRoleErrorMsg(alice, INVESTOR_ROLE),
+        'VaultCallerNotInvestor',
       );
     });
 
     it('reverts if strategy is not set', async () => {
-      await expect(vault.connect(owner).updateInvested()).to.be.revertedWith(
+      await expect(vault.connect(admin).updateInvested()).to.be.revertedWith(
         'VaultStrategyNotSet',
       );
     });
 
     it('reverts if no investable amount', async () => {
-      await vault.connect(owner).setStrategy(strategy.address);
+      await vault.connect(admin).setStrategy(strategy.address);
 
-      await expect(vault.connect(owner).updateInvested()).to.be.revertedWith(
+      await expect(vault.connect(admin).updateInvested()).to.be.revertedWith(
         'VaultNothingToDo',
       );
     });
 
     describe('invest scenario', () => {
       it('reverts if invest amount < 10 underlying', async () => {
-        await vault.connect(owner).setStrategy(strategy.address);
-        await vault.connect(owner).setInvestPct('8000');
+        await vault.connect(admin).setStrategy(strategy.address);
+        await vault.connect(admin).setInvestPct('8000');
         await addYieldToVault('10');
 
-        await expect(vault.connect(owner).updateInvested()).to.be.revertedWith(
+        await expect(vault.connect(admin).updateInvested()).to.be.revertedWith(
           'VaultNotEnoughToRebalance',
         );
       });
 
       it('moves the funds to the strategy', async () => {
-        await vault.connect(owner).setStrategy(strategy.address);
-        await vault.connect(owner).setInvestPct('8000');
+        await vault.connect(admin).setStrategy(strategy.address);
+        await vault.connect(admin).setInvestPct('8000');
         await addYieldToVault('100');
 
-        await vault.connect(owner).updateInvested();
+        await vault.connect(admin).updateInvested();
 
         expect(await underlying.balanceOf(strategy.address)).to.eq(
           parseUnits('80'),
@@ -605,11 +601,11 @@ describe('Vault', () => {
       });
 
       it('emits an event', async () => {
-        await vault.connect(owner).setStrategy(strategy.address);
-        await vault.connect(owner).setInvestPct('8000');
+        await vault.connect(admin).setStrategy(strategy.address);
+        await vault.connect(admin).setInvestPct('8000');
         await addYieldToVault('100');
 
-        const tx = await vault.connect(owner).updateInvested();
+        const tx = await vault.connect(admin).updateInvested();
 
         await expect(tx).to.emit(vault, 'Invested').withArgs(parseUnits('80'));
       });
@@ -617,21 +613,21 @@ describe('Vault', () => {
 
     describe('disinvest scenario', () => {
       it('reverts if disinvest amount < 10 underlying', async () => {
-        await vault.connect(owner).setStrategy(strategy.address);
+        await vault.connect(admin).setStrategy(strategy.address);
         await addYieldToVault('10');
         await underlying.mint(strategy.address, parseUnits('150'));
 
-        await expect(vault.connect(owner).updateInvested()).to.be.revertedWith(
+        await expect(vault.connect(admin).updateInvested()).to.be.revertedWith(
           'VaultNotEnoughToRebalance',
         );
       });
 
       it('call strategy.withdrawToVault with required amount', async () => {
-        await vault.connect(owner).setStrategy(strategy.address);
+        await vault.connect(admin).setStrategy(strategy.address);
         await addYieldToVault('10');
         await underlying.mint(strategy.address, parseUnits('190'));
 
-        await vault.connect(owner).updateInvested();
+        await vault.connect(admin).updateInvested();
 
         expect(await underlying.balanceOf(vault.address)).to.eq(
           parseUnits('20'),
@@ -642,11 +638,11 @@ describe('Vault', () => {
       });
 
       it('emits an event', async () => {
-        await vault.connect(owner).setStrategy(strategy.address);
+        await vault.connect(admin).setStrategy(strategy.address);
         await addYieldToVault('10');
         await underlying.mint(strategy.address, parseUnits('190'));
 
-        const tx = await vault.connect(owner).updateInvested();
+        const tx = await vault.connect(admin).updateInvested();
 
         await expect(tx)
           .to.emit(vault, 'Disinvested')
@@ -665,7 +661,7 @@ describe('Vault', () => {
     });
 
     it('returns maximum investable amount and 0 if nothing invested yet', async () => {
-      await vault.connect(owner).setStrategy(strategy.address);
+      await vault.connect(admin).setStrategy(strategy.address);
       await addYieldToVault('100');
 
       const investState = await vault.investState();
@@ -674,7 +670,7 @@ describe('Vault', () => {
     });
 
     it('returns maximum investable amount and already invested amount', async () => {
-      await vault.connect(owner).setStrategy(strategy.address);
+      await vault.connect(admin).setStrategy(strategy.address);
       await addYieldToVault('100');
       await underlying.mint(strategy.address, parseUnits('100'));
 
@@ -684,11 +680,11 @@ describe('Vault', () => {
     });
 
     it('returns the amount available to invest', async () => {
-      await vault.connect(owner).setStrategy(strategy.address);
+      await vault.connect(admin).setStrategy(strategy.address);
       await addYieldToVault('100');
 
       const { maxInvestableAmount, alreadyInvested } = await vault
-        .connect(owner)
+        .connect(admin)
         .investState();
 
       const investAmount = maxInvestableAmount.sub(alreadyInvested);
@@ -697,13 +693,13 @@ describe('Vault', () => {
     });
 
     it('takes into account the invested amount', async () => {
-      await vault.connect(owner).setStrategy(strategy.address);
-      await vault.connect(owner).setInvestPct('9000');
+      await vault.connect(admin).setStrategy(strategy.address);
+      await vault.connect(admin).setInvestPct('9000');
       await addYieldToVault('100');
       await underlying.mint(strategy.address, parseUnits('100'));
 
       const { maxInvestableAmount, alreadyInvested } = await vault
-        .connect(owner)
+        .connect(admin)
         .investState();
 
       const investAmount = maxInvestableAmount.sub(alreadyInvested);
@@ -713,15 +709,15 @@ describe('Vault', () => {
   });
 
   describe('setStrategy', () => {
-    it('reverts if msg.sender is not admin', async () => {
+    it('reverts if the caller does not have settings role', async () => {
       await expect(
         vault.connect(alice).setStrategy(strategy.address),
-      ).to.be.revertedWith(getRoleErrorMsg(alice, SETTINGS_ROLE));
+      ).to.be.revertedWith('VaultCallerNotSettings');
     });
 
     it('reverts if new strategy is address(0)', async () => {
       await expect(
-        vault.connect(owner).setStrategy(constants.AddressZero),
+        vault.connect(admin).setStrategy(constants.AddressZero),
       ).to.be.revertedWith('VaultStrategyNotSet');
     });
 
@@ -733,14 +729,14 @@ describe('Vault', () => {
         TWO_WEEKS,
         INVEST_PCT,
         TREASURY,
-        owner.address,
+        admin.address,
         PERFORMANCE_FEE_PCT,
         INVESTMENT_FEE_PCT,
         [],
       );
 
       await expect(
-        anotherVault.connect(owner).setStrategy(strategy.address),
+        anotherVault.connect(admin).setStrategy(strategy.address),
       ).to.be.revertedWith('VaultInvalidVault');
     });
 
@@ -749,13 +745,13 @@ describe('Vault', () => {
         '0x0000000000000000000000000000000000000000',
       );
 
-      await vault.connect(owner).setStrategy(strategy.address);
+      await vault.connect(admin).setStrategy(strategy.address);
 
       expect(await vault.strategy()).to.equal(strategy.address);
     });
 
     it('emits an event', async () => {
-      const tx = vault.connect(owner).setStrategy(strategy.address);
+      const tx = vault.connect(admin).setStrategy(strategy.address);
 
       await expect(tx)
         .to.emit(vault, 'StrategyUpdated')
@@ -763,7 +759,7 @@ describe('Vault', () => {
     });
 
     it('set strategy if no asset invested even if there is a griefing attack', async () => {
-      await vault.connect(owner).setStrategy(strategy.address);
+      await vault.connect(admin).setStrategy(strategy.address);
 
       expect(await strategy.hasAssets()).to.be.false;
 
@@ -772,10 +768,10 @@ describe('Vault', () => {
       const newStrategy = await MockStrategy.deploy(
         vault.address,
         underlying.address,
-        owner.address,
+        admin.address,
       );
 
-      const tx = await vault.connect(owner).setStrategy(newStrategy.address);
+      const tx = await vault.connect(admin).setStrategy(newStrategy.address);
 
       expect(await vault.strategy()).to.equal(newStrategy.address);
       await expect(tx)
@@ -784,7 +780,7 @@ describe('Vault', () => {
     });
 
     it('reverts if strategy has invested funds', async () => {
-      await vault.connect(owner).setStrategy(strategy.address);
+      await vault.connect(admin).setStrategy(strategy.address);
       await underlying.mint(strategy.address, parseUnits('100'));
 
       expect(await strategy.hasAssets()).to.be.true;
@@ -794,11 +790,11 @@ describe('Vault', () => {
       const newStrategy = await MockStrategy.deploy(
         vault.address,
         underlying.address,
-        owner.address,
+        admin.address,
       );
 
       await expect(
-        vault.connect(owner).setStrategy(newStrategy.address),
+        vault.connect(admin).setStrategy(newStrategy.address),
       ).to.be.revertedWith('VaultStrategyHasInvestedFunds');
     });
   });
@@ -807,10 +803,10 @@ describe('Vault', () => {
     it('revers with an error when the underlying has fees', async () => {
       await underlying.setFee(500);
 
-      await addUnderlyingBalance(owner, '1000');
+      await addUnderlyingBalance(admin, '1000');
 
       const tx = vault
-        .connect(owner)
+        .connect(admin)
         .sponsor(
           underlying.address,
           parseUnits('500'),
@@ -822,10 +818,10 @@ describe('Vault', () => {
     });
 
     it('reverts if contract is paused', async () => {
-      await vault.connect(owner).pause();
+      await vault.connect(admin).pause();
       await expect(
         vault
-          .connect(owner)
+          .connect(admin)
           .sponsor(
             underlying.address,
             parseUnits('500'),
@@ -833,10 +829,9 @@ describe('Vault', () => {
             CURVE_SLIPPAGE,
           ),
       ).to.be.revertedWith('Pausable: paused');
-      await vault.connect(owner).unpause();
+      await vault.connect(admin).unpause();
     });
-
-    it('reverts if msg.sender is not sponsor', async () => {
+    it('reverts if the caller is not sponsor', async () => {
       await expect(
         vault
           .connect(alice)
@@ -846,14 +841,14 @@ describe('Vault', () => {
             TWO_WEEKS,
             CURVE_SLIPPAGE,
           ),
-      ).to.be.revertedWith(getRoleErrorMsg(alice, SPONSOR_ROLE));
+      ).to.be.revertedWith('VaultCallerNotSponsor');
     });
 
     it('adds a sponsor to the vault', async () => {
-      await addUnderlyingBalance(owner, '1000');
+      await addUnderlyingBalance(admin, '1000');
 
       await vault
-        .connect(owner)
+        .connect(admin)
         .sponsor(
           underlying.address,
           parseUnits('500'),
@@ -861,7 +856,7 @@ describe('Vault', () => {
           CURVE_SLIPPAGE,
         );
       await vault
-        .connect(owner)
+        .connect(admin)
         .sponsor(
           underlying.address,
           parseUnits('500'),
@@ -875,7 +870,7 @@ describe('Vault', () => {
     it('adds a sponsor to the vault after added sponsor role', async () => {
       await addUnderlyingBalance(bob, '1000');
 
-      await vault.connect(owner).grantRole(SPONSOR_ROLE, bob.address);
+      await vault.connect(admin).grantRole(SPONSOR_ROLE, bob.address);
       await vault
         .connect(bob)
         .sponsor(
@@ -894,14 +889,14 @@ describe('Vault', () => {
         );
       expect(await vault.totalSponsored()).to.eq(parseUnits('1000'));
 
-      await vault.connect(owner).revokeRole(SPONSOR_ROLE, bob.address);
+      await vault.connect(admin).revokeRole(SPONSOR_ROLE, bob.address);
     });
 
     it('emits an event', async () => {
-      await addUnderlyingBalance(owner, '1000');
+      await addUnderlyingBalance(admin, '1000');
 
       const tx = await vault
-        .connect(owner)
+        .connect(admin)
         .sponsor(
           underlying.address,
           parseUnits('500'),
@@ -914,28 +909,28 @@ describe('Vault', () => {
         .withArgs(
           1,
           parseUnits('500'),
-          owner.address,
+          admin.address,
           TWO_WEEKS.add(await getLastBlockTimestamp()),
         );
     });
 
     it('fails if the lock duration 0', async () => {
-      await addUnderlyingBalance(owner, '1000');
+      await addUnderlyingBalance(admin, '1000');
 
       await expect(
         vault
-          .connect(owner)
+          .connect(admin)
           .sponsor(underlying.address, parseUnits('500'), 0, CURVE_SLIPPAGE),
       ).to.be.revertedWith('VaultInvalidLockPeriod');
     });
 
     it('fails if the lock duration is less than the minimum', async () => {
-      await addUnderlyingBalance(owner, '1000');
+      await addUnderlyingBalance(admin, '1000');
       const lockDuration = 1;
 
       await expect(
         vault
-          .connect(owner)
+          .connect(admin)
           .sponsor(
             underlying.address,
             parseUnits('500'),
@@ -946,12 +941,12 @@ describe('Vault', () => {
     });
 
     it('fails if the lock duration is larger than the maximum', async () => {
-      await addUnderlyingBalance(owner, '1000');
+      await addUnderlyingBalance(admin, '1000');
       const lockDuration = BigNumber.from(time.duration.years(100).toNumber());
 
       await expect(
         vault
-          .connect(owner)
+          .connect(admin)
           .sponsor(
             underlying.address,
             parseUnits('500'),
@@ -962,12 +957,12 @@ describe('Vault', () => {
     });
 
     it('fails if the sponsor amount is 0', async () => {
-      await addUnderlyingBalance(owner, '1000');
+      await addUnderlyingBalance(admin, '1000');
       const lockDuration = BigNumber.from(time.duration.days(15).toNumber());
 
       await expect(
         vault
-          .connect(owner)
+          .connect(admin)
           .sponsor(
             underlying.address,
             parseUnits('0'),
@@ -978,10 +973,10 @@ describe('Vault', () => {
     });
 
     it('mints Depositor NFT to sponsor', async () => {
-      await addUnderlyingBalance(owner, '1000');
+      await addUnderlyingBalance(admin, '1000');
 
       await vault
-        .connect(owner)
+        .connect(admin)
         .sponsor(
           underlying.address,
           parseUnits('500'),
@@ -990,14 +985,14 @@ describe('Vault', () => {
         );
 
       const deposit = await vault.deposits(1);
-      expect(deposit.owner).to.be.equal(owner.address);
+      expect(deposit.owner).to.be.equal(admin.address);
     });
 
     it('updates deposit info for sponsor', async () => {
-      await addUnderlyingBalance(owner, '1000');
+      await addUnderlyingBalance(admin, '1000');
 
       await vault
-        .connect(owner)
+        .connect(admin)
         .sponsor(
           underlying.address,
           parseUnits('500'),
@@ -1013,10 +1008,10 @@ describe('Vault', () => {
     });
 
     it('transfers underlying from user at sponsor', async () => {
-      await addUnderlyingBalance(owner, '1000');
+      await addUnderlyingBalance(admin, '1000');
 
       await vault
-        .connect(owner)
+        .connect(admin)
         .sponsor(
           underlying.address,
           parseUnits('400'),
@@ -1028,18 +1023,18 @@ describe('Vault', () => {
       expect(await underlying.balanceOf(vault.address)).to.equal(
         parseUnits('400'),
       );
-      expect(await underlying.balanceOf(owner.address)).to.equal(
+      expect(await underlying.balanceOf(admin.address)).to.equal(
         parseUnits('600'),
       );
     });
   });
 
-  describe('unsponsor', () => {
-    it('removes a sponsor from the vault', async () => {
-      await addUnderlyingBalance(owner, '1000');
+  describe('partialUnspsonsor', () => {
+    it("doesn't remove the sponsor from the vault if amount withdrawn is less than deposited amount", async () => {
+      await addUnderlyingBalance(admin, '1000');
 
       await vault
-        .connect(owner)
+        .connect(admin)
         .sponsor(
           underlying.address,
           parseUnits('500'),
@@ -1047,7 +1042,7 @@ describe('Vault', () => {
           CURVE_SLIPPAGE,
         );
       await vault
-        .connect(owner)
+        .connect(admin)
         .sponsor(
           underlying.address,
           parseUnits('500'),
@@ -1056,19 +1051,35 @@ describe('Vault', () => {
         );
 
       await moveForwardTwoWeeks();
-      await vault.connect(owner).unsponsor(newAccount.address, [1]);
+      await vault
+        .connect(admin)
+        .partialUnsponsor(
+          newAccount.address,
+          [1, 2],
+          [parseUnits('200'), parseUnits('300')],
+        );
 
       expect(await vault.totalSponsored()).to.eq(parseUnits('500'));
       expect(await underlying.balanceOf(newAccount.address)).to.eq(
         parseUnits('500'),
       );
+      expect((await vault.deposits(1)).amount).to.eq(parseUnits('300'));
+      expect((await vault.deposits(2)).amount).to.eq(parseUnits('200'));
     });
 
-    it('emits an event', async () => {
-      await addUnderlyingBalance(owner, '1000');
+    it('removes a sponsor from the vault if amount withdrawn equals deposited amount', async () => {
+      await addUnderlyingBalance(admin, '1000');
 
       await vault
-        .connect(owner)
+        .connect(admin)
+        .sponsor(
+          underlying.address,
+          parseUnits('500'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
+      await vault
+        .connect(admin)
         .sponsor(
           underlying.address,
           parseUnits('500'),
@@ -1077,80 +1088,156 @@ describe('Vault', () => {
         );
 
       await moveForwardTwoWeeks();
-      const tx = await vault.connect(owner).unsponsor(bob.address, [1]);
-
-      await expect(tx).to.emit(vault, 'Unsponsored').withArgs(1);
-    });
-
-    it('fails if the caller is not the owner', async () => {
-      await addUnderlyingBalance(owner, '1000');
 
       await vault
-        .connect(owner)
+        .connect(admin)
+        .partialUnsponsor(
+          newAccount.address,
+          [1, 2],
+          [parseUnits('200'), parseUnits('500')],
+        );
+
+      expect(await vault.totalSponsored()).to.eq(parseUnits('300'));
+      expect(await underlying.balanceOf(newAccount.address)).to.eq(
+        parseUnits('700'),
+      );
+      expect((await vault.deposits(1)).amount).to.eq(parseUnits('300'));
+      expect((await vault.deposits(2)).amount).to.eq('0');
+    });
+
+    it('fails if amount withdrawn is greater than deposited amount', async () => {
+      await addUnderlyingBalance(admin, '1000');
+      await addYieldToVault('1000');
+
+      await vault
+        .connect(admin)
         .sponsor(
           underlying.address,
-          parseUnits('500'),
+          parseUnits('1000'),
           TWO_WEEKS,
           CURVE_SLIPPAGE,
         );
 
-      await vault.connect(owner).grantRole(SPONSOR_ROLE, bob.address);
-      await expect(
-        vault.connect(bob).unsponsor(owner.address, [1]),
-      ).to.be.revertedWith('VaultNotAllowed');
+      await moveForwardTwoWeeks();
 
-      await vault.connect(owner).revokeRole(SPONSOR_ROLE, bob.address);
+      await expect(
+        vault
+          .connect(admin)
+          .partialUnsponsor(newAccount.address, [1], [parseUnits('1100')]),
+      ).to.be.revertedWith('VaultCannotWithdrawMoreThanAvailable');
+    });
+
+    it("doesn't emit 'Unsponsored event' if amount withdrawn is less than deposited amount", async () => {
+      await addUnderlyingBalance(admin, '1000');
+
+      await vault
+        .connect(admin)
+        .sponsor(
+          underlying.address,
+          parseUnits('1000'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
+
+      await moveForwardTwoWeeks();
+      const tx = await vault
+        .connect(admin)
+        .partialUnsponsor(bob.address, [1], [parseUnits('500')]);
+
+      await expect(tx).not.to.emit(vault, 'Unsponsored');
+    });
+
+    it("emits 'Unsponsored' event if amount withdrawn equals deposited amount", async () => {
+      await addUnderlyingBalance(admin, '1000');
+
+      await vault
+        .connect(admin)
+        .sponsor(
+          underlying.address,
+          parseUnits('1000'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
+
+      await moveForwardTwoWeeks();
+      const tx = await vault
+        .connect(admin)
+        .partialUnsponsor(bob.address, [1], [parseUnits('1000')]);
+
+      await expect(tx).to.emit(vault, 'Unsponsored').withArgs(1);
+    });
+
+    it('fails if the caller is not the deposit owner', async () => {
+      await addUnderlyingBalance(admin, '1000');
+
+      await vault
+        .connect(admin)
+        .sponsor(
+          underlying.address,
+          parseUnits('1000'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
+
+      await vault.connect(admin).grantRole(SPONSOR_ROLE, bob.address);
+      await expect(
+        vault
+          .connect(bob)
+          .partialUnsponsor(admin.address, [1], [parseUnits('500')]),
+      ).to.be.revertedWith('VaultNotAllowed');
     });
 
     it('fails if the destination address is 0x', async () => {
-      await addUnderlyingBalance(owner, '1000');
+      await addUnderlyingBalance(admin, '1000');
 
       await vault
-        .connect(owner)
+        .connect(admin)
         .sponsor(
           underlying.address,
-          parseUnits('500'),
+          parseUnits('1000'),
           TWO_WEEKS,
           CURVE_SLIPPAGE,
         );
 
       await expect(
         vault
-          .connect(owner)
-          .unsponsor('0x0000000000000000000000000000000000000000', [1]),
+          .connect(admin)
+          .partialUnsponsor(constants.AddressZero, [1], [parseUnits('1000')]),
       ).to.be.revertedWith('VaultDestinationCannotBe0Address');
     });
 
     it('fails if the amount is still locked', async () => {
-      await addUnderlyingBalance(owner, '1000');
+      await addUnderlyingBalance(admin, '1000');
 
       await vault
-        .connect(owner)
+        .connect(admin)
         .sponsor(
           underlying.address,
-          parseUnits('500'),
+          parseUnits('1000'),
           TWO_WEEKS,
           CURVE_SLIPPAGE,
         );
 
       await expect(
-        vault.connect(owner).unsponsor(owner.address, [1]),
+        vault
+          .connect(admin)
+          .partialUnsponsor(admin.address, [1], [parseUnits('500')]),
       ).to.be.revertedWith('VaultAmountLocked');
     });
 
     it('fails if the token id belongs to a withdraw', async () => {
-      await addUnderlyingBalance(owner, '1000');
+      await addUnderlyingBalance(admin, '1000');
 
-      await vault.connect(owner).deposit(
+      await vault.connect(admin).deposit(
         depositParams.build({
           lockDuration: TWO_WEEKS,
           amount: parseUnits('500'),
           inputToken: underlying.address,
-          claims: [claimParams.percent(100).to(owner.address).build()],
+          claims: [claimParams.percent(100).to(admin.address).build()],
         }),
       );
       await vault
-        .connect(owner)
+        .connect(admin)
         .sponsor(
           underlying.address,
           parseUnits('500'),
@@ -1161,15 +1248,21 @@ describe('Vault', () => {
       await moveForwardTwoWeeks();
 
       await expect(
-        vault.connect(owner).unsponsor(owner.address, [1, 2]),
+        vault
+          .connect(admin)
+          .partialUnsponsor(
+            admin.address,
+            [1, 2],
+            [parseUnits('500'), parseUnits('500')],
+          ),
       ).to.be.revertedWith('VaultNotSponsor');
     });
 
     it('fails if there are not enough funds', async () => {
-      await addUnderlyingBalance(owner, '1000');
+      await addUnderlyingBalance(admin, '1000');
 
       await vault
-        .connect(owner)
+        .connect(admin)
         .sponsor(
           underlying.address,
           parseUnits('1000'),
@@ -1181,15 +1274,185 @@ describe('Vault', () => {
       await removeUnderlyingFromVault('500');
 
       await expect(
-        vault.connect(owner).unsponsor(owner.address, [1]),
+        vault
+          .connect(admin)
+          .partialUnsponsor(admin.address, [1], [parseUnits('600')]),
       ).to.be.revertedWith('VaultNotEnoughFunds');
     });
 
-    it('reverts if contract is exit paused', async () => {
-      await addUnderlyingBalance(owner, '1000');
+    it('fails if contract is exit paused', async () => {
+      await addUnderlyingBalance(admin, '1000');
 
       await vault
-        .connect(owner)
+        .connect(admin)
+        .sponsor(
+          underlying.address,
+          parseUnits('1000'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
+
+      await moveForwardTwoWeeks();
+
+      await vault.connect(admin).exitPause();
+
+      await expect(
+        vault
+          .connect(admin)
+          .partialUnsponsor(bob.address, [1], [parseUnits('500')]),
+      ).to.be.revertedWith('Pausable: ExitPaused');
+    });
+
+    it('works when there are not enough funds in the vault by withdrawing from sync strategy', async () => {
+      expect(await strategy.isSync()).to.be.true;
+      await vault.setStrategy(strategy.address);
+      await underlying.mint(admin.address, parseUnits('1000'));
+
+      await vault
+        .connect(admin)
+        .sponsor(
+          underlying.address,
+          parseUnits('1000'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
+      await vault.connect(admin).updateInvested();
+      await moveForwardTwoWeeks();
+
+      expect(await strategy.investedAssets()).to.eq(parseUnits('900'));
+      expect(await underlying.balanceOf(vault.address)).to.eq(
+        parseUnits('100'),
+      );
+
+      await vault
+        .connect(admin)
+        .partialUnsponsor(admin.address, [1], [parseUnits('500')]);
+
+      expect(await strategy.investedAssets()).to.eq(parseUnits('450'));
+      expect(await underlying.balanceOf(vault.address)).to.eq(parseUnits('50'));
+      expect(await underlying.balanceOf(admin.address)).to.eq(
+        parseUnits('500'),
+      );
+    });
+  });
+
+  describe('unsponsor', () => {
+    it('removes a sponsor from the vault', async () => {
+      await addUnderlyingBalance(admin, '1000');
+
+      await vault
+        .connect(admin)
+        .sponsor(
+          underlying.address,
+          parseUnits('500'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
+      await vault
+        .connect(admin)
+        .sponsor(
+          underlying.address,
+          parseUnits('500'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
+
+      await moveForwardTwoWeeks();
+      await vault.connect(admin).unsponsor(newAccount.address, [1]);
+
+      expect(await vault.totalSponsored()).to.eq(parseUnits('500'));
+      expect(await underlying.balanceOf(newAccount.address)).to.eq(
+        parseUnits('500'),
+      );
+    });
+
+    it('emits an event', async () => {
+      await addUnderlyingBalance(admin, '1000');
+
+      await vault
+        .connect(admin)
+        .sponsor(
+          underlying.address,
+          parseUnits('500'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
+
+      await moveForwardTwoWeeks();
+      const tx = await vault.connect(admin).unsponsor(bob.address, [1]);
+
+      await expect(tx).to.emit(vault, 'Unsponsored').withArgs(1);
+    });
+
+    it('fails if the caller is not the owner', async () => {
+      await addUnderlyingBalance(admin, '1000');
+
+      await vault
+        .connect(admin)
+        .sponsor(
+          underlying.address,
+          parseUnits('500'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
+
+      await vault.connect(admin).grantRole(SPONSOR_ROLE, bob.address);
+      await expect(
+        vault.connect(bob).unsponsor(admin.address, [1]),
+      ).to.be.revertedWith('VaultNotAllowed');
+
+      await vault.connect(admin).revokeRole(SPONSOR_ROLE, bob.address);
+    });
+
+    it('fails if the destination address is 0x', async () => {
+      await addUnderlyingBalance(admin, '1000');
+
+      await vault
+        .connect(admin)
+        .sponsor(
+          underlying.address,
+          parseUnits('500'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
+
+      await expect(
+        vault
+          .connect(admin)
+          .unsponsor('0x0000000000000000000000000000000000000000', [1]),
+      ).to.be.revertedWith('VaultDestinationCannotBe0Address');
+    });
+
+    it('fails if the amount is still locked', async () => {
+      await addUnderlyingBalance(admin, '1000');
+
+      await vault
+        .connect(admin)
+        .sponsor(
+          underlying.address,
+          parseUnits('500'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
+
+      await expect(
+        vault.connect(admin).unsponsor(admin.address, [1]),
+      ).to.be.revertedWith('VaultAmountLocked');
+    });
+
+    it('fails if the token id belongs to a withdraw', async () => {
+      await addUnderlyingBalance(admin, '1000');
+
+      await vault.connect(admin).deposit(
+        depositParams.build({
+          lockDuration: TWO_WEEKS,
+          amount: parseUnits('500'),
+          inputToken: underlying.address,
+          claims: [claimParams.percent(100).to(admin.address).build()],
+        }),
+      );
+      await vault
+        .connect(admin)
         .sponsor(
           underlying.address,
           parseUnits('500'),
@@ -1199,13 +1462,50 @@ describe('Vault', () => {
 
       await moveForwardTwoWeeks();
 
-      await vault.connect(owner).exitPause();
+      await expect(
+        vault.connect(admin).unsponsor(admin.address, [1, 2]),
+      ).to.be.revertedWith('VaultNotSponsor');
+    });
+
+    it('fails if there are not enough funds', async () => {
+      await addUnderlyingBalance(admin, '1000');
+
+      await vault
+        .connect(admin)
+        .sponsor(
+          underlying.address,
+          parseUnits('1000'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
+      await moveForwardTwoWeeks();
+
+      await removeUnderlyingFromVault('500');
 
       await expect(
-        vault.connect(owner).unsponsor(bob.address, [1]),
-      ).to.be.revertedWith('Pausable: ExitPaused');
+        vault.connect(admin).unsponsor(admin.address, [1]),
+      ).to.be.revertedWith('VaultNotEnoughFunds');
+    });
 
-      await vault.connect(owner).exitUnpause();
+    it('fails if contract is exit paused', async () => {
+      await addUnderlyingBalance(admin, '1000');
+
+      await vault
+        .connect(admin)
+        .sponsor(
+          underlying.address,
+          parseUnits('500'),
+          TWO_WEEKS,
+          CURVE_SLIPPAGE,
+        );
+
+      await moveForwardTwoWeeks();
+
+      await vault.connect(admin).exitPause();
+
+      await expect(
+        vault.connect(admin).unsponsor(bob.address, [1]),
+      ).to.be.revertedWith('Pausable: ExitPaused');
     });
   });
 
@@ -1238,7 +1538,7 @@ describe('Vault', () => {
         }),
       );
 
-      await vault.connect(owner).pause();
+      await vault.connect(admin).pause();
 
       const topUpParams = depositParams.build({
         amount: parseUnits('100'),
@@ -1251,7 +1551,7 @@ describe('Vault', () => {
         vault.connect(alice).depositForGroupId(0, topUpParams),
       ).to.be.revertedWith('Pausable: paused');
 
-      await vault.connect(owner).unpause();
+      await vault.connect(admin).unpause();
     });
 
     it('emits events', async () => {
@@ -1480,11 +1780,11 @@ describe('Vault', () => {
         ],
         name: 'Deposit - Emits Different groupId',
       });
-      await vault.connect(owner).pause();
-      await expect(vault.connect(owner).deposit(params)).to.be.revertedWith(
+      await vault.connect(admin).pause();
+      await expect(vault.connect(admin).deposit(params)).to.be.revertedWith(
         'Pausable: paused',
       );
-      await vault.connect(owner).unpause();
+      await vault.connect(admin).unpause();
     });
 
     it('reverts if provided MetaVault name is too short', async () => {
@@ -1495,7 +1795,7 @@ describe('Vault', () => {
         claims: [],
         name: 'ab', // two utf8 characters
       });
-      await expect(vault.connect(owner).deposit(params)).to.be.revertedWith(
+      await expect(vault.connect(admin).deposit(params)).to.be.revertedWith(
         'VaultDepositNameTooShort()',
       );
     });
@@ -1924,18 +2224,18 @@ describe('Vault', () => {
       });
 
       it('fails if token id belongs to a sponsor', async () => {
-        await addUnderlyingBalance(owner, '1000');
+        await addUnderlyingBalance(admin, '1000');
 
-        await vault.connect(owner).deposit(
+        await vault.connect(admin).deposit(
           depositParams.build({
             lockDuration: TWO_WEEKS,
             amount: parseUnits('500'),
             inputToken: underlying.address,
-            claims: [claimParams.percent(100).to(owner.address).build()],
+            claims: [claimParams.percent(100).to(admin.address).build()],
           }),
         );
         await vault
-          .connect(owner)
+          .connect(admin)
           .sponsor(
             underlying.address,
             parseUnits('500'),
@@ -1946,7 +2246,7 @@ describe('Vault', () => {
         await moveForwardTwoWeeks();
 
         await expect(
-          vault.connect(owner)[vaultAction](owner.address, [1, 2]),
+          vault.connect(admin)[vaultAction](admin.address, [1, 2]),
         ).to.be.revertedWith('VaultNotDeposit');
       });
     });
@@ -1972,13 +2272,13 @@ describe('Vault', () => {
     });
 
     it('reverts if contract is exit paused', async () => {
-      await vault.connect(owner).exitPause();
+      await vault.connect(admin).exitPause();
 
       await expect(
         vault.connect(alice).forceWithdraw(alice.address, [1]),
       ).to.be.revertedWith('Pausable: ExitPaused');
 
-      await vault.connect(owner).exitUnpause();
+      await vault.connect(admin).exitUnpause();
     });
   });
 
@@ -2003,13 +2303,13 @@ describe('Vault', () => {
     });
 
     it('reverts if contract is exit paused', async () => {
-      await vault.connect(owner).exitPause();
+      await vault.connect(admin).exitPause();
 
       await expect(
         vault.connect(alice).withdraw(alice.address, [1]),
       ).to.be.revertedWith('Pausable: ExitPaused');
 
-      await vault.connect(owner).exitUnpause();
+      await vault.connect(admin).exitUnpause();
     });
   });
 
@@ -2200,9 +2500,9 @@ describe('Vault', () => {
     });
 
     it('fails to compute shares when total underlying minus sponsored is 0', async () => {
-      await addUnderlyingBalance(owner, '500');
+      await addUnderlyingBalance(admin, '500');
       await vault
-        .connect(owner)
+        .connect(admin)
         .sponsor(
           underlying.address,
           parseUnits('500'),
@@ -2230,7 +2530,7 @@ describe('Vault', () => {
     });
 
     it('reverts if contract is exit paused', async () => {
-      await vault.connect(owner).exitPause();
+      await vault.connect(admin).exitPause();
 
       await expect(
         vault
@@ -2238,7 +2538,7 @@ describe('Vault', () => {
           .partialWithdraw(alice.address, [2], [parseUnits('25')]),
       ).to.be.revertedWith('Pausable: ExitPaused');
 
-      await vault.connect(owner).exitUnpause();
+      await vault.connect(admin).exitUnpause();
     });
   });
 
@@ -2387,13 +2687,13 @@ describe('Vault', () => {
       );
       await addYieldToVault('100');
 
-      await vault.connect(owner).exitPause();
+      await vault.connect(admin).exitPause();
 
       await expect(
         vault.connect(carol).claimYield(carol.address),
       ).to.be.revertedWith('Pausable: ExitPaused');
 
-      await vault.connect(owner).exitUnpause();
+      await vault.connect(admin).exitUnpause();
     });
   });
 
@@ -2717,15 +3017,15 @@ describe('Vault', () => {
   });
 
   describe('pause/unpause', () => {
-    it('reverts(pause) if not DEFAULT_ADMIN_ROLE', async () => {
+    it('reverts(pause) if the caller is not admin', async () => {
       await expect(vault.connect(alice).pause()).to.be.revertedWith(
-        getRoleErrorMsg(alice, DEFAULT_ADMIN_ROLE),
+        'VaultCallerNotAdmin',
       );
     });
 
-    it('reverts(unpause) if not DEFAULT_ADMIN_ROLE', async () => {
+    it('reverts(unpause) if not caller is not admin', async () => {
       await expect(vault.connect(alice).unpause()).to.be.revertedWith(
-        getRoleErrorMsg(alice, DEFAULT_ADMIN_ROLE),
+        'VaultCallerNotAdmin',
       );
     });
   });

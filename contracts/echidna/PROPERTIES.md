@@ -66,7 +66,11 @@ Invoking Vault.withdraw() with invalid parameters always reverts when
 
 | Property  | Echidna | Formally Verified |
 | ------------- | :-------------: | :-------------: |
-| invoking strategy function invest, finishDepositstable or initRedeemstable always revert if caller is not manager  | ✓  |   |
+| invoking strategy function invest, finishDepositstable or initRedeemstable always reverts if caller is not manager  | ✓  |   |
 | invoking sponsor always reverts if caller does not have the SPONSOR_ROLE  |   |   |
-| invoking deposit or sponsor always revert if vault is Paused  |   |   |
-| invoking withdraw or claimYield always revert if vault is ExitPaused  |   |   |
+| invoking deposit or sponsor always reverts if vault is Paused  |   |   |
+| invoking withdraw or claimYield always reverts if vault is ExitPaused  |   |   |
+| invoking deposit or sponsor always reverts if vault is in Loss Mode  |   |   |
+| invoking deposit or sponsor always succeeds when all preconditions are met  |   | ✓  |
+
+
