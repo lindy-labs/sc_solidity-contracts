@@ -205,13 +205,12 @@ contract RyskStrategy is BaseStrategy {
             return;
         }
 
-        if (pendingWithdrawal.epoch != currentEpoch) {
-            // rysk liquidity pool doesn't allow for a withdrawal to be initiated in a new epoch
-            // when a pending withdrawal from a previous epoch isn't completed
-            revert RyskPendingWithdrawalNotCompleted();
-        }
-
         // the pending withdrawal receipt is already initialized for the current withdrawal epoch
+        if (pendingWithdrawal.epoch == currentEpoch) return;
+
+        // rysk liquidity pool doesn't allow for a withdrawal to be initiated in a new epoch
+        // when a pending withdrawal from a previous epoch isn't completed
+        revert RyskPendingWithdrawalNotCompleted();
     }
 
     /**
