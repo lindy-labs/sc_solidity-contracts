@@ -17,8 +17,6 @@ import {IVault} from "../../vault/IVault.sol";
  *
  * @notice This strategy is asyncrhonous (doesn't support immediate withdrawals).
  *
- * @dev A few notes on the Rysk Liquidity Poll deposit/withdrawal mechanism:
- * 1.
  */
 contract RyskStrategy is BaseStrategy {
     using SafeERC20 for IERC20;
@@ -29,15 +27,15 @@ contract RyskStrategy is BaseStrategy {
     // pending withdrawal receipt
     IRyskLiquidityPool.WithdrawalReceipt public pendingWithdrawal;
 
-    // number of decimal places for LiquidityPool share (ERC20)
+    // number of decimal places of a Liquidity Pool share (ERC20)
     uint256 constant SHARES_CONVERSION_FACTOR = 1e18;
 
     /**
      * Emmited when a withdrawal has been initiated.
      *
-     *@param shares to be withdrawn
+     *@param amount to be withdrawn
      */
-    event RyskWithdrawalInitiated(uint256 shares);
+    event RyskWithdrawalInitiated(uint256 amount);
 
     // rysk liquidity pool cannot be 0 address
     error RyskLiquidityPoolCannotBe0Address();
@@ -45,7 +43,7 @@ contract RyskStrategy is BaseStrategy {
     error RyskNoWithdrawalInitiated();
     // cannot complete withdrawal in the same epoch
     error RyskCannotCompleteWithdrawalInSameEpoch();
-    // cannot initiate a withdrawal before pending withdrawal is completed
+    // cannot initiate a withdrawal before a pending withdrawal is completed
     error RyskPendingWithdrawalNotCompleted();
 
     /**
@@ -101,10 +99,8 @@ contract RyskStrategy is BaseStrategy {
         returns (uint256)
     {
         return
-            (_getTotalShares() *
-                ryskLqPool.withdrawalEpochPricePerShare(
-                    ryskLqPool.withdrawalEpoch()
-                )) / SHARES_CONVERSION_FACTOR;
+            (_getTotalShares() * _getPricePerShare()) /
+            SHARES_CONVERSION_FACTOR;
     }
 
     /// @inheritdoc IStrategy
@@ -114,7 +110,6 @@ contract RyskStrategy is BaseStrategy {
         if (balance == 0) revert StrategyNoUnderlying();
 
         emit StrategyInvested(balance);
-
         ryskLqPool.deposit(balance);
     }
 
@@ -127,32 +122,21 @@ contract RyskStrategy is BaseStrategy {
     {
         if (_amount == 0) revert StrategyAmountZero();
 
-        uint256 currentEpoch = ryskLqPool.withdrawalEpoch();
-
-        if (pendingWithdrawal.epoch == 0) {
-            pendingWithdrawal.epoch = uint128(currentEpoch);
-        } else if (pendingWithdrawal.epoch != currentEpoch) {
-            // rysk liquidity pool doesn't allow a withdrawal to be initiated in a new epoch
-            // if a pending withdrawal from a previous epoch isn't completed
-            revert RyskPendingWithdrawalNotCompleted();
-        }
+        _initializePendingWithdrawal();
 
         uint256 sharesToWithdraw = _underlyingToShares(_amount);
 
-        if (!_hasEnoughSharesToWithdraw(sharesToWithdraw))
-            revert StrategyNotEnoughShares();
+        _addSharesToPendingWithdrawal(sharesToWithdraw);
 
-        pendingWithdrawal.shares += uint128(sharesToWithdraw);
-
-        emit RyskWithdrawalInitiated(sharesToWithdraw);
+        emit RyskWithdrawalInitiated(_amount);
         ryskLqPool.initiateWithdraw(sharesToWithdraw);
     }
 
     /**
      * Completes the pending withdrawal initiated in an earlier epoch.
      *
-     * @notice Expected to be called by the backend once the Rysk liquidity pool enters a new withdrawal epoch.
-     * Backend should subscribe to 'WithdrawalEpochExecuted' event on the Rysk LiquidityPool contract,
+     * @notice Expected to be called by the backend (keeper bot) once the Rysk liquidity pool enters a new withdrawal epoch.
+     * The backend should subscribe to 'WithdrawalEpochExecuted' event on the Rysk LiquidityPool contract,
      * and act by calling this function when the event is emitted to complete pending withdrawal.
      */
     function completeWithdrawal() external {
@@ -183,6 +167,18 @@ contract RyskStrategy is BaseStrategy {
     }
 
     /**
+     * Get the price per share of the Rysk liquidity pool.
+     *
+     * @return price per share
+     */
+    function _getPricePerShare() internal view returns (uint256) {
+        return
+            ryskLqPool.withdrawalEpochPricePerShare(
+                ryskLqPool.withdrawalEpoch()
+            );
+    }
+
+    /**
      * Calculates the amount of underlying in number of Rysk liquidity pool shares.
      *
      * @param _underlying amount of underlying
@@ -194,25 +190,42 @@ contract RyskStrategy is BaseStrategy {
         view
         returns (uint256)
     {
-        return
-            (_underlying * SHARES_CONVERSION_FACTOR) /
-            ryskLqPool.withdrawalEpochPricePerShare(
-                ryskLqPool.withdrawalEpoch()
-            );
+        return (_underlying * SHARES_CONVERSION_FACTOR) / _getPricePerShare();
     }
 
     /**
-     * Checks if the strategy has enough shares to withdraw
-     * considering both existing shares and shares included in the pending withdrawal.
+     * Initializes the cached pending withdrawal receipt field.
+     */
+    function _initializePendingWithdrawal() internal {
+        uint256 currentEpoch = ryskLqPool.withdrawalEpoch();
+
+        if (pendingWithdrawal.epoch == 0) {
+            // there is no pending withdrawal so we can initialize a new one
+            pendingWithdrawal.epoch = uint128(currentEpoch);
+            return;
+        }
+
+        if (pendingWithdrawal.epoch != currentEpoch) {
+            // rysk liquidity pool doesn't allow for a withdrawal to be initiated in a new epoch
+            // when a pending withdrawal from a previous epoch isn't completed
+            revert RyskPendingWithdrawalNotCompleted();
+        }
+
+        // the pending withdrawal receipt is already initialized for the current withdrawal epoch
+    }
+
+    /**
+     * Checks if the strategy has enough shares available to support withdrawing the requested amount of shares.
+     * If so, it adds the amount of shares to the cached pending withdrawal receipt.
      *
      * @param _sharesToWithdraw number of shares to withdraw
      */
-    function _hasEnoughSharesToWithdraw(uint256 _sharesToWithdraw)
-        internal
-        view
-        returns (bool)
-    {
-        return
-            _sharesToWithdraw <= _getTotalShares() - pendingWithdrawal.shares;
+    function _addSharesToPendingWithdrawal(uint256 _sharesToWithdraw) internal {
+        bool hasEnoughSharesToWithdraw = _sharesToWithdraw <=
+            _getTotalShares() - pendingWithdrawal.shares;
+
+        if (!hasEnoughSharesToWithdraw) revert StrategyNotEnoughShares();
+
+        pendingWithdrawal.shares += uint128(_sharesToWithdraw);
     }
 }

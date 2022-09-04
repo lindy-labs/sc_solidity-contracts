@@ -183,7 +183,7 @@ describe('RyskStrategy', () => {
       );
     });
 
-    it('moves underlying to the Rysk liquidity pool', async () => {
+    it('transfers underlying to the Rysk liquidity pool', async () => {
       const underlyingAmount = parseUnits('100');
       await underlying.mint(strategy.address, underlyingAmount);
 
@@ -226,9 +226,6 @@ describe('RyskStrategy', () => {
         underlyingAmount,
       );
     });
-
-    // TODO: two invest in the same epoch
-    // two invest in the different epochs
   });
 
   describe('#withdrawToVault', () => {
