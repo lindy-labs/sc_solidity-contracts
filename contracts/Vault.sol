@@ -250,11 +250,12 @@ contract Vault is
     {
         uint256 claimerPrincipal = claimer[_to].totalPrincipal;
         uint256 claimerShares = claimer[_to].totalShares;
+        uint256 _totalUnderlyingMinusSponsored = totalUnderlyingMinusSponsored();
 
         uint256 currentClaimerPrincipal = _computeAmount(
             claimerShares,
             totalShares,
-            totalUnderlyingMinusSponsored()
+            _totalUnderlyingMinusSponsored
         );
 
         if (currentClaimerPrincipal <= claimerPrincipal) {
@@ -266,12 +267,12 @@ contract Vault is
         shares = _computeShares(
             yieldWithPerfFee,
             totalShares,
-            totalUnderlyingMinusSponsored()
+            _totalUnderlyingMinusSponsored
         );
         uint256 sharesAmount = _computeAmount(
             shares,
             totalShares,
-            totalUnderlyingMinusSponsored()
+            _totalUnderlyingMinusSponsored
         );
 
         perfFee = sharesAmount.pctOf(perfFeePct);
