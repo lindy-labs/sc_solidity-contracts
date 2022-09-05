@@ -42,7 +42,6 @@ describe('LiquityStrategy Proxy', () => {
   const INVESTMENT_FEE_PCT = BigNumber.from('0');
 
   const DEFAULT_ADMIN_ROLE = constants.HashZero;
-  const MANAGER_ROLE = utils.keccak256(utils.toUtf8Bytes('MANAGER_ROLE'));
 
   beforeEach(async () => {
     [admin, alice] = await ethers.getSigners();
