@@ -15,24 +15,29 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     log: true,
     args: [],
   });
-  const troveManager = await ethers.getContractAt('MockTroveManager', troveManagerDeployment.address);
+  const troveManager = await ethers.getContractAt(
+    'MockTroveManager',
+    troveManagerDeployment.address,
+  );
+
+  // Following two events is an actual sequence mimicked from the liquity mainnet TroveManager contract.
 
   await troveManager.liquidation(
     BigNumber.from('2000000000000000000000'),
     BigNumber.from('1166776963361491786'),
     BigNumber.from('5863200820912019'),
-    BigNumber.from('200000000000000000000')
+    BigNumber.from('200000000000000000000'),
   );
 
-  // Move time forward 12 days 
-  await ethers.provider.send('evm_increaseTime', [1.037e+6]);
+  // Move time forward 12 days
+  await ethers.provider.send('evm_increaseTime', [1.037e6]);
   await ethers.provider.send('evm_mine', []);
 
   await troveManager.liquidation(
     BigNumber.from('2000000000000000000000'),
     BigNumber.from('1397404171184386761'),
     BigNumber.from('7022131513489380'),
-    BigNumber.from('200000000000000000000')
+    BigNumber.from('200000000000000000000'),
   );
 };
 
