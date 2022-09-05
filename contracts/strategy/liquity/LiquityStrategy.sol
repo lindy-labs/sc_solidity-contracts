@@ -39,11 +39,16 @@ contract LiquityStrategy is
     error StrategySwapTargetCannotBe0Address();
     error StrategyLQTYSwapFailed();
     error StrategyETHSwapFailed();
+    error StrategyCallerNotKeeper();
+    error StrategyKeeperCannotBe0Address();
 
     event StrategyRewardsClaimed(uint256 amountInLQTY, uint256 amountInETH);
     event StrategyRewardsReinvested(uint256 amountInLUSD);
 
+    // role for investing/withdrawing assets to/from the strategy (vault)
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
+    // role for calling harvest() and reinvestRewards()
+    bytes32 public constant KEEPER_ROLE = keccak256("KEEPER_ROLE");
 
     IERC20 public underlying; // LUSD token
     /// @inheritdoc IStrategy
@@ -58,6 +63,11 @@ contract LiquityStrategy is
     modifier onlyManager() {
         if (!hasRole(MANAGER_ROLE, msg.sender))
             revert StrategyCallerNotManager();
+        _;
+    }
+
+    modifier onlyKeeper() {
+        if (!hasRole(KEEPER_ROLE, msg.sender)) revert StrategyCallerNotKeeper();
         _;
     }
 
@@ -76,7 +86,8 @@ contract LiquityStrategy is
         address _admin,
         address _stabilityPool,
         address _lqty,
-        address _underlying
+        address _underlying,
+        address _keeper
     ) public initializer {
         __AccessControl_init();
         __UUPSUpgradeable_init();
@@ -89,9 +100,11 @@ contract LiquityStrategy is
             revert StrategyUnderlyingCannotBe0Address();
         if (!_vault.doesContractImplementInterface(type(IVault).interfaceId))
             revert StrategyNotIVault();
+        if (_keeper == address(0)) revert StrategyKeeperCannotBe0Address();
 
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
         _grantRole(MANAGER_ROLE, _vault);
+        _grantRole(KEEPER_ROLE, _keeper);
 
         vault = _vault;
         underlying = IERC20(_underlying);
@@ -232,7 +245,7 @@ contract LiquityStrategy is
         address _swapTarget,
         bytes calldata _lqtySwapData,
         bytes calldata _ethSwapData
-    ) public virtual onlyAdmin {
+    ) public virtual onlyKeeper {
         if (_swapTarget == address(0))
             revert StrategySwapTargetCannotBe0Address();
 

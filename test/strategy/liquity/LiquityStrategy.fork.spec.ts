@@ -95,6 +95,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
         lqtyStabilityPool.address,
         lqty.address,
         lusd.address,
+        admin.address, // keeper
       ],
       {
         kind: 'uups',
@@ -187,9 +188,10 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       const investedAssetsAfterPoolRebalancing = BigNumber.from(
         '9998816139652613137823',
       );
-      const expectedInvestedAssetsAfterReinvestingRewards = investedAssetsAfterPoolRebalancing
-        .add(LQTY_REWARD_IN_LUSD)
-        .add(ETH_REWARD_IN_LUSD);
+      const expectedInvestedAssetsAfterReinvestingRewards =
+        investedAssetsAfterPoolRebalancing
+          .add(LQTY_REWARD_IN_LUSD)
+          .add(ETH_REWARD_IN_LUSD);
       expect(await strategy.investedAssets()).to.eq(
         expectedInvestedAssetsAfterReinvestingRewards,
       );
