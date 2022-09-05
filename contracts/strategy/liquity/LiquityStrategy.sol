@@ -37,8 +37,6 @@ contract LiquityStrategy is
     error StrategyTokenTransferFailed(address token);
     error StrategyNothingToReinvest();
     error StrategySwapTargetCannotBe0Address();
-    error StrategyLQTYSwapDataEmpty();
-    error StrategyETHSwapDataEmpty();
     error StrategyLQTYSwapFailed();
     error StrategyETHSwapFailed();
 
