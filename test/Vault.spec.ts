@@ -105,14 +105,11 @@ describe('Vault', () => {
       admin.address,
     );
 
-    ({
-      addUnderlyingBalance,
-      addYieldToVault,
-      removeUnderlyingFromVault,
-    } = createVaultHelpers({
-      vault,
-      underlying,
-    }));
+    ({ addUnderlyingBalance, addYieldToVault, removeUnderlyingFromVault } =
+      createVaultHelpers({
+        vault,
+        underlying,
+      }));
 
     await addUnderlyingBalance(alice, '1000');
     await addUnderlyingBalance(bob, '1000');
@@ -2445,7 +2442,7 @@ describe('Vault', () => {
         .partialWithdraw(alice.address, [1], [parseUnits('25')]);
 
       await expect(tx).to.be.revertedWith(
-        'VaultCannotWithdrawMoreThanAvailable',
+        'VaultMustUseForceWithdrawToAcceptLosses',
       );
     });
 
@@ -2466,7 +2463,7 @@ describe('Vault', () => {
         .partialWithdraw(alice.address, [1], [parseUnits('100')]);
 
       await expect(tx).to.be.revertedWith(
-        'VaultCannotWithdrawMoreThanAvailable',
+        'VaultMustUseForceWithdrawToAcceptLosses',
       );
     });
 
