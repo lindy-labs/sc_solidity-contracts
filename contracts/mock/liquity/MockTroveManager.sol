@@ -6,7 +6,7 @@ pragma solidity =0.8.10;
  * Used to emit event as found in production contract to simply simulate events that
  * rarely happen, for development.
  */
-contract TroveManager {
+contract MockTroveManager {
     string public constant NAME = "TroveManager";
 
     event Liquidation(
