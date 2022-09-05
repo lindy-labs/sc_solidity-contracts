@@ -21,7 +21,7 @@ contract TroveManager {
         uint256 _liquidatedColl,
         uint256 _collGasCompensation,
         uint256 _LUSDGasCompensation
-    ) {
+    ) public {
         emit Liquidation(
             _liquidatedDebt,
             _liquidatedColl,
