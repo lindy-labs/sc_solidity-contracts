@@ -255,7 +255,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       );
     });
 
-    it('falis if LQTY swap data is incorrect', async () => {
+    it('fails if LQTY swap data is incorrect', async () => {
       const initialInvestment = parseUnits('10000');
       await ForkHelpers.mintToken(lusd, strategy.address, initialInvestment);
       await strategy.invest();
@@ -269,7 +269,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       ).to.be.revertedWith('StrategyLQTYSwapFailed');
     });
 
-    it('falis if ETH swap data is incorrect', async () => {
+    it('fails if ETH swap data is incorrect', async () => {
       const initialInvestment = parseUnits('10000');
       await ForkHelpers.mintToken(lusd, strategy.address, initialInvestment);
       await strategy.invest();
@@ -366,7 +366,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
         EXPECTED_ETH_REWARD,
       );
 
-      // expect(await strategy.investedAssets()).to.eq('4998816139652613137823');
+      expect(await strategy.investedAssets()).to.eq('5000736699812217881367');
       expect(await lusd.balanceOf(vault.address)).to.eq(amountToWithdraw);
       expect(tx)
         .to.emit(strategy, 'StrategyRewardsClaimed')

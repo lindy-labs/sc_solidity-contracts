@@ -4,7 +4,6 @@ pragma solidity =0.8.10;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
-import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
 import {PercentMath} from "../../lib/PercentMath.sol";
 import {IStrategy} from "../IStrategy.sol";
@@ -341,55 +340,4 @@ contract LiquityStrategy is
      * Strategy has to be able to receive ETH as stability pool rewards.
      */
     receive() external payable {}
-
-    // function _estimateAmountOut(
-    //     address tokenIn,
-    //     address tokenOut,
-    //     uint128 amountIn,
-    //     uint32 secondsAgo
-    // ) internal view returns (uint256 amountOut) {
-    //     // (int24 tick, ) = OracleLibrary.consult(pool, secondsAgo);
-
-    //     // Code copied from OracleLibrary.sol, consult()
-    //     uint32[] memory secondsAgos = new uint32[](2);
-    //     secondsAgos[0] = secondsAgo;
-    //     secondsAgos[1] = 0;
-
-    //     // int56 since tick * time = int24 * uint32
-    //     // 56 = 24 + 32
-    //     (int56[] memory tickCumulatives, ) = IUniswapV3Pool(pool).observe(
-    //         secondsAgos
-    //     );
-
-    //     int56 tickCumulativesDelta = tickCumulatives[1] - tickCumulatives[0];
-
-    //     // int56 / uint32 = int24
-    //     int24 tick = int24(tickCumulativesDelta / secondsAgo);
-    //     if (
-    //         tickCumulativesDelta < 0 && (tickCumulativesDelta % secondsAgo != 0)
-    //     ) {
-    //         tick--;
-    //     }
-
-    //     amountOut = OracleLibrary.getQuoteAtTick(
-    //         tick,
-    //         amountIn,
-    //         tokenIn,
-    //         tokenOut
-    //     );
-    // }
 }
-
-// scenario 1 : eth to usdt through curve
-// additional gas cost : 130
-
-// scenario 2 : eth to usdc using uniswap v3
-
-// scenario 3 : both eth & lqty to usdc using uniswap v3
-
-// points
-// used the difference in withdrawToVault method to check for gas differences in Nenad's fork tests
-
-// chainlink : 421008
-// normal : 393948
-// curve : 394078
