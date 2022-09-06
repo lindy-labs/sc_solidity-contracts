@@ -46,8 +46,6 @@ interface IVaultSponsoring {
      * It fails if the vault is underperforming and there are not enough funds
      * to withdraw the sponsored amount.
      *
-     * @notice the NFTs of the deposits will be burned.
-     *
      * @param _to Address that will receive the funds.
      * @param _ids Array with the ids of the deposits.
      */
@@ -57,9 +55,7 @@ interface IVaultSponsoring {
      * Withdraws the specified sponsored amounts @param _amounts for the deposits with the ids provided
      * in @param _ids and sends it to @param _to.
      *
-     * It fails if there are not enough funds to withdraw the specified amounts.
-     *
-     * @notice the NFTs of the deposits will be burned only if the whole deposit amount is withdrawn.
+     * @notice fails if there are not enough funds to withdraw the specified amounts.
      *
      * @param _to Address that will receive the funds.
      * @param _ids Array with the ids of the deposits.

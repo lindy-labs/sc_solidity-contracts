@@ -689,8 +689,6 @@ contract Vault is
     /**
      * Withdraws the principal from the deposits with the ids provided in @param _ids and sends it to @param _to.
      *
-     * @notice the NFTs of the deposits will be burned.
-     *
      * @param _to Address that will receive the funds.
      * @param _ids Array with the ids of the deposits.
      * @param _force Boolean to specify if the action should be perfomed when there's loss.
@@ -781,8 +779,6 @@ contract Vault is
      * Withdraws the sponsored amount for the deposits with the ids provided
      * in @param _ids and sends it to @param _to.
      *
-     * @notice the NFTs of the deposits will be burned.
-     *
      * @param _to Address that will receive the funds.
      * @param _ids Array with the ids of the deposits.
      */
@@ -832,8 +828,6 @@ contract Vault is
 
     /**
      * Validates conditions for unsponsoring amount @param _amount of the deposit with the id @param _id.
-     *
-     * @notice The NFTs of the deposit will be burned if the deposited amount is equal to the amount being withdrawn.
      *
      * @param _id Id of the deposit.
      * @param _amount Amount to be unsponsored/withdrawn.
@@ -1018,7 +1012,7 @@ contract Vault is
     }
 
     /**
-     * Burns a deposit NFT and reduces the principal and shares of the claimer.
+     * Reduces the principal and shares of the claimer.
      * If there were any yield to be claimed, the claimer will also keep shares to withdraw later on.
      *
      * @notice This function doesn't transfer any funds, it only updates the state.
