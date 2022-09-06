@@ -166,19 +166,21 @@ contract LiquityStrategy is
         returns (uint256)
     {
         uint256 ethBalance = address(this).balance;
-        uint256 ethBalanceInLusd;
         // need to do this because the get_exchange_amount method reverts if ethBalance is zero
-        if (ethBalance != 0) {
-            uint256 ethBalanceInUSDT = ICurveExchange(CURVE_ROUTER)
-                .get_exchange_amount(WETH_CURVE_POOL, WETH, USDT, ethBalance);
-
-            ethBalanceInLusd = ICurveExchange(CURVE_ROUTER).get_exchange_amount(
-                    LUSD_CURVE_POOL,
-                    USDT,
-                    address(underlying),
-                    ethBalanceInUSDT
-                );
+        if (ethBalance == 0) {
+            return stabilityPool.getCompoundedLUSDDeposit(address(this));
         }
+
+        uint256 ethBalanceInUSDT = ICurveExchange(CURVE_ROUTER)
+            .get_exchange_amount(WETH_CURVE_POOL, WETH, USDT, ethBalance);
+
+        uint256 ethBalanceInLusd = ICurveExchange(CURVE_ROUTER)
+            .get_exchange_amount(
+                LUSD_CURVE_POOL,
+                USDT,
+                address(underlying),
+                ethBalanceInUSDT
+            );
 
         return
             stabilityPool.getCompoundedLUSDDeposit(address(this)) +
