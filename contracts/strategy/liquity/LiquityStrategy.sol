@@ -45,9 +45,9 @@ contract LiquityStrategy is
     event StrategyRewardsClaimed(uint256 amountInLQTY, uint256 amountInETH);
     event StrategyRewardsReinvested(uint256 amountInLUSD);
 
-    // role for investing/withdrawing assets to/from the strategy (vault)
+    // role allowed to invest/withdraw assets to/from the strategy (vault)
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
-    // role for calling harvest() and reinvestRewards()
+    // role allowed to call harvest() and reinvestRewards()
     bytes32 public constant KEEPER_ROLE = keccak256("KEEPER_ROLE");
 
     IERC20 public underlying; // LUSD token
@@ -103,6 +103,7 @@ contract LiquityStrategy is
         if (_keeper == address(0)) revert StrategyKeeperCannotBe0Address();
 
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
+        _grantRole(KEEPER_ROLE, _admin);
         _grantRole(MANAGER_ROLE, _vault);
         _grantRole(KEEPER_ROLE, _keeper);
 
@@ -134,7 +135,7 @@ contract LiquityStrategy is
         _grantRole(KEEPER_ROLE, _newAdmin);
 
         _revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _grantRole(KEEPER_ROLE, _newAdmin);
+        _revokeRole(KEEPER_ROLE, msg.sender);
     }
 
     //

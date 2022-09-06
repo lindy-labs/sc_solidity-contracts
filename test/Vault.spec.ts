@@ -58,7 +58,7 @@ describe('Vault', () => {
   const DENOMINATOR = BigNumber.from('10000');
 
   const DEFAULT_ADMIN_ROLE = constants.HashZero;
-  const INVESTOR_ROLE = utils.keccak256(utils.toUtf8Bytes('INVESTOR_ROLE'));
+  const KEEPER_ROLE = utils.keccak256(utils.toUtf8Bytes('KEEPER_ROLE'));
   const SETTINGS_ROLE = utils.keccak256(utils.toUtf8Bytes('SETTINGS_ROLE'));
   const SPONSOR_ROLE = utils.keccak256(utils.toUtf8Bytes('SPONSOR_ROLE'));
 
@@ -105,14 +105,11 @@ describe('Vault', () => {
       admin.address,
     );
 
-    ({
-      addUnderlyingBalance,
-      addYieldToVault,
-      removeUnderlyingFromVault,
-    } = createVaultHelpers({
-      vault,
-      underlying,
-    }));
+    ({ addUnderlyingBalance, addYieldToVault, removeUnderlyingFromVault } =
+      createVaultHelpers({
+        vault,
+        underlying,
+      }));
 
     await addUnderlyingBalance(alice, '1000');
     await addUnderlyingBalance(bob, '1000');
@@ -315,9 +312,7 @@ describe('Vault', () => {
       expect(
         await vault.hasRole(DEFAULT_ADMIN_ROLE, admin.address),
       ).to.be.equal(true);
-      expect(await vault.hasRole(INVESTOR_ROLE, admin.address)).to.be.equal(
-        true,
-      );
+      expect(await vault.hasRole(KEEPER_ROLE, admin.address)).to.be.equal(true);
       expect(await vault.hasRole(SPONSOR_ROLE, admin.address)).to.be.equal(
         true,
       );
@@ -360,7 +355,7 @@ describe('Vault', () => {
 
     it("revokes all previous admin's roles and sets them for the new admin", async () => {
       expect(await vault.hasRole(DEFAULT_ADMIN_ROLE, admin.address)).to.be.true;
-      expect(await vault.hasRole(INVESTOR_ROLE, admin.address)).to.be.true;
+      expect(await vault.hasRole(KEEPER_ROLE, admin.address)).to.be.true;
       expect(await vault.hasRole(SETTINGS_ROLE, admin.address)).to.be.true;
       expect(await vault.hasRole(SPONSOR_ROLE, admin.address)).to.be.true;
 
@@ -368,12 +363,12 @@ describe('Vault', () => {
 
       expect(await vault.hasRole(DEFAULT_ADMIN_ROLE, admin.address)).to.be
         .false;
-      expect(await vault.hasRole(INVESTOR_ROLE, admin.address)).to.be.false;
+      expect(await vault.hasRole(KEEPER_ROLE, admin.address)).to.be.false;
       expect(await vault.hasRole(SETTINGS_ROLE, admin.address)).to.be.false;
       expect(await vault.hasRole(SPONSOR_ROLE, admin.address)).to.be.false;
 
       expect(await vault.hasRole(DEFAULT_ADMIN_ROLE, alice.address)).to.be.true;
-      expect(await vault.hasRole(INVESTOR_ROLE, alice.address)).to.be.true;
+      expect(await vault.hasRole(KEEPER_ROLE, alice.address)).to.be.true;
       expect(await vault.hasRole(SETTINGS_ROLE, alice.address)).to.be.true;
       expect(await vault.hasRole(SPONSOR_ROLE, alice.address)).to.be.true;
     });
@@ -532,10 +527,10 @@ describe('Vault', () => {
       perfFee = newYield.mul(PERFORMANCE_FEE_PCT).div(DENOMINATOR);
     });
 
-    it('reverts if the caller is not investor', async () => {
+    it('reverts if the caller is not keeper', async () => {
       await expect(
         vault.connect(alice).withdrawPerformanceFee(),
-      ).to.be.revertedWith('VaultCallerNotInvestor');
+      ).to.be.revertedWith('VaultCallerNotKeeper');
     });
 
     it('withdraw performance fee and emit FeeWithdrawn event', async () => {
@@ -557,9 +552,9 @@ describe('Vault', () => {
   });
 
   describe('updateInvested', () => {
-    it('reverts if the caller is not investor', async () => {
+    it('reverts if the caller is not keeper', async () => {
       await expect(vault.connect(alice).updateInvested()).to.be.revertedWith(
-        'VaultCallerNotInvestor',
+        'VaultCallerNotKeeper',
       );
     });
 
