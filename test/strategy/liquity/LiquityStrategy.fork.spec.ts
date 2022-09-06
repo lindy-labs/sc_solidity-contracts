@@ -187,9 +187,10 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       const investedAssetsAfterPoolRebalancing = BigNumber.from(
         '9998816139652613137823',
       );
-      const expectedInvestedAssetsAfterReinvestingRewards = investedAssetsAfterPoolRebalancing
-        .add(LQTY_REWARD_IN_LUSD)
-        .add(ETH_REWARD_IN_LUSD);
+      const expectedInvestedAssetsAfterReinvestingRewards =
+        investedAssetsAfterPoolRebalancing
+          .add(LQTY_REWARD_IN_LUSD)
+          .add(ETH_REWARD_IN_LUSD);
       expect(await strategy.investedAssets()).to.eq(
         expectedInvestedAssetsAfterReinvestingRewards,
       );
@@ -367,9 +368,6 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
 
       expect(await strategy.investedAssets()).to.eq('4998816139652613137823');
       expect(await lusd.balanceOf(vault.address)).to.eq(amountToWithdraw);
-      expect(tx)
-        .to.emit(strategy, 'StrategyRewardsClaimed')
-        .withArgs(EXPECTED_LQTY_REWARD, EXPECTED_ETH_REWARD);
     });
   });
 });

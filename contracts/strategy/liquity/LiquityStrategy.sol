@@ -40,7 +40,6 @@ contract LiquityStrategy is
     error StrategyLQTYSwapFailed();
     error StrategyETHSwapFailed();
 
-    event StrategyRewardsClaimed(uint256 amountInLQTY, uint256 amountInETH);
     event StrategyRewardsReinvested(uint256 amountInLUSD);
 
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
