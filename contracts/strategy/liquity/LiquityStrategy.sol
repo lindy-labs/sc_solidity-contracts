@@ -4,6 +4,7 @@ pragma solidity =0.8.10;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AccessControlUpgradeable} from "@openzeppelin/contracts-upgradeable/access/AccessControlUpgradeable.sol";
 import {UUPSUpgradeable} from "@openzeppelin/contracts-upgradeable/proxy/utils/UUPSUpgradeable.sol";
+import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/interfaces/AggregatorV3Interface.sol";
 
 import {PercentMath} from "../../lib/PercentMath.sol";
 import {IStrategy} from "../IStrategy.sol";
@@ -11,6 +12,7 @@ import {CustomErrors} from "../../interfaces/CustomErrors.sol";
 import {IVault} from "../../vault/IVault.sol";
 import {IStabilityPool} from "../../interfaces/liquity/IStabilityPool.sol";
 import {ERC165Query} from "../../lib/ERC165Query.sol";
+import {ICurveExchange} from "../../interfaces/curve/ICurveExchange.sol";
 
 /***
  * Liquity Strategy generates yield by investing LUSD assets into Liquity Stability Pool contract.
@@ -45,6 +47,14 @@ contract LiquityStrategy is
     event StrategyRewardsClaimed(uint256 amountInLQTY, uint256 amountInETH);
     event StrategyRewardsReinvested(uint256 amountInLUSD);
 
+    address public constant WETH_CURVE_POOL =
+        0xD51a44d3FaE010294C616388b506AcdA1bfAAE46;
+    address public constant LUSD_CURVE_POOL =
+        0xEd279fDD11cA84bEef15AF5D39BB4d4bEE23F0cA;
+    address public constant CURVE_ROUTER =
+        0x81C46fECa27B31F3ADC2b91eE4be9717d1cd3DD7;
+    address public constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    address public constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
 
     IERC20 public underlying; // LUSD token
@@ -147,7 +157,8 @@ contract LiquityStrategy is
     }
 
     /// @inheritdoc IStrategy
-    /// @notice ETH & LQTY rewards of the strategy waiting to be claimed in the liquity stability pool are not included
+    /// @notice LQTY rewards of the strategy waiting to be claimed in the liquity stability pool are not included
+    /// @notice but the ETH rewards are included
     function investedAssets()
         public
         view
@@ -155,7 +166,24 @@ contract LiquityStrategy is
         override(IStrategy)
         returns (uint256)
     {
-        return stabilityPool.getCompoundedLUSDDeposit(address(this));
+        uint256 ethBalance = address(this).balance;
+        uint256 ethBalanceInLusd;
+        // need to do this because the get_exchange_amount method reverts if ethBalance is zero
+        if (ethBalance != 0) {
+            uint256 ethBalanceInUSDT = ICurveExchange(CURVE_ROUTER)
+                .get_exchange_amount(WETH_CURVE_POOL, WETH, USDT, ethBalance);
+
+            ethBalanceInLusd = ICurveExchange(CURVE_ROUTER).get_exchange_amount(
+                    LUSD_CURVE_POOL,
+                    USDT,
+                    address(underlying),
+                    ethBalanceInUSDT
+                );
+        }
+
+        return
+            stabilityPool.getCompoundedLUSDDeposit(address(this)) +
+            ethBalanceInLusd;
     }
 
     /// @inheritdoc IStrategy
@@ -313,4 +341,55 @@ contract LiquityStrategy is
      * Strategy has to be able to receive ETH as stability pool rewards.
      */
     receive() external payable {}
+
+    // function _estimateAmountOut(
+    //     address tokenIn,
+    //     address tokenOut,
+    //     uint128 amountIn,
+    //     uint32 secondsAgo
+    // ) internal view returns (uint256 amountOut) {
+    //     // (int24 tick, ) = OracleLibrary.consult(pool, secondsAgo);
+
+    //     // Code copied from OracleLibrary.sol, consult()
+    //     uint32[] memory secondsAgos = new uint32[](2);
+    //     secondsAgos[0] = secondsAgo;
+    //     secondsAgos[1] = 0;
+
+    //     // int56 since tick * time = int24 * uint32
+    //     // 56 = 24 + 32
+    //     (int56[] memory tickCumulatives, ) = IUniswapV3Pool(pool).observe(
+    //         secondsAgos
+    //     );
+
+    //     int56 tickCumulativesDelta = tickCumulatives[1] - tickCumulatives[0];
+
+    //     // int56 / uint32 = int24
+    //     int24 tick = int24(tickCumulativesDelta / secondsAgo);
+    //     if (
+    //         tickCumulativesDelta < 0 && (tickCumulativesDelta % secondsAgo != 0)
+    //     ) {
+    //         tick--;
+    //     }
+
+    //     amountOut = OracleLibrary.getQuoteAtTick(
+    //         tick,
+    //         amountIn,
+    //         tokenIn,
+    //         tokenOut
+    //     );
+    // }
 }
+
+// scenario 1 : eth to usdt through curve
+// additional gas cost : 130
+
+// scenario 2 : eth to usdc using uniswap v3
+
+// scenario 3 : both eth & lqty to usdc using uniswap v3
+
+// points
+// used the difference in withdrawToVault method to check for gas differences in Nenad's fork tests
+
+// chainlink : 421008
+// normal : 393948
+// curve : 394078
