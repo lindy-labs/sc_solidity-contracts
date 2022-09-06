@@ -181,10 +181,6 @@ contract LiquityStrategy is
         // withdraws underlying amount and claims LQTY & ETH rewards
         stabilityPool.withdrawFromSP(amount);
 
-        uint256 lqtyRewards = lqty.balanceOf(address(this));
-        uint256 ethRewards = address(this).balance;
-        emit StrategyRewardsClaimed(lqtyRewards, ethRewards);
-
         // use balance instead of amount since amount could be greater than what was actually withdrawn
         uint256 balance = underlying.balanceOf(address(this));
         if (!underlying.transfer(vault, balance)) {
