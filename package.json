@@ -49,7 +49,7 @@
   },
   "dependencies": {
     "@codechecks/client": "^0.1.12",
-    "@openzeppelin/contracts-upgradeable": "^4.7.2",
+    "@openzeppelin/contracts-upgradeable": "^4.7.3",
     "@openzeppelin/hardhat-upgrades": "^1.19.1",
     "@uniswap/v3-periphery": "^1.4.1",
     "axios": "^0.27.2"
