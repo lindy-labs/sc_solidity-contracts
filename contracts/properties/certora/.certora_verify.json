@@ -1,0 +1,10 @@
+[
+    {
+        "importFilesToOrigRelpaths": {},
+        "primary_contract": "VaultForCertora",
+        "specfile": ".certora_config/0_Valid_Deposit.spec.spec",
+        "specfileOrigRelpath": "Valid_Deposit.spec",
+        "specfilesToImportDecls": {},
+        "type": "spec"
+    }
+]
