@@ -50,7 +50,7 @@ contract Vault is
     //
 
     /// Role allowed to invest/desinvest from strategy
-    bytes32 public constant INVESTOR_ROLE = keccak256("INVESTOR_ROLE");
+    bytes32 public constant KEEPER_ROLE = keccak256("KEEPER_ROLE");
 
     /// Role allowed to change settings such as performance fee and investment fee
     bytes32 public constant SETTINGS_ROLE = keccak256("SETTINGS_ROLE");
@@ -154,7 +154,7 @@ contract Vault is
             revert VaultInvalidMinLockPeriod();
 
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
-        _grantRole(INVESTOR_ROLE, _admin);
+        _grantRole(KEEPER_ROLE, _admin);
         _grantRole(SETTINGS_ROLE, _admin);
         _grantRole(SPONSOR_ROLE, _admin);
 
@@ -188,9 +188,8 @@ contract Vault is
         _;
     }
 
-    modifier onlyInvestor() {
-        if (!hasRole(INVESTOR_ROLE, msg.sender))
-            revert VaultCallerNotInvestor();
+    modifier onlyKeeper() {
+        if (!hasRole(KEEPER_ROLE, msg.sender)) revert VaultCallerNotKeeper();
         _;
     }
 
@@ -213,12 +212,12 @@ contract Vault is
             revert VaultCannotTransferAdminRightsToSelf();
 
         _grantRole(DEFAULT_ADMIN_ROLE, _newAdmin);
-        _grantRole(INVESTOR_ROLE, _newAdmin);
+        _grantRole(KEEPER_ROLE, _newAdmin);
         _grantRole(SETTINGS_ROLE, _newAdmin);
         _grantRole(SPONSOR_ROLE, _newAdmin);
 
         _revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _revokeRole(INVESTOR_ROLE, msg.sender);
+        _revokeRole(KEEPER_ROLE, msg.sender);
         _revokeRole(SETTINGS_ROLE, msg.sender);
         _revokeRole(SPONSOR_ROLE, msg.sender);
     }
@@ -433,7 +432,7 @@ contract Vault is
     }
 
     /// @inheritdoc IVault
-    function updateInvested() external override(IVault) onlyInvestor {
+    function updateInvested() external override(IVault) onlyKeeper {
         if (address(strategy) == address(0)) revert VaultStrategyNotSet();
 
         (uint256 maxInvestableAmount, uint256 alreadyInvested) = investState();
@@ -467,7 +466,7 @@ contract Vault is
     }
 
     /// @inheritdoc IVault
-    function withdrawPerformanceFee() external override(IVault) onlyInvestor {
+    function withdrawPerformanceFee() external override(IVault) onlyKeeper {
         uint256 _perfFee = accumulatedPerfFee;
         if (_perfFee == 0) revert VaultNoPerformanceFee();
 

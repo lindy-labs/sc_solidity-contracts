@@ -104,6 +104,7 @@ describe('LiquityStrategy Proxy', () => {
         stabilityPool.address,
         lqty.address,
         underlying.address,
+        admin.address, // keeper
       ],
       {
         kind: 'uups',

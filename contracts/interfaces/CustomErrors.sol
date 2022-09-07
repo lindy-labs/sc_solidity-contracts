@@ -39,8 +39,8 @@ interface CustomErrors {
     // Vault: caller is not settings
     error VaultCallerNotSettings();
 
-    // Vault: caller is not investor
-    error VaultCallerNotInvestor();
+    // Vault: caller is not keeper
+    error VaultCallerNotKeeper();
 
     // Vault: caller is not sponsor
     error VaultCallerNotSponsor();
