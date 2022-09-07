@@ -15,7 +15,12 @@ interface IVaultSponsoring {
     );
 
     /// Emitted when an existing sponsor withdraws
-    event Unsponsored(uint256 indexed id);
+    event Unsponsored(
+        uint256 indexed id,
+        uint256 amount,
+        address indexed to,
+        bool isFull
+    );
 
     /**
      * Total amount currently sponsored

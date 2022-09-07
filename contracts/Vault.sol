@@ -790,7 +790,7 @@ contract Vault is
             uint256 tokenId = _ids[i];
             uint256 amount = deposits[tokenId].amount;
 
-            _unsponsorSingle(tokenId, amount);
+            _unsponsorSingle(_to, tokenId, amount);
 
             sponsorAmount += amount;
         }
@@ -815,10 +815,10 @@ contract Vault is
         uint256 idsLen = _ids.length;
 
         for (uint8 i = 0; i < idsLen; ++i) {
-            uint256 tokenId = _ids[i];
+            uint256 depositId = _ids[i];
             uint256 amount = _amounts[i];
 
-            _unsponsorSingle(tokenId, amount);
+            _unsponsorSingle(_to, depositId, amount);
 
             sponsorAmount += amount;
         }
@@ -829,11 +829,16 @@ contract Vault is
     /**
      * Validates conditions for unsponsoring amount @param _amount of the deposit with the id @param _id.
      *
-     * @param _id Id of the deposit.
+     * @param _to Address that will receive the funds.
+     * @param _tokenId Id of the deposit.
      * @param _amount Amount to be unsponsored/withdrawn.
      */
-    function _unsponsorSingle(uint256 _id, uint256 _amount) internal {
-        Deposit memory _deposit = deposits[_id];
+    function _unsponsorSingle(
+        address _to,
+        uint256 _tokenId,
+        uint256 _amount
+    ) internal {
+        Deposit memory _deposit = deposits[_tokenId];
 
         if (_deposit.owner != msg.sender) revert VaultNotAllowed();
         if (_deposit.lockedUntil > block.timestamp) revert VaultAmountLocked();
@@ -841,14 +846,15 @@ contract Vault is
         if (_deposit.amount < _amount)
             revert VaultCannotWithdrawMoreThanAvailable();
 
-        if (_amount != _deposit.amount) {
-            deposits[_id].amount -= _amount;
-            return;
+        bool isFull = _amount == _deposit.amount;
+
+        if (!isFull) {
+            deposits[_tokenId].amount -= _amount;
+        } else {
+            delete deposits[_tokenId];
         }
 
-        delete deposits[_id];
-
-        emit Unsponsored(_id);
+        emit Unsponsored(_tokenId, _amount, _to, isFull);
     }
 
     /**
