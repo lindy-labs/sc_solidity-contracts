@@ -41,3 +41,25 @@ dataSources:
           handler: handleYieldClaimed
         - event: TreasuryUpdated(indexed address)
           handler: handleTreasuryUpdated
+  - name: LiquityTrove
+    kind: ethereum/contract
+    {{#liquityTrove}}
+    network: {{network}}
+    source:
+      abi: LiquityTrove
+      address: "{{address}}"
+      startBlock: {{startBlock}}
+    {{/liquityTrove}}
+    mapping: &mapping
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      file: ./src/mappings/vault.ts
+      entities:
+        - Liquidation
+      abis:
+        - name: LiquityTrove
+          file: ./external_abis/LiquityTrove.json
+      eventHandlers:
+        - event: Liquidation(uint256,uint256,uint256,uint256)
+          handler: handleLiquidation
