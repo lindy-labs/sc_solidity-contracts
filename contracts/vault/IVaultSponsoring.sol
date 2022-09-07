@@ -19,7 +19,7 @@ interface IVaultSponsoring {
         uint256 indexed id,
         uint256 amount,
         address indexed to,
-        bool isFull
+        bool burned
     );
 
     /**

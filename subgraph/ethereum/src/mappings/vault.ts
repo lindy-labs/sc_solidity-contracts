@@ -55,8 +55,9 @@ export function handleYieldClaimed(event: YieldClaimed): void {
     deposit.save();
 
     foundation.shares = foundation.shares.minus(depositClaimedShares);
-    foundation.amountClaimed =
-      foundation.amountClaimed.plus(depositClaimedAmount);
+    foundation.amountClaimed = foundation.amountClaimed.plus(
+      depositClaimedAmount,
+    );
     foundation.save();
 
     // If the claim is to the treasury, create a Donation
@@ -218,7 +219,12 @@ export function handleUnsponsored(event: Unsponsored): void {
   const sponsorId = event.params.id.toString();
   const sponsor = Sponsor.load(sponsorId)!;
 
-  sponsor.burned = true;
+  if (event.params.burned) {
+    sponsor.burned = true;
+  } else {
+    sponsor.amount = sponsor.amount.minus(event.params.amount);
+  }
+
   sponsor.save();
 }
 

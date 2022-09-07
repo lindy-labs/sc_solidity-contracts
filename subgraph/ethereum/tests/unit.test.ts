@@ -40,10 +40,8 @@ import {
   Foundation,
 } from '../src/types/schema';
 
-const MOCK_ADDRESS_1 =
-  '0xC80B3caAd6d2DE80Ac76a41d5F0072E36D2519Cd'.toLowerCase();
-const MOCK_ADDRESS_2 =
-  '0xE80B3caAd6d2DE80Ac76a41d5F0072E36D2519Ce'.toLowerCase();
+const MOCK_ADDRESS_1 = '0xC80B3caAd6d2DE80Ac76a41d5F0072E36D2519Cd'.toLowerCase();
+const MOCK_ADDRESS_2 = '0xE80B3caAd6d2DE80Ac76a41d5F0072E36D2519Ce'.toLowerCase();
 const TREASURY_ADDRESS = '0x4940c6e628da11ac0bdcf7f82be8579b4696fa33';
 
 test('handleTreasuryUpdated updates the treasury', () => {
@@ -112,6 +110,41 @@ test('handleSponsored creates a Sponsor', () => {
   assert.fieldEquals('Sponsor', '1', 'burned', 'false');
 });
 
+test('handleUnsponsored updates the amount sponsored', () => {
+  clearStore();
+
+  const sponsor = new Sponsor('1');
+  sponsor.burned = false;
+  sponsor.amount = BigInt.fromI32(2);
+  sponsor.save();
+
+  let mockEvent = newMockEvent();
+  const event = new Unsponsored(
+    mockEvent.address,
+    mockEvent.logIndex,
+    mockEvent.transactionLogIndex,
+    mockEvent.logType,
+    mockEvent.block,
+    mockEvent.transaction,
+    mockEvent.parameters,
+  );
+  event.parameters = new Array();
+
+  const idParam = newI32('id', 1);
+  const amount = newI32('amount', 1);
+  const to = newAddress('to', MOCK_ADDRESS_1);
+
+  event.parameters.push(idParam);
+  event.parameters.push(amount);
+  event.parameters.push(to);
+  event.parameters.push(newBool('burned', false));
+
+  handleUnsponsored(event);
+
+  assert.fieldEquals('Sponsor', '1', 'amount', '1');
+  assert.fieldEquals('Sponsor', '1', 'burned', 'false');
+});
+
 test('handleUnsponsored removes a Sponsor by marking as burned', () => {
   clearStore();
 
@@ -132,8 +165,13 @@ test('handleUnsponsored removes a Sponsor by marking as burned', () => {
   event.parameters = new Array();
 
   const idParam = newI32('id', 1);
+  const amount = newI32('amount', 1);
+  const to = newAddress('to', MOCK_ADDRESS_1);
 
   event.parameters.push(idParam);
+  event.parameters.push(amount);
+  event.parameters.push(to);
+  event.parameters.push(newBool('burned', true));
 
   handleUnsponsored(event);
 
