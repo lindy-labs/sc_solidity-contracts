@@ -1,16 +1,16 @@
-import { BigInt, log } from '@graphprotocol/graph-ts';
 import { Liquidation } from '../types/schema';
+import { Liquidation as LiquidationEvent } from '../types/LiquityTrove/LiquityTrove';
 
-export function handleLiquidation(event: Liquidation): void {
+export function handleLiquidation(event: LiquidationEvent): void {
   const liquidation = new Liquidation(
     event.transaction.hash.toHex() + '-' + event.logIndex.toString(),
   );
 
-  liquidation.txHash = event.transaction.hash.toHex();
-  liquidation.liquidatedDebt = event.params.liquidatedDebt;
-  liquidation.liquidatedCollateral = event.params.liquidatedCollateral;
-  liquidation.collGasCompensation = event.params.collGasCompensation;
-  liquidation.tokenGasCompensation = event.params.tokenGasCompensation;
+  liquidation.txHash = event.transaction.hash;
+  liquidation.liquidatedDebt = event.params._liquidatedDebt;
+  liquidation.liquidatedCollateral = event.params._liquidatedColl;
+  liquidation.collGasCompensation = event.params._collGasCompensation;
+  liquidation.tokenGasCompensation = event.params._LUSDGasCompensation;
 
   liquidation.save();
 }
