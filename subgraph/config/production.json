@@ -13,5 +13,10 @@
     "network": "mumbai",
     "startBlock": 26556016,
     "address": "TODO"
+  },
+  "liquityTrove": {
+    "network": "mainnet",
+    "startBlock": 12178557,
+    "address": "0xA39739EF8b0231DbFA0DcdA07d7e29faAbCf4bb2"
   }
 }
