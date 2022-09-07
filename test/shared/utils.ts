@@ -1,5 +1,5 @@
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
-import { Wallet } from 'ethers';
+import { Wallet, BigNumber, utils } from 'ethers';
 
 export const generateNewAddress = (): string => {
   return Wallet.createRandom().address;
@@ -20,4 +20,15 @@ export const getRoleErrorMsg = (
   role: string,
 ): string => {
   return `AccessControl: account ${account.address.toLowerCase()} is missing role ${role}`;
+};
+
+export const approxWholeTokens = (
+  actual: BigNumber,
+  expected: BigNumber,
+  decimals: string = '18',
+): boolean => {
+  const one_unit = utils.parseUnits('1', decimals);
+  actual = actual.div(one_unit);
+  expected = expected.div(one_unit);
+  return actual.eq(expected);
 };

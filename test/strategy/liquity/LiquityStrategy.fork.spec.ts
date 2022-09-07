@@ -8,6 +8,7 @@ import {
   ForkHelpers,
   generateNewAddress,
   moveForwardTwoWeeks,
+  approxWholeTokens,
 } from '../../shared';
 
 import {
@@ -366,11 +367,33 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
         EXPECTED_ETH_REWARD,
       );
 
-      expect(await strategy.investedAssets()).to.eq('5000736699812217881367');
+      const EXPECTED_INVESTED_ASSSETS = BigNumber.from(
+        '5000736699812217881367',
+      );
+
+      expect(await strategy.investedAssets()).to.eq(EXPECTED_INVESTED_ASSSETS);
       expect(await lusd.balanceOf(vault.address)).to.eq(amountToWithdraw);
       expect(tx)
         .to.emit(strategy, 'StrategyRewardsClaimed')
         .withArgs(EXPECTED_LQTY_REWARD, EXPECTED_ETH_REWARD);
+
+      //////////////////////////////////////////////////////////////////////////
+
+      // reinvest all the ETH rewards to make the ETH balance of the strategy contract zero
+      await strategy.reinvestRewards(SWAP_TARGET, [], SWAP_ETH_DATA);
+
+      expect(await lqty.balanceOf(strategy.address)).to.eq(
+        EXPECTED_LQTY_REWARD,
+      );
+      expect(
+        await lqtyStabilityPool.getDepositorETHGain(strategy.address),
+      ).to.eq('0');
+      expect(await ethers.provider.getBalance(strategy.address)).to.eq('0');
+
+      const actualInvestedAssets = await strategy.investedAssets();
+
+      expect(approxWholeTokens(actualInvestedAssets, EXPECTED_INVESTED_ASSSETS))
+        .to.be.true;
     });
   });
 });
