@@ -222,10 +222,10 @@ contract LiquityStrategy is
 
     /**
      * Swaps LQTY tokens and ETH held by the strategy to LUSD,
-     * and reinvests swapped LUSD amount into the stability pool.
+     * and reinvests the swapped LUSD amount into the stability pool.
      *
      * @notice Can only be called by the account with the KEEPER role.
-     * @notice Arguments provided are real-time data obtained from '0x' api.
+     * @notice Swap data arguments provided are real-time data obtained from '0x' api.
      *
      * @param _swapTarget the address of the '0x' contract performing the tokens swap.
      * @param _lqtySwapData data used to perform LQTY -> LUSD swap. Leave empty to skip this swap.
@@ -259,11 +259,11 @@ contract LiquityStrategy is
     /**
      * Swaps LQTY tokens held by the strategy to LUSD.
      *
-     * @notice Arguments provided are real-time data obtained from '0x' api.
+     * @notice Swap data is real-time data obtained from '0x' api.
      *
-     * @param _amount the amount of LQTY tokens to swap.
-     * @param _swapTarget the address of the '0x' contract performing the tokens swap.
-     * @param _lqtySwapData data used to perform LQTY -> LUSD swap.
+     * @param _amount the amount of LQTY tokens to swap. Has to match with the amount used to obtain @param _lqtySwapData from '0x' api.
+     * @param _swapTarget the address of the '0x' contract performing the swap.
+     * @param _lqtySwapData data from '0x' api used to perform LQTY -> LUSD swap.
      */
     function swapLQTYtoLUSD(
         uint256 _amount,
@@ -289,11 +289,11 @@ contract LiquityStrategy is
     /**
      * Swaps ETH held by the strategy to LUSD.
      *
-     * @notice Arguments provided are real-time data obtained from '0x' api.
+     * @notice Swap data is real-time data obtained from '0x' api.
      *
-     * @param _amount the amount of ETH to swap. Has to match with the amount used to obtain @param _ethSwapData.
-     * @param _swapTarget the address of the '0x' contract performing the tokens swap.
-     * @param _ethSwapData data used to perform ETH -> LUSD swap.
+     * @param _amount the amount of ETH to swap. Has to match with the amount used to obtain @param _ethSwapData from '0x' api.
+     * @param _swapTarget the address of the '0x' contract performing the swap.
+     * @param _ethSwapData data from '0x' api to perform ETH -> LUSD swap.
      */
     function swapETHtoLUSD(
         uint256 _amount,

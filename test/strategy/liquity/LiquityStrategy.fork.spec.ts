@@ -185,7 +185,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       await ForkHelpers.mintToken(lqty, strategy.address, EXPECTED_LQTY_REWARD);
       ForkHelpers.setBalance(strategy.address, EXPECTED_ETH_REWARD);
 
-      const tx = await strategy.reinvest(
+      await strategy.reinvest(
         SWAP_TARGET,
         EXPECTED_LQTY_REWARD,
         SWAP_LQTY_DATA,
@@ -201,7 +201,25 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       expect(await strategy.investedAssets()).to.eq(
         initialInvestment.add(LQTY_REWARD_IN_LUSD).add(ETH_REWARD_IN_LUSD),
       );
-      expect(tx)
+    });
+
+    it("emits 'StrategyReinvested' event", async () => {
+      const initialInvestment = parseUnits('10000');
+      await ForkHelpers.mintToken(lusd, strategy.address, initialInvestment);
+      await strategy.invest();
+
+      await ForkHelpers.mintToken(lqty, strategy.address, EXPECTED_LQTY_REWARD);
+      ForkHelpers.setBalance(strategy.address, EXPECTED_ETH_REWARD);
+
+      expect(
+        await strategy.reinvest(
+          SWAP_TARGET,
+          EXPECTED_LQTY_REWARD,
+          SWAP_LQTY_DATA,
+          EXPECTED_ETH_REWARD,
+          SWAP_ETH_DATA,
+        ),
+      )
         .to.emit(strategy, 'Reinvested')
         .withArgs(LQTY_REWARD_IN_LUSD.add(ETH_REWARD_IN_LUSD));
     });
