@@ -36,6 +36,7 @@ test('TroveManager Liquidation event creates Liquidation record', () => {
 
   handleLiquidation(liquidationEvent);
 
+  assert.fieldEquals('Liquidation', liquidationId, 'timestamp', mockLiquidation.block.timestamp.toString());
   assert.fieldEquals('Liquidation', liquidationId, 'liquidatedDebt', '200000');
   assert.fieldEquals(
     'Liquidation',
