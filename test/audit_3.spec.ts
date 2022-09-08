@@ -263,7 +263,7 @@ describe('Audit Tests 3', () => {
     // ## depositor1 withdraw
     await expect(
       vault.connect(depositor1).withdraw(depositor1.address, [1]),
-    ).to.revertedWith('VaultCannotWithdrawMoreThanAvailable');
+    ).to.revertedWith('VaultMustUseForceWithdrawToAcceptLosses');
 
     await vault.connect(depositor1).forceWithdraw(depositor1.address, [1]);
 

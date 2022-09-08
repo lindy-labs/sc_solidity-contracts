@@ -20,6 +20,7 @@ describe('LiquityStrategy', () => {
   let admin: SignerWithAddress;
   let alice: SignerWithAddress;
   let manager: SignerWithAddress;
+  let keeper: SignerWithAddress;
   let vault: Vault;
   let stabilityPool: MockStabilityPool;
   let strategy: LiquityStrategy;
@@ -36,12 +37,13 @@ describe('LiquityStrategy', () => {
 
   const DEFAULT_ADMIN_ROLE = constants.HashZero;
   const MANAGER_ROLE = utils.keccak256(utils.toUtf8Bytes('MANAGER_ROLE'));
+  const KEEPER_ROLE = utils.keccak256(utils.toUtf8Bytes('KEEPER_ROLE'));
 
   // address of the '0x' contract performing the token swap
   const SWAP_TARGET = '0xdef1c0ded9bec7f1a1670819833240f027b25eff';
 
   beforeEach(async () => {
-    [admin, alice, manager] = await ethers.getSigners();
+    [admin, alice, manager, keeper] = await ethers.getSigners();
 
     const MockERC20 = await ethers.getContractFactory('MockERC20');
     underlying = await MockERC20.deploy(
@@ -82,6 +84,7 @@ describe('LiquityStrategy', () => {
         stabilityPool.address,
         lqty.address,
         underlying.address,
+        keeper.address,
       ],
       {
         kind: 'uups',
@@ -112,6 +115,7 @@ describe('LiquityStrategy', () => {
             stabilityPool.address,
             lqty.address,
             underlying.address,
+            keeper.address,
           ],
           {
             kind: 'uups',
@@ -130,6 +134,7 @@ describe('LiquityStrategy', () => {
             constants.AddressZero,
             lqty.address,
             underlying.address,
+            keeper.address,
           ],
           {
             kind: 'uups',
@@ -148,6 +153,7 @@ describe('LiquityStrategy', () => {
             stabilityPool.address,
             constants.AddressZero,
             underlying.address,
+            keeper.address,
           ],
           {
             kind: 'uups',
@@ -166,12 +172,32 @@ describe('LiquityStrategy', () => {
             stabilityPool.address,
             lqty.address,
             constants.AddressZero,
+            keeper.address,
           ],
           {
             kind: 'uups',
           },
         ),
       ).to.be.revertedWith('StrategyUnderlyingCannotBe0Address');
+    });
+
+    it('reverts if keeper is address(0)', async () => {
+      await expect(
+        upgrades.deployProxy(
+          LiquityStrategyFactory,
+          [
+            vault.address,
+            admin.address,
+            stabilityPool.address,
+            lqty.address,
+            underlying.address,
+            constants.AddressZero,
+          ],
+          {
+            kind: 'uups',
+          },
+        ),
+      ).to.be.revertedWith('StrategyKeeperCannotBe0Address');
     });
 
     it('reverts if vault does not have IVault interface', async () => {
@@ -184,6 +210,7 @@ describe('LiquityStrategy', () => {
             stabilityPool.address,
             lqty.address,
             underlying.address,
+            keeper.address,
           ],
           {
             kind: 'uups',
@@ -193,15 +220,20 @@ describe('LiquityStrategy', () => {
     });
 
     it('checks initial values', async () => {
+      // access control
       expect(await strategy.isSync()).to.be.true;
       expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, admin.address)).to.be
         .true;
+      expect(await strategy.hasRole(KEEPER_ROLE, admin.address)).to.be.true;
       expect(await strategy.hasRole(MANAGER_ROLE, vault.address)).to.be.true;
+      expect(await strategy.hasRole(KEEPER_ROLE, keeper.address)).to.be.true;
+
+      // state
       expect(await strategy.vault()).to.eq(vault.address);
       expect(await strategy.stabilityPool()).to.eq(stabilityPool.address);
-
       expect(await strategy.underlying()).to.eq(underlying.address);
 
+      // functions
       expect(await strategy.hasAssets()).to.be.false;
       expect(
         await underlying.allowance(strategy.address, stabilityPool.address),
@@ -231,13 +263,16 @@ describe('LiquityStrategy', () => {
     it('transfers admin role to the new admin account', async () => {
       expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, alice.address)).to.be
         .false;
+      expect(await strategy.hasRole(KEEPER_ROLE, alice.address)).to.be.false;
 
       await strategy.connect(admin).transferAdminRights(alice.address);
 
       expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, alice.address)).to.be
         .true;
+      expect(await strategy.hasRole(KEEPER_ROLE, alice.address)).to.be.true;
       expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, admin.address)).to.be
         .false;
+      expect(await strategy.hasRole(KEEPER_ROLE, admin.address)).to.be.false;
     });
   });
 
@@ -351,41 +386,41 @@ describe('LiquityStrategy', () => {
   });
 
   describe('#harvest', () => {
-    it('reverts if msg.sender is not admin', async () => {
+    it('reverts if msg.sender is not keeper', async () => {
       await expect(
         strategy.connect(alice).harvest(SWAP_TARGET, [], []),
-      ).to.be.revertedWith('StrategyCallerNotAdmin');
+      ).to.be.revertedWith('StrategyCallerNotKeeper');
     });
 
     it('revert if swapTarget is 0 address', async () => {
       await expect(
-        strategy.connect(admin).harvest(constants.AddressZero, [], []),
+        strategy.connect(keeper).harvest(constants.AddressZero, [], []),
       ).to.be.revertedWith('StrategySwapTargetCannotBe0Address');
     });
 
     it('reverts if eth & lqty rewards balance is zero', async () => {
       await expect(
-        strategy.connect(admin).harvest(SWAP_TARGET, [], []),
+        strategy.connect(keeper).harvest(SWAP_TARGET, [], []),
       ).to.be.revertedWith('StrategyNothingToReinvest');
     });
   });
 
   describe('#reinvestRewards', () => {
-    it('reverts if msg.sender is not admin', async () => {
+    it('reverts if msg.sender is not keeper', async () => {
       await expect(
         strategy.connect(alice).reinvestRewards(SWAP_TARGET, [], []),
-      ).to.be.revertedWith('StrategyCallerNotAdmin');
+      ).to.be.revertedWith('StrategyCallerNotKeeper');
     });
 
     it('revert if swapTarget is 0 address', async () => {
       await expect(
-        strategy.connect(admin).reinvestRewards(constants.AddressZero, [], []),
+        strategy.connect(keeper).reinvestRewards(constants.AddressZero, [], []),
       ).to.be.revertedWith('StrategySwapTargetCannotBe0Address');
     });
 
     it('reverts if eth & lqty rewards balance is zero', async () => {
       await expect(
-        strategy.connect(admin).reinvestRewards(SWAP_TARGET, [], []),
+        strategy.connect(keeper).reinvestRewards(SWAP_TARGET, [], []),
       ).to.be.revertedWith('StrategyNothingToReinvest');
     });
   });

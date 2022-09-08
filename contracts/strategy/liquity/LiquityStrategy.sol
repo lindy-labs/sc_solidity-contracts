@@ -38,10 +38,10 @@ contract LiquityStrategy is
     error StrategyTokenTransferFailed(address token);
     error StrategyNothingToReinvest();
     error StrategySwapTargetCannotBe0Address();
-    error StrategyLQTYSwapDataEmpty();
-    error StrategyETHSwapDataEmpty();
     error StrategyLQTYSwapFailed();
     error StrategyETHSwapFailed();
+    error StrategyCallerNotKeeper();
+    error StrategyKeeperCannotBe0Address();
 
     event StrategyRewardsClaimed(uint256 amountInLQTY, uint256 amountInETH);
     event StrategyRewardsReinvested(uint256 amountInLUSD);
@@ -54,7 +54,11 @@ contract LiquityStrategy is
         0x81C46fECa27B31F3ADC2b91eE4be9717d1cd3DD7;
     address public constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address public constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
+    
+    // role allowed to invest/withdraw assets to/from the strategy (vault)
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
+    // role allowed to call harvest() and reinvestRewards()
+    bytes32 public constant KEEPER_ROLE = keccak256("KEEPER_ROLE");
 
     IERC20 public underlying; // LUSD token
     /// @inheritdoc IStrategy
@@ -69,6 +73,11 @@ contract LiquityStrategy is
     modifier onlyManager() {
         if (!hasRole(MANAGER_ROLE, msg.sender))
             revert StrategyCallerNotManager();
+        _;
+    }
+
+    modifier onlyKeeper() {
+        if (!hasRole(KEEPER_ROLE, msg.sender)) revert StrategyCallerNotKeeper();
         _;
     }
 
@@ -87,7 +96,8 @@ contract LiquityStrategy is
         address _admin,
         address _stabilityPool,
         address _lqty,
-        address _underlying
+        address _underlying,
+        address _keeper
     ) public initializer {
         __AccessControl_init();
         __UUPSUpgradeable_init();
@@ -100,9 +110,12 @@ contract LiquityStrategy is
             revert StrategyUnderlyingCannotBe0Address();
         if (!_vault.doesContractImplementInterface(type(IVault).interfaceId))
             revert StrategyNotIVault();
+        if (_keeper == address(0)) revert StrategyKeeperCannotBe0Address();
 
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
+        _grantRole(KEEPER_ROLE, _admin);
         _grantRole(MANAGER_ROLE, _vault);
+        _grantRole(KEEPER_ROLE, _keeper);
 
         vault = _vault;
         underlying = IERC20(_underlying);
@@ -129,8 +142,10 @@ contract LiquityStrategy is
             revert StrategyCannotTransferAdminRightsToSelf();
 
         _grantRole(DEFAULT_ADMIN_ROLE, _newAdmin);
+        _grantRole(KEEPER_ROLE, _newAdmin);
 
         _revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
+        _revokeRole(KEEPER_ROLE, msg.sender);
     }
 
     //
@@ -263,7 +278,7 @@ contract LiquityStrategy is
         address _swapTarget,
         bytes calldata _lqtySwapData,
         bytes calldata _ethSwapData
-    ) public virtual onlyAdmin {
+    ) public virtual onlyKeeper {
         if (_swapTarget == address(0))
             revert StrategySwapTargetCannotBe0Address();
 

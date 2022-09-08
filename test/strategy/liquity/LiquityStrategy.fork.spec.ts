@@ -96,6 +96,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
         lqtyStabilityPool.address,
         lqty.address,
         lusd.address,
+        admin.address, // keeper
       ],
       {
         kind: 'uups',
