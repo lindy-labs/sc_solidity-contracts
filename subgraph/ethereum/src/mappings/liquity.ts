@@ -4,12 +4,17 @@ import {
   LiquityTrove,
 } from '../types/LiquityTrove/LiquityTrove';
 import {
+  ETHGainWithdrawn,
   StabilityPoolETHBalanceUpdated,
   StabilityPool,
 } from '../types/StabilityPool/StabilityPool';
 import { BigInt } from '@graphprotocol/graph-ts';
 
 export function handleLiquidation(event: LiquidationEvent): void {
+  // Bind the contract to the address that emitted the event
+  let trove = LiquityTrove.bind(event.address);
+  let pool = StabilityPool.bind(trove.stabilityPool());
+
   let liquidationCounter = LiquidationCounter.load('0');
   if (liquidationCounter == null) {
     liquidationCounter = new LiquidationCounter('0');
@@ -26,11 +31,11 @@ export function handleLiquidation(event: LiquidationEvent): void {
     prevLiquidationBalance = prevLiquidation.strategyBalance;
   }
 
-  const liquidation = new Liquidation(liquidationCounter.index.toString());
+  liquidationCounter.strategyBalance = prevLiquidationBalance.plus(
+    pool.getDepositorETHGain(event.transaction.from),
+  );
 
-  // Bind the contract to the address that emitted the event
-  let trove = LiquityTrove.bind(event.address);
-  let pool = StabilityPool.bind(trove.stabilityPool());
+  const liquidation = new Liquidation(liquidationCounter.index.toString());
 
   liquidation.timestamp = event.block.timestamp;
   liquidation.txHash = event.transaction.hash;
@@ -38,10 +43,7 @@ export function handleLiquidation(event: LiquidationEvent): void {
   liquidation.liquidatedCollateral = event.params._liquidatedColl;
   liquidation.collGasCompensation = event.params._collGasCompensation;
   liquidation.tokenGasCompensation = event.params._LUSDGasCompensation;
-  liquidation.strategyBalance = prevLiquidationBalance.plus(
-    pool.getDepositorETHGain(event.transaction.from),
-  );
-
+  liquidation.strategyBalance = liquidationCounter.strategyBalance;
   liquidation.save();
 
   liquidationCounter.index = liquidationCounter.index.plus(
@@ -50,6 +52,16 @@ export function handleLiquidation(event: LiquidationEvent): void {
   liquidationCounter.save();
 }
 
-export function handleStabilityPoolETHBalanceUpdated(
-  event: StabilityPoolETHBalanceUpdated,
-): void {}
+export function handleETHGainWithdrawn(
+  event: ETHGainWithdrawn,
+): void {
+  let liquidationCounter = LiquidationCounter.load('0');
+  if (liquidationCounter == null) {
+    liquidationCounter = new LiquidationCounter('0');
+    liquidationCounter.index = BigInt.fromString('0');
+  }
+
+  liquidationCounter.strategyBalance = liquidationCounter.strategyBalance.minus(event.params._ETH);
+
+  liquidationCounter.save();
+}

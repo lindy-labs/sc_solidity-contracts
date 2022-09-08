@@ -85,8 +85,5 @@ dataSources:
       entities:
         - Liquidation
       eventHandlers:
-        - event: StabilityPoolETHBalanceUpdated(uint256)
-          handler: handleLiquidation
-          # blockHandlers:
-          #   - handler: handleBlockWithCall
-          #     filter:
+        - event: ETHGainWithdrawn(indexed address,uint256,uint256)
+          handler: handleETHGainWithdrawn
