@@ -11,15 +11,8 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   const { deploy, get, getNetworkName } = env.deployments;
 
   const lusd = await get('LUSD');
-  console.log(
-    '1111111111111111111111111111111111111111111111111111111111111111111111111111111111',
-  );
   const dai = await get('DAI');
   const usdc = await get('USDC');
-
-  console.log(
-    '222222222222222222222222222222222222222222222222222222222222222222222222222222222222',
-  );
 
   if (getNetworkName() !== 'mainnet') {
     await deployMockCurvePool(env, 'CurvePool-LUSD-3CRV', 'LUSD', [
