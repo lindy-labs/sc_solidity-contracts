@@ -848,13 +848,14 @@ contract Vault is
 
         bool isFull = _amount == _deposit.amount;
 
+        emit Unsponsored(_tokenId, _amount, _to, isFull);
+
         if (!isFull) {
             deposits[_tokenId].amount -= _amount;
-        } else {
-            delete deposits[_tokenId];
+            return;
         }
 
-        emit Unsponsored(_tokenId, _amount, _to, isFull);
+        delete deposits[_tokenId];
     }
 
     /**
