@@ -1,0 +1,13 @@
+{
+    "topics": [
+        {
+            "name": "solc",
+            "messages": [
+                {
+                    "message": "Cannot import url (\"/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/Vault.sol\"): File outside of allowed directories.",
+                    "location": []
+                }
+            ]
+        }
+    ]
+}

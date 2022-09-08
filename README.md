@@ -70,6 +70,12 @@ $ bin/tenderly-debug <tx-hash>
 
 with the tx-hash of the respective transaction you want to debug.
 
+### [Certora]
+
+Scripts may be run at the contracts folder level. For example: ./properties/certora/Valid_Deposit/Valid_Deposit.sh
+
+To be able to process the script in the Certora remote server, a special key need to be configured in your environment
+
 ### Deployed contracts
 
 Check the [deployments folder](./deployments)
