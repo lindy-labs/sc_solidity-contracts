@@ -20,7 +20,7 @@ export function handleLiquidation(event: LiquidationEvent): void {
     liquidationCounter.index.minus(BigInt.fromString('1')).toString(),
   );
 
-  let prevLiquidationBalance = BigInt.fromString('3');
+  let prevLiquidationBalance = BigInt.fromString('0');
 
   if (prevLiquidation != null) {
     prevLiquidationBalance = prevLiquidation.strategyBalance;
