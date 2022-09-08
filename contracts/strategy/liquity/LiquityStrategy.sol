@@ -238,7 +238,7 @@ contract LiquityStrategy is
         bytes calldata _lqtySwapData,
         uint256 _ethAmount,
         bytes calldata _ethSwapData
-    ) public virtual onlyKeeper {
+    ) external virtual onlyKeeper {
         if (_swapTarget == address(0))
             revert StrategySwapTargetCannotBe0Address();
 
@@ -270,7 +270,7 @@ contract LiquityStrategy is
         address _swapTarget,
         bytes calldata _lqtySwapData
     ) internal {
-        // don't do cross-contract call if notning to swap
+        // don't do cross-contract call if nothing to swap
         if (_amount == 0 || _lqtySwapData.length == 0) return;
 
         uint256 lqtyBalance = lqty.balanceOf(address(this));
@@ -300,7 +300,7 @@ contract LiquityStrategy is
         address _swapTarget,
         bytes calldata _ethSwapData
     ) internal {
-        // don't do cross-contract call if notning to swap
+        // don't do cross-contract call if nothing to swap
         if (_amount == 0 || _ethSwapData.length == 0) return;
 
         uint256 ethBalance = address(this).balance;
