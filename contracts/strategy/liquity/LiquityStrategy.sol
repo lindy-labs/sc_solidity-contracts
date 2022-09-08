@@ -37,6 +37,8 @@ contract LiquityStrategy is
     error StrategyTokenTransferFailed(address token);
     error StrategyNothingToReinvest();
     error StrategySwapTargetCannotBe0Address();
+    error StrategyNotEnoughLQTY();
+    error StrategyNotEnoughETH();
     error StrategyLQTYSwapFailed();
     error StrategyETHSwapFailed();
     error StrategyCallerNotKeeper();
@@ -232,6 +234,7 @@ contract LiquityStrategy is
      */
     function reinvest(
         address _swapTarget,
+        uint256 _lqtyAmount,
         bytes calldata _lqtySwapData,
         uint256 _ethAmount,
         bytes calldata _ethSwapData
@@ -239,22 +242,18 @@ contract LiquityStrategy is
         if (_swapTarget == address(0))
             revert StrategySwapTargetCannotBe0Address();
 
-        uint256 lqtyBalance = lqty.balanceOf(address(this));
-        uint256 ethBalance = address(this).balance;
-
-        if (lqtyBalance == 0 && ethBalance == 0)
-            revert StrategyNothingToReinvest();
-
-        swapLQTYtoLUSD(lqtyBalance, _swapTarget, _lqtySwapData);
+        swapLQTYtoLUSD(_lqtyAmount, _swapTarget, _lqtySwapData);
         swapETHtoLUSD(_ethAmount, _swapTarget, _ethSwapData);
 
         // reinvest LUSD gains into the stability pool
         uint256 balance = underlying.balanceOf(address(this));
-        if (balance != 0) {
-            emit StrategyReinvested(balance);
-
-            stabilityPool.provideToSP(balance, address(0));
+        if (balance == 0) {
+            revert StrategyNothingToReinvest();
         }
+
+        emit StrategyReinvested(balance);
+
+        stabilityPool.provideToSP(balance, address(0));
     }
 
     /**
@@ -273,6 +272,9 @@ contract LiquityStrategy is
     ) internal {
         // don't do cross-contract call if notning to swap
         if (_amount == 0 || _lqtySwapData.length == 0) return;
+
+        uint256 lqtyBalance = lqty.balanceOf(address(this));
+        if (_amount > lqtyBalance) revert StrategyNotEnoughLQTY();
 
         // give approval to the swapTarget
         if (!lqty.approve(_swapTarget, _amount)) {
@@ -300,6 +302,9 @@ contract LiquityStrategy is
     ) internal {
         // don't do cross-contract call if notning to swap
         if (_amount == 0 || _ethSwapData.length == 0) return;
+
+        uint256 ethBalance = address(this).balance;
+        if (_amount > ethBalance) revert StrategyNotEnoughETH();
 
         (bool success, ) = _swapTarget.call{value: _amount}(_ethSwapData);
         if (!success) revert StrategyETHSwapFailed();

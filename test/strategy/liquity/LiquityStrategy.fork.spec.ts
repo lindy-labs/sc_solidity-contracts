@@ -164,8 +164,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       expect(await lqty.balanceOf(strategy.address)).to.eq('0');
       expect(await ethers.provider.getBalance(strategy.address)).to.eq('0');
 
-      // withdraws gains from the stability pool
-      const tx = await strategy.harvest();
+      await strategy.harvest();
 
       expect(await lusd.balanceOf(strategy.address)).to.eq('0');
       expect(await lqty.balanceOf(strategy.address)).to.eq(
@@ -188,6 +187,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
 
       const tx = await strategy.reinvest(
         SWAP_TARGET,
+        EXPECTED_LQTY_REWARD,
         SWAP_LQTY_DATA,
         EXPECTED_ETH_REWARD,
         SWAP_ETH_DATA,
@@ -216,6 +216,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
 
       await strategy.reinvest(
         SWAP_TARGET,
+        EXPECTED_LQTY_REWARD,
         SWAP_LQTY_DATA,
         EXPECTED_ETH_REWARD,
         [],
@@ -242,6 +243,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
 
       await strategy.reinvest(
         SWAP_TARGET,
+        EXPECTED_LQTY_REWARD,
         [],
         EXPECTED_ETH_REWARD,
         SWAP_ETH_DATA,
@@ -266,6 +268,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
 
       await strategy.reinvest(
         SWAP_TARGET,
+        0,
         [],
         EXPECTED_ETH_REWARD,
         SWAP_ETH_DATA,
@@ -287,9 +290,9 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       // add only ETH to the strategy
       ForkHelpers.setBalance(strategy.address, EXPECTED_ETH_REWARD);
 
-      // withdraws gains from stability pool and reinvests
       await strategy.reinvest(
         SWAP_TARGET,
+        0,
         SWAP_LQTY_DATA,
         EXPECTED_ETH_REWARD,
         SWAP_ETH_DATA,
@@ -312,8 +315,13 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       // add only LQTY tokens to the strategy
       await ForkHelpers.mintToken(lqty, strategy.address, EXPECTED_LQTY_REWARD);
 
-      // withdraws gains from stability pool and reinvests
-      await strategy.reinvest(SWAP_TARGET, SWAP_LQTY_DATA, 0, SWAP_ETH_DATA);
+      await strategy.reinvest(
+        SWAP_TARGET,
+        EXPECTED_LQTY_REWARD,
+        SWAP_LQTY_DATA,
+        0,
+        SWAP_ETH_DATA,
+      );
 
       expect(await lusd.balanceOf(strategy.address)).to.eq('0');
       expect(await lqty.balanceOf(strategy.address)).to.eq('0');
@@ -331,9 +339,9 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       // add only LQTY tokens to the strategy
       await ForkHelpers.mintToken(lqty, strategy.address, EXPECTED_LQTY_REWARD);
 
-      // withdraws gains from stability pool and reinvests
       await strategy.reinvest(
         SWAP_TARGET,
+        EXPECTED_LQTY_REWARD,
         SWAP_LQTY_DATA,
         EXPECTED_ETH_REWARD,
         [],
@@ -355,11 +363,11 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       await ForkHelpers.mintToken(lqty, strategy.address, EXPECTED_LQTY_REWARD);
       ForkHelpers.setBalance(strategy.address, EXPECTED_ETH_REWARD);
 
-      // send ETH swap data instead of LQTY swap data
       await expect(
         strategy.reinvest(
           SWAP_TARGET,
-          SWAP_ETH_DATA,
+          EXPECTED_LQTY_REWARD,
+          SWAP_ETH_DATA, // send ETH swap data instead of LQTY swap data
           EXPECTED_ETH_REWARD,
           SWAP_ETH_DATA,
         ),
@@ -374,13 +382,13 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       await ForkHelpers.mintToken(lqty, strategy.address, EXPECTED_LQTY_REWARD);
       ForkHelpers.setBalance(strategy.address, EXPECTED_ETH_REWARD);
 
-      // send LQTY swap data instead of ETH swap data
       await expect(
         strategy.reinvest(
           SWAP_TARGET,
+          EXPECTED_LQTY_REWARD,
           SWAP_LQTY_DATA,
           EXPECTED_ETH_REWARD,
-          SWAP_LQTY_DATA,
+          SWAP_LQTY_DATA, // send LQTY swap data instead of ETH swap data
         ),
       ).to.be.revertedWith('StrategyETHSwapFailed');
     });
@@ -396,6 +404,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       await expect(
         strategy.reinvest(
           SWAP_TARGET,
+          EXPECTED_LQTY_REWARD,
           SWAP_LQTY_DATA,
           EXPECTED_ETH_REWARD.div(2), // amount is half of the expected
           SWAP_ETH_DATA, // was obtained for EXPECTED_ETH_REWARD amount
@@ -411,6 +420,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       expect(
         strategy.reinvest(
           SWAP_TARGET,
+          EXPECTED_LQTY_REWARD,
           SWAP_LQTY_DATA,
           EXPECTED_ETH_REWARD,
           SWAP_ETH_DATA,
