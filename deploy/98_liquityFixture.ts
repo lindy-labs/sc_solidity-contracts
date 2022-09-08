@@ -7,13 +7,17 @@ import { includes } from 'lodash';
 const func = async function (env: HardhatRuntimeEnvironment) {
   const [_owner, _alice, _bob] = await ethers.getSigners();
   const { deployer } = await env.getNamedAccounts();
-  const { deploy } = env.deployments;
+  const { deploy, get } = env.deployments;
+
+  const stabilityPool = await get('LiquityStabilityPool');
+
+  console.log('STABILITY POOL ADDRESS', stabilityPool.address);
 
   const troveManagerDeployment = await deploy('TroveManager', {
     contract: 'MockTroveManager',
     from: deployer,
     log: true,
-    args: [],
+    args: [stabilityPool.address],
   });
   const troveManager = await ethers.getContractAt(
     'MockTroveManager',

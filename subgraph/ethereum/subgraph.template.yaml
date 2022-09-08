@@ -60,28 +60,33 @@ dataSources:
       abis:
         - name: LiquityTrove
           file: ./external_abis/LiquityTrove.json
+        - name: StabilityPool
+          file: ./abis/contracts/mock/liquity/MockStabilityPool.sol/MockStabilityPool.json
       eventHandlers:
         - event: Liquidation(uint256,uint256,uint256,uint256)
           handler: handleLiquidation
-            #   - name: StabilityPool
-            #     kind: ethereum/contract
-            #     {{#liquityPool}}
-            #     network: {{network}}
-            #     source:
-            #       abi: StabilityPool
-            #       address: "{{address}}"
-            #       startBlock: {{startBlock}}
-            #     {{/liquityPool}}
-            #     mapping: &mapping
-            #       kind: ethereum/events
-            #       apiVersion: 0.0.6
-            #       language: wasm/assemblyscript
-            #       file: ./src/mappings/liquity.ts
-            #       abis:
-            #         - name: StabilityPool
-            #           file: ./abis/contracts/mock/liquity/MockStabilityPool.sol/MockStabilityPool.json
-            #       entities:
-            #         - Liquidation
-            #       blockHandlers:
-            #         - handler: handleBlockWithCall
-            #           filter:
+  - name: StabilityPool
+    kind: ethereum/contract
+    {{#liquityPool}}
+    network: {{network}}
+    source:
+      abi: StabilityPool
+      address: "{{address}}"
+      startBlock: {{startBlock}}
+    {{/liquityPool}}
+    mapping: &mapping
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      file: ./src/mappings/liquity.ts
+      abis:
+        - name: StabilityPool
+          file: ./abis/contracts/mock/liquity/MockStabilityPool.sol/MockStabilityPool.json
+      entities:
+        - Liquidation
+      eventHandlers:
+        - event: StabilityPoolETHBalanceUpdated(uint256)
+          handler: handleLiquidation
+          # blockHandlers:
+          #   - handler: handleBlockWithCall
+          #     filter:

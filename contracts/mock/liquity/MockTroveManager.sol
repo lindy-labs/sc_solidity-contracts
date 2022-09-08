@@ -9,6 +9,12 @@ pragma solidity =0.8.10;
 contract MockTroveManager {
     string public constant NAME = "TroveManager";
 
+    address public stabilityPool;
+
+    constructor(address _stabilityPool) {
+        stabilityPool = _stabilityPool;
+    }
+
     event Liquidation(
         uint256 _liquidatedDebt,
         uint256 _liquidatedColl,
