@@ -1065,7 +1065,7 @@ contract Vault is
             _claim.totalPrincipal;
 
         if (!_force && amountShares > claimerShares)
-            revert VaultCannotWithdrawMoreThanAvailable();
+            revert VaultMustUseForceWithdrawToAcceptLosses();
 
         uint256 sharesToBurn = amountShares;
 
