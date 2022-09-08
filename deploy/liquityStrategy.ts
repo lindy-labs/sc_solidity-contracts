@@ -83,9 +83,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
   console.log('manager_role granted to owner for strategy');
 
-  await (
-    await vault.connect(owner).setStrategy(liquityStrategy.address)
-  ).wait();
+  await vault.connect(owner).setStrategy(liquityStrategy.address);
   console.log('strategy set to vault');
 
   if (owner.address !== multisig) {
