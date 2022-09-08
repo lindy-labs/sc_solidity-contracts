@@ -296,7 +296,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
         [],
         EXPECTED_ETH_REWARD,
         SWAP_ETH_DATA,
-        REWARD_IN_LUSD,
+        ETH_REWARD_IN_LUSD,
       );
 
       expect(await ethers.provider.getBalance(strategy.address)).to.eq(
