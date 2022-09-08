@@ -309,9 +309,6 @@ describe('RyskStrategy', () => {
       await strategy.connect(manager).withdrawToVault(parseUnits('50'));
 
       // all unredeemed shares are redeemed when a withdrawal is initiated
-      expect(await ryskLqPool.balanceOf(strategy.address)).to.eq(
-        unredeemedShares,
-      );
       expect(
         (await ryskLqPool.depositReceipts(strategy.address)).unredeemedShares,
       ).to.eq(0);
@@ -485,20 +482,32 @@ describe('RyskStrategy', () => {
       expect(await strategy.investedAssets()).to.eq(0);
     });
 
-    it('includes unredeemed and redeemed shares', async () => {
+    it('includes into account all unredeemed, redeemed and pending shares', async () => {
       let underlyingAmount = parseUnits('100');
       await underlying.mint(strategy.address, parseUnits('100'));
       await strategy.connect(manager).invest();
 
-      // initiate withdrawal and redeem all shares
-      await strategy.connect(manager).withdrawToVault(underlyingAmount);
+      // initiate withdrawal to redeem all shares by withdrawing 50% of underlying
+      // this will result in 50 shares on pending withdrawal receipt and 50 redeemed shares
+      await strategy.connect(manager).withdrawToVault(underlyingAmount.div(2));
 
-      // invest again to get unredeemed shares
+      // invest again to get 100 unredeemed shares
       await underlying.mint(strategy.address, underlyingAmount);
       await strategy.connect(manager).invest();
 
+      // 1 share = 1 underlying
+      expect(
+        (await ryskLqPool.depositReceipts(strategy.address)).unredeemedShares,
+      ).to.eq(parseUnits('100'));
+      expect(
+        (await ryskLqPool.withdrawalReceipts(strategy.address)).shares,
+      ).to.eq(parseUnits('50'));
+      expect(await ryskLqPool.balanceOf(strategy.address)).to.eq(
+        parseUnits('50'),
+      );
+
       expect(await strategy.hasAssets()).to.be.true;
-      expect(await strategy.investedAssets()).to.eq(underlyingAmount.mul(2));
+      expect(await strategy.investedAssets()).to.eq(parseUnits('200'));
     });
   });
 });

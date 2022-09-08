@@ -36,7 +36,8 @@ interface IRyskLiquidityPool is IERC20 {
      * Deposits the specified amount of underlying currency into the pool.
      *
      * @notice The amount of underlying currency deposited is converted to shares.
-     * On sucessful deposit, deposit receipt is created, new shares are minted but
+     * On sucessful deposit, deposit receipt is created containing the amount of unredeemed shares.
+     * Only when a new deposit epoch is initiated, those shares are minted but
      * ownership of the shares is not transferred to the caller (unredeemed shares).
      * Shares will be redeemed on the next initiateWithdrawal call.
      *
@@ -60,11 +61,11 @@ interface IRyskLiquidityPool is IERC20 {
      * Initiates a withdrawal in amount of shares from the pool.
      *
      * @notice This is the first part of the asynchronous withdrawal operation.
-     * Unredeemed shares are transferred (redeemed) to the caller and withdrawal receipt is created for the current epoch.
+     * Unredeemed shares are transferred (redeemed) to the caller and withdrawal receipt is created for the current withdrawal epoch.
      * To actually withdraw the funds, the completeWithdrawal must be called.
      *
      * @notice Multiple calls in the same epoch will aggregate the shares to withdraw in the withdrawal receipt.
-     * Calling this method in later epoch will override the previous withdrawal receipt.
+     * Calling this method in a later withdrawal epoch will revert, assuming the initiated withdrawal isn't completed.
      *
      * @param _shares the amount of shares to withdraw
      */
@@ -74,9 +75,9 @@ interface IRyskLiquidityPool is IERC20 {
      * Completes the withdrawal operation.
      *
      * @notice This is the second part of the asynchronous withdrawal operation.
-     * Shares are converted to underlying currency and transferred to the caller, using price per share for the current epoch.
+     * Shares are converted to underlying currency and transferred to the caller, using price per share for the current withdrawal epoch.
      * initiateWithdrawal and completeWithdrawal cannot be called in the same epoch.
-     * On success, the withdrawal receipt is updated.
+     * On success, the withdrawal receipt is updated, shares are burned and the caller receives the underlying currency.
      *
      * @param _shares the amount of shares to withdraw. Can be less than the amount of shares in the withdrawal receipt.
      */

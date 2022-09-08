@@ -98,7 +98,12 @@ contract RyskStrategy is BaseStrategy {
         override(IStrategy)
         returns (uint256)
     {
+        uint256 pendingWithdrawalAmount = (pendingWithdrawal.shares *
+            ryskLqPool.withdrawalEpochPricePerShare(pendingWithdrawal.epoch)) /
+            SHARES_CONVERSION_FACTOR;
+
         return
+            pendingWithdrawalAmount +
             (_getTotalShares() * _getPricePerShare()) /
             SHARES_CONVERSION_FACTOR;
     }
@@ -125,7 +130,6 @@ contract RyskStrategy is BaseStrategy {
         _initializePendingWithdrawal();
 
         uint256 sharesToWithdraw = _underlyingToShares(_amount);
-
         _addSharesToPendingWithdrawal(sharesToWithdraw);
 
         emit RyskWithdrawalInitiated(_amount);
@@ -220,8 +224,9 @@ contract RyskStrategy is BaseStrategy {
      * @param _sharesToWithdraw number of shares to withdraw
      */
     function _addSharesToPendingWithdrawal(uint256 _sharesToWithdraw) internal {
-        bool hasEnoughSharesToWithdraw = _sharesToWithdraw <=
-            _getTotalShares() - pendingWithdrawal.shares;
+        bool hasEnoughSharesToWithdraw = _getTotalShares() +
+            pendingWithdrawal.shares >=
+            _sharesToWithdraw;
 
         if (!hasEnoughSharesToWithdraw) revert StrategyNotEnoughShares();
 

@@ -59,36 +59,39 @@ contract MockRyskLiquidityPool is ERC20 {
 
     // note two different behaviors depending on epoch:
     // 1. when called second time and epoch has not advanced => add to the previous receipt
-    // 2. when called second time and epoch has advanced => override the previous receipt
+    // 2. when called second time and epoch has advanced => revert
     function initiateWithdraw(uint256 _shares) external {
         require(_shares > 0);
 
         _redeemUnredeemedShares();
 
+        require(
+            _shares <= balanceOf(msg.sender),
+            "Not enough shares to withdraw"
+        );
+
         IRyskLiquidityPool.WithdrawalReceipt
             storage withdrawalReceipt = withdrawalReceipts[msg.sender];
 
-        if (withdrawalReceipt.epoch == withdrawalEpoch) {
-            require(
-                withdrawalReceipt.shares + _shares <=
-                    this.balanceOf(msg.sender),
-                "Not enough shares to withdraw"
-            );
+        // transfer shares to the pool to initiate withdrawal
+        _transfer(msg.sender, address(this), _shares);
 
-            // add to the previous receipt
+        if (withdrawalReceipt.epoch == 0) {
+            // initiate withdrawal receipt
+            withdrawalReceipt.epoch = uint128(withdrawalEpoch);
+            withdrawalReceipt.shares = uint128(_shares);
+            return;
+        }
+
+        if (withdrawalReceipt.epoch == withdrawalEpoch) {
+            // add to the previous receipt since withdrawal is already initiated for this epoch
             withdrawalReceipt.shares = uint128(
                 withdrawalReceipt.shares + _shares
             );
-        } else {
-            require(
-                _shares <= this.balanceOf(msg.sender),
-                "Not enough shares to withdraw"
-            );
-
-            // override the previous receipt
-            withdrawalReceipt.epoch = uint128(withdrawalEpoch);
-            withdrawalReceipt.shares = uint128(_shares);
+            return;
         }
+
+        require(false, "Withdrawal already initiated");
     }
 
     function completeWithdraw(uint256 _shares) external returns (uint256) {
@@ -100,7 +103,7 @@ contract MockRyskLiquidityPool is ERC20 {
             withdrawalEpochPricePerShare[withdrawalEpoch]) / 1e18;
 
         underlying.transfer(msg.sender, amount);
-        _burn(msg.sender, sharesToWithdraw);
+        _burn(address(this), sharesToWithdraw);
 
         return amount;
     }
@@ -127,7 +130,7 @@ contract MockRyskLiquidityPool is ERC20 {
         uint256 unredeemedShares = depositReceipts[msg.sender].unredeemedShares;
 
         if (unredeemedShares != 0) {
-            this.transfer(msg.sender, unredeemedShares);
+            _transfer(address(this), msg.sender, unredeemedShares);
             depositReceipts[msg.sender].unredeemedShares = 0;
         }
     }
