@@ -1,4 +1,4 @@
-import { Liquidation } from '../types/schema';
+import { Liquidation, LiquidationCounter } from '../types/schema';
 import {
   Liquidation as LiquidationEvent,
   LiquityTrove,
@@ -7,7 +7,7 @@ import {
   StabilityPoolETHBalanceUpdated,
   StabilityPool,
 } from '../types/StabilityPool/StabilityPool';
-import { BigInt, ethereum } from '@graphprotocol/graph-ts';
+import { BigInt } from '@graphprotocol/graph-ts';
 
 export function handleLiquidation(event: LiquidationEvent): void {
   const liquidation = new Liquidation(
@@ -28,7 +28,16 @@ export function handleLiquidation(event: LiquidationEvent): void {
     pool.getDepositorETHGain(event.transaction.from),
   );
 
+  let liquidationCounter = LiquidationCounter.load('0');
+  if (liquidationCounter == null) {
+    liquidationCounter = new LiquidationCounter('0');
+    liquidationCounter.index = BigInt.fromString('0');
+  }
+
   liquidation.save();
+
+  liquidationCounter.index = liquidationCounter.index.plus(BigInt.fromString('1'));
+  liquidationCounter.save();
 }
 
 export function handleStabilityPoolETHBalanceUpdated(

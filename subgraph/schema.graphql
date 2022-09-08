@@ -78,3 +78,8 @@ type Liquidation @entity {
   tokenGasCompensation: BigInt!
   strategyBalance: BigInt
 }
+
+type LiquidationCounter @entity {
+  id: ID!
+  index: BigInt!
+}
