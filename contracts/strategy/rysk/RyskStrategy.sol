@@ -91,6 +91,7 @@ contract RyskStrategy is BaseStrategy {
     }
 
     /// @inheritdoc IStrategy
+    /// @notice this includes redeemed, unredeemed and shares for included in the pending withdrawal
     function investedAssets()
         external
         view
