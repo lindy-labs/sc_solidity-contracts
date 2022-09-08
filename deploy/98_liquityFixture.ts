@@ -11,8 +11,6 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
   const stabilityPool = await get('LiquityStabilityPool');
 
-  console.log('STABILITY POOL ADDRESS', stabilityPool.address);
-
   const troveManagerDeployment = await deploy('TroveManager', {
     contract: 'MockTroveManager',
     from: deployer,
