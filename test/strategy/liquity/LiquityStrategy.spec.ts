@@ -385,42 +385,22 @@ describe('LiquityStrategy', () => {
     });
   });
 
-  describe('#harvest', () => {
+  describe('#reinvest', () => {
     it('reverts if msg.sender is not keeper', async () => {
       await expect(
-        strategy.connect(alice).harvest(SWAP_TARGET, [], []),
+        strategy.connect(alice).reinvest(SWAP_TARGET, [], 0, []),
       ).to.be.revertedWith('StrategyCallerNotKeeper');
     });
 
     it('revert if swapTarget is 0 address', async () => {
       await expect(
-        strategy.connect(keeper).harvest(constants.AddressZero, [], []),
+        strategy.connect(keeper).reinvest(constants.AddressZero, [], 0, []),
       ).to.be.revertedWith('StrategySwapTargetCannotBe0Address');
     });
 
     it('reverts if eth & lqty rewards balance is zero', async () => {
       await expect(
-        strategy.connect(keeper).harvest(SWAP_TARGET, [], []),
-      ).to.be.revertedWith('StrategyNothingToReinvest');
-    });
-  });
-
-  describe('#reinvestRewards', () => {
-    it('reverts if msg.sender is not keeper', async () => {
-      await expect(
-        strategy.connect(alice).reinvestRewards(SWAP_TARGET, [], []),
-      ).to.be.revertedWith('StrategyCallerNotKeeper');
-    });
-
-    it('revert if swapTarget is 0 address', async () => {
-      await expect(
-        strategy.connect(keeper).reinvestRewards(constants.AddressZero, [], []),
-      ).to.be.revertedWith('StrategySwapTargetCannotBe0Address');
-    });
-
-    it('reverts if eth & lqty rewards balance is zero', async () => {
-      await expect(
-        strategy.connect(keeper).reinvestRewards(SWAP_TARGET, [], []),
+        strategy.connect(keeper).reinvest(SWAP_TARGET, [], 0, []),
       ).to.be.revertedWith('StrategyNothingToReinvest');
     });
   });
