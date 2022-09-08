@@ -7,6 +7,8 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 contract MockStabilityPool is IStabilityPool {
     IERC20 public immutable lusd;
 
+    event StabilityPoolETHBalanceUpdated(uint _newBalance);
+
     constructor(address _lusd) {
         lusd = IERC20(_lusd);
     }

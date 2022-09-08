@@ -76,4 +76,5 @@ type Liquidation @entity {
   liquidatedCollateral: BigInt!
   collGasCompensation: BigInt!
   tokenGasCompensation: BigInt!
+  strategyBalance: BigInt
 }
