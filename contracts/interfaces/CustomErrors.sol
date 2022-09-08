@@ -117,6 +117,9 @@ interface CustomErrors {
     // Vault: cannot withdraw more than the available amount
     error VaultCannotWithdrawMoreThanAvailable();
 
+    // Vault: must force withdraw to withdraw with a loss
+    error VaultMustUseForceWithdrawToAcceptLosses();
+
     // Vault: amount received does not match params
     error VaultAmountDoesNotMatchParams();
 
