@@ -2440,7 +2440,7 @@ describe('Vault', () => {
         .partialWithdraw(alice.address, [1], [parseUnits('25')]);
 
       await expect(tx).to.be.revertedWith(
-        'VaultCannotWithdrawMoreThanAvailable',
+        'VaultMustUseForceWithdrawToAcceptLosses',
       );
     });
 
@@ -2461,7 +2461,7 @@ describe('Vault', () => {
         .partialWithdraw(alice.address, [1], [parseUnits('100')]);
 
       await expect(tx).to.be.revertedWith(
-        'VaultCannotWithdrawMoreThanAvailable',
+        'VaultMustUseForceWithdrawToAcceptLosses',
       );
     });
 
