@@ -228,7 +228,7 @@ contract Vault is
     //
 
     /// @inheritdoc IVault
-    function totalUnderlying() public view override(IVault) returns (uint256) {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00b60000, 1037618708662) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00b60001, 0) }
+    function totalUnderlying() public view override(IVault) returns (uint256) {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00b80000, 1037618708664) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00b80001, 0) }
         if (address(strategy) != address(0)) {
             return
                 underlying.balanceOf(address(this)) + strategy.investedAssets();
@@ -247,7 +247,7 @@ contract Vault is
             uint256 shares,
             uint256 perfFee
         )
-    {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00b40000, 1037618708660) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00b40001, 1) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00b41000, _to) }
+    {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00b60000, 1037618708662) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00b60001, 1) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00b61000, _to) }
         uint256 claimerPrincipal = claimer[_to].totalPrincipal;
         uint256 claimerShares = claimer[_to].totalShares;
         uint256 _totalUnderlyingMinusSponsored = totalUnderlyingMinusSponsored();
@@ -292,11 +292,15 @@ contract Vault is
         depositIds = _doDeposit(_groupId, _params);
     }
 
+    function setDGI(uint256 dgi) public {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00a60000, 1037618708646) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00a60001, 1) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00a61000, dgi) }
+        _depositGroupIds = dgi;
+    }
+
     /// @inheritdoc IVault
     function deposit(DepositParams calldata _params)
         external
-        nonReentrant
-        whenNotPaused
+        //nonReentrant
+        //whenNotPaused
         returns (uint256[] memory depositIds)
     {
         uint256 depositGroupId = _depositGroupIds;
@@ -309,18 +313,18 @@ contract Vault is
     function _doDeposit(uint256 _groupId, DepositParams calldata _params)
         internal
         returns (uint256[] memory depositIds)
-    {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff008d0000, 1037618708621) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff008d0001, 2) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff008d1000, _groupId) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff008d1001, _params) }
+    {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff008e0000, 1037618708622) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff008e0001, 2) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff008e1000, _groupId) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff008e1001, _params) }
         if (_params.amount == 0) revert VaultCannotDeposit0();
-        if (
+        /*if (
             _params.lockDuration < minLockPeriod ||
             _params.lockDuration > MAX_DEPOSIT_LOCK_DURATION
-        ) revert VaultInvalidLockPeriod();
+        ) revert VaultInvalidLockPeriod();*/
         if (bytes(_params.name).length < 3) revert VaultDepositNameTooShort();
 
         uint256 principalMinusStrategyFee = _applyLossTolerance(totalPrincipal);
         uint256 previousTotalUnderlying = totalUnderlyingMinusSponsored();
-        if (principalMinusStrategyFee > previousTotalUnderlying)
-            revert VaultCannotDepositWhenYieldNegative();
+        /*if (principalMinusStrategyFee > previousTotalUnderlying)
+            revert VaultCannotDepositWhenYieldNegative();*/
 
         _transferAndCheckInputToken(
             msg.sender,
@@ -335,14 +339,14 @@ contract Vault is
 
         uint64 lockedUntil = _params.lockDuration + _blockTimestamp();
 
-        depositIds = _createDeposit(
+        /*depositIds = _createDeposit(
             previousTotalUnderlying,
             newUnderlyingAmount,
             lockedUntil,
             _params.claims,
             _params.name,
             _groupId
-        );
+        );*/
     }
 
     /// @inheritdoc IVault
@@ -423,7 +427,7 @@ contract Vault is
         view
         override(IVault)
         returns (uint256 maxInvestableAmount, uint256 alreadyInvested)
-    {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00bc0000, 1037618708668) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00bc0001, 0) }
+    {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00be0000, 1037618708670) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00be0001, 0) }
         if (address(strategy) == address(0)) {
             return (0, 0);
         }
@@ -556,7 +560,7 @@ contract Vault is
         view
         override(CurveSwapper)
         returns (address)
-    {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00c00000, 1037618708672) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00c00001, 0) }
+    {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00c20000, 1037618708674) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00c20001, 0) }
         return address(underlying);
     }
 
@@ -655,7 +659,7 @@ contract Vault is
      *
      * @return Total amount of principal and yield help by the vault (not including sponsored amount and performance fee).
      */
-    function totalUnderlyingMinusSponsored() public view returns (uint256) {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00a40000, 1037618708644) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00a40001, 0) }
+    function totalUnderlyingMinusSponsored() public view returns (uint256) {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00a50000, 1037618708645) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00a50001, 0) }
         uint256 _totalUnderlying = totalUnderlying();
         uint256 deductAmount = totalSponsored + accumulatedPerfFee;
         if (deductAmount > _totalUnderlying) {
@@ -675,7 +679,7 @@ contract Vault is
         virtual
         override(ERC165, AccessControl)
         returns (bool)
-    {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00b30000, 1037618708659) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00b30001, 1) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00b31000, interfaceId) }
+    {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00b50000, 1037618708661) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00b50001, 1) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00b51000, interfaceId) }
         return
             interfaceId == type(IVault).interfaceId ||
             interfaceId == type(IVaultSponsoring).interfaceId ||
@@ -699,7 +703,7 @@ contract Vault is
         address _to,
         uint256[] calldata _ids,
         bool _force
-    ) internal {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff008e0000, 1037618708622) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff008e0001, 4) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff008e1000, _to) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff008e2001, _ids.length) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff008e3001, _ids.offset) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff008e1002, _force) }
+    ) internal {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff008f0000, 1037618708623) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff008f0001, 4) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff008f1000, _to) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff008f2001, _ids.length) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff008f3001, _ids.offset) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff008f1002, _force) }
         uint256 localTotalShares = totalShares;
         uint256 localTotalPrincipal = totalUnderlyingMinusSponsored();
         uint256 amount;
@@ -727,7 +731,7 @@ contract Vault is
         address _to,
         uint256[] calldata _ids,
         uint256[] calldata _amounts
-    ) internal {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00900000, 1037618708624) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00900001, 5) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00901000, _to) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00902001, _ids.length) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00903001, _ids.offset) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00902002, _amounts.length) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00903002, _amounts.offset) }
+    ) internal {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00910000, 1037618708625) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00910001, 5) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00911000, _to) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00912001, _ids.length) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00913001, _ids.offset) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00912002, _amounts.length) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00913002, _amounts.offset) }
         uint256 localTotalShares = totalShares;
         uint256 localTotalPrincipal = totalUnderlyingMinusSponsored();
         uint256 amount;
@@ -758,7 +762,7 @@ contract Vault is
      *
      * @param _amount Funds to be transferred from the vault.
      */
-    function _rebalanceBeforeWithdrawing(uint256 _amount) internal {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00910000, 1037618708625) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00910001, 1) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00911000, _amount) }
+    function _rebalanceBeforeWithdrawing(uint256 _amount) internal {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00920000, 1037618708626) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00920001, 1) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00921000, _amount) }
         uint256 vaultBalance = underlying.balanceOf(address(this));
 
         if (_amount <= vaultBalance) return;
@@ -786,7 +790,7 @@ contract Vault is
      * @param _to Address that will receive the funds.
      * @param _ids Array with the ids of the deposits.
      */
-    function _unsponsor(address _to, uint256[] calldata _ids) internal {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff008f0000, 1037618708623) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff008f0001, 3) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff008f1000, _to) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff008f2001, _ids.length) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff008f3001, _ids.offset) }
+    function _unsponsor(address _to, uint256[] calldata _ids) internal {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00900000, 1037618708624) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00900001, 3) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00901000, _to) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00902001, _ids.length) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00903001, _ids.offset) }
         uint256 sponsorAmount;
         uint256 idsLen = _ids.length;
 
@@ -814,7 +818,7 @@ contract Vault is
         address _to,
         uint256[] calldata _ids,
         uint256[] calldata _amounts
-    ) internal {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00920000, 1037618708626) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00920001, 5) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00921000, _to) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00922001, _ids.length) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00923001, _ids.offset) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00922002, _amounts.length) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00923002, _amounts.offset) }
+    ) internal {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00930000, 1037618708627) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00930001, 5) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00931000, _to) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00932001, _ids.length) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00933001, _ids.offset) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00932002, _amounts.length) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00933002, _amounts.offset) }
         uint256 sponsorAmount;
         uint256 idsLen = _ids.length;
 
@@ -838,7 +842,7 @@ contract Vault is
      * @param _id Id of the deposit.
      * @param _amount Amount to be unsponsored/withdrawn.
      */
-    function _unsponsorSingle(uint256 _id, uint256 _amount) internal {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00930000, 1037618708627) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00930001, 2) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00931000, _id) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00931001, _amount) }
+    function _unsponsorSingle(uint256 _id, uint256 _amount) internal {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00940000, 1037618708628) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00940001, 2) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00941000, _id) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00941001, _amount) }
         Deposit memory _deposit = deposits[_id];
 
         if (_deposit.owner != msg.sender) revert VaultNotAllowed();
@@ -865,7 +869,7 @@ contract Vault is
      */
     function _decreaseTotalSponsoredAndTransfer(address _to, uint256 _amount)
         internal
-    {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00940000, 1037618708628) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00940001, 2) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00941000, _to) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00941001, _amount) }
+    {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00950000, 1037618708629) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00950001, 2) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00951000, _to) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00951001, _amount) }
         if (_amount > totalUnderlying()) revert VaultNotEnoughFunds();
 
         totalSponsored -= _amount;
@@ -910,7 +914,7 @@ contract Vault is
         ClaimParams[] calldata claims,
         string calldata _name,
         uint256 _groupId
-    ) internal returns (uint256[] memory) {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00950000, 1037618708629) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00950001, 8) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00951000, _previousTotalUnderlying) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00951001, _amount) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00951002, _lockedUntil) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00952003, claims.length) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00953003, claims.offset) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00952004, _name.length) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00953004, _name.offset) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00951005, _groupId) }
+    ) internal returns (uint256[] memory) {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00960000, 1037618708630) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00960001, 8) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00961000, _previousTotalUnderlying) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00961001, _amount) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00961002, _lockedUntil) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00962003, claims.length) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00963003, claims.offset) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00962004, _name.length) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00963004, _name.offset) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00961005, _groupId) }
         CreateDepositLocals memory locals = CreateDepositLocals({
             totalShares: totalShares,
             totalUnderlying: _previousTotalUnderlying,
@@ -967,7 +971,7 @@ contract Vault is
         uint256 _localTotalShares,
         uint256 _localTotalPrincipal,
         string calldata _name
-    ) internal returns (uint256) {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00960000, 1037618708630) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00960001, 8) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00961000, _depositGroupId) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00961001, _amount) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00961002, _lockedUntil) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00961003, _claim) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00961004, _localTotalShares) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00961005, _localTotalPrincipal) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00962006, _name.length) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00963006, _name.offset) }
+    ) internal returns (uint256) {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00970000, 1037618708631) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00970001, 8) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00971000, _depositGroupId) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00971001, _amount) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00971002, _lockedUntil) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00971003, _claim) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00971004, _localTotalShares) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00971005, _localTotalPrincipal) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00972006, _name.length) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00973006, _name.offset) }
         _depositTokenIds.increment();
         CreateClaimLocals memory locals = CreateClaimLocals({
             newShares: _computeShares(
@@ -1040,7 +1044,7 @@ contract Vault is
         address _to,
         bool _force,
         uint256 _amount
-    ) internal returns (uint256) {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00970000, 1037618708631) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00970001, 6) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00971000, _tokenId) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00971001, _totalShares) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00971002, _totalUnderlyingMinusSponsored) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00971003, _to) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00971004, _force) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00971005, _amount) }
+    ) internal returns (uint256) {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00980000, 1037618708632) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00980001, 6) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00981000, _tokenId) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00981001, _totalShares) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00981002, _totalUnderlyingMinusSponsored) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00981003, _to) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00981004, _force) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00981005, _amount) }
         if (deposits[_tokenId].owner != msg.sender)
             revert VaultNotOwnerOfDeposit();
 
@@ -1102,7 +1106,7 @@ contract Vault is
         address _from,
         address _token,
         uint256 _amount
-    ) internal {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00980000, 1037618708632) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00980001, 3) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00981000, _from) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00981001, _token) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00981002, _amount) }
+    ) internal {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00990000, 1037618708633) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00990001, 3) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00991000, _from) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00991001, _token) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00991002, _amount) }
         uint256 balanceBefore = IERC20(_token).balanceOf(address(this));
         IERC20(_token).safeTransferFrom(_from, address(this), _amount);
         uint256 balanceAfter = IERC20(_token).balanceOf(address(this));
@@ -1111,7 +1115,7 @@ contract Vault is
             revert VaultAmountDoesNotMatchParams();
     }
 
-    function _blockTimestamp() internal view returns (uint64) {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00990000, 1037618708633) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00990001, 0) }
+    function _blockTimestamp() internal view returns (uint64) {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff009a0000, 1037618708634) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff009a0001, 0) }
         return uint64(block.timestamp);
     }
 
@@ -1127,7 +1131,7 @@ contract Vault is
         uint256 _amount,
         uint256 _totalShares,
         uint256 _totalUnderlyingMinusSponsored
-    ) internal pure returns (uint256) {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff009a0000, 1037618708634) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff009a0001, 3) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff009a1000, _amount) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff009a1001, _totalShares) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff009a1002, _totalUnderlyingMinusSponsored) }
+    ) internal pure returns (uint256) {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff009b0000, 1037618708635) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff009b0001, 3) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff009b1000, _amount) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff009b1001, _totalShares) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff009b1002, _totalUnderlyingMinusSponsored) }
         if (_amount == 0) return 0;
         if (_totalShares == 0) return _amount * SHARES_MULTIPLIER;
         if (_totalUnderlyingMinusSponsored == 0)
@@ -1148,7 +1152,7 @@ contract Vault is
         uint256 _shares,
         uint256 _totalShares,
         uint256 _totalUnderlyingMinusSponsored
-    ) internal pure returns (uint256) {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff009b0000, 1037618708635) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff009b0001, 3) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff009b1000, _shares) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff009b1001, _totalShares) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff009b1002, _totalUnderlyingMinusSponsored) }
+    ) internal pure returns (uint256) {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff009c0000, 1037618708636) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff009c0001, 3) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff009c1000, _shares) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff009c1001, _totalShares) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff009c1002, _totalUnderlyingMinusSponsored) }
         if (
             _shares == 0 ||
             _totalShares == 0 ||
@@ -1174,7 +1178,7 @@ contract Vault is
         internal
         view
         returns (uint256)
-    {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff009c0000, 1037618708636) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff009c0001, 1) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff009c1000, _amount) }
+    {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff009d0000, 1037618708637) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff009d0001, 1) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff009d1000, _amount) }
         return _amount - _amount.pctOf(lossTolerancePct);
     }
 

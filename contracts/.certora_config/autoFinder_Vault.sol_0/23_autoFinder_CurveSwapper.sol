@@ -77,7 +77,7 @@ abstract contract CurveSwapper {
         address _token,
         uint256 _amount,
         uint256 _slippage
-    ) internal returns (uint256 amount) {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff001d0000, 1037618708509) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff001d0001, 3) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff001d1000, _token) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff001d1001, _amount) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff001d1002, _slippage) }
+    ) internal returns (uint256 amount) {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff001e0000, 1037618708510) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff001e0001, 3) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff001e1000, _token) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff001e1001, _amount) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff001e1002, _slippage) }
         address underlyingToken = getUnderlying();
         if (_token == underlyingToken) {
             // same token, nothing to do
@@ -116,7 +116,7 @@ abstract contract CurveSwapper {
         address _token,
         uint256 _amount,
         uint256 _slippage
-    ) internal returns (uint256 amount) {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff001c0000, 1037618708508) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff001c0001, 3) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff001c1000, _token) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff001c1001, _amount) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff001c1002, _slippage) }
+    ) internal returns (uint256 amount) {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff001d0000, 1037618708509) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff001d0001, 3) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff001d1000, _token) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff001d1001, _amount) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff001d1002, _slippage) }
         if (_token == getUnderlying()) {
             // same token, nothing to do
             return _amount;
@@ -146,7 +146,7 @@ abstract contract CurveSwapper {
         uint8 _fromDecimals,
         uint8 _toDecimals,
         uint256 _slippage
-    ) internal pure returns (uint256) {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff001b0000, 1037618708507) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff001b0001, 4) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff001b1000, _amount) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff001b1001, _fromDecimals) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff001b1002, _toDecimals) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff001b1003, _slippage) }
+    ) internal pure returns (uint256) {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff001c0000, 1037618708508) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff001c0001, 4) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff001c1000, _amount) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff001c1001, _fromDecimals) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff001c1002, _toDecimals) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff001c1003, _slippage) }
         return
             (_amount * _slippage * 10**_toDecimals) / (10**_fromDecimals * 10000);
     }
@@ -154,7 +154,7 @@ abstract contract CurveSwapper {
     /// This is necessary because some tokens (USDT) force you to approve(0)
     /// before approving a new amount meaning if we always approved blindly,
     /// then we could get random failures on the second attempt
-    function _approveIfNecessary(address _token, address _pool) internal {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff001e0000, 1037618708510) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff001e0001, 2) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff001e1000, _token) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff001e1001, _pool) }
+    function _approveIfNecessary(address _token, address _pool) internal {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff001f0000, 1037618708511) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff001f0001, 2) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff001f1000, _token) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff001f1001, _pool) }
         uint256 allowance = IERC20(_token).allowance(address(this), _pool);
 
         if (allowance == 0) {
@@ -163,14 +163,14 @@ abstract contract CurveSwapper {
     }
 
     /// @param _swapPools configs for each swap pool
-    function _addPools(SwapPoolParam[] memory _swapPools) internal {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff001f0000, 1037618708511) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff001f0001, 1) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff001f1000, _swapPools) }
+    function _addPools(SwapPoolParam[] memory _swapPools) internal {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00200000, 1037618708512) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00200001, 1) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00201000, _swapPools) }
         uint256 length = _swapPools.length;
         for (uint256 i = 0; i < length; ++i) {
             _addPool(_swapPools[i]);
         }
     }
 
-    function _addPool(SwapPoolParam memory _param) internal {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00200000, 1037618708512) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00200001, 1) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00201000, _param) }
+    function _addPool(SwapPoolParam memory _param) internal {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00210000, 1037618708513) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00210001, 1) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00211000, _param) }
         require(
             address(swappers[_param.token].pool) == address(0),
             "token already has a swap pool"
@@ -204,7 +204,7 @@ abstract contract CurveSwapper {
         );
     }
 
-    function _removePool(address _inputToken) internal {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00210000, 1037618708513) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00210001, 1) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00211000, _inputToken) }
+    function _removePool(address _inputToken) internal {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00220000, 1037618708514) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00220001, 1) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00221000, _inputToken) }
         require(
             address(swappers[_inputToken].pool) != address(0),
             "pool does not exist"

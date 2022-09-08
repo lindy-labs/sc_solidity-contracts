@@ -60,7 +60,7 @@ abstract contract ExitPausable is Context {
     /**
      * @dev Returns true if the contract is exitPaused, and false otherwise.
      */
-    function exitPaused() public view virtual returns (bool) {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00320000, 1037618708530) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00320001, 0) }
+    function exitPaused() public view virtual returns (bool) {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00330000, 1037618708531) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00330001, 0) }
         return _exitPaused;
     }
 
@@ -74,7 +74,7 @@ abstract contract ExitPausable is Context {
     /**
      * @dev Throws if the contract is not exitPaused.
      */
-    function _requireExitPaused() internal view virtual {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff002c0000, 1037618708524) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff002c0001, 0) }
+    function _requireExitPaused() internal view virtual {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff002d0000, 1037618708525) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff002d0001, 0) }
         require(exitPaused(), "Pausable: not ExitPaused");
     }
 
@@ -85,10 +85,10 @@ abstract contract ExitPausable is Context {
      *
      * - The contract must not be exitPaused.
      */
-    function _exitPause() internal virtual logInternal60()whenNotExitPaused {
+    function _exitPause() internal virtual logInternal88()whenNotExitPaused {
         _exitPaused = true;
         emit ExitPaused(_msgSender());
-    }modifier logInternal60() {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff003c0000, 1037618708540) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff003c0001, 0) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff003c0002, 0) } _; }
+    }modifier logInternal88() {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00580000, 1037618708568) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00580001, 0) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00580002, 0) } _; }
 
     /**
      * @dev Returns to normal state.
@@ -97,8 +97,8 @@ abstract contract ExitPausable is Context {
      *
      * - The contract must be exitPaused.
      */
-    function _exitUnpause() internal virtual logInternal61()whenExitPaused {
+    function _exitUnpause() internal virtual logInternal89()whenExitPaused {
         _exitPaused = false;
         emit ExitUnpaused(_msgSender());
-    }modifier logInternal61() {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff003d0000, 1037618708541) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff003d0001, 0) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff003d0002, 0) } _; }
+    }modifier logInternal89() {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00590000, 1037618708569) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00590001, 0) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00590002, 0) } _; }
 }

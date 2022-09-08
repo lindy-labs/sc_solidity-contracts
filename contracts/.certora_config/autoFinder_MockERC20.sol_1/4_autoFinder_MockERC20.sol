@@ -19,7 +19,7 @@ contract MockERC20 is ERC20 {
         _mint(msg.sender, _totalSupply);
     }
 
-    function decimals() public view override(ERC20) returns (uint8) {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00690000, 1037618708585) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00690001, 0) }
+    function decimals() public view override(ERC20) returns (uint8) {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff006a0000, 1037618708586) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff006a0001, 0) }
         return decimals_;
     }
 
@@ -27,15 +27,15 @@ contract MockERC20 is ERC20 {
         decimals_ = _decimals;
     }
 
-    function mint(address _user, uint256 _amount) public {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00660000, 1037618708582) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00660001, 2) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00661000, _user) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00661001, _amount) }
+    function mint(address _user, uint256 _amount) public {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00670000, 1037618708583) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00670001, 2) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00671000, _user) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00671001, _amount) }
         _mint(_user, _amount);
     }
 
-    function burn(address _user, uint256 _amount) public {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff006a0000, 1037618708586) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff006a0001, 2) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff006a1000, _user) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff006a1001, _amount) }
+    function burn(address _user, uint256 _amount) public {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff006b0000, 1037618708587) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff006b0001, 2) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff006b1000, _user) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff006b1001, _amount) }
         _burn(_user, _amount);
     }
 
-    function setFee(uint256 _fee) public {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff006b0000, 1037618708587) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff006b0001, 1) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff006b1000, _fee) }
+    function setFee(uint256 _fee) public {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff006c0000, 1037618708588) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff006c0001, 1) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff006c1000, _fee) }
         fee = _fee;
     }
 
@@ -43,7 +43,7 @@ contract MockERC20 is ERC20 {
         address from,
         address to,
         uint256 amount
-    ) internal virtual override(ERC20) {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00590000, 1037618708569) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00590001, 3) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00591000, from) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00591001, to) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00591002, amount) }
+    ) internal virtual override(ERC20) {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff005a0000, 1037618708570) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff005a0001, 3) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff005a1000, from) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff005a1001, to) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff005a1002, amount) }
         super._transfer(from, to, (amount * (10000 - fee)) / 10000);
     }
 }

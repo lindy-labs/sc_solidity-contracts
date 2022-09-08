@@ -91,7 +91,7 @@ abstract contract BaseStrategy is IStrategy, AccessControl, CustomErrors {
      *
      * @param _newAdmin The new admin account for the strategy.
      */
-    function _doTransferAdminRights(address _newAdmin) internal {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00720000, 1037618708594) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00720001, 1) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00721000, _newAdmin) }
+    function _doTransferAdminRights(address _newAdmin) internal {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00730000, 1037618708595) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00730001, 1) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00731000, _newAdmin) }
         if (_newAdmin == address(0)) revert StrategyAdminCannotBe0Address();
         if (_newAdmin == msg.sender)
             revert StrategyCannotTransferAdminRightsToSelf();

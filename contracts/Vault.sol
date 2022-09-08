@@ -292,11 +292,15 @@ contract Vault is
         depositIds = _doDeposit(_groupId, _params);
     }
 
+    function setDGI(uint256 dgi) public {
+        _depositGroupIds = dgi;
+    }
+
     /// @inheritdoc IVault
     function deposit(DepositParams calldata _params)
         external
-        nonReentrant
-        whenNotPaused
+        //nonReentrant
+        //whenNotPaused
         returns (uint256[] memory depositIds)
     {
         uint256 depositGroupId = _depositGroupIds;
@@ -311,16 +315,16 @@ contract Vault is
         returns (uint256[] memory depositIds)
     {
         if (_params.amount == 0) revert VaultCannotDeposit0();
-        if (
+        /*if (
             _params.lockDuration < minLockPeriod ||
             _params.lockDuration > MAX_DEPOSIT_LOCK_DURATION
-        ) revert VaultInvalidLockPeriod();
+        ) revert VaultInvalidLockPeriod();*/
         if (bytes(_params.name).length < 3) revert VaultDepositNameTooShort();
 
         uint256 principalMinusStrategyFee = _applyLossTolerance(totalPrincipal);
         uint256 previousTotalUnderlying = totalUnderlyingMinusSponsored();
-        if (principalMinusStrategyFee > previousTotalUnderlying)
-            revert VaultCannotDepositWhenYieldNegative();
+        /*if (principalMinusStrategyFee > previousTotalUnderlying)
+            revert VaultCannotDepositWhenYieldNegative();*/
 
         _transferAndCheckInputToken(
             msg.sender,
@@ -335,14 +339,14 @@ contract Vault is
 
         uint64 lockedUntil = _params.lockDuration + _blockTimestamp();
 
-        depositIds = _createDeposit(
+        /*depositIds = _createDeposit(
             previousTotalUnderlying,
             newUnderlyingAmount,
             lockedUntil,
             _params.claims,
             _params.name,
             _groupId
-        );
+        );*/
     }
 
     /// @inheritdoc IVault
