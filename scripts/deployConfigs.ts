@@ -21,8 +21,8 @@ const networkConfigs: Record<number, Config> = {
     minLockPeriod: 60 * 60 * 24 * 90, // 90 days
   },
 
-  // ropsten
-  3: {
+  // goerli
+  5: {
     investPct: 9000, // 90%
     perfFeePct: 100, // 1%
     lossTolerancePct: 200,
