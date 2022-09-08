@@ -175,10 +175,12 @@ contract LiquityStrategy is
     }
 
     /// @inheritdoc IStrategy
+    /// @notice this will also claim any unclaimed gains in the stability pool
     function invest() external virtual override(IStrategy) onlyManager {
         uint256 balance = underlying.balanceOf(address(this));
         if (balance == 0) revert StrategyNoUnderlying();
 
+        // claims LQTY & ETH rewards if there are any
         stabilityPool.provideToSP(balance, address(0));
 
         emit StrategyInvested(balance);
