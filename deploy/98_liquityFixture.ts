@@ -3,7 +3,7 @@ import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { ethers } from 'hardhat';
 import { BigNumber } from 'ethers';
 import { includes } from 'lodash';
-import {parseUnits} from 'ethers/lib/utils';
+import { parseUnits } from 'ethers/lib/utils';
 
 const func = async function (env: HardhatRuntimeEnvironment) {
   const [_owner, _alice, _bob] = await ethers.getSigners();

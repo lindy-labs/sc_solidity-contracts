@@ -7,7 +7,7 @@
   "strategy": {
     "network": "mainnet",
     "startBlock": 0,
-    "address": "0x1F8f4090c3A2DEE7941daF29830878973991D8F"
+    "address": "0x1F8f4090c3A2DEE7941daF29830878973991D8F0"
   },
   "donations": {
     "network": "mainnet",
@@ -17,7 +17,7 @@
   "liquityTrove": {
     "network": "mainnet",
     "startBlock": 0,
-    "address": "0x83bD00DEa5d52d71F120D05Ef750407829F53Aa5"
+    "address": "0x1393036c2f559D2259789b199Ded55cd2BA44751"
   },
   "liquityPool": {
     "network": "mainnet",
