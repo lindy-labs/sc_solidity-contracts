@@ -228,7 +228,7 @@ contract Vault is
     //
 
     /// @inheritdoc IVault
-    function totalUnderlying() public view override(IVault) returns (uint256) {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff002a0000, 1037618708522) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff002a0001, 0) }
+    function totalUnderlying() public view override(IVault) returns (uint256) {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00290000, 1037618708521) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00290001, 0) }
         if (address(strategy) != address(0)) {
             return
                 underlying.balanceOf(address(this)) + strategy.investedAssets();
@@ -247,7 +247,7 @@ contract Vault is
             uint256 shares,
             uint256 perfFee
         )
-    {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00280000, 1037618708520) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00280001, 1) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00281000, _to) }
+    {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00270000, 1037618708519) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00270001, 1) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00271000, _to) }
         uint256 claimerPrincipal = claimer[_to].totalPrincipal;
         uint256 claimerShares = claimer[_to].totalShares;
         uint256 _totalUnderlyingMinusSponsored = totalUnderlyingMinusSponsored();
@@ -292,15 +292,15 @@ contract Vault is
         depositIds = _doDeposit(_groupId, _params);
     }
 
-    function setDGI(uint256 dgi) public {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00180000, 1037618708504) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00180001, 1) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00181000, dgi) }
+    /*function setDGI(uint256 dgi) public {
         _depositGroupIds = dgi;
-    }
+    }*/
 
     /// @inheritdoc IVault
     function deposit(DepositParams calldata _params)
         external
-        //nonReentrant
-        //whenNotPaused
+        nonReentrant
+        whenNotPaused
         returns (uint256[] memory depositIds)
     {
         uint256 depositGroupId = _depositGroupIds;
@@ -315,16 +315,16 @@ contract Vault is
         returns (uint256[] memory depositIds)
     {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00000000, 1037618708480) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00000001, 2) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00001000, _groupId) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00001001, _params) }
         if (_params.amount == 0) revert VaultCannotDeposit0();
-        /*if (
+        if (
             _params.lockDuration < minLockPeriod ||
             _params.lockDuration > MAX_DEPOSIT_LOCK_DURATION
-        ) revert VaultInvalidLockPeriod();*/
+        ) revert VaultInvalidLockPeriod();
         if (bytes(_params.name).length < 3) revert VaultDepositNameTooShort();
 
         uint256 principalMinusStrategyFee = _applyLossTolerance(totalPrincipal);
         uint256 previousTotalUnderlying = totalUnderlyingMinusSponsored();
-        /*if (principalMinusStrategyFee > previousTotalUnderlying)
-            revert VaultCannotDepositWhenYieldNegative();*/
+        if (principalMinusStrategyFee > previousTotalUnderlying)
+            revert VaultCannotDepositWhenYieldNegative();
 
         _transferAndCheckInputToken(
             msg.sender,
@@ -339,14 +339,14 @@ contract Vault is
 
         uint64 lockedUntil = _params.lockDuration + _blockTimestamp();
 
-        /*depositIds = _createDeposit(
+        depositIds = _createDeposit(
             previousTotalUnderlying,
             newUnderlyingAmount,
             lockedUntil,
             _params.claims,
             _params.name,
             _groupId
-        );*/
+        );
     }
 
     /// @inheritdoc IVault
@@ -427,7 +427,7 @@ contract Vault is
         view
         override(IVault)
         returns (uint256 maxInvestableAmount, uint256 alreadyInvested)
-    {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00300000, 1037618708528) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00300001, 0) }
+    {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff002f0000, 1037618708527) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff002f0001, 0) }
         if (address(strategy) == address(0)) {
             return (0, 0);
         }
@@ -560,7 +560,7 @@ contract Vault is
         view
         override(CurveSwapper)
         returns (address)
-    {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00340000, 1037618708532) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00340001, 0) }
+    {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00330000, 1037618708531) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00330001, 0) }
         return address(underlying);
     }
 
@@ -679,7 +679,7 @@ contract Vault is
         virtual
         override(ERC165, AccessControl)
         returns (bool)
-    {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00270000, 1037618708519) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00270001, 1) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00271000, interfaceId) }
+    {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00260000, 1037618708518) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00260001, 1) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00261000, interfaceId) }
         return
             interfaceId == type(IVault).interfaceId ||
             interfaceId == type(IVaultSponsoring).interfaceId ||

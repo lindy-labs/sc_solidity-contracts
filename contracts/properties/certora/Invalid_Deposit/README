@@ -1,0 +1,11 @@
+In this folder, the idea was to find Certora spec files
+to show revert operations individually happening when
+running the deposit operation.
+
+However, as explained in the Valid_Deposit folder, this
+can only be possible iff absolutely all revert situations
+are identified and only one allowed to happen per property.
+
+As such a situation is similar to a "proof by contradiction",
+maybe it is enough to have the Echidna test cases instead
+of proofs using the Certora Prover.

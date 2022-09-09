@@ -6,20 +6,14 @@
         "build_only": false,
         "bytecode_jsons": null,
         "bytecode_spec": null,
-        "cache": "./properties/certora/VaultForCertora.sol-Vault.sol-mock/MockERC20.sol-mock/MockStrategySync.sol-optimisticTrue-iterNone",
+        "cache": "Vault.sol-optimisticTrue-iterNone",
         "check_args": false,
         "cloud": null,
         "coinbaseMode": false,
         "contract_to_file": {
-            "MockERC20": "mock/MockERC20.sol",
-            "MockStrategySync": "mock/MockStrategySync.sol",
-            "Vault": "Vault.sol",
-            "VaultForCertora": "properties/certora/VaultForCertora.sol"
+            "Vault": "Vault.sol"
         },
         "contracts": [
-            "VaultForCertora",
-            "MockStrategySync",
-            "MockERC20",
             "Vault"
         ],
         "debug": null,
@@ -32,40 +26,21 @@
         "env": "production",
         "expected_file": "expected.json",
         "file_paths": [
-            "mock/MockERC20.sol",
-            "mock/MockStrategySync.sol",
-            "properties/certora/VaultForCertora.sol",
             "Vault.sol"
         ],
         "file_to_contract": {
             "Vault.sol": [
                 "Vault"
-            ],
-            "mock/MockERC20.sol": [
-                "MockERC20"
-            ],
-            "mock/MockStrategySync.sol": [
-                "MockStrategySync"
-            ],
-            "properties/certora/VaultForCertora.sol": [
-                "VaultForCertora"
             ]
         },
         "files": [
-            "./properties/certora/VaultForCertora.sol",
-            "Vault.sol",
-            "mock/MockERC20.sol",
-            "mock/MockStrategySync.sol"
+            "Vault.sol"
         ],
         "get_conf": null,
         "internal_funcs": null,
         "jar": null,
         "java_args": null,
-        "link": [
-            "Vault:strategy=MockStrategySync",
-            "Vault:underlying=MockERC20",
-            "VaultForCertora:vault=Vault"
-        ],
+        "link": null,
         "local": false,
         "log_branch": null,
         "log_query_frequency_seconds": null,
@@ -104,7 +79,7 @@
         "solc_args": null,
         "solc_map": null,
         "spec_files": [
-            "./properties/certora/Valid_Deposit/Valid_Deposit.spec"
+            "./properties/certora/Invariants/Invariants.spec"
         ],
         "staging": null,
         "struct_link": null,
@@ -112,24 +87,16 @@
         "typecheck_only": false,
         "user_defined_cache": false,
         "verified_contract_files": [
-            "properties/certora/VaultForCertora.sol"
+            "Vault.sol"
         ],
         "verify": [
-            "VaultForCertora:./properties/certora/Valid_Deposit/Valid_Deposit.spec"
+            "Vault:./properties/certora/Invariants/Invariants.spec"
         ]
     },
     "branch": "solidityFV",
     "conf": {
         "files": [
-            "./properties/certora/VaultForCertora.sol",
-            "Vault.sol",
-            "mock/MockERC20.sol",
-            "mock/MockStrategySync.sol"
-        ],
-        "link": [
-            "Vault:strategy=MockStrategySync",
-            "Vault:underlying=MockERC20",
-            "VaultForCertora:vault=Vault"
+            "Vault.sol"
         ],
         "msg": "Checking Vault",
         "multi_assert_check": true,
@@ -142,7 +109,7 @@
             "-postProcessCounterExamples=true"
         ],
         "verify": [
-            "VaultForCertora:./properties/certora/Valid_Deposit/Valid_Deposit.spec"
+            "Vault:./properties/certora/Invariants/Invariants.spec"
         ]
     },
     "cwd_relative": "contracts",
@@ -150,16 +117,9 @@
     "origin": "https://github.com/lindy-labs/sc_solidity-contracts.git",
     "raw_args": [
         "/Users/alexandremota/Library/Python/3.8/bin/certoraRun",
-        "./properties/certora/VaultForCertora.sol",
         "Vault.sol",
-        "mock/MockStrategySync.sol",
-        "mock/MockERC20.sol",
-        "--link",
-        "VaultForCertora:vault=Vault",
-        "Vault:strategy=MockStrategySync",
-        "Vault:underlying=MockERC20",
         "--verify",
-        "VaultForCertora:./properties/certora/Valid_Deposit/Valid_Deposit.spec",
+        "Vault:./properties/certora/Invariants/Invariants.spec",
         "--settings",
         "-postProcessCounterExamples=true",
         "--optimistic_loop",
@@ -169,6 +129,6 @@
         "--msg",
         "Checking Vault"
     ],
-    "revision": "d6cd6d21cda7fee157ca865d80a303a355539420",
-    "timestamp": "1662675905.319826"
+    "revision": "244baf05e0b490b7762e7c66ae333219ac55db82",
+    "timestamp": "1662743710.398791"
 }

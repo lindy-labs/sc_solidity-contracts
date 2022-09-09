@@ -1,9 +1,9 @@
 [
     {
         "importFilesToOrigRelpaths": {},
-        "primary_contract": "VaultForCertora",
-        "specfile": ".certora_config/0_Valid_Deposit.spec.spec",
-        "specfileOrigRelpath": "properties/certora/Valid_Deposit/Valid_Deposit.spec",
+        "primary_contract": "Vault",
+        "specfile": ".certora_config/0_Invariants.spec.spec",
+        "specfileOrigRelpath": "properties/certora/Invariants/Invariants.spec",
         "specfilesToImportDecls": {},
         "type": "spec"
     }
