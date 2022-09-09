@@ -6,10 +6,7 @@ import "../../interfaces/liquity/IPriceFeed.sol";
 contract MockLiquityPriceFeed is IPriceFeed {
     string constant public NAME = "PriceFeed";
 
-    // The last good price seen from an oracle by Liquity
     uint public lastGoodPrice;
-
-    // --- Dependency setters ---
 
     function fetchPrice() external view override returns (uint) {
         return lastGoodPrice;

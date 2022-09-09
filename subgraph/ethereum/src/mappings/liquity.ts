@@ -8,7 +8,7 @@ import {
   StabilityPool,
 } from '../types/StabilityPool/StabilityPool';
 import {
-  LastGoodPriceUpdated,
+  LastGoodPriceUpdated, LiquityPriceFeed,
 } from '../types/LiquityPriceFeed/LiquityPriceFeed';
 import { BigInt } from '@graphprotocol/graph-ts';
 
@@ -16,6 +16,7 @@ export function handleLiquidation(event: LiquidationEvent): void {
   // Bind the contract to the address that emitted the event
   let trove = LiquityTrove.bind(event.address);
   let pool = StabilityPool.bind(trove.stabilityPool());
+  let priceFeed = LiquityPriceFeed.bind(trove.priceFeed());
 
   let liquidationCounter = LiquidationCounter.load('0');
   if (liquidationCounter == null) {
@@ -37,6 +38,7 @@ export function handleLiquidation(event: LiquidationEvent): void {
   liquidation.collGasCompensation = event.params._collGasCompensation;
   liquidation.tokenGasCompensation = event.params._LUSDGasCompensation;
   liquidation.strategyBalance = liquidationCounter.strategyBalance;
+  liquidation.ethPrice = priceFeed.lastGoodPrice();
   liquidation.save();
 
   liquidationCounter.index = liquidationCounter.index.plus(

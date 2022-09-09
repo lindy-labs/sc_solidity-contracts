@@ -10,9 +10,11 @@ contract MockTroveManager {
     string public constant NAME = "TroveManager";
 
     address public stabilityPool;
+    address public priceFeed;
 
-    constructor(address _stabilityPool) {
+    constructor(address _stabilityPool, address _priceFeed) {
         stabilityPool = _stabilityPool;
+        priceFeed = _priceFeed;
     }
 
     event Liquidation(
