@@ -9,13 +9,17 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   const { deployer } = await env.getNamedAccounts();
   const { deploy, get } = env.deployments;
 
-  const stabilityPool = await get('LiquityStabilityPool');
+  const stabilityPoolDeployment = await get('LiquityStabilityPool');
+  const stabilityPool = await ethers.getContractAt(
+    'MockStabilityPool',
+    stabilityPoolDeployment.address,
+  );
 
   const troveManagerDeployment = await deploy('TroveManager', {
     contract: 'MockTroveManager',
     from: deployer,
     log: true,
-    args: [stabilityPool.address],
+    args: [stabilityPoolDeployment.address],
   });
   const troveManager = await ethers.getContractAt(
     'MockTroveManager',
@@ -34,6 +38,15 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   // Move time forward 12 days
   await ethers.provider.send('evm_increaseTime', [1.037e6]);
   await ethers.provider.send('evm_mine', []);
+
+  await troveManager.liquidation(
+    BigNumber.from('2000000000000000000000'),
+    BigNumber.from('1397404171184386761'),
+    BigNumber.from('7022131513489380'),
+    BigNumber.from('200000000000000000000'),
+  );
+
+  await stabilityPool.withdrawFromSP(0);
 
   await troveManager.liquidation(
     BigNumber.from('2000000000000000000000'),

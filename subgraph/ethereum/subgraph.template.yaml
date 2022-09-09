@@ -57,6 +57,7 @@ dataSources:
       file: ./src/mappings/liquity.ts
       entities:
         - Liquidation
+        - LiquidationCounter
       abis:
         - name: LiquityTrove
           file: ./external_abis/LiquityTrove.json
@@ -79,11 +80,14 @@ dataSources:
       apiVersion: 0.0.6
       language: wasm/assemblyscript
       file: ./src/mappings/liquity.ts
-      abis:
-        - name: StabilityPool
-          file: ./abis/contracts/mock/liquity/MockStabilityPool.sol/MockStabilityPool.json
       entities:
         - Liquidation
+        - LiquidationCounter
+      abis:
+        - name: LiquityTrove
+          file: ./external_abis/LiquityTrove.json
+        - name: StabilityPool
+          file: ./abis/contracts/mock/liquity/MockStabilityPool.sol/MockStabilityPool.json
       eventHandlers:
         - event: ETHGainWithdrawn(indexed address,uint256,uint256)
           handler: handleETHGainWithdrawn

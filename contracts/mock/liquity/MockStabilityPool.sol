@@ -43,7 +43,7 @@ contract MockStabilityPool is IStabilityPool {
     function getDepositorETHGain(
         address /* _depositor */
     ) external pure returns (uint256) {
-        return 100;
+        return 0.1 ether;
     }
 
     function getDepositorLQTYGain(
