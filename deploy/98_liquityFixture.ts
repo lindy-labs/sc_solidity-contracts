@@ -21,6 +21,8 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     mockLiquityPriceFeedDeployment.address,
   );
 
+  await liquityPriceFeed.setPrice(parseUnits('1700', 18));
+
   const stabilityPoolDeployment = await get('LiquityStabilityPool');
   const stabilityPool = await ethers.getContractAt(
     'MockStabilityPool',
@@ -40,8 +42,6 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     'MockTroveManager',
     troveManagerDeployment.address,
   );
-
-  await liquityPriceFeed.setPrice(parseUnits('1700', 18));
 
   await troveManager.liquidation(
     BigNumber.from('2000000000000000000000'),
