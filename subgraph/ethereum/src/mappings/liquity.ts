@@ -7,7 +7,7 @@ import {
   ETHGainWithdrawn,
   StabilityPool,
 } from '../types/StabilityPool/StabilityPool';
-import { BigInt, log } from '@graphprotocol/graph-ts';
+import { BigInt } from '@graphprotocol/graph-ts';
 
 export function handleLiquidation(event: LiquidationEvent): void {
   // Bind the contract to the address that emitted the event
@@ -21,9 +21,7 @@ export function handleLiquidation(event: LiquidationEvent): void {
     liquidationCounter.strategyBalance = BigInt.fromString('0');
   }
 
-  liquidationCounter.strategyBalance = liquidationCounter.strategyBalance.plus(
-    pool.getDepositorETHGain(event.transaction.from),
-  );
+  liquidationCounter.strategyBalance = pool.getDepositorETHGain(event.transaction.from);
 
   const liquidation = new Liquidation(liquidationCounter.index.toString());
 
@@ -43,7 +41,7 @@ export function handleLiquidation(event: LiquidationEvent): void {
 }
 
 export function handleETHGainWithdrawn(
-  event: ETHGainWithdrawn,
+  _event: ETHGainWithdrawn,
 ): void {
   let liquidationCounter = LiquidationCounter.load('0');
   if (liquidationCounter == null) {
@@ -52,7 +50,7 @@ export function handleETHGainWithdrawn(
     liquidationCounter.strategyBalance = BigInt.fromString('0');
   }
 
-  liquidationCounter.strategyBalance = liquidationCounter.strategyBalance.minus(event.params._ETH);
+  liquidationCounter.strategyBalance = BigInt.fromString('0');
 
   liquidationCounter.save();
 }
