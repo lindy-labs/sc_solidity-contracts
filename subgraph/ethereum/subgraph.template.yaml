@@ -63,6 +63,8 @@ dataSources:
           file: ./external_abis/LiquityTrove.json
         - name: StabilityPool
           file: ./abis/contracts/mock/liquity/MockStabilityPool.sol/MockStabilityPool.json
+        - name: ChainlinkPriceFeed
+          file: ./abis/contracts/mock/MockChainlinkPriceFeed.sol/MockChainlinkPriceFeed.json
       eventHandlers:
         - event: Liquidation(uint256,uint256,uint256,uint256)
           handler: handleLiquidation
@@ -81,13 +83,33 @@ dataSources:
       language: wasm/assemblyscript
       file: ./src/mappings/liquity.ts
       entities:
-        - Liquidation
         - LiquidationCounter
       abis:
-        - name: LiquityTrove
-          file: ./external_abis/LiquityTrove.json
         - name: StabilityPool
           file: ./abis/contracts/mock/liquity/MockStabilityPool.sol/MockStabilityPool.json
       eventHandlers:
         - event: ETHGainWithdrawn(indexed address,uint256,uint256)
           handler: handleETHGainWithdrawn
+  - name: ChainlinkePriceFeed
+    kind: ethereum/contract
+    {{#liquityPriceFeed}}
+    network: {{network}}
+    source:
+      abi: LiquityPriceFeed
+      address: "{{address}}"
+      startBlock: {{startBlock}}
+    {{/liquityPriceFeed}}
+    mapping: &mapping
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      file: ./src/mappings/liquity.ts
+      entities:
+        - LiquidationCounter
+      abis:
+        - name: LiquityPriceFeed
+          file: ./abis/contracts/mock/liquity/MockLiquityPriceFeed.sol/MockLiquityPriceFeed.json
+          # file: ./external_abis/PriceFeed.json
+      eventHandlers:
+        - event: LastGoodPriceUpdated(uint256)
+          handler: handleChainlinkDummyEventForGraph

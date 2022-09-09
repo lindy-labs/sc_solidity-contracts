@@ -23,5 +23,10 @@
     "network": "mainnet",
     "startBlock": 0,
     "address": "0x4295e9945CB4A2EBA50bE8685df4AF04Fd0bC816"
+  },
+  "liquityPriceFeed": {
+    "network": "mainnet",
+    "startBlock": 0,
+    "address": "0x83bD00DEa5d52d71F120D05Ef750407829F53Aa5"
   }
 }

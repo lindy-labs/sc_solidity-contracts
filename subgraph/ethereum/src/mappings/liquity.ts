@@ -21,7 +21,9 @@ export function handleLiquidation(event: LiquidationEvent): void {
     liquidationCounter.strategyBalance = BigInt.fromString('0');
   }
 
-  liquidationCounter.strategyBalance = pool.getDepositorETHGain(event.transaction.from);
+  liquidationCounter.strategyBalance = liquidationCounter.strategyBalance.plus(
+    pool.getDepositorETHGain(event.transaction.from),
+  );
 
   const liquidation = new Liquidation(liquidationCounter.index.toString());
 
@@ -40,9 +42,8 @@ export function handleLiquidation(event: LiquidationEvent): void {
   liquidationCounter.save();
 }
 
-export function handleETHGainWithdrawn(
-  _event: ETHGainWithdrawn,
-): void {
+export function handleETHGainWithdrawn(_event: ETHGainWithdrawn): void {
+  // TODO: Add filter for our strategy address only
   let liquidationCounter = LiquidationCounter.load('0');
   if (liquidationCounter == null) {
     liquidationCounter = new LiquidationCounter('0');
@@ -54,3 +55,5 @@ export function handleETHGainWithdrawn(
 
   liquidationCounter.save();
 }
+
+export function handleChainlinkDummyEventForGraph(): void {}
