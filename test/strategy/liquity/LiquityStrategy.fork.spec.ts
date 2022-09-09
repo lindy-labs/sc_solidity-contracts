@@ -131,6 +131,50 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
         stabilityPoolInitialBalance.add(amountInvested),
       );
     });
+
+    it('claims LQTY and ETH gains from the stability pool', async () => {
+      const troveManagerAddress = await lqtyStabilityPool.troveManager();
+      await ForkHelpers.impersonate([troveManagerAddress]);
+      const troveManager = await ethers.getSigner(troveManagerAddress);
+      const initialInvestment = parseUnits('10000');
+      await ForkHelpers.mintToken(lusd, strategy.address, initialInvestment);
+      await strategy.invest();
+
+      // LQTY issuance is time dependent, so we need to advance time here
+      await moveForwardTwoWeeks();
+
+      // call offset to generate yield in the stability pool
+      const lusdDebtToOffset = parseUnits('10000');
+      const ethCollateralToAdd = parseUnits('10');
+      ForkHelpers.setBalance(troveManager.address, ethCollateralToAdd);
+      // calling offset will rebalance the stability pool by removing LUSD and adding ETH,
+      // while also generating LQTY tokens as rewards for the liquidity providers
+      await lqtyStabilityPool
+        .connect(troveManager)
+        .offset(lusdDebtToOffset, ethCollateralToAdd);
+
+      expect(
+        await lqtyStabilityPool.getDepositorLQTYGain(strategy.address),
+      ).to.eq(EXPECTED_LQTY_REWARD);
+      expect(
+        await lqtyStabilityPool.getDepositorETHGain(strategy.address),
+      ).to.eq(EXPECTED_ETH_REWARD);
+      // assert initial balances for the strategy
+      expect(await lusd.balanceOf(strategy.address)).to.eq('0');
+      expect(await lqty.balanceOf(strategy.address)).to.eq('0');
+      expect(await ethers.provider.getBalance(strategy.address)).to.eq('0');
+
+      await ForkHelpers.mintToken(lusd, strategy.address, initialInvestment);
+      await strategy.invest();
+
+      expect(await lusd.balanceOf(strategy.address)).to.eq('0');
+      expect(await lqty.balanceOf(strategy.address)).to.eq(
+        EXPECTED_LQTY_REWARD,
+      );
+      expect(await ethers.provider.getBalance(strategy.address)).to.eq(
+        EXPECTED_ETH_REWARD,
+      );
+    });
   });
 
   describe('#harvest', () => {
@@ -443,7 +487,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       ).to.be.revertedWith('StrategyETHSwapFailed');
     });
 
-    it('fails if there are no LQTY and ETH assets held by the strategy', async () => {
+    it('fails if there is no underlying held by the strategy after the LQTY and ETH swaps', async () => {
       const initialInvestment = parseUnits('10000');
       await ForkHelpers.mintToken(lusd, strategy.address, initialInvestment);
       await strategy.invest();
@@ -452,9 +496,9 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
         strategy.reinvest(
           SWAP_TARGET,
           EXPECTED_LQTY_REWARD,
-          SWAP_LQTY_DATA,
+          [], // empty data for lqty swap
           EXPECTED_ETH_REWARD,
-          SWAP_ETH_DATA,
+          [], // empty data for eth swap
           0,
         ),
       ).to.be.revertedWith('StrategyNothingToReinvest');
