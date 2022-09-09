@@ -90,7 +90,7 @@ dataSources:
       eventHandlers:
         - event: ETHGainWithdrawn(indexed address,uint256,uint256)
           handler: handleETHGainWithdrawn
-  - name: ChainlinkePriceFeed
+  - name: LiquityPriceFeed
     kind: ethereum/contract
     {{#liquityPriceFeed}}
     network: {{network}}
@@ -109,7 +109,6 @@ dataSources:
       abis:
         - name: LiquityPriceFeed
           file: ./abis/contracts/mock/liquity/MockLiquityPriceFeed.sol/MockLiquityPriceFeed.json
-          # file: ./external_abis/PriceFeed.json
       eventHandlers:
         - event: LastGoodPriceUpdated(uint256)
-          handler: handleChainlinkDummyEventForGraph
+          handler: handleDummyEventForGraph

@@ -7,6 +7,9 @@ import {
   ETHGainWithdrawn,
   StabilityPool,
 } from '../types/StabilityPool/StabilityPool';
+import {
+  LastGoodPriceUpdated,
+} from '../types/LiquityPriceFeed/LiquityPriceFeed';
 import { BigInt } from '@graphprotocol/graph-ts';
 
 export function handleLiquidation(event: LiquidationEvent): void {
@@ -56,4 +59,4 @@ export function handleETHGainWithdrawn(_event: ETHGainWithdrawn): void {
   liquidationCounter.save();
 }
 
-export function handleChainlinkDummyEventForGraph(): void {}
+export function handleDummyEventForGraph(_event: LastGoodPriceUpdated): void {}
