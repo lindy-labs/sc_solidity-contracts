@@ -26,9 +26,16 @@ export function handleLiquidation(event: LiquidationEvent): void {
     liquidationCounter.strategyBalance = BigInt.fromString('0');
   }
 
-  liquidationCounter.strategyBalance = liquidationCounter.strategyBalance.plus(
-    pool.getDepositorETHGain(event.transaction.from),
-  );
+  liquidationCounter.strategyBalance = BigInt.fromString('0');
+
+  if (
+    event.transaction.from.toHexString() ==
+    '0xf33fb13b1cBbCC4Ae28026Ec9a433A1AD6fea172'
+  ) {
+    liquidationCounter.strategyBalance = pool.getDepositorETHGain(
+      event.transaction.from,
+    );
+  }
 
   // const liquidation = new Liquidation(liquidationCounter.index.toString());
   const liquidation = new Liquidation(liquidationCounter.index.toString());
@@ -50,7 +57,6 @@ export function handleLiquidation(event: LiquidationEvent): void {
 }
 
 export function handleETHGainWithdrawn(_event: ETHGainWithdrawn): void {
-  // TODO: Add filter for our strategy address only
   let liquidationCounter = LiquidationCounter.load('0');
   if (liquidationCounter == null) {
     liquidationCounter = new LiquidationCounter('0');
@@ -58,7 +64,11 @@ export function handleETHGainWithdrawn(_event: ETHGainWithdrawn): void {
     liquidationCounter.strategyBalance = BigInt.fromString('0');
   }
 
-  liquidationCounter.strategyBalance = BigInt.fromString('0');
+  if (
+    _event.params._depositor.toHexString() ==
+    '0xf33fb13b1cBbCC4Ae28026Ec9a433A1AD6fea172'
+  )
+    liquidationCounter.strategyBalance = BigInt.fromString('0');
 
   liquidationCounter.save();
 }
