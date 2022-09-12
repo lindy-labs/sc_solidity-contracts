@@ -11,7 +11,7 @@ import {
   LastGoodPriceUpdated,
   LiquityPriceFeed,
 } from '../types/LiquityPriceFeed/LiquityPriceFeed';
-import { BigInt } from '@graphprotocol/graph-ts';
+import { Address, BigInt } from '@graphprotocol/graph-ts';
 
 export function handleLiquidation(event: LiquidationEvent): void {
   // Bind the contract to the address that emitted the event
@@ -23,18 +23,6 @@ export function handleLiquidation(event: LiquidationEvent): void {
   if (liquidationCounter == null) {
     liquidationCounter = new LiquidationCounter('0');
     liquidationCounter.index = BigInt.fromString('0');
-    liquidationCounter.strategyBalance = BigInt.fromString('0');
-  }
-
-  liquidationCounter.strategyBalance = BigInt.fromString('0');
-
-  if (
-    event.transaction.from.toHexString() ==
-    '0xf33fb13b1cBbCC4Ae28026Ec9a433A1AD6fea172'
-  ) {
-    liquidationCounter.strategyBalance = pool.getDepositorETHGain(
-      event.transaction.from,
-    );
   }
 
   // const liquidation = new Liquidation(liquidationCounter.index.toString());
@@ -46,8 +34,11 @@ export function handleLiquidation(event: LiquidationEvent): void {
   liquidation.liquidatedCollateral = event.params._liquidatedColl;
   liquidation.collGasCompensation = event.params._collGasCompensation;
   liquidation.tokenGasCompensation = event.params._LUSDGasCompensation;
-  liquidation.strategyBalance = liquidationCounter.strategyBalance;
   liquidation.ethPrice = priceFeed.lastGoodPrice();
+  liquidationCounter.strategyBalance = pool.getDepositorETHGain(
+    Address.fromString('0xf33fb13b1cBbCC4Ae28026Ec9a433A1AD6fea172'),
+  );
+
   liquidation.save();
 
   liquidationCounter.index = liquidationCounter.index.plus(
@@ -61,14 +52,7 @@ export function handleETHGainWithdrawn(_event: ETHGainWithdrawn): void {
   if (liquidationCounter == null) {
     liquidationCounter = new LiquidationCounter('0');
     liquidationCounter.index = BigInt.fromString('0');
-    liquidationCounter.strategyBalance = BigInt.fromString('0');
   }
-
-  if (
-    _event.params._depositor.toHexString() ==
-    '0xf33fb13b1cBbCC4Ae28026Ec9a433A1AD6fea172'
-  )
-    liquidationCounter.strategyBalance = BigInt.fromString('0');
 
   liquidationCounter.save();
 }
