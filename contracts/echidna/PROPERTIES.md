@@ -8,10 +8,10 @@ Invoking Vault.deposit() with valid parameters always succeeds when
 
 | Property  | Echidna | Formally Verified |
 | ------------- | :-------------: | :-------------: |
-| vault total underlying balance increases by the amount deposited  | ✓  |   |
-| user balance decreases by the amount deposited  | ✓  |   |
-| total shares of the vault increase by the amount deposited multiplied by shares multiplier  | ✓  |   |
-| total principal of the vault increases by the amount deposited  | ✓  |   |
+| vault total underlying balance increases by the amount deposited  | ✓  | ✓  |
+| user balance decreases by the amount deposited  | ✓  | ✓  |
+| total shares of the vault increase by the amount deposited multiplied by shares multiplier  | ✓  | ✓  |
+| total principal of the vault increases by the amount deposited  | ✓  | ✓  |
 
 Invoking Vault.deposit() with invalid parameters always reverts when
 
