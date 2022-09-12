@@ -8,7 +8,8 @@ import {
   StabilityPool,
 } from '../types/StabilityPool/StabilityPool';
 import {
-  LastGoodPriceUpdated, LiquityPriceFeed,
+  LastGoodPriceUpdated,
+  LiquityPriceFeed,
 } from '../types/LiquityPriceFeed/LiquityPriceFeed';
 import { BigInt } from '@graphprotocol/graph-ts';
 
@@ -29,9 +30,10 @@ export function handleLiquidation(event: LiquidationEvent): void {
     pool.getDepositorETHGain(event.transaction.from),
   );
 
+  // const liquidation = new Liquidation(liquidationCounter.index.toString());
   const liquidation = new Liquidation(liquidationCounter.index.toString());
 
-  liquidation.timestamp = event.block.timestamp;
+  liquidation.index = liquidationCounter.index;
   liquidation.txHash = event.transaction.hash;
   liquidation.liquidatedDebt = event.params._liquidatedDebt;
   liquidation.liquidatedCollateral = event.params._liquidatedColl;

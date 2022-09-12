@@ -70,6 +70,7 @@ type Sponsor @entity {
 
 type Liquidation @entity {
   id: ID!
+  index: BigInt!
   timestamp: BigInt!
   txHash: Bytes!
   liquidatedDebt: BigInt!
