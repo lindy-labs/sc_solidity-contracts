@@ -84,7 +84,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
 
 func.skip = async (env: HardhatRuntimeEnvironment) =>
   !includes(
-    ['ropsten', 'docker', 'mainnet', 'hardhat'],
+    ['goerli', 'docker', 'mainnet', 'hardhat'],
     env.deployments.getNetworkName(),
   );
 

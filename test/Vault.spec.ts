@@ -1122,7 +1122,7 @@ describe('Vault', () => {
       ).to.be.revertedWith('VaultCannotWithdrawMoreThanAvailable');
     });
 
-    it("doesn't emit 'Unsponsored event' if amount withdrawn is less than deposited amount", async () => {
+    it("emits 'Unsponsored' event if amount withdrawn is less than deposited amount", async () => {
       await addUnderlyingBalance(admin, '1000');
 
       await vault
@@ -1139,7 +1139,9 @@ describe('Vault', () => {
         .connect(admin)
         .partialUnsponsor(bob.address, [1], [parseUnits('500')]);
 
-      await expect(tx).not.to.emit(vault, 'Unsponsored');
+      await expect(tx)
+        .to.emit(vault, 'Unsponsored')
+        .withArgs(1, parseUnits('500'), bob.address, false);
     });
 
     it("emits 'Unsponsored' event if amount withdrawn equals deposited amount", async () => {
@@ -1159,7 +1161,9 @@ describe('Vault', () => {
         .connect(admin)
         .partialUnsponsor(bob.address, [1], [parseUnits('1000')]);
 
-      await expect(tx).to.emit(vault, 'Unsponsored').withArgs(1);
+      await expect(tx)
+        .to.emit(vault, 'Unsponsored')
+        .withArgs(1, parseUnits('1000'), bob.address, true);
     });
 
     it('fails if the caller is not the deposit owner', async () => {
@@ -1361,7 +1365,7 @@ describe('Vault', () => {
       );
     });
 
-    it('emits an event', async () => {
+    it("emits 'Unsponsored' event", async () => {
       await addUnderlyingBalance(admin, '1000');
 
       await vault
@@ -1376,7 +1380,9 @@ describe('Vault', () => {
       await moveForwardTwoWeeks();
       const tx = await vault.connect(admin).unsponsor(bob.address, [1]);
 
-      await expect(tx).to.emit(vault, 'Unsponsored').withArgs(1);
+      await expect(tx)
+        .to.emit(vault, 'Unsponsored')
+        .withArgs(1, parseUnits('500'), bob.address, true);
     });
 
     it('fails if the caller is not the owner', async () => {
