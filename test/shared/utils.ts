@@ -22,13 +22,9 @@ export const getRoleErrorMsg = (
   return `AccessControl: account ${account.address.toLowerCase()} is missing role ${role}`;
 };
 
-export const approxWholeTokens = (
-  actual: BigNumber,
-  expected: BigNumber,
+export const removeDecimals = (
+  from: BigNumber,
   decimals: string = '18',
-): boolean => {
-  const one_unit = utils.parseUnits('1', decimals);
-  actual = actual.div(one_unit);
-  expected = expected.div(one_unit);
-  return actual.eq(expected);
+): BigNumber => {
+  return from.div(utils.parseUnits('1', decimals));
 };

@@ -8,7 +8,7 @@ import {
   ForkHelpers,
   generateNewAddress,
   moveForwardTwoWeeks,
-  approxWholeTokens,
+  removeDecimals,
 } from '../../shared';
 
 import {
@@ -368,11 +368,9 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
         EXPECTED_ETH_REWARD,
       );
 
-      const EXPECTED_INVESTED_ASSSETS = BigNumber.from(
-        '5000736699812217881367',
-      );
+      const EXPECTED_INVESTED_ASSETS = BigNumber.from('5000736699812217881367');
 
-      expect(await strategy.investedAssets()).to.eq(EXPECTED_INVESTED_ASSSETS);
+      expect(await strategy.investedAssets()).to.eq(EXPECTED_INVESTED_ASSETS);
       expect(await lusd.balanceOf(vault.address)).to.eq(amountToWithdraw);
       expect(tx)
         .to.emit(strategy, 'StrategyRewardsClaimed')
@@ -393,8 +391,9 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
 
       const actualInvestedAssets = await strategy.investedAssets();
 
-      expect(approxWholeTokens(actualInvestedAssets, EXPECTED_INVESTED_ASSSETS))
-        .to.be.true;
+      expect(removeDecimals(actualInvestedAssets)).to.equal(
+        removeDecimals(EXPECTED_INVESTED_ASSETS),
+      );
     });
   });
 });
