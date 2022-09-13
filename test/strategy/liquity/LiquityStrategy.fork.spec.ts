@@ -109,9 +109,12 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
     strategy = LiquityStrategyFactory.attach(strategyProxy.address);
 
     await vault.setStrategy(strategy.address);
-    strategy.grantRole(MANAGER_ROLE, admin.address);
+    await strategy.grantRole(MANAGER_ROLE, admin.address);
 
-    lusd.connect(admin).approve(vault.address, ethers.constants.MaxUint256);
+    await lusd
+      .connect(admin)
+      .approve(vault.address, ethers.constants.MaxUint256);
+    await strategy.connect(admin).allowSwapTarget(SWAP_TARGET);
   });
 
   describe('#invest', () => {
@@ -573,9 +576,6 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
 
       expect(await strategy.investedAssets()).to.eq('4998816139652613137823');
       expect(await lusd.balanceOf(vault.address)).to.eq(amountToWithdraw);
-      expect(tx)
-        .to.emit(strategy, 'StrategyRewardsClaimed')
-        .withArgs(EXPECTED_LQTY_REWARD, EXPECTED_ETH_REWARD);
     });
   });
 });

@@ -38,6 +38,7 @@ describe('LiquityStrategy', () => {
   const DEFAULT_ADMIN_ROLE = constants.HashZero;
   const MANAGER_ROLE = utils.keccak256(utils.toUtf8Bytes('MANAGER_ROLE'));
   const KEEPER_ROLE = utils.keccak256(utils.toUtf8Bytes('KEEPER_ROLE'));
+  const SETTINGS_ROLE = utils.keccak256(utils.toUtf8Bytes('SETTINGS_ROLE'));
 
   // address of the '0x' contract performing the token swap
   const SWAP_TARGET = '0xdef1c0ded9bec7f1a1670819833240f027b25eff';
@@ -225,6 +226,7 @@ describe('LiquityStrategy', () => {
       expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, admin.address)).to.be
         .true;
       expect(await strategy.hasRole(KEEPER_ROLE, admin.address)).to.be.true;
+      expect(await strategy.hasRole(SETTINGS_ROLE, admin.address)).to.be.true;
       expect(await strategy.hasRole(MANAGER_ROLE, vault.address)).to.be.true;
       expect(await strategy.hasRole(KEEPER_ROLE, keeper.address)).to.be.true;
 
@@ -264,15 +266,18 @@ describe('LiquityStrategy', () => {
       expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, alice.address)).to.be
         .false;
       expect(await strategy.hasRole(KEEPER_ROLE, alice.address)).to.be.false;
+      expect(await strategy.hasRole(SETTINGS_ROLE, alice.address)).to.be.false;
 
       await strategy.connect(admin).transferAdminRights(alice.address);
 
       expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, alice.address)).to.be
         .true;
       expect(await strategy.hasRole(KEEPER_ROLE, alice.address)).to.be.true;
+      expect(await strategy.hasRole(SETTINGS_ROLE, alice.address)).to.be.true;
       expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, admin.address)).to.be
         .false;
       expect(await strategy.hasRole(KEEPER_ROLE, admin.address)).to.be.false;
+      expect(await strategy.hasRole(SETTINGS_ROLE, admin.address)).to.be.false;
     });
   });
 
@@ -385,6 +390,57 @@ describe('LiquityStrategy', () => {
     });
   });
 
+  describe('#allowSwapTarget', () => {
+    it('fails if caller is not settings', async () => {
+      await expect(
+        strategy.connect(alice).allowSwapTarget(SWAP_TARGET),
+      ).to.be.revertedWith('StrategyCallerNotSettings');
+    });
+
+    it('fails if swap target is address(0)', async () => {
+      await expect(
+        strategy.connect(admin).allowSwapTarget(constants.AddressZero),
+      ).to.be.revertedWith('StrategySwapTargetCannotBe0Address');
+    });
+
+    it('adds an address to allowed swap targets', async () => {
+      const swapTarget = alice.address;
+      await strategy.connect(admin).allowSwapTarget(swapTarget);
+
+      expect(await strategy.allowedSwapTargets(swapTarget)).to.be.true;
+    });
+
+    it('fails if swap target is not allowed', async () => {
+      const swapTarget = alice.address;
+
+      await expect(
+        strategy.connect(admin).reinvest(swapTarget, 0, [], 0, []),
+      ).to.be.revertedWith('StrategySwapTargetNotAllowed');
+    });
+  });
+
+  describe('#denySwapTarget', () => {
+    it('fails if caller is not settings', async () => {
+      await expect(
+        strategy.connect(alice).denySwapTarget(SWAP_TARGET),
+      ).to.be.revertedWith('StrategyCallerNotSettings');
+    });
+
+    it('fails if swap target is address(0)', async () => {
+      await expect(
+        strategy.connect(admin).denySwapTarget(constants.AddressZero),
+      ).to.be.revertedWith('StrategySwapTargetCannotBe0Address');
+    });
+
+    it('removes an address from allowed swap targets', async () => {
+      await strategy.connect(admin).allowSwapTarget(SWAP_TARGET);
+
+      await strategy.connect(admin).denySwapTarget(SWAP_TARGET);
+
+      expect(await strategy.allowedSwapTargets(SWAP_TARGET)).to.be.false;
+    });
+  });
+
   describe('#reinvest', () => {
     it('reverts if msg.sender is not keeper', async () => {
       await expect(
@@ -401,6 +457,8 @@ describe('LiquityStrategy', () => {
     });
 
     it('reverts if eth & lqty rewards balance is zero', async () => {
+      await strategy.connect(admin).allowSwapTarget(SWAP_TARGET);
+
       await expect(
         strategy.connect(keeper).reinvest(SWAP_TARGET, 0, [], 0, [], 0),
       ).to.be.revertedWith('StrategyNothingToReinvest');
