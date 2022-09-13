@@ -414,7 +414,7 @@ describe('LiquityStrategy', () => {
       const swapTarget = alice.address;
 
       await expect(
-        strategy.connect(admin).reinvest(swapTarget, 0, [], 0, []),
+        strategy.connect(admin).reinvest(swapTarget, 0, [], 0, [], 0),
       ).to.be.revertedWith('StrategySwapTargetNotAllowed');
     });
   });
@@ -444,13 +444,15 @@ describe('LiquityStrategy', () => {
   describe('#reinvest', () => {
     it('reverts if msg.sender is not keeper', async () => {
       await expect(
-        strategy.connect(alice).reinvest(SWAP_TARGET, 0, [], 0, []),
+        strategy.connect(alice).reinvest(SWAP_TARGET, 0, [], 0, [], 0),
       ).to.be.revertedWith('StrategyCallerNotKeeper');
     });
 
     it('revert if swapTarget is 0 address', async () => {
       await expect(
-        strategy.connect(keeper).reinvest(constants.AddressZero, 0, [], 0, []),
+        strategy
+          .connect(keeper)
+          .reinvest(constants.AddressZero, 0, [], 0, [], 0),
       ).to.be.revertedWith('StrategySwapTargetCannotBe0Address');
     });
 
@@ -458,7 +460,7 @@ describe('LiquityStrategy', () => {
       await strategy.connect(admin).allowSwapTarget(SWAP_TARGET);
 
       await expect(
-        strategy.connect(keeper).reinvest(SWAP_TARGET, 0, [], 0, []),
+        strategy.connect(keeper).reinvest(SWAP_TARGET, 0, [], 0, [], 0),
       ).to.be.revertedWith('StrategyNothingToReinvest');
     });
   });

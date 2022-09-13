@@ -43,6 +43,7 @@ contract LiquityStrategy is
     error StrategySwapTargetNotAllowed();
     error StrategyTokenApprovalFailed(address token);
     error StrategyTokenTransferFailed(address token);
+    error StrategyInsufficientOutputAmount();
     error StrategyYieldTokenCannotBe0Address();
 
     event StrategyReinvested(uint256 amountInLUSD);
@@ -264,13 +265,15 @@ contract LiquityStrategy is
      * @param _lqtySwapData data used to perform LQTY -> LUSD swap. Leave empty to skip this swap.
      * @param _ethAmount amount of ETH to swap to LUSD, has to match with the amount used to obtain @param _ethSwapData.
      * @param _ethSwapData data used to perform ETH -> LUSD swap. Leave empty to skip this swap.
+     * @param _amountOutMin the minimum amount of LUSD to be received after the ETH & LQTY -> LUSD swap.
      */
     function reinvest(
         address _swapTarget,
         uint256 _lqtyAmount,
         bytes calldata _lqtySwapData,
         uint256 _ethAmount,
-        bytes calldata _ethSwapData
+        bytes calldata _ethSwapData,
+        uint256 _amountOutMin
     ) external virtual onlyKeeper {
         _checkSwapTargetForZeroAddress(_swapTarget);
 
@@ -284,6 +287,10 @@ contract LiquityStrategy is
         uint256 balance = underlying.balanceOf(address(this));
         if (balance == 0) {
             revert StrategyNothingToReinvest();
+        }
+
+        if (balance < _amountOutMin) {
+            revert StrategyInsufficientOutputAmount();
         }
 
         emit StrategyReinvested(balance);
