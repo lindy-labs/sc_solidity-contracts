@@ -8,6 +8,7 @@ import {
   ForkHelpers,
   generateNewAddress,
   moveForwardTwoWeeks,
+  removeDecimals,
 } from '../../shared';
 
 import {
@@ -298,9 +299,16 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
         EXPECTED_ETH_REWARD,
       );
 
-      expect(await strategy.investedAssets()).to.eq(
-        initialInvestment.add(LQTY_REWARD_IN_LUSD),
-      );
+      const expectedInvestedAssets = initialInvestment
+        .add(LQTY_REWARD_IN_LUSD)
+        .add(ETH_REWARD_IN_LUSD);
+
+      expect(
+        (await strategy.investedAssets())
+          .div(expectedInvestedAssets)
+          .mul(100)
+          .toNumber(),
+      ).to.be.below(101);
     });
 
     it('works if swap data is provided only for ETH', async () => {
@@ -349,8 +357,8 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       expect(await ethers.provider.getBalance(strategy.address)).to.eq(
         EXPECTED_ETH_REWARD,
       );
-      expect(await strategy.investedAssets()).to.eq(
-        initialInvestment.add(ETH_REWARD_IN_LUSD),
+      expect(removeDecimals(await strategy.investedAssets())).to.eq(
+        removeDecimals(initialInvestment.add(ETH_REWARD_IN_LUSD.mul(2))),
       );
     });
 
@@ -574,8 +582,36 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
         EXPECTED_ETH_REWARD,
       );
 
-      expect(await strategy.investedAssets()).to.eq('4998816139652613137823');
+      const EXPECTED_INVESTED_ASSETS = BigNumber.from('5000736699812217881367');
+
+      expect(await strategy.investedAssets()).to.eq(EXPECTED_INVESTED_ASSETS);
       expect(await lusd.balanceOf(vault.address)).to.eq(amountToWithdraw);
+
+      //////////////////////////////////////////////////////////////////////////
+
+      // reinvest all the ETH rewards to make the ETH balance of the strategy contract zero
+      await strategy.reinvest(
+        SWAP_TARGET,
+        0,
+        [],
+        EXPECTED_ETH_REWARD,
+        SWAP_ETH_DATA,
+        ETH_REWARD_IN_LUSD,
+      );
+
+      expect(await lqty.balanceOf(strategy.address)).to.eq(
+        EXPECTED_LQTY_REWARD,
+      );
+      expect(
+        await lqtyStabilityPool.getDepositorETHGain(strategy.address),
+      ).to.eq('0');
+      expect(await ethers.provider.getBalance(strategy.address)).to.eq('0');
+
+      const actualInvestedAssets = await strategy.investedAssets();
+
+      expect(removeDecimals(actualInvestedAssets)).to.equal(
+        removeDecimals(EXPECTED_INVESTED_ASSETS),
+      );
     });
   });
 });
