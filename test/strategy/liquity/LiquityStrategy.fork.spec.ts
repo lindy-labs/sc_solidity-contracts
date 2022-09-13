@@ -51,6 +51,8 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
   const LQTY_REWARD_IN_LUSD = BigNumber.from('35086994728790148965');
   // amount of LUSD received for swapping ETH reward
   const ETH_REWARD_IN_LUSD = BigNumber.from('1905537726156963558');
+  // amount of LUSD received for swapping both LQTY & ETH rewards
+  const TOTAL_REWARD_IN_LUSD = LQTY_REWARD_IN_LUSD.add(ETH_REWARD_IN_LUSD);
   // address of the '0x' contract performing the token swap
   const SWAP_TARGET = '0xdef1c0ded9bec7f1a1670819833240f027b25eff';
   // cached response data for swapping LQTY->LUSD from `https://api.0x.org/swap/v1/quote?buyToken=${LUSD}&sellToken=${lqty.address}&sellAmount=${39553740600841980000}` at FORK_BLOCK
@@ -235,6 +237,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
         SWAP_LQTY_DATA,
         EXPECTED_ETH_REWARD,
         SWAP_ETH_DATA,
+        TOTAL_REWARD_IN_LUSD,
       );
 
       // assert no funds remain held by the strategy
@@ -262,6 +265,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
           SWAP_LQTY_DATA,
           EXPECTED_ETH_REWARD,
           SWAP_ETH_DATA,
+          TOTAL_REWARD_IN_LUSD,
         ),
       )
         .to.emit(strategy, 'Reinvested')
@@ -282,6 +286,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
         SWAP_LQTY_DATA,
         EXPECTED_ETH_REWARD,
         [],
+        LQTY_REWARD_IN_LUSD,
       );
 
       expect(await lusd.balanceOf(strategy.address)).to.eq('0');
@@ -309,6 +314,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
         [],
         EXPECTED_ETH_REWARD,
         SWAP_ETH_DATA,
+        ETH_REWARD_IN_LUSD,
       );
 
       expect(await lqty.balanceOf(strategy.address)).to.eq(
@@ -334,6 +340,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
         [],
         EXPECTED_ETH_REWARD,
         SWAP_ETH_DATA,
+        ETH_REWARD_IN_LUSD,
       );
 
       expect(await ethers.provider.getBalance(strategy.address)).to.eq(
@@ -358,6 +365,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
         SWAP_LQTY_DATA,
         EXPECTED_ETH_REWARD,
         SWAP_ETH_DATA,
+        ETH_REWARD_IN_LUSD,
       );
 
       // assert no funds remain held by the strategy
@@ -383,6 +391,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
         SWAP_LQTY_DATA,
         0,
         SWAP_ETH_DATA,
+        LQTY_REWARD_IN_LUSD,
       );
 
       expect(await lusd.balanceOf(strategy.address)).to.eq('0');
@@ -407,6 +416,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
         SWAP_LQTY_DATA,
         EXPECTED_ETH_REWARD,
         [],
+        LQTY_REWARD_IN_LUSD,
       );
 
       expect(await lusd.balanceOf(strategy.address)).to.eq('0');
@@ -432,6 +442,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
           SWAP_ETH_DATA, // send ETH swap data instead of LQTY swap data
           EXPECTED_ETH_REWARD,
           SWAP_ETH_DATA,
+          TOTAL_REWARD_IN_LUSD,
         ),
       ).to.be.revertedWith('StrategyLQTYSwapFailed');
     });
@@ -451,6 +462,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
           SWAP_LQTY_DATA,
           EXPECTED_ETH_REWARD,
           SWAP_LQTY_DATA, // send LQTY swap data instead of ETH swap data
+          TOTAL_REWARD_IN_LUSD,
         ),
       ).to.be.revertedWith('StrategyETHSwapFailed');
     });
@@ -470,6 +482,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
           SWAP_LQTY_DATA,
           EXPECTED_ETH_REWARD.div(2), // amount is half of the expected
           SWAP_ETH_DATA, // was obtained for EXPECTED_ETH_REWARD amount
+          TOTAL_REWARD_IN_LUSD,
         ),
       ).to.be.revertedWith('StrategyETHSwapFailed');
     });
@@ -486,8 +499,29 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
           [], // empty data for lqty swap
           EXPECTED_ETH_REWARD,
           [], // empty data for eth swap
+          TOTAL_REWARD_IN_LUSD,
         ),
       ).to.be.revertedWith('StrategyNothingToReinvest');
+    });
+
+    it.only('fails expected amountOut of Rewards is higher than actual amountOut', async () => {
+      const initialInvestment = parseUnits('10000');
+      await ForkHelpers.mintToken(lusd, strategy.address, initialInvestment);
+      await strategy.invest();
+
+      await ForkHelpers.mintToken(lqty, strategy.address, EXPECTED_LQTY_REWARD);
+      ForkHelpers.setBalance(strategy.address, EXPECTED_ETH_REWARD);
+
+      await expect(
+        strategy.reinvest(
+          SWAP_TARGET,
+          EXPECTED_LQTY_REWARD,
+          SWAP_LQTY_DATA,
+          EXPECTED_ETH_REWARD,
+          SWAP_ETH_DATA,
+          TOTAL_REWARD_IN_LUSD.add(1),
+        ),
+      ).to.be.revertedWith('StrategyInsufficientOutputAmount');
     });
   });
 
