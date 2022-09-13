@@ -345,7 +345,6 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       );
     });
 
-
     it('works if strategy holds no LQTY tokens', async () => {
       const initialInvestment = parseUnits('10000');
       await ForkHelpers.mintToken(lusd, strategy.address, initialInvestment);
@@ -550,7 +549,13 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       //////////////////////////////////////////////////////////////////////////
 
       // reinvest all the ETH rewards to make the ETH balance of the strategy contract zero
-      await strategy.reinvestRewards(SWAP_TARGET, [], SWAP_ETH_DATA);
+      await strategy.reinvest(
+        SWAP_TARGET,
+        0,
+        [],
+        EXPECTED_ETH_REWARD,
+        SWAP_ETH_DATA,
+      );
 
       expect(await lqty.balanceOf(strategy.address)).to.eq(
         EXPECTED_LQTY_REWARD,
