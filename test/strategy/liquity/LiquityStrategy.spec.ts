@@ -409,6 +409,14 @@ describe('LiquityStrategy', () => {
 
       expect(await strategy.allowedSwapTargets(swapTarget)).to.be.true;
     });
+
+    it('fails if swap target is not allowed', async () => {
+      const swapTarget = alice.address;
+
+      await expect(
+        strategy.connect(admin).reinvest(swapTarget, 0, [], 0, []),
+      ).to.be.revertedWith('StrategySwapTargetNotAllowed');
+    });
   });
 
   describe('#denySwapTarget', () => {
