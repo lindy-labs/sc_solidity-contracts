@@ -388,19 +388,21 @@ describe('LiquityStrategy', () => {
   describe('#reinvest', () => {
     it('reverts if msg.sender is not keeper', async () => {
       await expect(
-        strategy.connect(alice).reinvest(SWAP_TARGET, 0, [], 0, []),
+        strategy.connect(alice).reinvest(SWAP_TARGET, 0, [], 0, [], 0),
       ).to.be.revertedWith('StrategyCallerNotKeeper');
     });
 
     it('revert if swapTarget is 0 address', async () => {
       await expect(
-        strategy.connect(keeper).reinvest(constants.AddressZero, 0, [], 0, []),
+        strategy
+          .connect(keeper)
+          .reinvest(constants.AddressZero, 0, [], 0, [], 0),
       ).to.be.revertedWith('StrategySwapTargetCannotBe0Address');
     });
 
     it('reverts if eth & lqty rewards balance is zero', async () => {
       await expect(
-        strategy.connect(keeper).reinvest(SWAP_TARGET, 0, [], 0, []),
+        strategy.connect(keeper).reinvest(SWAP_TARGET, 0, [], 0, [], 0),
       ).to.be.revertedWith('StrategyNothingToReinvest');
     });
   });
