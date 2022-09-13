@@ -414,7 +414,7 @@ describe('LiquityStrategy', () => {
       const swapTarget = alice.address;
 
       await expect(
-        strategy.connect(admin).reinvest(swapTarget, 0, [], 0, []),
+        strategy.connect(admin).reinvest(swapTarget, 0, [], 0, [], 0),
       ).to.be.revertedWith('StrategySwapTargetNotAllowed');
     });
   });

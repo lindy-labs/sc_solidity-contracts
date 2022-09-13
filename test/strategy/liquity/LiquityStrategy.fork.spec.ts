@@ -507,7 +507,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       ).to.be.revertedWith('StrategyNothingToReinvest');
     });
 
-    it.only('fails expected amountOut of Rewards is higher than actual amountOut', async () => {
+    it('fails if the expected amount is higher then the actual amount', async () => {
       const initialInvestment = parseUnits('10000');
       await ForkHelpers.mintToken(lusd, strategy.address, initialInvestment);
       await strategy.invest();
