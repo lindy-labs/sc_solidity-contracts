@@ -23,6 +23,6 @@ rule pricePerSharePreserved(method f) // For any function f
 
     f(e, args);
 
-    assert (pricePerShareBefore == vault.totalUnderlyingMinusSponsored() / vault.totalShares()); // Price per Share Preservation verification
+    assert pricePerShareBefore == vault.totalUnderlyingMinusSponsored() / vault.totalShares(), "Price per share must be preserved by function ${f}";
 
 }

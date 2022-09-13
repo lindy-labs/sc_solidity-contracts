@@ -17,10 +17,10 @@
             "VaultDepositWithdraw": "properties/certora/VaultDepositWithdraw.sol"
         },
         "contracts": [
-            "Vault",
-            "VaultDepositWithdraw",
             "MockStrategySync",
-            "MockERC20"
+            "VaultDepositWithdraw",
+            "MockERC20",
+            "Vault"
         ],
         "debug": null,
         "debug_topics": false,
@@ -34,8 +34,8 @@
         "file_paths": [
             "Vault.sol",
             "mock/MockERC20.sol",
-            "mock/MockStrategySync.sol",
-            "properties/certora/VaultDepositWithdraw.sol"
+            "properties/certora/VaultDepositWithdraw.sol",
+            "mock/MockStrategySync.sol"
         ],
         "file_to_contract": {
             "Vault.sol": [
@@ -105,7 +105,7 @@
         "solc_args": null,
         "solc_map": null,
         "spec_files": [
-            "./properties/certora/Invariants/Invariants.spec"
+            "./properties/certora/Invariants/PricePerShare.spec"
         ],
         "staging": null,
         "struct_link": null,
@@ -116,10 +116,10 @@
             "properties/certora/VaultDepositWithdraw.sol"
         ],
         "verify": [
-            "VaultDepositWithdraw:./properties/certora/Invariants/Invariants.spec"
+            "VaultDepositWithdraw:./properties/certora/Invariants/PricePerShare.spec"
         ]
     },
-    "branch": "solidityFV",
+    "branch": "Formal-Verification",
     "conf": {
         "files": [
             "./properties/certora/VaultDepositWithdraw.sol",
@@ -144,7 +144,7 @@
             "-postProcessCounterExamples=true"
         ],
         "verify": [
-            "VaultDepositWithdraw:./properties/certora/Invariants/Invariants.spec"
+            "VaultDepositWithdraw:./properties/certora/Invariants/PricePerShare.spec"
         ]
     },
     "cwd_relative": "contracts",
@@ -162,7 +162,7 @@
         "Vault:underlying=MockERC20",
         "MockStrategySync:underlying=MockERC20",
         "--verify",
-        "VaultDepositWithdraw:./properties/certora/Invariants/Invariants.spec",
+        "VaultDepositWithdraw:./properties/certora/Invariants/PricePerShare.spec",
         "--settings",
         "-postProcessCounterExamples=true",
         "--optimistic_loop",
@@ -172,6 +172,6 @@
         "--msg",
         "Checking Vault"
     ],
-    "revision": "e08c59d635e93bd2d974f7512d71651ecfc5cfdc",
-    "timestamp": "1662762198.883373"
+    "revision": "e9981e7a1c98ffbd23ed1af6f2266d00810132cb",
+    "timestamp": "1663075588.353476"
 }

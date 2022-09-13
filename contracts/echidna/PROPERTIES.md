@@ -62,6 +62,13 @@ Invoking Vault.withdraw() with invalid parameters always reverts when
 | lock duration has not passed yet  | ✓  |   |
 | user has not made a deposit and tries to withdraw more than zero  | ✓  |   |
 
+Invoking Vault.deposit() or Vault.withdraw() do not change price per share
+
+| Property  | Echidna | Formally Verified |
+| ------------- | :-------------: | :-------------: |
+| deposit preserve price per share   |   | ✓  |
+| withdraw preserve price per share  |   | ✓  |
+
 ## Access Control
 
 | Property  | Echidna | Formally Verified |

@@ -2,8 +2,8 @@
     {
         "importFilesToOrigRelpaths": {},
         "primary_contract": "VaultDepositWithdraw",
-        "specfile": ".certora_config/0_Invariants.spec.spec",
-        "specfileOrigRelpath": "properties/certora/Invariants/Invariants.spec",
+        "specfile": ".certora_config/0_PricePerShare.spec.spec",
+        "specfileOrigRelpath": "properties/certora/Invariants/PricePerShare.spec",
         "specfilesToImportDecls": {},
         "type": "spec"
     }
