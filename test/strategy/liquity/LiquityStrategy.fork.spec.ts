@@ -539,9 +539,6 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
 
       expect(await strategy.investedAssets()).to.eq('4998816139652613137823');
       expect(await lusd.balanceOf(vault.address)).to.eq(amountToWithdraw);
-      expect(tx)
-        .to.emit(strategy, 'StrategyRewardsClaimed')
-        .withArgs(EXPECTED_LQTY_REWARD, EXPECTED_ETH_REWARD);
     });
   });
 });
