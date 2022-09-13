@@ -8,7 +8,7 @@ library ERC165Query {
     function doesContractImplementInterface(
         address _contract,
         bytes4 _interfaceId
-    ) internal view returns (bool) {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff008a0000, 1037618708618) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff008a0001, 2) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff008a1000, _contract) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff008a1001, _interfaceId) }
+    ) internal view returns (bool) {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00860000, 1037618708614) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00860001, 2) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00861000, _contract) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00861001, _interfaceId) }
         uint256 success;
         uint256 result;
 
@@ -33,7 +33,7 @@ library ERC165Query {
         internal
         view
         returns (uint256 success, uint256 result)
-    {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff008b0000, 1037618708619) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff008b0001, 2) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff008b1000, _contract) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff008b1001, _interfaceId) }
+    {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00870000, 1037618708615) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00870001, 2) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00871000, _contract) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00871001, _interfaceId) }
         bytes4 erc165ID = ERC165ID;
 
         assembly {

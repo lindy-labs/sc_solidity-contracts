@@ -9,7 +9,7 @@ library PercentMath {
      * @dev Returns whether an amount is a valid percentage out of PCT_DIVISOR
      * @param _amount Amount that is supposed to be a percentage
      */
-    function validPct(uint256 _amount) internal pure returns (bool) {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00e20000, 1037618708706) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00e20001, 1) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00e21000, _amount) }
+    function validPct(uint256 _amount) internal pure returns (bool) {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00de0000, 1037618708702) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00de0001, 1) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00de1000, _amount) }
         return _amount <= PCT_DIVISOR;
     }
 
@@ -22,7 +22,7 @@ library PercentMath {
         internal
         pure
         returns (uint256)
-    {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00e30000, 1037618708707) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00e30001, 2) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00e31000, _amount) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00e31001, _fracNum) }
+    {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00df0000, 1037618708703) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00df0001, 2) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00df1000, _amount) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00df1001, _fracNum) }
         return (_amount * _fracNum) / PCT_DIVISOR;
     }
 
@@ -30,7 +30,7 @@ library PercentMath {
      * @dev Checks if a given number corresponds to 100%
      * @param _perc Percentage value to check, with PCT_DIVISOR
      */
-    function is100Pct(uint256 _perc) internal pure returns (bool) {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00e40000, 1037618708708) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00e40001, 1) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00e41000, _perc) }
+    function is100Pct(uint256 _perc) internal pure returns (bool) {assembly { mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00e00000, 1037618708704) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00e00001, 1) mstore(0xffffff6e4604afefe123321beef1b01fffffffffffffffffffffffff00e01000, _perc) }
         return _perc == PCT_DIVISOR;
     }
 }

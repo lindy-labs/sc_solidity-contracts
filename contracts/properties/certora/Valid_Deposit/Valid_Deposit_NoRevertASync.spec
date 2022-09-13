@@ -32,9 +32,9 @@ rule deposit_succeeds {
     uint256 balance_this_after = underlying.balanceOf(currentContract);
     uint256 balance_vault_after = vault.totalUnderlying();
 
-    assert(balance_vault_after == balance_vault_before + amount);
-    assert balance_this_after == balance_this_before - amount;
-    assert(vault.totalShares() == totalshares_vault_before + (amount * (10 ^ 18)));
-    assert(vault.totalPrincipal() == totalprincipal_vault_before + amount);
+    assert balance_vault_after == balance_vault_before + amount, "Vault's balance is increased by amount";
+    assert balance_this_after == balance_this_before - amount, "(this)'s balance is decreased by amount";
+    assert vault.totalShares() == totalshares_vault_before + (amount * (10 ^ 18)), "Total shares is increased by amount * (10 ^ 18)";
+    assert vault.totalPrincipal() == totalprincipal_vault_before + amount, "Total principal is increased by amount";
 
 }

@@ -6,21 +6,21 @@
         "build_only": false,
         "bytecode_jsons": null,
         "bytecode_spec": null,
-        "cache": "./properties/certora/VaultDepositWithdraw.sol-Vault.sol-mock/MockERC20.sol-mock/MockStrategySync.sol-optimisticTrue-iterNone",
+        "cache": "./properties/certora/SponsorForCertora.sol-Vault.sol-mock/MockERC20.sol-mock/MockStrategySync.sol-optimisticTrue-iterNone",
         "check_args": false,
         "cloud": null,
         "coinbaseMode": false,
         "contract_to_file": {
             "MockERC20": "mock/MockERC20.sol",
             "MockStrategySync": "mock/MockStrategySync.sol",
-            "Vault": "Vault.sol",
-            "VaultDepositWithdraw": "properties/certora/VaultDepositWithdraw.sol"
+            "SponsorForCertora": "properties/certora/SponsorForCertora.sol",
+            "Vault": "Vault.sol"
         },
         "contracts": [
+            "SponsorForCertora",
             "MockStrategySync",
-            "VaultDepositWithdraw",
-            "MockERC20",
-            "Vault"
+            "Vault",
+            "MockERC20"
         ],
         "debug": null,
         "debug_topics": false,
@@ -32,10 +32,10 @@
         "env": "production",
         "expected_file": "expected.json",
         "file_paths": [
-            "Vault.sol",
+            "mock/MockStrategySync.sol",
+            "properties/certora/SponsorForCertora.sol",
             "mock/MockERC20.sol",
-            "properties/certora/VaultDepositWithdraw.sol",
-            "mock/MockStrategySync.sol"
+            "Vault.sol"
         ],
         "file_to_contract": {
             "Vault.sol": [
@@ -47,12 +47,12 @@
             "mock/MockStrategySync.sol": [
                 "MockStrategySync"
             ],
-            "properties/certora/VaultDepositWithdraw.sol": [
-                "VaultDepositWithdraw"
+            "properties/certora/SponsorForCertora.sol": [
+                "SponsorForCertora"
             ]
         },
         "files": [
-            "./properties/certora/VaultDepositWithdraw.sol",
+            "./properties/certora/SponsorForCertora.sol",
             "Vault.sol",
             "mock/MockERC20.sol",
             "mock/MockStrategySync.sol"
@@ -63,9 +63,10 @@
         "java_args": null,
         "link": [
             "MockStrategySync:underlying=MockERC20",
+            "SponsorForCertora:underlying=MockERC20",
+            "SponsorForCertora:vault=Vault",
             "Vault:strategy=MockStrategySync",
-            "Vault:underlying=MockERC20",
-            "VaultDepositWithdraw:vault=Vault"
+            "Vault:underlying=MockERC20"
         ],
         "local": false,
         "log_branch": null,
@@ -105,7 +106,7 @@
         "solc_args": null,
         "solc_map": null,
         "spec_files": [
-            "./properties/certora/Invariants/PricePerShare.spec"
+            "./properties/certora/Valid_Sponsor/Valid_Sponsor.spec"
         ],
         "staging": null,
         "struct_link": null,
@@ -113,25 +114,26 @@
         "typecheck_only": false,
         "user_defined_cache": false,
         "verified_contract_files": [
-            "properties/certora/VaultDepositWithdraw.sol"
+            "properties/certora/SponsorForCertora.sol"
         ],
         "verify": [
-            "VaultDepositWithdraw:./properties/certora/Invariants/PricePerShare.spec"
+            "SponsorForCertora:./properties/certora/Valid_Sponsor/Valid_Sponsor.spec"
         ]
     },
     "branch": "Formal-Verification",
     "conf": {
         "files": [
-            "./properties/certora/VaultDepositWithdraw.sol",
+            "./properties/certora/SponsorForCertora.sol",
             "Vault.sol",
             "mock/MockERC20.sol",
             "mock/MockStrategySync.sol"
         ],
         "link": [
             "MockStrategySync:underlying=MockERC20",
+            "SponsorForCertora:underlying=MockERC20",
+            "SponsorForCertora:vault=Vault",
             "Vault:strategy=MockStrategySync",
-            "Vault:underlying=MockERC20",
-            "VaultDepositWithdraw:vault=Vault"
+            "Vault:underlying=MockERC20"
         ],
         "msg": "Checking Vault",
         "multi_assert_check": true,
@@ -144,7 +146,7 @@
             "-postProcessCounterExamples=true"
         ],
         "verify": [
-            "VaultDepositWithdraw:./properties/certora/Invariants/PricePerShare.spec"
+            "SponsorForCertora:./properties/certora/Valid_Sponsor/Valid_Sponsor.spec"
         ]
     },
     "cwd_relative": "contracts",
@@ -152,17 +154,18 @@
     "origin": "https://github.com/lindy-labs/sc_solidity-contracts.git",
     "raw_args": [
         "/Users/alexandremota/Library/Python/3.8/bin/certoraRun",
-        "./properties/certora/VaultDepositWithdraw.sol",
+        "./properties/certora/SponsorForCertora.sol",
         "Vault.sol",
         "mock/MockStrategySync.sol",
         "mock/MockERC20.sol",
         "--link",
-        "VaultDepositWithdraw:vault=Vault",
+        "SponsorForCertora:vault=Vault",
+        "SponsorForCertora:underlying=MockERC20",
         "Vault:strategy=MockStrategySync",
         "Vault:underlying=MockERC20",
         "MockStrategySync:underlying=MockERC20",
         "--verify",
-        "VaultDepositWithdraw:./properties/certora/Invariants/PricePerShare.spec",
+        "SponsorForCertora:./properties/certora/Valid_Sponsor/Valid_Sponsor.spec",
         "--settings",
         "-postProcessCounterExamples=true",
         "--optimistic_loop",
@@ -172,6 +175,6 @@
         "--msg",
         "Checking Vault"
     ],
-    "revision": "e9981e7a1c98ffbd23ed1af6f2266d00810132cb",
-    "timestamp": "1663075588.353476"
+    "revision": "7cf1230641d5e60547d105b91afe4f9fcd6a8091",
+    "timestamp": "1663080708.938169"
 }

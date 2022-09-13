@@ -1,9 +1,9 @@
 [
     {
         "importFilesToOrigRelpaths": {},
-        "primary_contract": "VaultDepositWithdraw",
-        "specfile": ".certora_config/0_PricePerShare.spec.spec",
-        "specfileOrigRelpath": "properties/certora/Invariants/PricePerShare.spec",
+        "primary_contract": "SponsorForCertora",
+        "specfile": ".certora_config/0_Valid_Sponsor.spec.spec",
+        "specfileOrigRelpath": "properties/certora/Valid_Sponsor/Valid_Sponsor.spec",
         "specfilesToImportDecls": {},
         "type": "spec"
     }

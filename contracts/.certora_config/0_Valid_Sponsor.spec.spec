@@ -7,34 +7,34 @@ methods {
     vault.totalUnderlying() returns (uint256) envfree;
     vault.totalShares() returns (uint256) envfree;
     vault.totalPrincipal() returns (uint256) envfree;
+    vault.totalSponsored() returns (uint256) envfree;
 }
 
-rule deposit_succeeds {
+rule sponsor_succeeds {
 
-    address inputToken;
     uint64 lockDuration;
     uint64 amount;
-    string name;
-    uint256 slippage;
 
     env eV;
 
     underlying.mint(eV, currentContract, amount);
-    underlying.approve(eV, inputToken, amount);
 
     uint256 balance_this_before = underlying.balanceOf(currentContract);
-    uint256 balance_vault_before = vault.totalUnderlying();
+    uint256 balance_vault_before = vault.totalSponsored();
     uint256 totalshares_vault_before = vault.totalShares();
     uint256 totalprincipal_vault_before = vault.totalPrincipal();
+    uint256 totalunderlying_vault_before = vault.totalUnderlying();
 
-    depositParts(eV, inputToken, lockDuration, amount, name, slippage);
+    sponsor(eV, amount, lockDuration, 5);
 
     uint256 balance_this_after = underlying.balanceOf(currentContract);
-    uint256 balance_vault_after = vault.totalUnderlying();
+    uint256 balance_vault_after = vault.totalSponsored();
+    uint256 totalunderlying_vault_after = vault.totalUnderlying();
 
     assert balance_vault_after == balance_vault_before + amount, "Vault's balance is increased by amount";
     assert balance_this_after == balance_this_before - amount, "(this)'s balance is decreased by amount";
-    assert vault.totalShares() == totalshares_vault_before + (amount * (10 ^ 18)), "Total shares is increased by amount * (10 ^ 18)";
-    assert vault.totalPrincipal() == totalprincipal_vault_before + amount, "Total principal is increased by amount";
+    assert vault.totalShares() == totalshares_vault_before, "Total shares does not change";
+    assert vault.totalPrincipal() == totalprincipal_vault_before, "Total principal does not change";
+    assert vault.totalUnderlying() == totalunderlying_vault_before + amount, "Total underlying is increased by amount";
 
 }
