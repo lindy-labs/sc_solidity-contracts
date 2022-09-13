@@ -274,6 +274,9 @@ contract LiquityStrategy is
     ) external virtual onlyKeeper {
         _checkSwapTargetForZeroAddress(_swapTarget);
 
+        if (!allowedSwapTargets[_swapTarget])
+            revert StrategySwapTargetNotAllowed();
+
         swapLQTYtoLUSD(_lqtyAmount, _swapTarget, _lqtySwapData);
         swapETHtoLUSD(_ethAmount, _swapTarget, _ethSwapData);
 
