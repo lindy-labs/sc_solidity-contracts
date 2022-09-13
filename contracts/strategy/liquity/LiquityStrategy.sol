@@ -31,18 +31,19 @@ contract LiquityStrategy is
     using PercentMath for uint256;
     using ERC165Query for address;
 
+    error StrategyCallerNotKeeper();
+    error StrategyETHSwapFailed();
+    error StrategyKeeperCannotBe0Address();
+    error StrategyLQTYSwapFailed();
+    error StrategyNotEnoughETH();
+    error StrategyNotEnoughLQTY();
+    error StrategyNothingToReinvest();
     error StrategyStabilityPoolCannotBeAddressZero();
-    error StrategyYieldTokenCannotBe0Address();
+    error StrategySwapTargetCannotBe0Address();
+    error StrategySwapTargetNotAllowed();
     error StrategyTokenApprovalFailed(address token);
     error StrategyTokenTransferFailed(address token);
-    error StrategyNothingToReinvest();
-    error StrategySwapTargetCannotBe0Address();
-    error StrategyNotEnoughLQTY();
-    error StrategyNotEnoughETH();
-    error StrategyLQTYSwapFailed();
-    error StrategyETHSwapFailed();
-    error StrategyCallerNotKeeper();
-    error StrategyKeeperCannotBe0Address();
+    error StrategyYieldTokenCannotBe0Address();
 
     event StrategyRewardsClaimed(uint256 amountInLQTY, uint256 amountInETH);
     event StrategyReinvested(uint256 amountInLUSD);
@@ -51,12 +52,15 @@ contract LiquityStrategy is
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
     // role allowed to call harvest() and reinvest()
     bytes32 public constant KEEPER_ROLE = keccak256("KEEPER_ROLE");
+    // role for managing swap targets whitelist
+    bytes32 public constant SETTINGS_ROLE = keccak256("SETTINGS_ROLE");
 
     IERC20 public underlying; // LUSD token
     /// @inheritdoc IStrategy
     address public override(IStrategy) vault;
     IStabilityPool public stabilityPool;
     IERC20 public lqty; // reward token
+    mapping(address => bool) public allowedSwapTargets; // whitelist of swap targets
 
     //
     // Modifiers
@@ -70,6 +74,12 @@ contract LiquityStrategy is
 
     modifier onlyKeeper() {
         if (!hasRole(KEEPER_ROLE, msg.sender)) revert StrategyCallerNotKeeper();
+        _;
+    }
+
+    modifier onlySettings() {
+        if (!hasRole(SETTINGS_ROLE, msg.sender))
+            revert StrategyCallerNotSettings();
         _;
     }
 
@@ -106,6 +116,7 @@ contract LiquityStrategy is
 
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
         _grantRole(KEEPER_ROLE, _admin);
+        _grantRole(SETTINGS_ROLE, _admin);
         _grantRole(MANAGER_ROLE, _vault);
         _grantRole(KEEPER_ROLE, _keeper);
 
@@ -135,9 +146,11 @@ contract LiquityStrategy is
 
         _grantRole(DEFAULT_ADMIN_ROLE, _newAdmin);
         _grantRole(KEEPER_ROLE, _newAdmin);
+        _grantRole(SETTINGS_ROLE, _newAdmin);
 
         _revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
         _revokeRole(KEEPER_ROLE, msg.sender);
+        _revokeRole(SETTINGS_ROLE, msg.sender);
     }
 
     //
@@ -215,6 +228,29 @@ contract LiquityStrategy is
     }
 
     /**
+     * Allows an address to be used as a swap target by adding it on the whitelist.
+     *
+     * @notice Can only be called by the account with the SETTINGS role.
+     * @notice Swap targets are addresses of 0x contracts used for swapping ETH and LQTY tokens held by the strategy.
+     */
+    function allowSwapTarget(address _swapTarget) external onlySettings {
+        _checkSwapTargetForZeroAddress(_swapTarget);
+
+        allowedSwapTargets[_swapTarget] = true;
+    }
+
+    /**
+     * Denies an address to be used as a swap target by removing it from the whitelist.
+     *
+     * @notice Can only be called by the account with the SETTINGS role.
+     */
+    function denySwapTarget(address _swapTarget) external onlySettings {
+        _checkSwapTargetForZeroAddress(_swapTarget);
+
+        allowedSwapTargets[_swapTarget] = false;
+    }
+
+    /**
      * Collects the LQTY & ETH rewards from the stability pool.
      */
     function harvest() external virtual {
@@ -241,8 +277,7 @@ contract LiquityStrategy is
         uint256 _ethAmount,
         bytes calldata _ethSwapData
     ) external virtual onlyKeeper {
-        if (_swapTarget == address(0))
-            revert StrategySwapTargetCannotBe0Address();
+        _checkSwapTargetForZeroAddress(_swapTarget);
 
         swapLQTYtoLUSD(_lqtyAmount, _swapTarget, _lqtySwapData);
         swapETHtoLUSD(_ethAmount, _swapTarget, _ethSwapData);
@@ -256,6 +291,14 @@ contract LiquityStrategy is
         emit StrategyReinvested(balance);
 
         stabilityPool.provideToSP(balance, address(0));
+    }
+
+    /**
+     * Checks if the provided swap target is 0 address and reverts if true.
+     */
+    function _checkSwapTargetForZeroAddress(address _swapTarget) internal pure {
+        if (_swapTarget == address(0))
+            revert StrategySwapTargetCannotBe0Address();
     }
 
     /**
