@@ -11,6 +11,7 @@ import {CustomErrors} from "../../interfaces/CustomErrors.sol";
 import {IVault} from "../../vault/IVault.sol";
 import {IStabilityPool} from "../../interfaces/liquity/IStabilityPool.sol";
 import {ERC165Query} from "../../lib/ERC165Query.sol";
+import {ICurveExchange} from "../../interfaces/curve/ICurveExchange.sol";
 
 /***
  * Liquity Strategy generates yield by investing LUSD assets into Liquity Stability Pool contract.
@@ -47,6 +48,15 @@ contract LiquityStrategy is
     error StrategyYieldTokenCannotBe0Address();
 
     event StrategyReinvested(uint256 amountInLUSD);
+
+    address public constant WETH_CURVE_POOL =
+        0xD51a44d3FaE010294C616388b506AcdA1bfAAE46;
+    address public constant LUSD_CURVE_POOL =
+        0xEd279fDD11cA84bEef15AF5D39BB4d4bEE23F0cA;
+    address public constant CURVE_ROUTER =
+        0x81C46fECa27B31F3ADC2b91eE4be9717d1cd3DD7;
+    address public constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    address public constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
 
     // role allowed to invest/withdraw assets to/from the strategy (vault)
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
@@ -176,7 +186,8 @@ contract LiquityStrategy is
     }
 
     /// @inheritdoc IStrategy
-    /// @notice ETH & LQTY rewards of the strategy waiting to be claimed in the liquity stability pool are not included
+    /// @notice LQTY rewards of the strategy waiting to be claimed in the liquity stability pool are not included
+    /// @notice but the ETH rewards are included
     function investedAssets()
         public
         view
@@ -184,7 +195,26 @@ contract LiquityStrategy is
         override(IStrategy)
         returns (uint256)
     {
-        return stabilityPool.getCompoundedLUSDDeposit(address(this));
+        uint256 ethBalance = address(this).balance;
+        // need to do this because the get_exchange_amount method reverts if ethBalance is zero
+        if (ethBalance == 0) {
+            return stabilityPool.getCompoundedLUSDDeposit(address(this));
+        }
+
+        uint256 ethBalanceInUSDT = ICurveExchange(CURVE_ROUTER)
+            .get_exchange_amount(WETH_CURVE_POOL, WETH, USDT, ethBalance);
+
+        uint256 ethBalanceInLusd = ICurveExchange(CURVE_ROUTER)
+            .get_exchange_amount(
+                LUSD_CURVE_POOL,
+                USDT,
+                address(underlying),
+                ethBalanceInUSDT
+            );
+
+        return
+            stabilityPool.getCompoundedLUSDDeposit(address(this)) +
+            ethBalanceInLusd;
     }
 
     /// @inheritdoc IStrategy
