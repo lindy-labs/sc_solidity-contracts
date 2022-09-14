@@ -1,9 +1,9 @@
 [
     {
         "importFilesToOrigRelpaths": {},
-        "primary_contract": "SponsorForCertora",
-        "specfile": ".certora_config/0_Valid_Sponsor.spec.spec",
-        "specfileOrigRelpath": "properties/certora/Valid_Sponsor/Valid_Sponsor.spec",
+        "primary_contract": "VaultForCertora",
+        "specfile": ".certora_config/0_Valid_Withdraw.spec.spec",
+        "specfileOrigRelpath": "properties/certora/Valid_Withdraw/Valid_Withdraw.spec",
         "specfilesToImportDecls": {},
         "type": "spec"
     }

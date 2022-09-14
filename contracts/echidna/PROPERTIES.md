@@ -51,10 +51,10 @@ Invoking Vault.withdraw() with valid parameters always succeeds when
 
 | Property  | Echidna | Formally Verified |
 | ------------- | :-------------: | :-------------: |
-| vault total underlying balance decreases by amount withdrawn  | ✓  |   |
-| user balance increases by the amount withdrawn  | ✓  |   |
-| total shares of the vault decrease by the withdrawn amount multiplied by the shares multiplier  | ✓  |   |
-| total principal of vault decreases by the amount deposited  | ✓  |   |
+| vault total underlying balance decreases by amount withdrawn  | ✓  | ✓ |
+| user balance increases by the amount withdrawn  | ✓  | ✓  |
+| total shares of the vault decrease by the withdrawn amount multiplied by the shares multiplier  | ✓  | ✓  |
+| total principal of vault decreases by the amount deposited  | ✓  | ✓  |
 
 Invoking Vault.withdraw() with invalid parameters always reverts when
 
