@@ -14,7 +14,7 @@ import {
 import { Address, BigInt } from '@graphprotocol/graph-ts';
 
 export function handleLiquidation(event: LiquidationEvent): void {
-  // Bind the contract to the address that emitted the event
+  // bind the contract to the address that emitted the event
   let trove = LiquityTrove.bind(event.address);
   let pool = StabilityPool.bind(trove.stabilityPool());
   let priceFeed = LiquityPriceFeed.bind(trove.priceFeed());
@@ -25,17 +25,17 @@ export function handleLiquidation(event: LiquidationEvent): void {
     liquidationCounter.index = BigInt.fromString('0');
   }
 
-  // const liquidation = new Liquidation(liquidationCounter.index.toString());
   const liquidation = new Liquidation(liquidationCounter.index.toString());
 
   liquidation.index = liquidationCounter.index;
+  liquidation.timestamp = event.block.timestamp;
   liquidation.txHash = event.transaction.hash;
   liquidation.liquidatedDebt = event.params._liquidatedDebt;
   liquidation.liquidatedCollateral = event.params._liquidatedColl;
   liquidation.collGasCompensation = event.params._collGasCompensation;
   liquidation.tokenGasCompensation = event.params._LUSDGasCompensation;
   liquidation.ethPrice = priceFeed.lastGoodPrice();
-  liquidationCounter.strategyBalance = pool.getDepositorETHGain(
+  liquidation.strategyBalance = pool.getDepositorETHGain(
     Address.fromString('0xf33fb13b1cBbCC4Ae28026Ec9a433A1AD6fea172'),
   );
 
