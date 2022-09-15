@@ -67,3 +67,21 @@ type Sponsor @entity {
   lockedUntil: BigInt!
   burned: Boolean!
 }
+
+type Liquidation @entity {
+  id: ID!
+  index: BigInt!
+  timestamp: BigInt!
+  txHash: Bytes!
+  liquidatedDebt: BigInt!
+  liquidatedCollateral: BigInt!
+  collGasCompensation: BigInt!
+  tokenGasCompensation: BigInt!
+  strategyBalance: BigInt!
+  ethPrice: BigInt!
+}
+
+type LiquidationCounter @entity {
+  id: ID!
+  index: BigInt!
+}

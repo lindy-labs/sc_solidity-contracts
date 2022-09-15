@@ -2,16 +2,31 @@
   "vault": {
     "network": "mainnet",
     "startBlock": 0,
-    "address": "0x0Fc7C58e9e5458D194E3758b09131A9ba2261F87"
+    "address": "0xf8A247f88d1DEB118112613b69cE168b8F40CdeD"
   },
   "strategy": {
     "network": "mainnet",
     "startBlock": 0,
-    "address": "0xfF6aC7eadc69DCE64AEBcd8BD70B4efDcECA6503"
+    "address": "0x1F8f4090c3A2DEE7941daF29830878973991D8F0"
   },
   "donations": {
     "network": "mainnet",
     "startBlock": 0,
     "address": "0x4295e9945CB4A2EBA50bE8685df4AF04Fd0bC816"
+  },
+  "liquityTrove": {
+    "network": "mainnet",
+    "startBlock": 0,
+    "address": "0x1393036c2f559D2259789b199Ded55cd2BA44751"
+  },
+  "liquityPool": {
+    "network": "mainnet",
+    "startBlock": 0,
+    "address": "0x4295e9945CB4A2EBA50bE8685df4AF04Fd0bC816"
+  },
+  "liquityPriceFeed": {
+    "network": "mainnet",
+    "startBlock": 0,
+    "address": "0x83bD00DEa5d52d71F120D05Ef750407829F53Aa5"
   }
 }

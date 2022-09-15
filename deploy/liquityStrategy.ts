@@ -53,6 +53,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
       contract: 'MockStabilityPool',
       from: deployer,
       args: [LUSDDeployment.address],
+      log: true,
     });
   }
 

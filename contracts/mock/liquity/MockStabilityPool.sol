@@ -7,6 +7,9 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 contract MockStabilityPool is IStabilityPool {
     IERC20 public immutable lusd;
 
+    event StabilityPoolETHBalanceUpdated(uint _newBalance);
+    event ETHGainWithdrawn(address indexed _depositor, uint _ETH, uint _LUSDLoss);
+
     constructor(address _lusd) {
         lusd = IERC20(_lusd);
     }
@@ -33,12 +36,14 @@ contract MockStabilityPool is IStabilityPool {
         balances[msg.sender] -= _amount;
 
         lusd.transfer(msg.sender, _amount);
+
+        emit ETHGainWithdrawn(msg.sender, 0.1 ether, 0);
     }
 
     function getDepositorETHGain(
         address /* _depositor */
     ) external pure returns (uint256) {
-        return 0;
+        return 0.1 ether;
     }
 
     function getDepositorLQTYGain(
