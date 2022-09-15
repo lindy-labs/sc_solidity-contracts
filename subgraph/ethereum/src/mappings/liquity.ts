@@ -1,17 +1,15 @@
-import { Liquidation, LiquidationCounter } from '../types/schema';
+import { Liquidation } from '../types/schema';
 import {
   Liquidation as LiquidationEvent,
   LiquityTrove,
 } from '../types/LiquityTrove/LiquityTrove';
 import {
-  ETHGainWithdrawn,
   StabilityPool,
 } from '../types/StabilityPool/StabilityPool';
 import {
-  LastGoodPriceUpdated,
   LiquityPriceFeed,
 } from '../types/LiquityPriceFeed/LiquityPriceFeed';
-import { Address, BigInt } from '@graphprotocol/graph-ts';
+import { Address } from '@graphprotocol/graph-ts';
 
 export function handleLiquidation(event: LiquidationEvent): void {
   // bind the contract to the address that emitted the event
@@ -19,15 +17,8 @@ export function handleLiquidation(event: LiquidationEvent): void {
   let pool = StabilityPool.bind(trove.stabilityPool());
   let priceFeed = LiquityPriceFeed.bind(trove.priceFeed());
 
-  let liquidationCounter = LiquidationCounter.load('0');
-  if (liquidationCounter == null) {
-    liquidationCounter = new LiquidationCounter('0');
-    liquidationCounter.index = BigInt.fromString('0');
-  }
+  const liquidation = new Liquidation(event.address.toHexString());
 
-  const liquidation = new Liquidation(liquidationCounter.index.toString());
-
-  liquidation.index = liquidationCounter.index;
   liquidation.timestamp = event.block.timestamp;
   liquidation.txHash = event.transaction.hash;
   liquidation.liquidatedDebt = event.params._liquidatedDebt;
@@ -40,21 +31,4 @@ export function handleLiquidation(event: LiquidationEvent): void {
   );
 
   liquidation.save();
-
-  liquidationCounter.index = liquidationCounter.index.plus(
-    BigInt.fromString('1'),
-  );
-  liquidationCounter.save();
 }
-
-export function handleETHGainWithdrawn(_event: ETHGainWithdrawn): void {
-  let liquidationCounter = LiquidationCounter.load('0');
-  if (liquidationCounter == null) {
-    liquidationCounter = new LiquidationCounter('0');
-    liquidationCounter.index = BigInt.fromString('0');
-  }
-
-  liquidationCounter.save();
-}
-
-export function handleDummyEventForGraph(_event: LastGoodPriceUpdated): void {}
