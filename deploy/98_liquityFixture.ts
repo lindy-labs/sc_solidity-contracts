@@ -6,9 +6,11 @@ import { includes } from 'lodash';
 import { parseUnits } from 'ethers/lib/utils';
 
 const func = async function (env: HardhatRuntimeEnvironment) {
-  const [_owner, _alice, _bob] = await ethers.getSigners();
+  const [owner, _alice, _bob] = await ethers.getSigners();
   const { deployer } = await env.getNamedAccounts();
   const { deploy, get } = env.deployments;
+
+  // Deploy and gather needed mock contracts
 
   const mockLiquityPriceFeedDeployment = await deploy('LiquityPriceFeed', {
     contract: 'MockLiquityPriceFeed',
@@ -42,6 +44,13 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     'MockTroveManager',
     troveManagerDeployment.address,
   );
+
+  const vaultDeployment = await get('Vault_Liquity');
+  const vault = await ethers.getContractAt('Vault', vaultDeployment.address);
+
+  // Trigger events needed for backend development
+
+  await vault.connect(owner).updateInvested();
 
   await troveManager.liquidation(
     BigNumber.from('2000000000000000000000'),

@@ -7,26 +7,26 @@
   "strategy": {
     "network": "mainnet",
     "startBlock": 0,
-    "address": "0x1F8f4090c3A2DEE7941daF29830878973991D8F0"
+    "address": "0x2b1Ce1eF546051d38A8e23917520a7A9C05Da281"
   },
   "donations": {
     "network": "mainnet",
     "startBlock": 0,
-    "address": "0x4295e9945CB4A2EBA50bE8685df4AF04Fd0bC816"
+    "address": "0xcf33e644da69f0081161437Fc6ae1AFD0FbaB86b"
   },
   "liquityTrove": {
     "network": "mainnet",
     "startBlock": 0,
-    "address": "0x1393036c2f559D2259789b199Ded55cd2BA44751"
+    "address": "0x092982E6d18d76CE4961910a9D65B6C63436A421"
   },
   "liquityPool": {
     "network": "mainnet",
     "startBlock": 0,
-    "address": "0x4295e9945CB4A2EBA50bE8685df4AF04Fd0bC816"
+    "address": "0x9cd9AD4273C62E969F895c54790cd94fcD4895b5"
   },
   "liquityPriceFeed": {
     "network": "mainnet",
     "startBlock": 0,
-    "address": "0x83bD00DEa5d52d71F120D05Ef750407829F53Aa5"
+    "address": "0x53CbbE1a2cbC42841bdbF2aC855E245f822c768B"
   }
 }

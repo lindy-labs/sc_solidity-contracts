@@ -25,7 +25,7 @@ export function handleLiquidation(event: LiquidationEvent): void {
   liquidation.collGasCompensation = event.params._collGasCompensation;
   liquidation.tokenGasCompensation = event.params._LUSDGasCompensation;
   liquidation.strategyBalance = pool.getDepositorETHGain(
-    Address.fromString('0xf33fb13b1cBbCC4Ae28026Ec9a433A1AD6fea172'),
+    Address.fromString('0x2b1Ce1eF546051d38A8e23917520a7A9C05Da281'),
   );
   liquidation.ethPrice = priceFeed.lastGoodPrice();
 
