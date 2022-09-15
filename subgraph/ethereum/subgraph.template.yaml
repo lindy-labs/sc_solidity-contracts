@@ -111,4 +111,4 @@ dataSources:
           file: ./abis/contracts/mock/liquity/MockLiquityPriceFeed.sol/MockLiquityPriceFeed.json
       eventHandlers:
         - event: LastGoodPriceUpdated(uint256)
-          handler: handleDummyEventForGraph
+          handler: handleLastGoodPriceUpdated

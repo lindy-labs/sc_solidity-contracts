@@ -70,7 +70,6 @@ type Sponsor @entity {
 
 type Liquidation @entity {
   id: ID!
-  index: BigInt!
   timestamp: BigInt!
   txHash: Bytes!
   liquidatedDebt: BigInt!
@@ -79,9 +78,4 @@ type Liquidation @entity {
   tokenGasCompensation: BigInt!
   strategyBalance: BigInt!
   ethPrice: BigInt!
-}
-
-type LiquidationCounter @entity {
-  id: ID!
-  index: BigInt!
 }
