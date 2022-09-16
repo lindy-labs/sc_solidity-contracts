@@ -39,7 +39,12 @@ export function handleLiquidation(event: LiquidationEvent): void {
   liquidation.save();
 }
 
-export function handleETHGainWithdrawn(_event: ETHGainWithdrawn): void {
+export function handleETHGainWithdrawn(event: ETHGainWithdrawn): void {
+  if (event.params._depositor != 
+    // Address.fromString('0x2b1Ce1eF546051d38A8e23917520a7A9C05Da281'), // local
+    Address.fromString('0x9043268b2e280dE7DF8AAfe7FEb86e553bd90FdD') // prod
+  ) return;
+
   let priceTracker = getPriceTracker('0');
 
   priceTracker.highestPrice = BigInt.fromString('0');
