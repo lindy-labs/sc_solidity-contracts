@@ -39,7 +39,7 @@ export function handleLiquidation(event: LiquidationEvent): void {
   liquidation.save();
 }
 
-export function handleETHGainWithdraw(_event: ETHGainWithdrawn): void {
+export function handleETHGainWithdrawn(_event: ETHGainWithdrawn): void {
   let priceTracker = getPriceTracker('0');
 
   priceTracker.highestPrice = BigInt.fromString('0');
