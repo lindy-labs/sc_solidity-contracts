@@ -109,6 +109,5 @@ dataSources:
       abis:
         - name: LiquityPriceFeed
           file: ./abis/contracts/mock/liquity/MockLiquityPriceFeed.sol/MockLiquityPriceFeed.json
-      eventHandlers:
-        - event: LastGoodPriceUpdated(uint256)
-          handler: handleLastGoodPriceUpdated
+      blockHandlers:
+        - handler: trackHighestPrice

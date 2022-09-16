@@ -78,4 +78,10 @@ type Liquidation @entity {
   tokenGasCompensation: BigInt!
   strategyBalance: BigInt!
   ethPrice: BigInt!
+  highestPrice: BigInt!
+}
+
+type LiquidationPriceTracker @entity {
+  id: ID!
+  highestPrice: BigInt!
 }
