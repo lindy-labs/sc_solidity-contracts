@@ -26,7 +26,7 @@
   },
   "liquityPriceFeed": {
     "network": "mainnet",
-    "startBlock": 12178551,
+    "startBlock": 15000000,
     "address": "0x4c517d4e2c851ca76d7ec94b805269df0f2201de"
   }
 }

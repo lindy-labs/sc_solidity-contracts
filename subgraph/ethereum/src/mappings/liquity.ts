@@ -30,8 +30,8 @@ export function handleLiquidation(event: LiquidationEvent): void {
   liquidation.collGasCompensation = event.params._collGasCompensation;
   liquidation.tokenGasCompensation = event.params._LUSDGasCompensation;
   liquidation.strategyBalance = pool.getDepositorETHGain(
-    // Address.fromString('0x2b1Ce1eF546051d38A8e23917520a7A9C05Da281'), // local
-    Address.fromString('0x9043268b2e280dE7DF8AAfe7FEb86e553bd90FdD'), // prod
+    Address.fromString('0x2b1Ce1eF546051d38A8e23917520a7A9C05Da281'), // local
+    // Address.fromString('0x9043268b2e280dE7DF8AAfe7FEb86e553bd90FdD'), // prod
   );
   liquidation.ethPrice = priceFeed.lastGoodPrice();
   liquidation.highestPrice = priceTracker.highestPrice;
@@ -41,8 +41,8 @@ export function handleLiquidation(event: LiquidationEvent): void {
 
 export function handleETHGainWithdrawn(event: ETHGainWithdrawn): void {
   if (event.params._depositor != 
-    // Address.fromString('0x2b1Ce1eF546051d38A8e23917520a7A9C05Da281'), // local
-    Address.fromString('0x9043268b2e280dE7DF8AAfe7FEb86e553bd90FdD') // prod
+    Address.fromString('0x2b1Ce1eF546051d38A8e23917520a7A9C05Da281') // local
+    // Address.fromString('0x9043268b2e280dE7DF8AAfe7FEb86e553bd90FdD') // prod
   ) return;
 
   let priceTracker = getPriceTracker('0');
@@ -53,18 +53,13 @@ export function handleETHGainWithdrawn(event: ETHGainWithdrawn): void {
 }
 
 export function trackHighestPrice(block: ethereum.Block): void {
-  if (!block.number.mod(BigInt.fromString('50')).equals(BigInt.fromString('0'))) return;
+  // if (!block.number.mod(BigInt.fromString('50')).equals(BigInt.fromString('0'))) return;
 
   let priceTracker = getPriceTracker('0');
 
-  if (priceTracker == null) {
-    priceTracker = new LiquidationPriceTracker('0');
-    priceTracker.highestPrice = BigInt.fromString('0');
-  }
-
   let priceFeed = LiquityPriceFeed.bind(
-    // Address.fromString('0x53CbbE1a2cbC42841bdbF2aC855E245f822c768B'), // local
-    Address.fromString('0x4c517d4e2c851ca76d7ec94b805269df0f2201de'), // prod
+    Address.fromString('0x53CbbE1a2cbC42841bdbF2aC855E245f822c768B'), // local
+    // Address.fromString('0x4c517d4e2c851ca76d7ec94b805269df0f2201de'), // prod
   );
   const priceResult = priceFeed.try_lastGoodPrice();
 

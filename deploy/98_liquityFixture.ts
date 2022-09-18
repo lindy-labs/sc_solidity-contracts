@@ -62,6 +62,8 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   // Move time forward 12 days
   await ethers.provider.send('evm_increaseTime', [1.037e6]);
   await ethers.provider.send('evm_mine', []);
+  // await ethers.provider.send('evm_increaseBlocks', [50]);
+  // await ethers.provider.send('hardhat_mine', [parseInt('50', 16), parseInt('1.037e6', 16)]);
 
   await liquityPriceFeed.setPrice(parseUnits('1750', 18));
 
@@ -72,9 +74,26 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     BigNumber.from('200000000000000000000'),
   );
 
+  // Move time forward 12 days
+  await ethers.provider.send('evm_increaseTime', [1.037e6]);
+  await ethers.provider.send('evm_mine', []);
+
   await liquityPriceFeed.setPrice(parseUnits('1800', 18));
 
   await stabilityPool.withdrawFromSP(0);
+
+  await troveManager.liquidation(
+    BigNumber.from('2000000000000000000000'),
+    BigNumber.from('1397404171184386761'),
+    BigNumber.from('7022131513489380'),
+    BigNumber.from('200000000000000000000'),
+  );
+
+  // Move time forward 12 days
+  await ethers.provider.send('evm_increaseTime', [1.037e6]);
+  await ethers.provider.send('evm_mine', []);
+
+  await liquityPriceFeed.setPrice(parseUnits('1500', 18));
 
   await troveManager.liquidation(
     BigNumber.from('2000000000000000000000'),
