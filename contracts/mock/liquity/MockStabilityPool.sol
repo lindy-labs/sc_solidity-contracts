@@ -37,13 +37,16 @@ contract MockStabilityPool is IStabilityPool {
 
         lusd.transfer(msg.sender, _amount);
 
-        emit ETHGainWithdrawn(msg.sender, 0.1 ether, 0);
+        uint256 ethBal = address(this).balance;
+
+        payable(msg.sender).transfer(ethBal);
+        emit ETHGainWithdrawn(msg.sender, ethBal, 0);
     }
 
     function getDepositorETHGain(
         address /* _depositor */
-    ) external pure returns (uint256) {
-        return 0.1 ether;
+    ) external view returns (uint256) {
+        return address(this).balance;
     }
 
     function getDepositorLQTYGain(
@@ -65,4 +68,6 @@ contract MockStabilityPool is IStabilityPool {
     function troveManager() public pure returns (address) {
         return address(0);
     }
+
+    receive() external payable {}
 }

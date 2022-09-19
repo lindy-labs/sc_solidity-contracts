@@ -3,7 +3,7 @@ import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { ethers } from 'hardhat';
 import { BigNumber } from 'ethers';
 import { includes } from 'lodash';
-import { parseUnits } from 'ethers/lib/utils';
+import { parseEther, parseUnits } from 'ethers/lib/utils';
 
 const func = async function (env: HardhatRuntimeEnvironment) {
   const [owner, _alice, _bob] = await ethers.getSigners();
@@ -66,6 +66,12 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   // await ethers.provider.send('hardhat_mine', [parseInt('50', 16), parseInt('1.037e6', 16)]);
 
   await liquityPriceFeed.setPrice(parseUnits('1750', 18));
+
+  await owner.sendTransaction({
+    from: owner.address,
+    to: stabilityPool.address,
+    value: parseEther('0.1'),
+  });
 
   await troveManager.liquidation(
     BigNumber.from('2000000000000000000000'),
