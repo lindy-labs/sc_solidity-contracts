@@ -8,7 +8,7 @@ import {
   StabilityPool,
 } from '../types/StabilityPool/StabilityPool';
 import { LiquityPriceFeed } from '../types/LiquityPriceFeed/LiquityPriceFeed';
-import { Address, BigInt, ethereum } from '@graphprotocol/graph-ts';
+import { Address, BigInt, ethereum, log } from '@graphprotocol/graph-ts';
 
 export function handleLiquidation(event: LiquidationEvent): void {
   let priceTracker = getPriceTracker('0');
@@ -40,10 +40,12 @@ export function handleLiquidation(event: LiquidationEvent): void {
 }
 
 export function handleETHGainWithdrawn(event: ETHGainWithdrawn): void {
-  if (event.params._depositor != 
+  if (
+    event.params._depositor !=
     Address.fromString('0x2b1Ce1eF546051d38A8e23917520a7A9C05Da281') // local
     // Address.fromString('0x9043268b2e280dE7DF8AAfe7FEb86e553bd90FdD') // prod
-  ) return;
+  )
+    return;
 
   let priceTracker = getPriceTracker('0');
 
@@ -63,7 +65,10 @@ export function trackHighestPrice(block: ethereum.Block): void {
   );
   const priceResult = priceFeed.try_lastGoodPrice();
 
-  if (!priceResult.reverted && priceTracker.highestPrice.lt(priceResult.value)) {
+  if (
+    !priceResult.reverted &&
+    priceTracker.highestPrice.lt(priceResult.value)
+  ) {
     priceTracker.highestPrice = priceResult.value;
   }
 
