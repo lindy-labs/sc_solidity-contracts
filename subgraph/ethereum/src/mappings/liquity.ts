@@ -25,6 +25,7 @@ export function handleLiquidation(event: LiquidationEvent): void {
 
   let liquidationState = getLiquidationState();
   liquidationState.priceFeed = trove.priceFeed();
+  liquidationState.save();
 
   const liquidationId =
     event.transaction.hash.toHex() + '-' + event.logIndex.toString();
@@ -65,7 +66,11 @@ export function trackHighestPrice(_block: ethereum.Block): void {
 
   const liquidationState = getLiquidationState();
 
-  const priceFeed = LiquityPriceFeed.bind(liquidationState.priceFeed);
+  if (!liquidationState.priceFeed) return;
+
+  const priceFeed = LiquityPriceFeed.bind(
+    Address.fromBytes(liquidationState.priceFeed!),
+  );
 
   const priceResult = priceFeed.try_lastGoodPrice();
 
