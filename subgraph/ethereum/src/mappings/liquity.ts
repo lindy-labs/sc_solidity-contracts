@@ -53,7 +53,7 @@ export function handleETHGainWithdrawn(event: ETHGainWithdrawn): void {
 }
 
 export function trackHighestPrice(block: ethereum.Block): void {
-  // if (!block.number.mod(BigInt.fromString('50')).equals(BigInt.fromString('0'))) return;
+  // if (!block.number.mod(BigInt.fromString('50')).equals(BigInt.fromString('0'))) return; // prod
 
   let priceTracker = getPriceTracker('0');
 
