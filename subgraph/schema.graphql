@@ -86,4 +86,5 @@ type LiquidationState @entity {
   id: ID!
   highestPrice: BigInt!
   priceFeed: Bytes
+  lastBlock: BigInt!
 }

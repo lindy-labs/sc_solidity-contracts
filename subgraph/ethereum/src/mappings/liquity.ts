@@ -61,12 +61,12 @@ export function handleETHGainWithdrawn(event: ETHGainWithdrawn): void {
   liquidationState.save();
 }
 
-export function trackHighestPrice(_block: ethereum.Block): void {
-  // if (!block.number.mod(BigInt.fromString('50')).equals(BigInt.fromString('0'))) return;
-
+export function trackHighestPrice(block: ethereum.Block): void {
   const liquidationState = getLiquidationState();
 
   if (!liquidationState.priceFeed) return;
+
+  if (block.number.minus(liquidationState.lastBlock) < new BigInt(50)) return;
 
   const priceFeed = LiquityPriceFeed.bind(
     Address.fromBytes(liquidationState.priceFeed!),
@@ -81,6 +81,7 @@ export function trackHighestPrice(_block: ethereum.Block): void {
     liquidationState.highestPrice = priceResult.value;
   }
 
+  liquidationState.lastBlock = block.number;
   liquidationState.save();
 }
 
@@ -90,6 +91,7 @@ function getLiquidationState(): LiquidationState {
   if (liquidationState == null) {
     liquidationState = new LiquidationState('0');
     liquidationState.highestPrice = BigInt.fromString('0');
+    liquidationState.lastBlock = BigInt.fromString('0');
     liquidationState.save();
   }
 
