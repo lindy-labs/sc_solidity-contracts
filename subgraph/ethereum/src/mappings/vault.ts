@@ -19,7 +19,7 @@ export function handleYieldClaimed(event: YieldClaimed): void {
   const claimerId = event.params.claimerId.toHexString();
   const claimer = Claimer.load(claimerId)!;
 
-  createVault(claimer.vault);
+  createVault();
   const vault = Vault.load(claimer.vault)!;
 
   claimer.claimed = claimer.claimed.plus(event.params.amount);
@@ -91,12 +91,12 @@ export function handleYieldClaimed(event: YieldClaimed): void {
 }
 
 export function handleDepositMinted(event: DepositMinted): void {
-  const vaultId = event.address.toHexString();
+  const vaultId = '0';
   const foundationId = vaultId + '-' + event.params.groupId.toString();
   const depositId = event.params.id.toString();
   const claimerId = event.params.claimerId.toHexString();
 
-  createVault(vaultId);
+  createVault();
   const vault = Vault.load(vaultId)!;
   vault.totalShares = vault.totalShares.plus(event.params.shares);
   log.debug('mint, adding shares {}', [event.params.shares.toString()]);
@@ -153,9 +153,9 @@ export function handleDepositMinted(event: DepositMinted): void {
 }
 
 export function handleTreasuryUpdated(event: TreasuryUpdated): void {
-  const vaultId = event.address.toHexString();
+  const vaultId = '0';
 
-  createVault(vaultId);
+  createVault();
   const vault = Vault.load(vaultId)!;
 
   vault.treasury = event.params.treasury;
@@ -171,7 +171,7 @@ export function handleDepositWithdrawn(event: DepositWithdrawn): void {
   const claimer = Claimer.load(deposit.claimer)!;
   const foundation = Foundation.load(deposit.foundation)!;
 
-  createVault(foundation.vault);
+  createVault();
   const vault = Vault.load(foundation.vault)!;
 
   claimer.principal = claimer.principal.minus(deposit.amount);
@@ -203,15 +203,13 @@ export function handleDepositWithdrawn(event: DepositWithdrawn): void {
 }
 
 export function handleSponsored(event: Sponsored): void {
-  const vaultId = event.address.toHexString();
-
   const sponsor = new Sponsor(event.params.id.toString());
 
   sponsor.depositor = event.params.depositor;
   sponsor.amount = event.params.amount;
   sponsor.burned = false;
   sponsor.lockedUntil = event.params.lockedUntil;
-  sponsor.vault = vaultId;
+  sponsor.vault = '0';
   sponsor.save();
 }
 
@@ -228,11 +226,11 @@ export function handleUnsponsored(event: Unsponsored): void {
   sponsor.save();
 }
 
-function createVault(id: string): void {
-  let vault = Vault.load(id);
+function createVault(): void {
+  let vault = Vault.load('0');
 
   if (vault == null) {
-    vault = new Vault(id);
+    vault = new Vault('0');
     vault.totalShares = BigInt.fromString('0');
     vault.save();
   }

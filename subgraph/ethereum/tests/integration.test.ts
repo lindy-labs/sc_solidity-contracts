@@ -51,7 +51,7 @@ test('handles scenarios with rounding matters', () => {
   );
   event.parameters = new Array();
 
-  const vault = new Vault(mockEvent.address.toHexString());
+  const vault = new Vault('0');
   vault.save();
 
   let idParam = newI32('id', 1);
@@ -177,7 +177,7 @@ test('updates the Foundation', () => {
   );
   event.parameters = new Array();
 
-  const vault = new Vault(mockEvent.address.toHexString());
+  const vault = new Vault('0');
   vault.save();
 
   let idParam = newI32('id', 1);
@@ -331,17 +331,17 @@ test('handleYieldClaimed handles scenarios where only one of the deposits genera
   createDeposit('1', 50, false, '1', '1', 1, 50);
   createDeposit('2', 100, false, '1', '1', 1, 50);
 
-  const vault = new Vault(mockEvent.address.toHexString());
+  const vault = new Vault('0');
   vault.treasury = Address.fromString(TREASURY_ADDRESS);
   vault.save();
 
   const claimer = new Claimer(MOCK_ADDRESS_2);
-  claimer.vault = mockEvent.address.toHexString();
+  claimer.vault = vault.id;
   claimer.depositsIds = ['1', '2'];
   claimer.save();
 
   const foundation = new Foundation('1');
-  foundation.vault = mockEvent.address.toHexString();
+  foundation.vault = vault.id;
   foundation.save();
 
   const event = new YieldClaimed(
@@ -379,17 +379,17 @@ test('handleYieldClaimed handles scenarios where the yield is not proportional t
   createDeposit('1', 50, false, '1', '1', 1, 50);
   createDeposit('2', 100, false, '1', '1', 1, 50);
 
-  const vault = new Vault(mockEvent.address.toHexString());
+  const vault = new Vault('0');
   vault.treasury = Address.fromString(TREASURY_ADDRESS);
   vault.save();
 
   const claimer = new Claimer(MOCK_ADDRESS_2);
-  claimer.vault = mockEvent.address.toHexString();
+  claimer.vault = vault.id;
   claimer.depositsIds = ['1', '2'];
   claimer.save();
 
   const foundation = new Foundation('1');
-  foundation.vault = mockEvent.address.toHexString();
+  foundation.vault = vault.id;
   foundation.save();
 
   const event = new YieldClaimed(

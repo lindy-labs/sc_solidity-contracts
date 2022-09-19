@@ -63,17 +63,12 @@ test('handleTreasuryUpdated updates the treasury', () => {
   event.parameters.push(treasury);
 
   // create vault
-  const vault = new Vault(mockEvent.address.toHexString());
+  const vault = new Vault('0');
   vault.save();
 
   handleTreasuryUpdated(event);
 
-  assert.fieldEquals(
-    'Vault',
-    mockEvent.address.toHexString(),
-    'treasury',
-    MOCK_ADDRESS_1,
-  );
+  assert.fieldEquals('Vault', '0', 'treasury', MOCK_ADDRESS_1);
 });
 
 test('handleSponsored creates a Sponsor', () => {
@@ -193,7 +188,7 @@ test('handleDepositMinted creates a Deposit', () => {
   );
   event.parameters = new Array();
 
-  const vault = new Vault(mockEvent.address.toHexString());
+  const vault = new Vault('0');
   vault.save();
 
   const idParam = newI32('id', 1);
@@ -254,7 +249,7 @@ test("handleDepositMinted uses the last event's name as the Foundation's name", 
   );
   event.parameters = new Array();
 
-  const vault = new Vault(mockEvent.address.toHexString());
+  const vault = new Vault('0');
   vault.save();
 
   const idParam = newI32('id', 1);
@@ -281,7 +276,7 @@ test("handleDepositMinted uses the last event's name as the Foundation's name", 
 
   handleDepositMinted(event);
 
-  const foundationId = `${mockEvent.address.toHexString()}-1`;
+  const foundationId = `${vault.id}-1`;
   assert.fieldEquals('Foundation', foundationId, 'name', 'Foundation');
 
   // Sending another DepositMinted that updates the name
@@ -338,11 +333,11 @@ test("handleDepositWithdrawn doesn't remove a Deposit for partial withdraws", ()
   deposit.foundation = '1';
   deposit.save();
 
-  const vault = new Vault(mockEvent.address.toHexString());
+  const vault = new Vault('0');
   vault.save();
 
   const foundation = new Foundation('1');
-  foundation.vault = mockEvent.address.toHexString();
+  foundation.vault = vault.id;
   foundation.amountDeposited = BigInt.fromI32(10);
   foundation.shares = BigInt.fromI32(10);
   foundation.save();
@@ -390,11 +385,11 @@ test('handleDepositWithdrawn removes a Deposit by marking as burned', () => {
   deposit.foundation = '1';
   deposit.save();
 
-  const vault = new Vault(mockEvent.address.toHexString());
+  const vault = new Vault('0');
   vault.save();
 
   const foundation = new Foundation('1');
-  foundation.vault = mockEvent.address.toHexString();
+  foundation.vault = vault.id;
   foundation.amountDeposited = BigInt.fromI32(1);
   foundation.shares = BigInt.fromI32(1);
   foundation.save();
@@ -435,19 +430,19 @@ test('handleYieldClaimed reduces shares from Deposits and creates Donations', ()
   createDeposit('2', 100, false, '1', '1', 1, 100);
 
   // Create vault
-  const vault = new Vault(mockEvent.address.toHexString());
+  const vault = new Vault('0');
   vault.treasury = Address.fromString(TREASURY_ADDRESS);
   vault.save();
 
   // Create claimer
   const claimer = new Claimer(MOCK_ADDRESS_1);
-  claimer.vault = mockEvent.address.toHexString();
+  claimer.vault = vault.id;
   claimer.depositsIds = ['1', '2'];
   claimer.save();
 
   // Create foundation
   const foundation = new Foundation('1');
-  foundation.vault = mockEvent.address.toHexString();
+  foundation.vault = vault.id;
   foundation.save();
 
   const event = new YieldClaimed(
@@ -490,19 +485,19 @@ test('handleYieldClaimed takes the performance fee into account', () => {
   createDeposit('2', 100, false, '1', '1', 1, 100);
 
   // Create vault
-  const vault = new Vault(mockEvent.address.toHexString());
+  const vault = new Vault('0');
   vault.treasury = Address.fromString(TREASURY_ADDRESS);
   vault.save();
 
   // Create claimer
   const claimer = new Claimer(MOCK_ADDRESS_1);
-  claimer.vault = mockEvent.address.toHexString();
+  claimer.vault = vault.id;
   claimer.depositsIds = ['1', '2'];
   claimer.save();
 
   // Create foundation
   const foundation = new Foundation('1');
-  foundation.vault = mockEvent.address.toHexString();
+  foundation.vault = vault.id;
   foundation.save();
 
   const event = new YieldClaimed(
@@ -547,19 +542,19 @@ test("handleYieldClaimed doesn't create donations if the deposits are not to the
   createDeposit('2', 100, false, '1', '1', 1, 100);
 
   // Create vault
-  const vault = new Vault(mockEvent.address.toHexString());
+  const vault = new Vault('0');
   vault.treasury = Address.fromString(TREASURY_ADDRESS);
   vault.save();
 
   // Create claimer
   const claimer = new Claimer(MOCK_ADDRESS_2);
-  claimer.vault = mockEvent.address.toHexString();
+  claimer.vault = vault.id;
   claimer.depositsIds = ['1', '2'];
   claimer.save();
 
   // Create foundation
   const foundation = new Foundation('1');
-  foundation.vault = mockEvent.address.toHexString();
+  foundation.vault = vault.id;
   foundation.save();
 
   const event = new YieldClaimed(
