@@ -68,7 +68,6 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   await liquityPriceFeed.setPrice(parseUnits('1750', 18));
 
   await owner.sendTransaction({
-    from: owner.address,
     to: stabilityPool.address,
     value: parseEther('0.1'),
   });
@@ -94,6 +93,11 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     BigNumber.from('7022131513489380'),
     BigNumber.from('200000000000000000000'),
   );
+
+  await owner.sendTransaction({
+    to: stabilityPool.address,
+    value: parseEther('0.8'),
+  });
 
   // Move time forward 12 days
   await ethers.provider.send('evm_increaseTime', [1.037e6]);
