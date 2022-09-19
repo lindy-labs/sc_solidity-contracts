@@ -18,12 +18,13 @@ export function handleLiquidation(event: LiquidationEvent): void {
 
   if (!vault.strategy) return;
 
-  let priceTracker = getPriceTracker('0');
-
   // bind the contract to the address that emitted the event
   let trove = LiquityTrove.bind(event.address);
   let pool = StabilityPool.bind(trove.stabilityPool());
   let priceFeed = LiquityPriceFeed.bind(trove.priceFeed());
+
+  let liquidationState = getLiquidationState();
+  liquidationState.priceFeed = trove.priceFeed();
 
   const liquidationId =
     event.transaction.hash.toHex() + '-' + event.logIndex.toString();
@@ -40,7 +41,7 @@ export function handleLiquidation(event: LiquidationEvent): void {
     Address.fromBytes(vault.strategy!),
   );
   liquidation.ethPrice = priceFeed.lastGoodPrice();
-  liquidation.highestPrice = priceTracker.highestPrice;
+  liquidation.highestPrice = liquidationState.highestPrice;
 
   liquidation.save();
 }
@@ -52,42 +53,40 @@ export function handleETHGainWithdrawn(event: ETHGainWithdrawn): void {
 
   if (event.params._depositor != Address.fromBytes(vault.strategy!)) return;
 
-  let priceTracker = getPriceTracker('0');
+  let liquidationState = getLiquidationState();
 
-  priceTracker.highestPrice = BigInt.fromString('0');
+  liquidationState.highestPrice = BigInt.fromString('0');
 
-  priceTracker.save();
+  liquidationState.save();
 }
 
-export function trackHighestPrice(block: ethereum.Block): void {
+export function trackHighestPrice(_block: ethereum.Block): void {
   // if (!block.number.mod(BigInt.fromString('50')).equals(BigInt.fromString('0'))) return;
 
-  let priceTracker = getPriceTracker('0');
+  const liquidationState = getLiquidationState();
 
-  let priceFeed = LiquityPriceFeed.bind(
-    Address.fromString('0x53CbbE1a2cbC42841bdbF2aC855E245f822c768B'), // local
-    // Address.fromString('0x4c517d4e2c851ca76d7ec94b805269df0f2201de'), // prod
-  );
+  const priceFeed = LiquityPriceFeed.bind(liquidationState.priceFeed);
+
   const priceResult = priceFeed.try_lastGoodPrice();
 
   if (
     !priceResult.reverted &&
-    priceTracker.highestPrice.lt(priceResult.value)
+    liquidationState.highestPrice.lt(priceResult.value)
   ) {
-    priceTracker.highestPrice = priceResult.value;
+    liquidationState.highestPrice = priceResult.value;
   }
 
-  priceTracker.save();
+  liquidationState.save();
 }
 
-function getPriceTracker(id: string): LiquidationState {
-  let priceTracker = LiquidationState.load('0');
+function getLiquidationState(): LiquidationState {
+  let liquidationState = LiquidationState.load('0');
 
-  if (priceTracker == null) {
-    priceTracker = new LiquidationState('0');
-    priceTracker.highestPrice = BigInt.fromString('0');
-    priceTracker.save();
+  if (liquidationState == null) {
+    liquidationState = new LiquidationState('0');
+    liquidationState.highestPrice = BigInt.fromString('0');
+    liquidationState.save();
   }
 
-  return priceTracker;
+  return liquidationState;
 }
