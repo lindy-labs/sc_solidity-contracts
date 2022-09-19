@@ -4,7 +4,10 @@ import {
   DepositMinted,
   YieldClaimed,
 } from '../types/Vault/IVault';
-import { TreasuryUpdated } from '../types/Vault/IVaultSettings';
+import {
+  TreasuryUpdated,
+  StrategyUpdated,
+} from '../types/Vault/IVaultSettings';
 import { Sponsored, Unsponsored } from '../types/Vault/IVaultSponsoring';
 import {
   Sponsor,
@@ -14,6 +17,13 @@ import {
   Vault,
   Donation,
 } from '../types/schema';
+
+export function handleStrategyUpdated(event: StrategyUpdated): void {
+  const vault = createVault();
+
+  vault.strategy = event.params.strategy;
+  vault.save();
+}
 
 export function handleYieldClaimed(event: YieldClaimed): void {
   const claimerId = event.params.claimerId.toHexString();

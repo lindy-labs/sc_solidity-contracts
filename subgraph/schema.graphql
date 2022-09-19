@@ -5,6 +5,7 @@ type Vault @entity {
   foundations: [Foundation!]! @derivedFrom(field: "vault")
   claimers: [Claimer!]! @derivedFrom(field: "vault")
   treasury: Bytes
+  strategy: Bytes
 }
 
 type Foundation @entity {
