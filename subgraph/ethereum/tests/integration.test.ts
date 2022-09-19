@@ -48,6 +48,7 @@ test('handles scenarios with rounding matters', () => {
     mockEvent.block,
     mockEvent.transaction,
     mockEvent.parameters,
+    null,
   );
   event.parameters = new Array();
 
@@ -93,6 +94,7 @@ test('handles scenarios with rounding matters', () => {
     mockEvent.block,
     mockEvent.transaction,
     mockEvent.parameters,
+    null,
   );
   event2.parameters = new Array();
 
@@ -142,6 +144,7 @@ test('handles scenarios with rounding matters', () => {
     mockEvent.block,
     mockEvent.transaction,
     mockEvent.parameters,
+    null,
   );
   event3.parameters = new Array();
 
@@ -174,6 +177,7 @@ test('updates the Foundation', () => {
     mockEvent.block,
     mockEvent.transaction,
     mockEvent.parameters,
+    null,
   );
   event.parameters = new Array();
 
@@ -229,6 +233,7 @@ test('updates the Foundation', () => {
     mockEvent.block,
     mockEvent.transaction,
     mockEvent.parameters,
+    null,
   );
   event2.parameters = new Array();
 
@@ -278,6 +283,7 @@ test('updates the Foundation', () => {
     mockEvent.block,
     mockEvent.transaction,
     mockEvent.parameters,
+    null,
   );
   event3.parameters = new Array();
 
@@ -304,6 +310,7 @@ test('updates the Foundation', () => {
     mockEvent.block,
     mockEvent.transaction,
     mockEvent.parameters,
+    null,
   );
   event4.parameters = new Array();
 
@@ -352,6 +359,7 @@ test('handleYieldClaimed handles scenarios where only one of the deposits genera
     mockEvent.block,
     mockEvent.transaction,
     mockEvent.parameters,
+    null,
   );
   event.parameters = new Array();
 
@@ -400,6 +408,7 @@ test('handleYieldClaimed handles scenarios where the yield is not proportional t
     mockEvent.block,
     mockEvent.transaction,
     mockEvent.parameters,
+    null,
   );
   event.parameters = new Array();
 

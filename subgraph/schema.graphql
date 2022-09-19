@@ -82,7 +82,7 @@ type Liquidation @entity {
   highestPrice: BigInt!
 }
 
-type LiquidationPriceTracker @entity {
+type LiquidationState @entity {
   id: ID!
   highestPrice: BigInt!
 }

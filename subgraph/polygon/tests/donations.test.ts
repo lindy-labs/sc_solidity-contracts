@@ -14,12 +14,7 @@ import {
   DonationMinted,
 } from '../src/types/Donations/Donations';
 import { DonationMint } from '../src/types/schema';
-import {
-  donationId,
-  newAddress,
-  newI32,
-  newString,
-} from '../../tests/helpers';
+import { donationId, newAddress, newI32, newString } from '../../tests/helpers';
 
 test('DonationMinted event creates DonationMint record', () => {
   clearStore();
@@ -36,6 +31,7 @@ test('DonationMinted event creates DonationMint record', () => {
     mockDonation.block,
     mockDonation.transaction,
     mockDonation.parameters,
+    null,
   );
   donationEvent.parameters = new Array();
 
@@ -82,6 +78,7 @@ test('DonationBurned event sets DonationMint record burned field to true', () =>
     mockDonation.block,
     mockDonation.transaction,
     mockDonation.parameters,
+    null,
   );
   donationEvent.parameters = new Array();
 

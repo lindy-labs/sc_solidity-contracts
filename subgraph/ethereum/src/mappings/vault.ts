@@ -17,6 +17,7 @@ import {
   Vault,
   Donation,
 } from '../types/schema';
+import { createVault } from './helpers';
 
 export function handleStrategyUpdated(event: StrategyUpdated): void {
   const vault = createVault();
@@ -230,16 +231,4 @@ export function handleUnsponsored(event: Unsponsored): void {
   }
 
   sponsor.save();
-}
-
-function createVault(): Vault {
-  let vault = Vault.load('0');
-
-  if (vault == null) {
-    vault = new Vault('0');
-    vault.totalShares = BigInt.fromString('0');
-    vault.save();
-  }
-
-  return vault;
 }

@@ -56,6 +56,7 @@ test('handleTreasuryUpdated updates the treasury', () => {
     mockEvent.block,
     mockEvent.transaction,
     mockEvent.parameters,
+    null,
   );
   event.parameters = new Array();
 
@@ -83,6 +84,7 @@ test('handleSponsored creates a Sponsor', () => {
     mockEvent.block,
     mockEvent.transaction,
     mockEvent.parameters,
+    null,
   );
   event.parameters = new Array();
 
@@ -122,6 +124,7 @@ test('handleUnsponsored updates the amount sponsored', () => {
     mockEvent.block,
     mockEvent.transaction,
     mockEvent.parameters,
+    null,
   );
   event.parameters = new Array();
 
@@ -156,6 +159,7 @@ test('handleUnsponsored removes a Sponsor by marking as burned', () => {
     mockEvent.block,
     mockEvent.transaction,
     mockEvent.parameters,
+    null,
   );
   event.parameters = new Array();
 
@@ -185,6 +189,7 @@ test('handleDepositMinted creates a Deposit', () => {
     mockEvent.block,
     mockEvent.transaction,
     mockEvent.parameters,
+    null,
   );
   event.parameters = new Array();
 
@@ -246,6 +251,7 @@ test("handleDepositMinted uses the last event's name as the Foundation's name", 
     mockEvent.block,
     mockEvent.transaction,
     mockEvent.parameters,
+    null,
   );
   event.parameters = new Array();
 
@@ -290,6 +296,7 @@ test("handleDepositMinted uses the last event's name as the Foundation's name", 
     mockEvent.block,
     mockEvent.transaction,
     mockEvent.parameters,
+    null,
   );
   event.parameters = new Array();
 
@@ -350,6 +357,7 @@ test("handleDepositWithdrawn doesn't remove a Deposit for partial withdraws", ()
     mockEvent.block,
     mockEvent.transaction,
     mockEvent.parameters,
+    null,
   );
   event.parameters = new Array();
 
@@ -402,6 +410,7 @@ test('handleDepositWithdrawn removes a Deposit by marking as burned', () => {
     mockEvent.block,
     mockEvent.transaction,
     mockEvent.parameters,
+    null,
   );
   event.parameters = new Array();
 
@@ -453,6 +462,7 @@ test('handleYieldClaimed reduces shares from Deposits and creates Donations', ()
     mockEvent.block,
     mockEvent.transaction,
     mockEvent.parameters,
+    null,
   );
   event.parameters = new Array();
 
@@ -508,6 +518,7 @@ test('handleYieldClaimed takes the performance fee into account', () => {
     mockEvent.block,
     mockEvent.transaction,
     mockEvent.parameters,
+    null,
   );
   event.parameters = new Array();
 
@@ -565,6 +576,7 @@ test("handleYieldClaimed doesn't create donations if the deposits are not to the
     mockEvent.block,
     mockEvent.transaction,
     mockEvent.parameters,
+    null,
   );
   event.parameters = new Array();
 

@@ -1,4 +1,6 @@
-import { Liquidation, LiquidationPriceTracker } from '../types/schema';
+import { Address, BigInt, ethereum, log } from '@graphprotocol/graph-ts';
+
+import { Vault, Liquidation, LiquidationState } from '../types/schema';
 import {
   Liquidation as LiquidationEvent,
   LiquityTrove,
@@ -8,9 +10,14 @@ import {
   StabilityPool,
 } from '../types/StabilityPool/StabilityPool';
 import { LiquityPriceFeed } from '../types/LiquityPriceFeed/LiquityPriceFeed';
-import { Address, BigInt, ethereum, log } from '@graphprotocol/graph-ts';
+
+import { createVault } from './helpers';
 
 export function handleLiquidation(event: LiquidationEvent): void {
+  const vault = createVault();
+
+  if (!vault.strategy) return;
+
   let priceTracker = getPriceTracker('0');
 
   // bind the contract to the address that emitted the event
@@ -30,8 +37,7 @@ export function handleLiquidation(event: LiquidationEvent): void {
   liquidation.collGasCompensation = event.params._collGasCompensation;
   liquidation.tokenGasCompensation = event.params._LUSDGasCompensation;
   liquidation.strategyBalance = pool.getDepositorETHGain(
-    Address.fromString('0x2b1Ce1eF546051d38A8e23917520a7A9C05Da281'), // local
-    // Address.fromString('0x9043268b2e280dE7DF8AAfe7FEb86e553bd90FdD'), // prod
+    Address.fromBytes(vault.strategy!),
   );
   liquidation.ethPrice = priceFeed.lastGoodPrice();
   liquidation.highestPrice = priceTracker.highestPrice;
@@ -40,12 +46,11 @@ export function handleLiquidation(event: LiquidationEvent): void {
 }
 
 export function handleETHGainWithdrawn(event: ETHGainWithdrawn): void {
-  if (
-    event.params._depositor !=
-    Address.fromString('0x2b1Ce1eF546051d38A8e23917520a7A9C05Da281') // local
-    // Address.fromString('0x9043268b2e280dE7DF8AAfe7FEb86e553bd90FdD') // prod
-  )
-    return;
+  const vault = createVault();
+
+  if (!vault.strategy) return;
+
+  if (event.params._depositor != Address.fromBytes(vault.strategy!)) return;
 
   let priceTracker = getPriceTracker('0');
 
@@ -75,11 +80,11 @@ export function trackHighestPrice(block: ethereum.Block): void {
   priceTracker.save();
 }
 
-function getPriceTracker(id: string): LiquidationPriceTracker {
-  let priceTracker = LiquidationPriceTracker.load('0');
+function getPriceTracker(id: string): LiquidationState {
+  let priceTracker = LiquidationState.load('0');
 
   if (priceTracker == null) {
-    priceTracker = new LiquidationPriceTracker('0');
+    priceTracker = new LiquidationState('0');
     priceTracker.highestPrice = BigInt.fromString('0');
     priceTracker.save();
   }
