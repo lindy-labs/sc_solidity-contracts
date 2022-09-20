@@ -21,14 +21,13 @@ const PRICE_FEED_ADDRESS = '0xE80B3caAd6d2DE80Ac76a41d5F0072E36D2519Ce'.toLowerC
 
 test('TroveManager Liquidation event creates Liquidation record', () => {
   clearStore();
-  setupMocks();
+  const mockLiquidation = setupMocks();
 
     // create vault
   const vault = new Vault('0');
   vault.strategy = Address.fromString(STRATEGY_ADDRESS);
   vault.save();
 
-  let mockLiquidation = newMockEvent();
 
   const liquidationId =
     mockLiquidation.transaction.hash.toHexString() +
@@ -100,7 +99,9 @@ test('TroveManager Liquidation event creates Liquidation record', () => {
   clearStore();
 });
 
-function setupMocks() {
+function setupMocks(): ethereum.Event {
+  let mockLiquidation = newMockEvent();
+
   createMockedFunction(
     mockLiquidation.address,
     'stabilityPool',
@@ -120,4 +121,6 @@ function setupMocks() {
     .returns([
       newValueAddress(PRICE_FEED_ADDRESS),
     ]);
+
+  return mockLiquidation;
 }
