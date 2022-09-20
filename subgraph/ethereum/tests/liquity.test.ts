@@ -10,20 +10,22 @@ import { ethereum, BigInt, Address } from '@graphprotocol/graph-ts';
 
 import { handleLiquidation } from '../src/mappings/liquity';
 import { Liquidation as LiquidationEvent } from '../src/types/LiquityTrove/LiquityTrove';
-import { newI32 } from '../../tests/helpers';
+import { newParamI32, newValueAddress, newValueI32FromBigInt } from '../../tests/helpers';
 
 import { Liquidation, Vault } from '../src/types/schema';
 
+const STRATEGY_ADDRESS = '0xc90b3caad6d2de80ac76a41d5f0072e36d2519cd'.toLowerCase();
+const STABILITY_POOL_ADDRESS = '0xC80B3caAd6d2DE80Ac76a41d5F0072E36D2519Cd'.toLowerCase();
+const PRICE_FEED_ADDRESS = '0xE80B3caAd6d2DE80Ac76a41d5F0072E36D2519Ce'.toLowerCase();
+
+
 test('TroveManager Liquidation event creates Liquidation record', () => {
   clearStore();
+  setupMocks();
 
-  const strategyAddress = '0xc90b3caad6d2de80ac76a41d5f0072e36d2519cd'.toLowerCase();
-  const stabilityPoolAddress = '0xC80B3caAd6d2DE80Ac76a41d5F0072E36D2519Cd'.toLowerCase();
-  const priceFeedAddress = '0xE80B3caAd6d2DE80Ac76a41d5F0072E36D2519Ce'.toLowerCase();
-
-  // create vault
+    // create vault
   const vault = new Vault('0');
-  vault.strategy = Address.fromString(strategyAddress);
+  vault.strategy = Address.fromString(STRATEGY_ADDRESS);
   vault.save();
 
   let mockLiquidation = newMockEvent();
@@ -45,46 +47,26 @@ test('TroveManager Liquidation event creates Liquidation record', () => {
   );
   liquidationEvent.parameters = new Array();
 
-  liquidationEvent.parameters.push(newI32('liquidatedDebt', 200000));
-  liquidationEvent.parameters.push(newI32('liquidatedCollateral', 1166));
-  liquidationEvent.parameters.push(newI32('collGasCompensation', 5));
-  liquidationEvent.parameters.push(newI32('tokenGasCompensation', 200000));
+  liquidationEvent.parameters.push(newParamI32('liquidatedDebt', 200000));
+  liquidationEvent.parameters.push(newParamI32('liquidatedCollateral', 1166));
+  liquidationEvent.parameters.push(newParamI32('collGasCompensation', 5));
+  liquidationEvent.parameters.push(newParamI32('tokenGasCompensation', 200000));
 
   createMockedFunction(
-    mockLiquidation.address,
-    'stabilityPool',
-    'stabilityPool():(address)',
-  )
-    .withArgs([])
-    .returns([
-      ethereum.Value.fromAddress(Address.fromString(stabilityPoolAddress)),
-    ]);
-
-  createMockedFunction(
-    mockLiquidation.address,
-    'priceFeed',
-    'priceFeed():(address)',
-  )
-    .withArgs([])
-    .returns([
-      ethereum.Value.fromAddress(Address.fromString(priceFeedAddress)),
-    ]);
-
-  createMockedFunction(
-    Address.fromString(stabilityPoolAddress),
+    Address.fromString(STABILITY_POOL_ADDRESS),
     'getDepositorETHGain',
     'getDepositorETHGain(address):(uint256)',
   )
-    .withArgs([ethereum.Value.fromAddress(Address.fromString(strategyAddress))])
-    .returns([ethereum.Value.fromUnsignedBigInt(BigInt.fromString('1234'))]);
+    .withArgs([newValueAddress(STRATEGY_ADDRESS)])
+    .returns([newValueI32FromBigInt('1234')]);
 
   createMockedFunction(
-    Address.fromString(priceFeedAddress),
+    Address.fromString(PRICE_FEED_ADDRESS),
     'lastGoodPrice',
     'lastGoodPrice():(uint256)',
   )
     .withArgs([])
-    .returns([ethereum.Value.fromUnsignedBigInt(BigInt.fromString('1234'))]);
+    .returns([newValueI32FromBigInt('1234')]);
 
   handleLiquidation(liquidationEvent);
 
@@ -117,3 +99,25 @@ test('TroveManager Liquidation event creates Liquidation record', () => {
 
   clearStore();
 });
+
+function setupMocks() {
+  createMockedFunction(
+    mockLiquidation.address,
+    'stabilityPool',
+    'stabilityPool():(address)',
+  )
+    .withArgs([])
+    .returns([
+      newValueAddress(STABILITY_POOL_ADDRESS),
+    ]);
+
+  createMockedFunction(
+    mockLiquidation.address,
+    'priceFeed',
+    'priceFeed():(address)',
+  )
+    .withArgs([])
+    .returns([
+      newValueAddress(PRICE_FEED_ADDRESS),
+    ]);
+}

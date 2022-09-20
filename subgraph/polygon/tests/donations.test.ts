@@ -14,7 +14,7 @@ import {
   DonationMinted,
 } from '../src/types/Donations/Donations';
 import { DonationMint } from '../src/types/schema';
-import { donationId, newAddress, newI32, newString } from '../../tests/helpers';
+import { donationId, newParamAddress, newParamI32, newParamString } from '../../tests/helpers';
 
 test('DonationMinted event creates DonationMint record', () => {
   clearStore();
@@ -35,16 +35,16 @@ test('DonationMinted event creates DonationMint record', () => {
   );
   donationEvent.parameters = new Array();
 
-  donationEvent.parameters.push(newI32('id', 0));
-  donationEvent.parameters.push(newI32('destinationId', 9));
-  donationEvent.parameters.push(newString('groupId', 'some-group-id'));
-  donationEvent.parameters.push(newString('token', 'some-token-address'));
-  donationEvent.parameters.push(newI32('expiry', 16000000));
-  donationEvent.parameters.push(newI32('amount', 150));
+  donationEvent.parameters.push(newParamI32('id', 0));
+  donationEvent.parameters.push(newParamI32('destinationId', 9));
+  donationEvent.parameters.push(newParamString('groupId', 'some-group-id'));
+  donationEvent.parameters.push(newParamString('token', 'some-token-address'));
+  donationEvent.parameters.push(newParamI32('expiry', 16000000));
+  donationEvent.parameters.push(newParamI32('amount', 150));
   donationEvent.parameters.push(
-    newAddress('owner', '0x0000000000000000000000000000000000000000'),
+    newParamAddress('owner', '0x0000000000000000000000000000000000000000'),
   );
-  donationEvent.parameters.push(newString('donationId', donationID));
+  donationEvent.parameters.push(newParamString('donationId', donationID));
 
   handleDonationMinted(donationEvent);
 
@@ -82,8 +82,8 @@ test('DonationBurned event sets DonationMint record burned field to true', () =>
   );
   donationEvent.parameters = new Array();
 
-  donationEvent.parameters.push(newI32('id', 0));
-  donationEvent.parameters.push(newString('donationId', donationID));
+  donationEvent.parameters.push(newParamI32('id', 0));
+  donationEvent.parameters.push(newParamString('donationId', donationID));
 
   handleDonationBurned(donationEvent);
 

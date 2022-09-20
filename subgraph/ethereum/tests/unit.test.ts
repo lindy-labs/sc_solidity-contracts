@@ -7,11 +7,11 @@ import {
 } from 'matchstick-as/assembly/index';
 
 import {
-  newBytes,
-  newI32,
-  newBool,
-  newAddress,
-  newString,
+  newParamBytes,
+  newParamI32,
+  newParamBool,
+  newParamAddress,
+  newParamString,
   donationId,
   createDeposit,
 } from '../../tests/helpers';
@@ -60,7 +60,7 @@ test('handleTreasuryUpdated updates the treasury', () => {
   );
   event.parameters = new Array();
 
-  const treasury = newAddress('treasury', MOCK_ADDRESS_1);
+  const treasury = newParamAddress('treasury', MOCK_ADDRESS_1);
   event.parameters.push(treasury);
 
   // create vault
@@ -88,11 +88,11 @@ test('handleSponsored creates a Sponsor', () => {
   );
   event.parameters = new Array();
 
-  const idParam = newI32('id', 1);
-  const amount = newI32('amount', 1);
-  const depositor = newAddress('depositor', MOCK_ADDRESS_1);
-  const lockedUntil = newI32('lockedUntil', 1);
-  const burned = newBool('burned', false);
+  const idParam = newParamI32('id', 1);
+  const amount = newParamI32('amount', 1);
+  const depositor = newParamAddress('depositor', MOCK_ADDRESS_1);
+  const lockedUntil = newParamI32('lockedUntil', 1);
+  const burned = newParamBool('burned', false);
 
   event.parameters.push(idParam);
   event.parameters.push(amount);
@@ -128,14 +128,14 @@ test('handleUnsponsored updates the amount sponsored', () => {
   );
   event.parameters = new Array();
 
-  const idParam = newI32('id', 1);
-  const amount = newI32('amount', 1);
-  const to = newAddress('to', MOCK_ADDRESS_1);
+  const idParam = newParamI32('id', 1);
+  const amount = newParamI32('amount', 1);
+  const to = newParamAddress('to', MOCK_ADDRESS_1);
 
   event.parameters.push(idParam);
   event.parameters.push(amount);
   event.parameters.push(to);
-  event.parameters.push(newBool('burned', false));
+  event.parameters.push(newParamBool('burned', false));
 
   handleUnsponsored(event);
 
@@ -163,14 +163,14 @@ test('handleUnsponsored removes a Sponsor by marking as burned', () => {
   );
   event.parameters = new Array();
 
-  const idParam = newI32('id', 1);
-  const amount = newI32('amount', 1);
-  const to = newAddress('to', MOCK_ADDRESS_1);
+  const idParam = newParamI32('id', 1);
+  const amount = newParamI32('amount', 1);
+  const to = newParamAddress('to', MOCK_ADDRESS_1);
 
   event.parameters.push(idParam);
   event.parameters.push(amount);
   event.parameters.push(to);
-  event.parameters.push(newBool('burned', true));
+  event.parameters.push(newParamBool('burned', true));
 
   handleUnsponsored(event);
 
@@ -196,15 +196,15 @@ test('handleDepositMinted creates a Deposit', () => {
   const vault = new Vault('0');
   vault.save();
 
-  const idParam = newI32('id', 1);
-  const groupId = newI32('groupId', 1);
-  const amount = newI32('amount', 1);
-  const shares = newI32('shares', 1);
-  const depositor = newAddress('depositor', MOCK_ADDRESS_1);
-  const claimer = newAddress('claimer', MOCK_ADDRESS_1);
-  const lockedUntil = newI32('lockedUntil', 1);
-  const data = newBytes('data', Bytes.empty());
-  const name = newString('name', 'Foundation');
+  const idParam = newParamI32('id', 1);
+  const groupId = newParamI32('groupId', 1);
+  const amount = newParamI32('amount', 1);
+  const shares = newParamI32('shares', 1);
+  const depositor = newParamAddress('depositor', MOCK_ADDRESS_1);
+  const claimer = newParamAddress('claimer', MOCK_ADDRESS_1);
+  const lockedUntil = newParamI32('lockedUntil', 1);
+  const data = newParamBytes('data', Bytes.empty());
+  const name = newParamString('name', 'Foundation');
 
   event.parameters.push(idParam);
   event.parameters.push(groupId);
@@ -258,16 +258,16 @@ test("handleDepositMinted uses the last event's name as the Foundation's name", 
   const vault = new Vault('0');
   vault.save();
 
-  const idParam = newI32('id', 1);
-  const groupId = newI32('groupId', 1);
-  const amount = newI32('amount', 1);
-  const shares = newI32('shares', 1);
-  const depositor = newAddress('depositor', MOCK_ADDRESS_1);
-  const claimer = newAddress('claimer', MOCK_ADDRESS_1);
-  const claimerId = newAddress('claimerId', MOCK_ADDRESS_1);
-  const lockedUntil = newI32('lockedUntil', 1);
-  const data = newBytes('data', Bytes.empty());
-  let name = newString('name', 'Foundation');
+  const idParam = newParamI32('id', 1);
+  const groupId = newParamI32('groupId', 1);
+  const amount = newParamI32('amount', 1);
+  const shares = newParamI32('shares', 1);
+  const depositor = newParamAddress('depositor', MOCK_ADDRESS_1);
+  const claimer = newParamAddress('claimer', MOCK_ADDRESS_1);
+  const claimerId = newParamAddress('claimerId', MOCK_ADDRESS_1);
+  const lockedUntil = newParamI32('lockedUntil', 1);
+  const data = newParamBytes('data', Bytes.empty());
+  let name = newParamString('name', 'Foundation');
 
   event.parameters.push(idParam);
   event.parameters.push(groupId);
@@ -300,7 +300,7 @@ test("handleDepositMinted uses the last event's name as the Foundation's name", 
   );
   event.parameters = new Array();
 
-  name = newString('name', 'Updated Foundation Name');
+  name = newParamString('name', 'Updated Foundation Name');
 
   event.parameters.push(idParam);
   event.parameters.push(groupId);
@@ -361,11 +361,11 @@ test("handleDepositWithdrawn doesn't remove a Deposit for partial withdraws", ()
   );
   event.parameters = new Array();
 
-  event.parameters.push(newI32('id', 1));
-  event.parameters.push(newI32('shares', 5));
-  event.parameters.push(newI32('amount', 5));
-  event.parameters.push(newAddress('to', MOCK_ADDRESS_1));
-  event.parameters.push(newBool('burned', false));
+  event.parameters.push(newParamI32('id', 1));
+  event.parameters.push(newParamI32('shares', 5));
+  event.parameters.push(newParamI32('amount', 5));
+  event.parameters.push(newParamAddress('to', MOCK_ADDRESS_1));
+  event.parameters.push(newParamBool('burned', false));
 
   handleDepositWithdrawn(event);
 
@@ -414,11 +414,11 @@ test('handleDepositWithdrawn removes a Deposit by marking as burned', () => {
   );
   event.parameters = new Array();
 
-  event.parameters.push(newI32('id', 1));
-  event.parameters.push(newI32('shares', 1));
-  event.parameters.push(newI32('amount', 1));
-  event.parameters.push(newAddress('to', MOCK_ADDRESS_1));
-  event.parameters.push(newBool('burned', true));
+  event.parameters.push(newParamI32('id', 1));
+  event.parameters.push(newParamI32('shares', 1));
+  event.parameters.push(newParamI32('amount', 1));
+  event.parameters.push(newParamAddress('to', MOCK_ADDRESS_1));
+  event.parameters.push(newParamBool('burned', true));
 
   handleDepositWithdrawn(event);
 
@@ -466,13 +466,13 @@ test('handleYieldClaimed reduces shares from Deposits and creates Donations', ()
   );
   event.parameters = new Array();
 
-  event.parameters.push(newAddress('claimerId', MOCK_ADDRESS_1));
-  event.parameters.push(newAddress('to', TREASURY_ADDRESS));
-  event.parameters.push(newI32('amount', 150));
-  event.parameters.push(newI32('burnedShares', 75));
-  event.parameters.push(newI32('perfFee', 0));
-  event.parameters.push(newI32('totalUnderlying', 300));
-  event.parameters.push(newI32('totalShares', 150));
+  event.parameters.push(newParamAddress('claimerId', MOCK_ADDRESS_1));
+  event.parameters.push(newParamAddress('to', TREASURY_ADDRESS));
+  event.parameters.push(newParamI32('amount', 150));
+  event.parameters.push(newParamI32('burnedShares', 75));
+  event.parameters.push(newParamI32('perfFee', 0));
+  event.parameters.push(newParamI32('totalUnderlying', 300));
+  event.parameters.push(newParamI32('totalShares', 150));
 
   handleYieldClaimed(event);
 
@@ -522,13 +522,13 @@ test('handleYieldClaimed takes the performance fee into account', () => {
   );
   event.parameters = new Array();
 
-  event.parameters.push(newAddress('claimerId', MOCK_ADDRESS_1));
-  event.parameters.push(newAddress('to', TREASURY_ADDRESS));
-  event.parameters.push(newI32('amount', 120));
-  event.parameters.push(newI32('burnedShares', 75));
-  event.parameters.push(newI32('perfFee', 30));
-  event.parameters.push(newI32('totalUnderlying', 300));
-  event.parameters.push(newI32('totalShares', 150));
+  event.parameters.push(newParamAddress('claimerId', MOCK_ADDRESS_1));
+  event.parameters.push(newParamAddress('to', TREASURY_ADDRESS));
+  event.parameters.push(newParamI32('amount', 120));
+  event.parameters.push(newParamI32('burnedShares', 75));
+  event.parameters.push(newParamI32('perfFee', 30));
+  event.parameters.push(newParamI32('totalUnderlying', 300));
+  event.parameters.push(newParamI32('totalShares', 150));
 
   handleYieldClaimed(event);
 
@@ -580,13 +580,13 @@ test("handleYieldClaimed doesn't create donations if the deposits are not to the
   );
   event.parameters = new Array();
 
-  event.parameters.push(newAddress('claimerId', MOCK_ADDRESS_2));
-  event.parameters.push(newAddress('to', MOCK_ADDRESS_1));
-  event.parameters.push(newI32('amount', 150));
-  event.parameters.push(newI32('burnedShares', 75));
-  event.parameters.push(newI32('perfFee', 0));
-  event.parameters.push(newI32('totalUnderlying', 300));
-  event.parameters.push(newI32('totalShares', 150));
+  event.parameters.push(newParamAddress('claimerId', MOCK_ADDRESS_2));
+  event.parameters.push(newParamAddress('to', MOCK_ADDRESS_1));
+  event.parameters.push(newParamI32('amount', 150));
+  event.parameters.push(newParamI32('burnedShares', 75));
+  event.parameters.push(newParamI32('perfFee', 0));
+  event.parameters.push(newParamI32('totalUnderlying', 300));
+  event.parameters.push(newParamI32('totalShares', 150));
 
   handleYieldClaimed(event);
 

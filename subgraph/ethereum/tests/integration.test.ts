@@ -7,12 +7,12 @@ import {
 } from 'matchstick-as/assembly/index';
 
 import {
-  newBytes,
-  newI32,
-  newI32FromBigInt,
-  newBool,
-  newAddress,
-  newString,
+  newParamBytes,
+  newParamI32,
+  newParamI32FromBigInt,
+  newParamBool,
+  newParamAddress,
+  newParamString,
   donationId,
   createDeposit,
   MOCK_ADDRESS_1,
@@ -55,18 +55,18 @@ test('handles scenarios with rounding matters', () => {
   const vault = new Vault('0');
   vault.save();
 
-  let idParam = newI32('id', 1);
-  const groupId = newI32('groupId', 1);
-  let amount = newI32FromBigInt('amount', '500000000000000000000');
-  let shares = newI32FromBigInt(
+  let idParam = newParamI32('id', 1);
+  const groupId = newParamI32('groupId', 1);
+  let amount = newParamI32FromBigInt('amount', '500000000000000000000');
+  let shares = newParamI32FromBigInt(
     'shares',
     '500000000000000000000000000000000000000',
   );
-  let depositor = newAddress('depositor', MOCK_ADDRESS_1);
-  let claimer = newAddress('claimer', MOCK_ADDRESS_1);
-  let lockedUntil = newI32('lockedUntil', 1);
-  let data = newBytes('data', Bytes.empty());
-  let name = newString('name', 'Foundation');
+  let depositor = newParamAddress('depositor', MOCK_ADDRESS_1);
+  let claimer = newParamAddress('claimer', MOCK_ADDRESS_1);
+  let lockedUntil = newParamI32('lockedUntil', 1);
+  let data = newParamBytes('data', Bytes.empty());
+  let name = newParamString('name', 'Foundation');
 
   event.parameters.push(idParam);
   event.parameters.push(groupId);
@@ -98,12 +98,12 @@ test('handles scenarios with rounding matters', () => {
   );
   event2.parameters = new Array();
 
-  idParam = newI32('id', 2);
-  depositor = newAddress('depositor', MOCK_ADDRESS_1);
-  claimer = newAddress('claimer', MOCK_ADDRESS_2);
-  lockedUntil = newI32('lockedUntil', 1);
-  data = newBytes('data', Bytes.empty());
-  name = newString('name', 'Foundation');
+  idParam = newParamI32('id', 2);
+  depositor = newParamAddress('depositor', MOCK_ADDRESS_1);
+  claimer = newParamAddress('claimer', MOCK_ADDRESS_2);
+  lockedUntil = newParamI32('lockedUntil', 1);
+  data = newParamBytes('data', Bytes.empty());
+  name = newParamString('name', 'Foundation');
 
   event2.parameters.push(idParam);
   event2.parameters.push(groupId);
@@ -148,18 +148,18 @@ test('handles scenarios with rounding matters', () => {
   );
   event3.parameters = new Array();
 
-  event3.parameters.push(newAddress('claimerId', MOCK_ADDRESS_1));
-  event3.parameters.push(newAddress('to', MOCK_ADDRESS_1));
-  event3.parameters.push(newI32FromBigInt('amount', '49500000000000000000'));
+  event3.parameters.push(newParamAddress('claimerId', MOCK_ADDRESS_1));
+  event3.parameters.push(newParamAddress('to', MOCK_ADDRESS_1));
+  event3.parameters.push(newParamI32FromBigInt('amount', '49500000000000000000'));
   event3.parameters.push(
-    newI32FromBigInt('burnedShares', '45454545454545454545454545454545454545'),
+    newParamI32FromBigInt('burnedShares', '45454545454545454545454545454545454545'),
   );
-  event3.parameters.push(newI32FromBigInt('perfFee', '499999999999999999'));
+  event3.parameters.push(newParamI32FromBigInt('perfFee', '499999999999999999'));
   event3.parameters.push(
-    newI32FromBigInt('totalUnderlying', '1100000000000000000000'),
+    newParamI32FromBigInt('totalUnderlying', '1100000000000000000000'),
   );
   event3.parameters.push(
-    newI32FromBigInt('totalShares', '1000000000000000000000000000000000000000'),
+    newParamI32FromBigInt('totalShares', '1000000000000000000000000000000000000000'),
   );
 
   handleYieldClaimed(event3);
@@ -184,15 +184,15 @@ test('updates the Foundation', () => {
   const vault = new Vault('0');
   vault.save();
 
-  let idParam = newI32('id', 1);
-  const groupId = newI32('groupId', 1);
-  let amount = newI32('amount', 30);
-  let shares = newI32('shares', 30);
-  let depositor = newAddress('depositor', MOCK_ADDRESS_1);
-  let claimer = newAddress('claimer', MOCK_ADDRESS_1);
-  let lockedUntil = newI32('lockedUntil', 1);
-  let data = newBytes('data', Bytes.empty());
-  let name = newString('name', 'Foundation');
+  let idParam = newParamI32('id', 1);
+  const groupId = newParamI32('groupId', 1);
+  let amount = newParamI32('amount', 30);
+  let shares = newParamI32('shares', 30);
+  let depositor = newParamAddress('depositor', MOCK_ADDRESS_1);
+  let claimer = newParamAddress('claimer', MOCK_ADDRESS_1);
+  let lockedUntil = newParamI32('lockedUntil', 1);
+  let data = newParamBytes('data', Bytes.empty());
+  let name = newParamString('name', 'Foundation');
 
   event.parameters.push(idParam);
   event.parameters.push(groupId);
@@ -237,14 +237,14 @@ test('updates the Foundation', () => {
   );
   event2.parameters = new Array();
 
-  idParam = newI32('id', 2);
-  amount = newI32('amount', 40);
-  shares = newI32('shares', 40);
-  depositor = newAddress('depositor', MOCK_ADDRESS_1);
-  claimer = newAddress('claimer', MOCK_ADDRESS_1);
-  lockedUntil = newI32('lockedUntil', 2);
-  data = newBytes('data', Bytes.empty());
-  name = newString('name', 'Foundation 2');
+  idParam = newParamI32('id', 2);
+  amount = newParamI32('amount', 40);
+  shares = newParamI32('shares', 40);
+  depositor = newParamAddress('depositor', MOCK_ADDRESS_1);
+  claimer = newParamAddress('claimer', MOCK_ADDRESS_1);
+  lockedUntil = newParamI32('lockedUntil', 2);
+  data = newParamBytes('data', Bytes.empty());
+  name = newParamString('name', 'Foundation 2');
 
   event2.parameters.push(idParam);
   event2.parameters.push(groupId);
@@ -287,11 +287,11 @@ test('updates the Foundation', () => {
   );
   event3.parameters = new Array();
 
-  event3.parameters.push(newI32('id', 1));
-  event3.parameters.push(newI32('shares', 10));
-  event3.parameters.push(newI32('amount', 10));
-  event3.parameters.push(newAddress('to', MOCK_ADDRESS_1));
-  event3.parameters.push(newBool('burned', false));
+  event3.parameters.push(newParamI32('id', 1));
+  event3.parameters.push(newParamI32('shares', 10));
+  event3.parameters.push(newParamI32('amount', 10));
+  event3.parameters.push(newParamAddress('to', MOCK_ADDRESS_1));
+  event3.parameters.push(newParamBool('burned', false));
 
   handleDepositWithdrawn(event3);
 
@@ -314,13 +314,13 @@ test('updates the Foundation', () => {
   );
   event4.parameters = new Array();
 
-  event4.parameters.push(newAddress('claimerId', MOCK_ADDRESS_1));
-  event4.parameters.push(newAddress('to', MOCK_ADDRESS_1));
-  event4.parameters.push(newI32('amount', 60));
-  event4.parameters.push(newI32('burnedShares', 30));
-  event4.parameters.push(newI32('perfFee', 0));
-  event4.parameters.push(newI32('totalUnderlying', 120));
-  event4.parameters.push(newI32('totalShares', 60));
+  event4.parameters.push(newParamAddress('claimerId', MOCK_ADDRESS_1));
+  event4.parameters.push(newParamAddress('to', MOCK_ADDRESS_1));
+  event4.parameters.push(newParamI32('amount', 60));
+  event4.parameters.push(newParamI32('burnedShares', 30));
+  event4.parameters.push(newParamI32('perfFee', 0));
+  event4.parameters.push(newParamI32('totalUnderlying', 120));
+  event4.parameters.push(newParamI32('totalShares', 60));
 
   handleYieldClaimed(event4);
 
@@ -363,13 +363,13 @@ test('handleYieldClaimed handles scenarios where only one of the deposits genera
   );
   event.parameters = new Array();
 
-  event.parameters.push(newAddress('claimerId', MOCK_ADDRESS_2));
-  event.parameters.push(newAddress('to', TREASURY_ADDRESS));
-  event.parameters.push(newI32('amount', 50));
-  event.parameters.push(newI32('burnedShares', 25));
-  event.parameters.push(newI32('perfFee', 0));
-  event.parameters.push(newI32('totalUnderlying', 200));
-  event.parameters.push(newI32('totalShares', 100));
+  event.parameters.push(newParamAddress('claimerId', MOCK_ADDRESS_2));
+  event.parameters.push(newParamAddress('to', TREASURY_ADDRESS));
+  event.parameters.push(newParamI32('amount', 50));
+  event.parameters.push(newParamI32('burnedShares', 25));
+  event.parameters.push(newParamI32('perfFee', 0));
+  event.parameters.push(newParamI32('totalUnderlying', 200));
+  event.parameters.push(newParamI32('totalShares', 100));
 
   handleYieldClaimed(event);
 
@@ -412,16 +412,16 @@ test('handleYieldClaimed handles scenarios where the yield is not proportional t
   );
   event.parameters = new Array();
 
-  event.parameters.push(newAddress('claimerId', MOCK_ADDRESS_2));
-  event.parameters.push(newAddress('to', TREASURY_ADDRESS));
-  event.parameters.push(newI32('amount', 147));
-  event.parameters.push(newI32('burnedShares', 49));
-  event.parameters.push(newI32('perfFee', 0));
+  event.parameters.push(newParamAddress('claimerId', MOCK_ADDRESS_2));
+  event.parameters.push(newParamAddress('to', TREASURY_ADDRESS));
+  event.parameters.push(newParamI32('amount', 147));
+  event.parameters.push(newParamI32('burnedShares', 49));
+  event.parameters.push(newParamI32('perfFee', 0));
   // these numbers are only used to calculate the pricer per share
   // in this scenario, it's impossible to find the real numbers, so'll just use these two
   // because only the ratio between them matters for the purpose of this test
-  event.parameters.push(newI32('totalUnderlying', 147));
-  event.parameters.push(newI32('totalShares', 49));
+  event.parameters.push(newParamI32('totalUnderlying', 147));
+  event.parameters.push(newParamI32('totalShares', 49));
 
   handleYieldClaimed(event);
 
