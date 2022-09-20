@@ -1,4 +1,3 @@
-import { Bytes, log } from '@graphprotocol/graph-ts';
 import {
   describe,
   test,
@@ -25,7 +24,7 @@ import {
   newParamAddress,
 } from '../../tests/helpers';
 
-import { Liquidation, LiquidationState, Vault } from '../src/types/schema';
+import { LiquidationState, Vault } from '../src/types/schema';
 
 const STRATEGY_ADDRESS =
   '0xc90b3caad6d2de80ac76a41d5f0072e36d2519cd'.toLowerCase();
@@ -135,9 +134,8 @@ test("handleETHGainWithdrawn doesn't run if the strategy is not set", () => {
   const vault = new Vault('0');
   vault.save();
 
-  const ethGainWithdrawnEvent = createETHGainWithdrawnEvent(
-    mockETHGainWithdrawn,
-  );
+  const ethGainWithdrawnEvent =
+    createETHGainWithdrawnEvent(mockETHGainWithdrawn);
 
   ethGainWithdrawnEvent.parameters = new Array();
   ethGainWithdrawnEvent.parameters.push(
@@ -171,9 +169,8 @@ test("handleETHGainWithdrawn doesn't run if the _depositor is not the strategy",
     '1000000000000000000',
   );
 
-  const ethGainWithdrawnEvent = createETHGainWithdrawnEvent(
-    mockETHGainWithdrawn,
-  );
+  const ethGainWithdrawnEvent =
+    createETHGainWithdrawnEvent(mockETHGainWithdrawn);
 
   ethGainWithdrawnEvent.parameters = new Array();
   ethGainWithdrawnEvent.parameters.push(
