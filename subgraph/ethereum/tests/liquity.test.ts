@@ -1,3 +1,4 @@
+import { store } from '@graphprotocol/graph-ts';
 import {
   describe,
   test,
@@ -297,10 +298,24 @@ describe('handleLiquidation', () => {
     assert.fieldEquals('LiquidationState', '0', 'lastBlock', '100');
   });
 
-  test('it does not run when strategy is not set', () => {
+  test("it doesn't run when strategy isn't set", () => {
     const vault = Vault.load('0');
     vault!.strategy = null;
     vault!.save();
+
+    const event = setupMocks();
+    const liquidationEvent = createLiquidationEvent(event);
+    handleLiquidation(liquidationEvent);
+
+    const liquidationId =
+      event.transaction.hash.toHexString() + '-' + event.logIndex.toString();
+
+    assert.notInStore('LiquidationState', '0');
+    assert.notInStore('Liquidation', liquidationId);
+  });
+
+  test("it doesn't run when there is no vault", () => {
+    store.remove('Vault', '0');
 
     const event = setupMocks();
     const liquidationEvent = createLiquidationEvent(event);
