@@ -1,6 +1,9 @@
 import { Bytes, log } from '@graphprotocol/graph-ts';
 import {
+  describe,
   test,
+  beforeEach,
+  afterEach,
   assert,
   newMockEvent,
   clearStore,
@@ -24,9 +27,12 @@ import {
 
 import { Liquidation, LiquidationState, Vault } from '../src/types/schema';
 
-const STRATEGY_ADDRESS = '0xc90b3caad6d2de80ac76a41d5f0072e36d2519cd'.toLowerCase();
-const STABILITY_POOL_ADDRESS = '0xC80B3caAd6d2DE80Ac76a41d5F0072E36D2519Cd'.toLowerCase();
-const PRICE_FEED_ADDRESS = '0xE80B3caAd6d2DE80Ac76a41d5F0072E36D2519Ce'.toLowerCase();
+const STRATEGY_ADDRESS =
+  '0xc90b3caad6d2de80ac76a41d5f0072e36d2519cd'.toLowerCase();
+const STABILITY_POOL_ADDRESS =
+  '0xC80B3caAd6d2DE80Ac76a41d5F0072E36D2519Cd'.toLowerCase();
+const PRICE_FEED_ADDRESS =
+  '0xE80B3caAd6d2DE80Ac76a41d5F0072E36D2519Ce'.toLowerCase();
 
 test('trackHighestPrice updates the highestPrice and lastBlock', () => {
   clearStore();
@@ -229,105 +235,175 @@ test('handleETHGainWithdrawn sets the highest price to 0', () => {
   assert.fieldEquals('LiquidationState', '0', 'highestPrice', '0');
 });
 
-test('TroveManager Liquidation event creates Liquidation record', () => {
-  clearStore();
-  const mockLiquidation = setupMocks();
+describe('handleLiquidation', () => {
+  beforeEach(() => {
+    clearStore();
 
-  // create vault
-  const vault = new Vault('0');
-  vault.strategy = Address.fromString(STRATEGY_ADDRESS);
-  vault.save();
+    // create vault
+    const vault = new Vault('0');
+    vault.strategy = Address.fromString(STRATEGY_ADDRESS);
+    vault.save();
 
-  const liquidationId =
-    mockLiquidation.transaction.hash.toHexString() +
-    '-' +
-    mockLiquidation.logIndex.toString();
+    createMockedFunction(
+      Address.fromString(STABILITY_POOL_ADDRESS),
+      'getDepositorETHGain',
+      'getDepositorETHGain(address):(uint256)',
+    )
+      .withArgs([newValueAddress(STRATEGY_ADDRESS)])
+      .returns([newValueI32FromBigInt('2000')]);
 
-  const liquidationEvent = new LiquidationEvent(
-    mockLiquidation.address,
-    mockLiquidation.logIndex,
-    mockLiquidation.transactionLogIndex,
-    mockLiquidation.logType,
-    mockLiquidation.block,
-    mockLiquidation.transaction,
-    mockLiquidation.parameters,
-    null,
-  );
-  liquidationEvent.parameters = new Array();
+    createMockedFunction(
+      Address.fromString(PRICE_FEED_ADDRESS),
+      'lastGoodPrice',
+      'lastGoodPrice():(uint256)',
+    )
+      .withArgs([])
+      .returns([newValueI32FromBigInt('1500')]);
+  });
 
-  liquidationEvent.parameters.push(newParamI32('liquidatedDebt', 200000));
-  liquidationEvent.parameters.push(newParamI32('liquidatedCollateral', 1166));
-  liquidationEvent.parameters.push(newParamI32('collGasCompensation', 5));
-  liquidationEvent.parameters.push(newParamI32('tokenGasCompensation', 200000));
+  afterEach(() => {
+    clearStore();
+  });
 
-  createMockedFunction(
-    Address.fromString(STABILITY_POOL_ADDRESS),
-    'getDepositorETHGain',
-    'getDepositorETHGain(address):(uint256)',
-  )
-    .withArgs([newValueAddress(STRATEGY_ADDRESS)])
-    .returns([newValueI32FromBigInt('1234')]);
+  test('it creates a new LiquidationState entity when there is none', () => {
+    const event = setupMocks();
+    const liquidationEvent = createLiquidationEvent(event);
+    handleLiquidation(liquidationEvent);
 
-  createMockedFunction(
-    Address.fromString(PRICE_FEED_ADDRESS),
-    'lastGoodPrice',
-    'lastGoodPrice():(uint256)',
-  )
-    .withArgs([])
-    .returns([newValueI32FromBigInt('1234')]);
+    assert.fieldEquals('LiquidationState', '0', 'highestPrice', '0');
+    assert.fieldEquals(
+      'LiquidationState',
+      '0',
+      'priceFeed',
+      PRICE_FEED_ADDRESS,
+    );
+    assert.fieldEquals('LiquidationState', '0', 'lastBlock', '0');
+  });
 
-  handleLiquidation(liquidationEvent);
+  test('it loads the existing LiquidationState entity when one exists', () => {
+    let liquidationState = new LiquidationState('0');
+    liquidationState.highestPrice = BigInt.fromString('10');
+    liquidationState.lastBlock = BigInt.fromString('100');
+    liquidationState.save();
 
-  assert.fieldEquals(
-    'Liquidation',
-    liquidationId,
-    'timestamp',
-    mockLiquidation.block.timestamp.toString(),
-  );
+    const event = setupMocks();
+    const liquidationEvent = createLiquidationEvent(event);
+    handleLiquidation(liquidationEvent);
 
-  assert.fieldEquals('Liquidation', liquidationId, 'liquidatedDebt', '200000');
+    assert.fieldEquals('LiquidationState', '0', 'highestPrice', '10');
+    assert.fieldEquals(
+      'LiquidationState',
+      '0',
+      'priceFeed',
+      PRICE_FEED_ADDRESS,
+    );
+    assert.fieldEquals('LiquidationState', '0', 'lastBlock', '100');
+  });
 
-  assert.fieldEquals(
-    'Liquidation',
-    liquidationId,
-    'liquidatedCollateral',
-    '1166',
-  );
+  test('it does not run when strategy is not set', () => {
+    const vault = Vault.load('0');
+    vault!.strategy = null;
+    vault!.save();
 
-  assert.fieldEquals('Liquidation', liquidationId, 'collGasCompensation', '5');
+    const event = setupMocks();
+    const liquidationEvent = createLiquidationEvent(event);
+    handleLiquidation(liquidationEvent);
 
-  assert.fieldEquals(
-    'Liquidation',
-    liquidationId,
-    'tokenGasCompensation',
-    '200000',
-  );
+    const liquidationId =
+      event.transaction.hash.toHexString() + '-' + event.logIndex.toString();
 
-  assert.fieldEquals('Liquidation', liquidationId, 'strategyBalance', '1234');
+    assert.notInStore('LiquidationState', '0');
+    assert.notInStore('Liquidation', liquidationId);
+  });
 
-  clearStore();
+  test('it creates a new Liquidation entity', () => {
+    const event = setupMocks();
+    const liquidationEvent = createLiquidationEvent(event);
+
+    handleLiquidation(liquidationEvent);
+
+    const liquidationId =
+      event.transaction.hash.toHexString() + '-' + event.logIndex.toString();
+
+    assert.fieldEquals(
+      'Liquidation',
+      liquidationId,
+      'timestamp',
+      event.block.timestamp.toString(),
+    );
+    assert.fieldEquals(
+      'Liquidation',
+      liquidationId,
+      'txHash',
+      event.transaction.hash.toHexString(),
+    );
+    assert.fieldEquals(
+      'Liquidation',
+      liquidationId,
+      'liquidatedDebt',
+      '200000',
+    );
+    assert.fieldEquals(
+      'Liquidation',
+      liquidationId,
+      'liquidatedCollateral',
+      '1000',
+    );
+    assert.fieldEquals(
+      'Liquidation',
+      liquidationId,
+      'collGasCompensation',
+      '5',
+    );
+    assert.fieldEquals(
+      'Liquidation',
+      liquidationId,
+      'tokenGasCompensation',
+      '200000',
+    );
+    assert.fieldEquals('Liquidation', liquidationId, 'strategyBalance', '2000');
+    assert.fieldEquals('Liquidation', liquidationId, 'ethPrice', '1500');
+    assert.fieldEquals('Liquidation', liquidationId, 'highestPrice', '0');
+  });
 });
 
 function setupMocks(): ethereum.Event {
-  let mockLiquidation = newMockEvent();
+  let event = newMockEvent();
 
   createMockedFunction(
-    mockLiquidation.address,
+    event.address,
     'stabilityPool',
     'stabilityPool():(address)',
   )
     .withArgs([])
     .returns([newValueAddress(STABILITY_POOL_ADDRESS)]);
 
-  createMockedFunction(
-    mockLiquidation.address,
-    'priceFeed',
-    'priceFeed():(address)',
-  )
+  createMockedFunction(event.address, 'priceFeed', 'priceFeed():(address)')
     .withArgs([])
     .returns([newValueAddress(PRICE_FEED_ADDRESS)]);
 
-  return mockLiquidation;
+  return event;
+}
+
+function createLiquidationEvent(event: ethereum.Event): LiquidationEvent {
+  const liquidationEvent = new LiquidationEvent(
+    event.address,
+    event.logIndex,
+    event.transactionLogIndex,
+    event.logType,
+    event.block,
+    event.transaction,
+    event.parameters,
+    null,
+  );
+
+  liquidationEvent.parameters = new Array();
+  liquidationEvent.parameters.push(newParamI32('liquidatedDebt', 200000));
+  liquidationEvent.parameters.push(newParamI32('liquidatedCollateral', 1000));
+  liquidationEvent.parameters.push(newParamI32('collGasCompensation', 5));
+  liquidationEvent.parameters.push(newParamI32('tokenGasCompensation', 200000));
+
+  return liquidationEvent;
 }
 
 function createETHGainWithdrawnEvent(event: ethereum.Event): ETHGainWithdrawn {
