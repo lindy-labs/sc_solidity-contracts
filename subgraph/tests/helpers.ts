@@ -32,7 +32,10 @@ export function newParamBool(name: string, value: bool): ethereum.EventParam {
   return new ethereum.EventParam(name, ethereum.Value.fromBoolean(value));
 }
 
-export function newParamAddress(name: string, value: string): ethereum.EventParam {
+export function newParamAddress(
+  name: string,
+  value: string,
+): ethereum.EventParam {
   return new ethereum.EventParam(
     name,
     ethereum.Value.fromAddress(Address.fromString(value)),
@@ -43,7 +46,10 @@ export function newValueAddress(address: string): ethereum.Value {
   return ethereum.Value.fromAddress(Address.fromString(address));
 }
 
-export function newParamString(name: string, value: string): ethereum.EventParam {
+export function newParamString(
+  name: string,
+  value: string,
+): ethereum.EventParam {
   return new ethereum.EventParam(name, ethereum.Value.fromString(value));
 }
 

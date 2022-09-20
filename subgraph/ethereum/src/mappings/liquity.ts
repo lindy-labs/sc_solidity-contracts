@@ -66,7 +66,11 @@ export function trackHighestPrice(block: ethereum.Block): void {
 
   if (!liquidationState.priceFeed) return;
 
-  if (block.number.minus(liquidationState.lastBlock) < new BigInt(50)) return;
+  if (
+    liquidationState.lastBlock.notEqual(BigInt.fromI32(0)) &&
+    block.number.minus(liquidationState.lastBlock).lt(BigInt.fromI32(50))
+  )
+    return;
 
   const priceFeed = LiquityPriceFeed.bind(
     Address.fromBytes(liquidationState.priceFeed!),
@@ -75,12 +79,12 @@ export function trackHighestPrice(block: ethereum.Block): void {
   const priceResult = priceFeed.try_lastGoodPrice();
 
   if (
-    !priceResult.reverted &&
-    liquidationState.highestPrice.lt(priceResult.value)
-  ) {
-    liquidationState.highestPrice = priceResult.value;
-  }
+    priceResult.reverted ||
+    liquidationState.highestPrice.gt(priceResult.value)
+  )
+    return;
 
+  liquidationState.highestPrice = priceResult.value;
   liquidationState.lastBlock = block.number;
   liquidationState.save();
 }
