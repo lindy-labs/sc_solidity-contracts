@@ -233,7 +233,7 @@ describe('handleLiquidation', () => {
     mockLastGoodPrice('1500');
   });
 
-  test('it creates a new LiquidationState entity when there is none', () => {
+  test('creates a new LiquidationState entity when there is none', () => {
     createVault();
     const event = setupLiquityMocks();
     const liquidationEvent = createLiquidationEvent(event);
@@ -249,7 +249,7 @@ describe('handleLiquidation', () => {
     assert.fieldEquals('LiquidationState', '0', 'lastBlock', '0');
   });
 
-  test('it loads the existing LiquidationState entity when one exists', () => {
+  test('loads the existing LiquidationState entity when one exists', () => {
     createVault();
     let liquidationState = new LiquidationState('0');
     liquidationState.highestPrice = BigInt.fromString('10');
@@ -270,7 +270,7 @@ describe('handleLiquidation', () => {
     assert.fieldEquals('LiquidationState', '0', 'lastBlock', '100');
   });
 
-  test("it doesn't run when strategy isn't set", () => {
+  test("doesn't run when strategy isn't set", () => {
     createVaultWithoutStrategy();
     const event = setupLiquityMocks();
     const liquidationEvent = createLiquidationEvent(event);
@@ -283,7 +283,7 @@ describe('handleLiquidation', () => {
     assert.notInStore('Liquidation', liquidationId);
   });
 
-  test("it doesn't run when there is no vault", () => {
+  test("doesn't run when there is no vault", () => {
     const event = setupLiquityMocks();
     const liquidationEvent = createLiquidationEvent(event);
     handleLiquidation(liquidationEvent);
@@ -295,7 +295,7 @@ describe('handleLiquidation', () => {
     assert.notInStore('Liquidation', liquidationId);
   });
 
-  test('it creates a new Liquidation entity', () => {
+  test('creates a new Liquidation entity', () => {
     createVault();
     const event = setupLiquityMocks();
     const liquidationEvent = createLiquidationEvent(event);
