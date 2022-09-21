@@ -233,10 +233,6 @@ describe('handleLiquidation', () => {
     mockLastGoodPrice('1500');
   });
 
-  afterEach(() => {
-    clearStore();
-  });
-
   test('it creates a new LiquidationState entity when there is none', () => {
     createVault();
     const event = setupLiquityMocks();
