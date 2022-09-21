@@ -1,9 +1,8 @@
-import { store } from '@graphprotocol/graph-ts';
+import { Bytes } from '@graphprotocol/graph-ts';
 import {
   describe,
   test,
   beforeEach,
-  afterEach,
   assert,
   newMockEvent,
   clearStore,
@@ -37,6 +36,8 @@ const STRATEGY_ADDRESS =
   '0xc90b3caad6d2de80ac76a41d5f0072e36d2519cd'.toLowerCase();
 const STABILITY_POOL_ADDRESS =
   '0xC80B3caAd6d2DE80Ac76a41d5F0072E36D2519Cd'.toLowerCase();
+const OLD_PRICE_FEED_ADDRESS =
+  '0x2E645469f354BB4F5c8a05B3b30A929361cf77eC'.toLowerCase();
 const PRICE_FEED_ADDRESS =
   '0xE80B3caAd6d2DE80Ac76a41d5F0072E36D2519Ce'.toLowerCase();
 
@@ -189,57 +190,7 @@ describe('handleLiquidation', () => {
     mockLastGoodPrice('1500');
   });
 
-  test('creates a new LiquidationState entity when there is none', () => {
-    createVault();
-    const liquidationEvent = createLiquidationEvent(mockedEvent);
-    liquidationEvent.parameters = new Array();
-    liquidationEvent.parameters.push(newParamI32('liquidatedDebt', 200000));
-    liquidationEvent.parameters.push(newParamI32('liquidatedCollateral', 1000));
-    liquidationEvent.parameters.push(newParamI32('collGasCompensation', 5));
-    liquidationEvent.parameters.push(
-      newParamI32('tokenGasCompensation', 200000),
-    );
-
-    handleLiquidation(liquidationEvent);
-
-    assert.fieldEquals('LiquidationState', '0', 'highestPrice', '0');
-    assert.fieldEquals(
-      'LiquidationState',
-      '0',
-      'priceFeed',
-      PRICE_FEED_ADDRESS,
-    );
-    assert.fieldEquals('LiquidationState', '0', 'lastBlock', '0');
-  });
-
-  test('loads the existing LiquidationState entity when one exists', () => {
-    createVault();
-    let liquidationState = new LiquidationState('0');
-    liquidationState.highestPrice = BigInt.fromString('10');
-    liquidationState.lastBlock = BigInt.fromString('100');
-    liquidationState.save();
-    const liquidationEvent = createLiquidationEvent(mockedEvent);
-    liquidationEvent.parameters = new Array();
-    liquidationEvent.parameters.push(newParamI32('liquidatedDebt', 200000));
-    liquidationEvent.parameters.push(newParamI32('liquidatedCollateral', 1000));
-    liquidationEvent.parameters.push(newParamI32('collGasCompensation', 5));
-    liquidationEvent.parameters.push(
-      newParamI32('tokenGasCompensation', 200000),
-    );
-
-    handleLiquidation(liquidationEvent);
-
-    assert.fieldEquals('LiquidationState', '0', 'highestPrice', '10');
-    assert.fieldEquals(
-      'LiquidationState',
-      '0',
-      'priceFeed',
-      PRICE_FEED_ADDRESS,
-    );
-    assert.fieldEquals('LiquidationState', '0', 'lastBlock', '100');
-  });
-
-  test("doesn't run when strategy isn't set", () => {
+  test("doesn't run when vault strategy isn't set", () => {
     createVaultWithoutStrategy();
     const liquidationEvent = createLiquidationEvent(mockedEvent);
     liquidationEvent.parameters = new Array();
@@ -257,11 +208,11 @@ describe('handleLiquidation', () => {
       '-' +
       mockedEvent.logIndex.toString();
 
-    assert.notInStore('LiquidationState', '0');
     assert.notInStore('Liquidation', liquidationId);
   });
 
-  test("doesn't run when there is no vault", () => {
+  test('creates a new LiquidationState entity when there is none', () => {
+    createVault();
     const liquidationEvent = createLiquidationEvent(mockedEvent);
     liquidationEvent.parameters = new Array();
     liquidationEvent.parameters.push(newParamI32('liquidatedDebt', 200000));
@@ -271,15 +222,49 @@ describe('handleLiquidation', () => {
       newParamI32('tokenGasCompensation', 200000),
     );
 
+    assert.notInStore('LiquidationState', '0');
+
     handleLiquidation(liquidationEvent);
 
-    const liquidationId =
-      mockedEvent.transaction.hash.toHexString() +
-      '-' +
-      mockedEvent.logIndex.toString();
+    assert.fieldEquals('LiquidationState', '0', 'highestPrice', '0');
+    assert.fieldEquals(
+      'LiquidationState',
+      '0',
+      'priceFeed',
+      PRICE_FEED_ADDRESS,
+    );
+    assert.fieldEquals('LiquidationState', '0', 'lastBlock', '0');
+  });
 
-    assert.notInStore('LiquidationState', '0');
-    assert.notInStore('Liquidation', liquidationId);
+  test('updates the LiquidationState priceFeed', () => {
+    createVault();
+    let liquidationState = new LiquidationState('0');
+    liquidationState.priceFeed = Bytes.fromHexString(OLD_PRICE_FEED_ADDRESS);
+    liquidationState.save();
+    const liquidationEvent = createLiquidationEvent(mockedEvent);
+    liquidationEvent.parameters = new Array();
+    liquidationEvent.parameters.push(newParamI32('liquidatedDebt', 200000));
+    liquidationEvent.parameters.push(newParamI32('liquidatedCollateral', 1000));
+    liquidationEvent.parameters.push(newParamI32('collGasCompensation', 5));
+    liquidationEvent.parameters.push(
+      newParamI32('tokenGasCompensation', 200000),
+    );
+
+    assert.fieldEquals(
+      'LiquidationState',
+      '0',
+      'priceFeed',
+      OLD_PRICE_FEED_ADDRESS,
+    );
+
+    handleLiquidation(liquidationEvent);
+
+    assert.fieldEquals(
+      'LiquidationState',
+      '0',
+      'priceFeed',
+      PRICE_FEED_ADDRESS,
+    );
   });
 
   test('creates a new Liquidation entity', () => {
