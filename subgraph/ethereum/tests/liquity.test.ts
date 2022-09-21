@@ -4,9 +4,7 @@ import {
   test,
   beforeEach,
   assert,
-  newMockEvent,
   clearStore,
-  createMockedFunction,
 } from 'matchstick-as/assembly/index';
 import { ethereum, BigInt, Address } from '@graphprotocol/graph-ts';
 
@@ -19,8 +17,6 @@ import { Liquidation as LiquidationEvent } from '../src/types/LiquityTrove/Liqui
 import { ETHGainWithdrawn } from '../src/types/StabilityPool/StabilityPool';
 import {
   newParamI32,
-  newValueAddress,
-  newValueI32FromBigInt,
   newParamAddress,
   STRATEGY_ADDRESS,
   PRICE_FEED_ADDRESS,
@@ -31,15 +27,6 @@ import {
 } from '../../tests/helpers';
 
 import { LiquidationState, Vault } from '../src/types/schema';
-
-const STRATEGY_ADDRESS =
-  '0xc90b3caad6d2de80ac76a41d5f0072e36d2519cd'.toLowerCase();
-const STABILITY_POOL_ADDRESS =
-  '0xC80B3caAd6d2DE80Ac76a41d5F0072E36D2519Cd'.toLowerCase();
-const OLD_PRICE_FEED_ADDRESS =
-  '0x2E645469f354BB4F5c8a05B3b30A929361cf77eC'.toLowerCase();
-const PRICE_FEED_ADDRESS =
-  '0xE80B3caAd6d2DE80Ac76a41d5F0072E36D2519Ce'.toLowerCase();
 
 let mockedEvent: ethereum.Event;
 
@@ -186,12 +173,12 @@ test('handleETHGainWithdrawn sets the highest price to 0', () => {
 describe('handleLiquidation', () => {
   beforeEach(() => {
     mockGetDepositorETHGain('2000');
-
     mockLastGoodPrice('1500');
   });
 
   test("doesn't run when vault strategy isn't set", () => {
     createVaultWithoutStrategy();
+
     const liquidationEvent = createLiquidationEvent(mockedEvent);
     liquidationEvent.parameters = new Array();
     liquidationEvent.parameters.push(newParamI32('liquidatedDebt', 200000));
@@ -213,6 +200,7 @@ describe('handleLiquidation', () => {
 
   test('creates a new LiquidationState entity when there is none', () => {
     createVault();
+
     const liquidationEvent = createLiquidationEvent(mockedEvent);
     liquidationEvent.parameters = new Array();
     liquidationEvent.parameters.push(newParamI32('liquidatedDebt', 200000));
@@ -237,10 +225,15 @@ describe('handleLiquidation', () => {
   });
 
   test('updates the LiquidationState priceFeed', () => {
+    const oldPriceFeedAddress =
+      '0x2E645469f354BB4F5c8a05B3b30A929361cf77eC'.toLowerCase();
+
     createVault();
+
     let liquidationState = new LiquidationState('0');
-    liquidationState.priceFeed = Bytes.fromHexString(OLD_PRICE_FEED_ADDRESS);
+    liquidationState.priceFeed = Bytes.fromHexString(oldPriceFeedAddress);
     liquidationState.save();
+
     const liquidationEvent = createLiquidationEvent(mockedEvent);
     liquidationEvent.parameters = new Array();
     liquidationEvent.parameters.push(newParamI32('liquidatedDebt', 200000));
@@ -254,7 +247,7 @@ describe('handleLiquidation', () => {
       'LiquidationState',
       '0',
       'priceFeed',
-      OLD_PRICE_FEED_ADDRESS,
+      oldPriceFeedAddress,
     );
 
     handleLiquidation(liquidationEvent);
@@ -269,6 +262,7 @@ describe('handleLiquidation', () => {
 
   test('creates a new Liquidation entity', () => {
     createVault();
+
     const liquidationEvent = createLiquidationEvent(mockedEvent);
     liquidationEvent.parameters = new Array();
     liquidationEvent.parameters.push(newParamI32('liquidatedDebt', 200000));
