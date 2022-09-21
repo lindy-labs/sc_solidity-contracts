@@ -23,20 +23,19 @@ import {
   newValueAddress,
   newValueI32FromBigInt,
   newParamAddress,
+  STRATEGY_ADDRESS,
+  PRICE_FEED_ADDRESS,
+  STABILITY_POOL_ADDRESS,
+  mockGetDepositorETHGain,
+  setupLiquityMocks,
+  mockLastGoodPrice,
 } from '../../tests/helpers';
 
 import { LiquidationState, Vault } from '../src/types/schema';
 
-const STRATEGY_ADDRESS =
-  '0xc90b3caad6d2de80ac76a41d5f0072e36d2519cd'.toLowerCase();
-const STABILITY_POOL_ADDRESS =
-  '0xC80B3caAd6d2DE80Ac76a41d5F0072E36D2519Cd'.toLowerCase();
-const PRICE_FEED_ADDRESS =
-  '0xE80B3caAd6d2DE80Ac76a41d5F0072E36D2519Ce'.toLowerCase();
-
 test('trackHighestPrice updates the highestPrice and lastBlock', () => {
   clearStore();
-  const mockETHGainWithdrawn = setupMocks();
+  const mockETHGainWithdrawn = setupLiquityMocks();
 
   // create vault
   const vault = new Vault('0');
@@ -48,13 +47,7 @@ test('trackHighestPrice updates the highestPrice and lastBlock', () => {
   liquidationState.priceFeed = Address.fromString(PRICE_FEED_ADDRESS);
   liquidationState.save();
 
-  createMockedFunction(
-    Address.fromString(PRICE_FEED_ADDRESS),
-    'lastGoodPrice',
-    'lastGoodPrice():(uint256)',
-  )
-    .withArgs([])
-    .returns([newValueI32FromBigInt('1234')]);
+  mockLastGoodPrice('1234');
 
   trackHighestPrice(mockETHGainWithdrawn.block);
 
@@ -69,7 +62,7 @@ test('trackHighestPrice updates the highestPrice and lastBlock', () => {
 
 test('trackHighestPrice does not run if the new price is not higher', () => {
   clearStore();
-  const mockETHGainWithdrawn = setupMocks();
+  const mockETHGainWithdrawn = setupLiquityMocks();
 
   // create vault
   const vault = new Vault('0');
@@ -82,13 +75,7 @@ test('trackHighestPrice does not run if the new price is not higher', () => {
   liquidationState.priceFeed = Address.fromString(PRICE_FEED_ADDRESS);
   liquidationState.save();
 
-  createMockedFunction(
-    Address.fromString(PRICE_FEED_ADDRESS),
-    'lastGoodPrice',
-    'lastGoodPrice():(uint256)',
-  )
-    .withArgs([])
-    .returns([newValueI32FromBigInt('1234')]);
+  mockLastGoodPrice('1234');
 
   trackHighestPrice(mockETHGainWithdrawn.block);
 
@@ -98,7 +85,7 @@ test('trackHighestPrice does not run if the new price is not higher', () => {
 
 test('trackHighestPrice does not run if the block is not 50 blocks after the previous one', () => {
   clearStore();
-  const mockETHGainWithdrawn = setupMocks();
+  const mockETHGainWithdrawn = setupLiquityMocks();
 
   // create vault
   const vault = new Vault('0');
@@ -111,13 +98,7 @@ test('trackHighestPrice does not run if the block is not 50 blocks after the pre
   liquidationState.priceFeed = Address.fromString(PRICE_FEED_ADDRESS);
   liquidationState.save();
 
-  createMockedFunction(
-    Address.fromString(PRICE_FEED_ADDRESS),
-    'lastGoodPrice',
-    'lastGoodPrice():(uint256)',
-  )
-    .withArgs([])
-    .returns([newValueI32FromBigInt('1234')]);
+  mockLastGoodPrice('1234');
 
   mockETHGainWithdrawn.block.number = BigInt.fromI32(51);
 
@@ -129,14 +110,15 @@ test('trackHighestPrice does not run if the block is not 50 blocks after the pre
 
 test("handleETHGainWithdrawn doesn't run if the strategy is not set", () => {
   clearStore();
-  const mockETHGainWithdrawn = setupMocks();
+  const mockETHGainWithdrawn = setupLiquityMocks();
 
   // create vault
   const vault = new Vault('0');
   vault.save();
 
-  const ethGainWithdrawnEvent =
-    createETHGainWithdrawnEvent(mockETHGainWithdrawn);
+  const ethGainWithdrawnEvent = createETHGainWithdrawnEvent(
+    mockETHGainWithdrawn,
+  );
 
   ethGainWithdrawnEvent.parameters = new Array();
   ethGainWithdrawnEvent.parameters.push(
@@ -152,7 +134,7 @@ test("handleETHGainWithdrawn doesn't run if the strategy is not set", () => {
 
 test("handleETHGainWithdrawn doesn't run if the _depositor is not the strategy", () => {
   clearStore();
-  const mockETHGainWithdrawn = setupMocks();
+  const mockETHGainWithdrawn = setupLiquityMocks();
 
   // create vault
   const vault = new Vault('0');
@@ -170,8 +152,9 @@ test("handleETHGainWithdrawn doesn't run if the _depositor is not the strategy",
     '1000000000000000000',
   );
 
-  const ethGainWithdrawnEvent =
-    createETHGainWithdrawnEvent(mockETHGainWithdrawn);
+  const ethGainWithdrawnEvent = createETHGainWithdrawnEvent(
+    mockETHGainWithdrawn,
+  );
 
   ethGainWithdrawnEvent.parameters = new Array();
   ethGainWithdrawnEvent.parameters.push(
@@ -192,7 +175,7 @@ test("handleETHGainWithdrawn doesn't run if the _depositor is not the strategy",
 
 test('handleETHGainWithdrawn sets the highest price to 0', () => {
   clearStore();
-  const mockETHGainWithdrawn = setupMocks();
+  const mockETHGainWithdrawn = setupLiquityMocks();
 
   // create vault
   const vault = new Vault('0');
@@ -242,21 +225,9 @@ describe('handleLiquidation', () => {
     vault.strategy = Address.fromString(STRATEGY_ADDRESS);
     vault.save();
 
-    createMockedFunction(
-      Address.fromString(STABILITY_POOL_ADDRESS),
-      'getDepositorETHGain',
-      'getDepositorETHGain(address):(uint256)',
-    )
-      .withArgs([newValueAddress(STRATEGY_ADDRESS)])
-      .returns([newValueI32FromBigInt('2000')]);
+    mockGetDepositorETHGain('2000');
 
-    createMockedFunction(
-      Address.fromString(PRICE_FEED_ADDRESS),
-      'lastGoodPrice',
-      'lastGoodPrice():(uint256)',
-    )
-      .withArgs([])
-      .returns([newValueI32FromBigInt('1500')]);
+    mockLastGoodPrice('1500');
   });
 
   afterEach(() => {
@@ -264,7 +235,7 @@ describe('handleLiquidation', () => {
   });
 
   test('it creates a new LiquidationState entity when there is none', () => {
-    const event = setupMocks();
+    const event = setupLiquityMocks();
     const liquidationEvent = createLiquidationEvent(event);
     handleLiquidation(liquidationEvent);
 
@@ -284,7 +255,7 @@ describe('handleLiquidation', () => {
     liquidationState.lastBlock = BigInt.fromString('100');
     liquidationState.save();
 
-    const event = setupMocks();
+    const event = setupLiquityMocks();
     const liquidationEvent = createLiquidationEvent(event);
     handleLiquidation(liquidationEvent);
 
@@ -303,7 +274,7 @@ describe('handleLiquidation', () => {
     vault!.strategy = null;
     vault!.save();
 
-    const event = setupMocks();
+    const event = setupLiquityMocks();
     const liquidationEvent = createLiquidationEvent(event);
     handleLiquidation(liquidationEvent);
 
@@ -317,7 +288,7 @@ describe('handleLiquidation', () => {
   test("it doesn't run when there is no vault", () => {
     store.remove('Vault', '0');
 
-    const event = setupMocks();
+    const event = setupLiquityMocks();
     const liquidationEvent = createLiquidationEvent(event);
     handleLiquidation(liquidationEvent);
 
@@ -329,7 +300,7 @@ describe('handleLiquidation', () => {
   });
 
   test('it creates a new Liquidation entity', () => {
-    const event = setupMocks();
+    const event = setupLiquityMocks();
     const liquidationEvent = createLiquidationEvent(event);
 
     handleLiquidation(liquidationEvent);
@@ -378,24 +349,6 @@ describe('handleLiquidation', () => {
     assert.fieldEquals('Liquidation', liquidationId, 'highestPrice', '0');
   });
 });
-
-function setupMocks(): ethereum.Event {
-  let event = newMockEvent();
-
-  createMockedFunction(
-    event.address,
-    'stabilityPool',
-    'stabilityPool():(address)',
-  )
-    .withArgs([])
-    .returns([newValueAddress(STABILITY_POOL_ADDRESS)]);
-
-  createMockedFunction(event.address, 'priceFeed', 'priceFeed():(address)')
-    .withArgs([])
-    .returns([newValueAddress(PRICE_FEED_ADDRESS)]);
-
-  return event;
-}
 
 function createLiquidationEvent(event: ethereum.Event): LiquidationEvent {
   const liquidationEvent = new LiquidationEvent(
