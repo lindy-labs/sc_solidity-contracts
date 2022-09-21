@@ -40,17 +40,15 @@ const STABILITY_POOL_ADDRESS =
 const PRICE_FEED_ADDRESS =
   '0xE80B3caAd6d2DE80Ac76a41d5F0072E36D2519Ce'.toLowerCase();
 
+let mockedEvent: ethereum.Event;
+
 beforeEach(() => {
   clearStore();
+  mockedEvent = setupLiquityMocks();
 });
 
 test('trackHighestPrice updates the highestPrice and lastBlock', () => {
-  const mockETHGainWithdrawn = setupLiquityMocks();
-
-  // create vault
-  const vault = new Vault('0');
-  vault.strategy = Address.fromString(STRATEGY_ADDRESS);
-  vault.save();
+  createVault();
 
   const liquidationState = new LiquidationState('0');
   liquidationState.highestPrice = BigInt.fromString('0');
@@ -59,24 +57,19 @@ test('trackHighestPrice updates the highestPrice and lastBlock', () => {
 
   mockLastGoodPrice('1234');
 
-  trackHighestPrice(mockETHGainWithdrawn.block);
+  trackHighestPrice(mockedEvent.block);
 
   assert.fieldEquals('LiquidationState', '0', 'highestPrice', '1234');
   assert.fieldEquals(
     'LiquidationState',
     '0',
     'lastBlock',
-    mockETHGainWithdrawn.block.number.toString(),
+    mockedEvent.block.number.toString(),
   );
 });
 
 test('trackHighestPrice does not run if the new price is not higher', () => {
-  const mockETHGainWithdrawn = setupLiquityMocks();
-
-  // create vault
-  const vault = new Vault('0');
-  vault.strategy = Address.fromString(STRATEGY_ADDRESS);
-  vault.save();
+  createVault();
 
   const liquidationState = new LiquidationState('0');
   liquidationState.lastBlock = BigInt.fromI32(0);
@@ -86,19 +79,14 @@ test('trackHighestPrice does not run if the new price is not higher', () => {
 
   mockLastGoodPrice('1234');
 
-  trackHighestPrice(mockETHGainWithdrawn.block);
+  trackHighestPrice(mockedEvent.block);
 
   assert.fieldEquals('LiquidationState', '0', 'highestPrice', '1235');
   assert.fieldEquals('LiquidationState', '0', 'lastBlock', '0');
 });
 
 test('trackHighestPrice does not run if the block is not 50 blocks after the previous one', () => {
-  const mockETHGainWithdrawn = setupLiquityMocks();
-
-  // create vault
-  const vault = new Vault('0');
-  vault.strategy = Address.fromString(STRATEGY_ADDRESS);
-  vault.save();
+  createVault();
 
   const liquidationState = new LiquidationState('0');
   liquidationState.lastBlock = BigInt.fromI32(50);
@@ -108,23 +96,18 @@ test('trackHighestPrice does not run if the block is not 50 blocks after the pre
 
   mockLastGoodPrice('1234');
 
-  mockETHGainWithdrawn.block.number = BigInt.fromI32(51);
+  mockedEvent.block.number = BigInt.fromI32(51);
 
-  trackHighestPrice(mockETHGainWithdrawn.block);
+  trackHighestPrice(mockedEvent.block);
 
   assert.fieldEquals('LiquidationState', '0', 'highestPrice', '0');
   assert.fieldEquals('LiquidationState', '0', 'lastBlock', '50');
 });
 
 test("handleETHGainWithdrawn doesn't run if the strategy is not set", () => {
-  const mockETHGainWithdrawn = setupLiquityMocks();
+  createVaultWithoutStrategy();
 
-  // create vault
-  const vault = new Vault('0');
-  vault.save();
-
-  const ethGainWithdrawnEvent =
-    createETHGainWithdrawnEvent(mockETHGainWithdrawn);
+  const ethGainWithdrawnEvent = createETHGainWithdrawnEvent(mockedEvent);
 
   ethGainWithdrawnEvent.parameters = new Array();
   ethGainWithdrawnEvent.parameters.push(
@@ -139,12 +122,7 @@ test("handleETHGainWithdrawn doesn't run if the strategy is not set", () => {
 });
 
 test("handleETHGainWithdrawn doesn't run if the _depositor is not the strategy", () => {
-  const mockETHGainWithdrawn = setupLiquityMocks();
-
-  // create vault
-  const vault = new Vault('0');
-  vault.strategy = Address.fromString(STRATEGY_ADDRESS);
-  vault.save();
+  createVault();
 
   const liquidationState = new LiquidationState('0');
   liquidationState.highestPrice = BigInt.fromString('1000000000000000000');
@@ -157,8 +135,7 @@ test("handleETHGainWithdrawn doesn't run if the _depositor is not the strategy",
     '1000000000000000000',
   );
 
-  const ethGainWithdrawnEvent =
-    createETHGainWithdrawnEvent(mockETHGainWithdrawn);
+  const ethGainWithdrawnEvent = createETHGainWithdrawnEvent(mockedEvent);
 
   ethGainWithdrawnEvent.parameters = new Array();
   ethGainWithdrawnEvent.parameters.push(
@@ -178,12 +155,7 @@ test("handleETHGainWithdrawn doesn't run if the _depositor is not the strategy",
 });
 
 test('handleETHGainWithdrawn sets the highest price to 0', () => {
-  const mockETHGainWithdrawn = setupLiquityMocks();
-
-  // create vault
-  const vault = new Vault('0');
-  vault.strategy = Address.fromString(STRATEGY_ADDRESS);
-  vault.save();
+  createVault();
 
   const liquidationState = new LiquidationState('0');
   liquidationState.highestPrice = BigInt.fromString('1000000000000000000');
@@ -196,16 +168,7 @@ test('handleETHGainWithdrawn sets the highest price to 0', () => {
     '1000000000000000000',
   );
 
-  const ethGainWithdrawnEvent = new ETHGainWithdrawn(
-    mockETHGainWithdrawn.address,
-    mockETHGainWithdrawn.logIndex,
-    mockETHGainWithdrawn.transactionLogIndex,
-    mockETHGainWithdrawn.logType,
-    mockETHGainWithdrawn.block,
-    mockETHGainWithdrawn.transaction,
-    mockETHGainWithdrawn.parameters,
-    null,
-  );
+  const ethGainWithdrawnEvent = createETHGainWithdrawnEvent(mockedEvent);
 
   ethGainWithdrawnEvent.parameters = new Array();
   ethGainWithdrawnEvent.parameters.push(
@@ -228,8 +191,8 @@ describe('handleLiquidation', () => {
 
   test('creates a new LiquidationState entity when there is none', () => {
     createVault();
-    const event = setupLiquityMocks();
-    const liquidationEvent = createLiquidationEvent(event);
+    const liquidationEvent = createLiquidationEvent(mockedEvent);
+
     handleLiquidation(liquidationEvent);
 
     assert.fieldEquals('LiquidationState', '0', 'highestPrice', '0');
@@ -248,9 +211,8 @@ describe('handleLiquidation', () => {
     liquidationState.highestPrice = BigInt.fromString('10');
     liquidationState.lastBlock = BigInt.fromString('100');
     liquidationState.save();
+    const liquidationEvent = createLiquidationEvent(mockedEvent);
 
-    const event = setupLiquityMocks();
-    const liquidationEvent = createLiquidationEvent(event);
     handleLiquidation(liquidationEvent);
 
     assert.fieldEquals('LiquidationState', '0', 'highestPrice', '10');
@@ -265,24 +227,28 @@ describe('handleLiquidation', () => {
 
   test("doesn't run when strategy isn't set", () => {
     createVaultWithoutStrategy();
-    const event = setupLiquityMocks();
-    const liquidationEvent = createLiquidationEvent(event);
+    const liquidationEvent = createLiquidationEvent(mockedEvent);
+
     handleLiquidation(liquidationEvent);
 
     const liquidationId =
-      event.transaction.hash.toHexString() + '-' + event.logIndex.toString();
+      mockedEvent.transaction.hash.toHexString() +
+      '-' +
+      mockedEvent.logIndex.toString();
 
     assert.notInStore('LiquidationState', '0');
     assert.notInStore('Liquidation', liquidationId);
   });
 
   test("doesn't run when there is no vault", () => {
-    const event = setupLiquityMocks();
-    const liquidationEvent = createLiquidationEvent(event);
+    const liquidationEvent = createLiquidationEvent(mockedEvent);
+
     handleLiquidation(liquidationEvent);
 
     const liquidationId =
-      event.transaction.hash.toHexString() + '-' + event.logIndex.toString();
+      mockedEvent.transaction.hash.toHexString() +
+      '-' +
+      mockedEvent.logIndex.toString();
 
     assert.notInStore('LiquidationState', '0');
     assert.notInStore('Liquidation', liquidationId);
@@ -290,25 +256,26 @@ describe('handleLiquidation', () => {
 
   test('creates a new Liquidation entity', () => {
     createVault();
-    const event = setupLiquityMocks();
-    const liquidationEvent = createLiquidationEvent(event);
+    const liquidationEvent = createLiquidationEvent(mockedEvent);
 
     handleLiquidation(liquidationEvent);
 
     const liquidationId =
-      event.transaction.hash.toHexString() + '-' + event.logIndex.toString();
+      mockedEvent.transaction.hash.toHexString() +
+      '-' +
+      mockedEvent.logIndex.toString();
 
     assert.fieldEquals(
       'Liquidation',
       liquidationId,
       'timestamp',
-      event.block.timestamp.toString(),
+      mockedEvent.block.timestamp.toString(),
     );
     assert.fieldEquals(
       'Liquidation',
       liquidationId,
       'txHash',
-      event.transaction.hash.toHexString(),
+      mockedEvent.transaction.hash.toHexString(),
     );
     assert.fieldEquals(
       'Liquidation',
