@@ -220,12 +220,15 @@ describe('handleLiquidation', () => {
   beforeEach(() => {
     clearStore();
 
-    // create vault
-    const vault = new Vault('0');
-    vault.strategy = Address.fromString(STRATEGY_ADDRESS);
-    vault.save();
-
     mockGetDepositorETHGain('2000');
+    
+    createMockedFunction(
+      Address.fromString(STABILITY_POOL_ADDRESS),
+      'getDepositorETHGain',
+      'getDepositorETHGain(address):(uint256)',
+    )
+      .withArgs([newValueAddress(STRATEGY_ADDRESS)])
+      .returns([newValueI32FromBigInt('2000')]);
 
     mockLastGoodPrice('1500');
   });
@@ -235,6 +238,7 @@ describe('handleLiquidation', () => {
   });
 
   test('it creates a new LiquidationState entity when there is none', () => {
+    createVault();
     const event = setupLiquityMocks();
     const liquidationEvent = createLiquidationEvent(event);
     handleLiquidation(liquidationEvent);
@@ -250,6 +254,7 @@ describe('handleLiquidation', () => {
   });
 
   test('it loads the existing LiquidationState entity when one exists', () => {
+    createVault();
     let liquidationState = new LiquidationState('0');
     liquidationState.highestPrice = BigInt.fromString('10');
     liquidationState.lastBlock = BigInt.fromString('100');
@@ -270,10 +275,7 @@ describe('handleLiquidation', () => {
   });
 
   test("it doesn't run when strategy isn't set", () => {
-    const vault = Vault.load('0');
-    vault!.strategy = null;
-    vault!.save();
-
+    createVaultWithoutStrategy();
     const event = setupLiquityMocks();
     const liquidationEvent = createLiquidationEvent(event);
     handleLiquidation(liquidationEvent);
@@ -286,8 +288,6 @@ describe('handleLiquidation', () => {
   });
 
   test("it doesn't run when there is no vault", () => {
-    store.remove('Vault', '0');
-
     const event = setupLiquityMocks();
     const liquidationEvent = createLiquidationEvent(event);
     handleLiquidation(liquidationEvent);
@@ -300,6 +300,7 @@ describe('handleLiquidation', () => {
   });
 
   test('it creates a new Liquidation entity', () => {
+    createVault();
     const event = setupLiquityMocks();
     const liquidationEvent = createLiquidationEvent(event);
 
@@ -382,4 +383,15 @@ function createETHGainWithdrawnEvent(event: ethereum.Event): ETHGainWithdrawn {
     event.parameters,
     null,
   );
+}
+
+function createVault(): void {
+  const vault = new Vault('0');
+  vault.strategy = Address.fromString(STRATEGY_ADDRESS);
+  vault.save();
+}
+
+function createVaultWithoutStrategy(): void {
+  const vault = new Vault('0');
+  vault.save();
 }
