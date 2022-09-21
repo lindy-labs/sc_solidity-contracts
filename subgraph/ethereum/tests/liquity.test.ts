@@ -196,7 +196,9 @@ describe('handleLiquidation', () => {
     liquidationEvent.parameters.push(newParamI32('liquidatedDebt', 200000));
     liquidationEvent.parameters.push(newParamI32('liquidatedCollateral', 1000));
     liquidationEvent.parameters.push(newParamI32('collGasCompensation', 5));
-    liquidationEvent.parameters.push(newParamI32('tokenGasCompensation', 200000));
+    liquidationEvent.parameters.push(
+      newParamI32('tokenGasCompensation', 200000),
+    );
 
     handleLiquidation(liquidationEvent);
 
@@ -221,7 +223,9 @@ describe('handleLiquidation', () => {
     liquidationEvent.parameters.push(newParamI32('liquidatedDebt', 200000));
     liquidationEvent.parameters.push(newParamI32('liquidatedCollateral', 1000));
     liquidationEvent.parameters.push(newParamI32('collGasCompensation', 5));
-    liquidationEvent.parameters.push(newParamI32('tokenGasCompensation', 200000));
+    liquidationEvent.parameters.push(
+      newParamI32('tokenGasCompensation', 200000),
+    );
 
     handleLiquidation(liquidationEvent);
 
@@ -242,7 +246,9 @@ describe('handleLiquidation', () => {
     liquidationEvent.parameters.push(newParamI32('liquidatedDebt', 200000));
     liquidationEvent.parameters.push(newParamI32('liquidatedCollateral', 1000));
     liquidationEvent.parameters.push(newParamI32('collGasCompensation', 5));
-    liquidationEvent.parameters.push(newParamI32('tokenGasCompensation', 200000));
+    liquidationEvent.parameters.push(
+      newParamI32('tokenGasCompensation', 200000),
+    );
 
     handleLiquidation(liquidationEvent);
 
@@ -261,7 +267,9 @@ describe('handleLiquidation', () => {
     liquidationEvent.parameters.push(newParamI32('liquidatedDebt', 200000));
     liquidationEvent.parameters.push(newParamI32('liquidatedCollateral', 1000));
     liquidationEvent.parameters.push(newParamI32('collGasCompensation', 5));
-    liquidationEvent.parameters.push(newParamI32('tokenGasCompensation', 200000));
+    liquidationEvent.parameters.push(
+      newParamI32('tokenGasCompensation', 200000),
+    );
 
     handleLiquidation(liquidationEvent);
 
@@ -281,7 +289,9 @@ describe('handleLiquidation', () => {
     liquidationEvent.parameters.push(newParamI32('liquidatedDebt', 200000));
     liquidationEvent.parameters.push(newParamI32('liquidatedCollateral', 1000));
     liquidationEvent.parameters.push(newParamI32('collGasCompensation', 5));
-    liquidationEvent.parameters.push(newParamI32('tokenGasCompensation', 200000));
+    liquidationEvent.parameters.push(
+      newParamI32('tokenGasCompensation', 200000),
+    );
 
     handleLiquidation(liquidationEvent);
 
@@ -333,7 +343,7 @@ describe('handleLiquidation', () => {
 });
 
 function createLiquidationEvent(event: ethereum.Event): LiquidationEvent {
-  const liquidationEvent = new LiquidationEvent(
+  return new LiquidationEvent(
     event.address,
     event.logIndex,
     event.transactionLogIndex,
