@@ -192,6 +192,11 @@ describe('handleLiquidation', () => {
   test('creates a new LiquidationState entity when there is none', () => {
     createVault();
     const liquidationEvent = createLiquidationEvent(mockedEvent);
+    liquidationEvent.parameters = new Array();
+    liquidationEvent.parameters.push(newParamI32('liquidatedDebt', 200000));
+    liquidationEvent.parameters.push(newParamI32('liquidatedCollateral', 1000));
+    liquidationEvent.parameters.push(newParamI32('collGasCompensation', 5));
+    liquidationEvent.parameters.push(newParamI32('tokenGasCompensation', 200000));
 
     handleLiquidation(liquidationEvent);
 
@@ -212,6 +217,11 @@ describe('handleLiquidation', () => {
     liquidationState.lastBlock = BigInt.fromString('100');
     liquidationState.save();
     const liquidationEvent = createLiquidationEvent(mockedEvent);
+    liquidationEvent.parameters = new Array();
+    liquidationEvent.parameters.push(newParamI32('liquidatedDebt', 200000));
+    liquidationEvent.parameters.push(newParamI32('liquidatedCollateral', 1000));
+    liquidationEvent.parameters.push(newParamI32('collGasCompensation', 5));
+    liquidationEvent.parameters.push(newParamI32('tokenGasCompensation', 200000));
 
     handleLiquidation(liquidationEvent);
 
@@ -228,6 +238,11 @@ describe('handleLiquidation', () => {
   test("doesn't run when strategy isn't set", () => {
     createVaultWithoutStrategy();
     const liquidationEvent = createLiquidationEvent(mockedEvent);
+    liquidationEvent.parameters = new Array();
+    liquidationEvent.parameters.push(newParamI32('liquidatedDebt', 200000));
+    liquidationEvent.parameters.push(newParamI32('liquidatedCollateral', 1000));
+    liquidationEvent.parameters.push(newParamI32('collGasCompensation', 5));
+    liquidationEvent.parameters.push(newParamI32('tokenGasCompensation', 200000));
 
     handleLiquidation(liquidationEvent);
 
@@ -242,6 +257,11 @@ describe('handleLiquidation', () => {
 
   test("doesn't run when there is no vault", () => {
     const liquidationEvent = createLiquidationEvent(mockedEvent);
+    liquidationEvent.parameters = new Array();
+    liquidationEvent.parameters.push(newParamI32('liquidatedDebt', 200000));
+    liquidationEvent.parameters.push(newParamI32('liquidatedCollateral', 1000));
+    liquidationEvent.parameters.push(newParamI32('collGasCompensation', 5));
+    liquidationEvent.parameters.push(newParamI32('tokenGasCompensation', 200000));
 
     handleLiquidation(liquidationEvent);
 
@@ -257,6 +277,11 @@ describe('handleLiquidation', () => {
   test('creates a new Liquidation entity', () => {
     createVault();
     const liquidationEvent = createLiquidationEvent(mockedEvent);
+    liquidationEvent.parameters = new Array();
+    liquidationEvent.parameters.push(newParamI32('liquidatedDebt', 200000));
+    liquidationEvent.parameters.push(newParamI32('liquidatedCollateral', 1000));
+    liquidationEvent.parameters.push(newParamI32('collGasCompensation', 5));
+    liquidationEvent.parameters.push(newParamI32('tokenGasCompensation', 200000));
 
     handleLiquidation(liquidationEvent);
 
@@ -318,14 +343,6 @@ function createLiquidationEvent(event: ethereum.Event): LiquidationEvent {
     event.parameters,
     null,
   );
-
-  liquidationEvent.parameters = new Array();
-  liquidationEvent.parameters.push(newParamI32('liquidatedDebt', 200000));
-  liquidationEvent.parameters.push(newParamI32('liquidatedCollateral', 1000));
-  liquidationEvent.parameters.push(newParamI32('collGasCompensation', 5));
-  liquidationEvent.parameters.push(newParamI32('tokenGasCompensation', 200000));
-
-  return liquidationEvent;
 }
 
 function createETHGainWithdrawnEvent(event: ethereum.Event): ETHGainWithdrawn {
