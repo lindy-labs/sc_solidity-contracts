@@ -586,6 +586,62 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
 
       expect(await strategy.investedAssets()).to.eq(EXPECTED_INVESTED_ASSETS);
       expect(await lusd.balanceOf(vault.address)).to.eq(amountToWithdraw);
+    });
+  });
+
+  describe('#investedAssets', () => {
+    it('investedAssets must count the ETH in the strategy and the unclaimed ETH in the stability pool contract too', async () => {
+      const troveManagerAddress = await lqtyStabilityPool.troveManager();
+      await ForkHelpers.impersonate([troveManagerAddress]);
+      const troveManager = await ethers.getSigner(troveManagerAddress);
+
+      await ForkHelpers.mintToken(lusd, strategy.address, parseUnits('10000'));
+      await strategy.invest();
+
+      // LQTY issuance (rewards) is time dependent, so we need to advance time here
+      await moveForwardTwoWeeks();
+
+      // call offset to generate rewards for liquidity providers
+      const lusdDebtToOffset = parseUnits('10000');
+      const ethCollateralToAdd = parseUnits('10');
+      ForkHelpers.setBalance(troveManager.address, ethCollateralToAdd);
+
+      await lqtyStabilityPool
+        .connect(troveManager)
+        .offset(lusdDebtToOffset, ethCollateralToAdd);
+
+      expect(
+        await lqtyStabilityPool.getDepositorLQTYGain(strategy.address),
+      ).to.eq(EXPECTED_LQTY_REWARD);
+      expect(
+        await lqtyStabilityPool.getDepositorETHGain(strategy.address),
+      ).to.eq(EXPECTED_ETH_REWARD);
+
+      expect(await lusd.balanceOf(strategy.address)).to.eq('0');
+      expect(await lqty.balanceOf(strategy.address)).to.eq('0');
+      expect(await ethers.provider.getBalance(strategy.address)).to.eq('0');
+
+      let EXPECTED_INVESTED_ASSETS = BigNumber.from('10000736699812217881367');
+
+      // check that the investedAssets method is calculating the unclaimed ETH too
+      expect(await strategy.investedAssets()).to.eq(EXPECTED_INVESTED_ASSETS);
+
+      // this will also claim the rewards from the stability pool
+      const amountToWithdraw = parseUnits('5000');
+      await strategy.connect(admin).withdrawToVault(amountToWithdraw);
+
+      EXPECTED_INVESTED_ASSETS = EXPECTED_INVESTED_ASSETS.sub(amountToWithdraw);
+
+      expect(await lusd.balanceOf(strategy.address)).to.eq('0');
+      expect(await lqty.balanceOf(strategy.address)).to.eq(
+        EXPECTED_LQTY_REWARD,
+      );
+      expect(await ethers.provider.getBalance(strategy.address)).to.eq(
+        EXPECTED_ETH_REWARD,
+      );
+
+      expect(await strategy.investedAssets()).to.eq(EXPECTED_INVESTED_ASSETS);
+      expect(await lusd.balanceOf(vault.address)).to.eq(amountToWithdraw);
 
       //////////////////////////////////////////////////////////////////////////
 
