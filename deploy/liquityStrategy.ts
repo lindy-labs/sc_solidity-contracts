@@ -49,10 +49,17 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   }
 
   if (getNetworkName() !== 'mainnet') {
+    const mockLiquityPriceFeedDeployment = await deploy('LiquityPriceFeed', {
+      contract: 'MockLiquityPriceFeed',
+      from: deployer,
+      log: true,
+      args: [],
+    });
+
     await deploy('LiquityStabilityPool', {
       contract: 'MockStabilityPool',
       from: deployer,
-      args: [LUSDDeployment.address],
+      args: [LUSDDeployment.address, mockLiquityPriceFeedDeployment.address],
       log: true,
     });
   }

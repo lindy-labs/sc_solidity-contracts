@@ -12,15 +12,10 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
   // Deploy and gather needed mock contracts
 
-  const mockLiquityPriceFeedDeployment = await deploy('LiquityPriceFeed', {
-    contract: 'MockLiquityPriceFeed',
-    from: deployer,
-    log: true,
-    args: [],
-  });
+  const liquityPriceFeedDeployment = await get('LiquityPriceFeed');
   const liquityPriceFeed = await ethers.getContractAt(
     'MockLiquityPriceFeed',
-    mockLiquityPriceFeedDeployment.address,
+    liquityPriceFeedDeployment.address,
   );
 
   await liquityPriceFeed.setPrice(parseUnits('1700', 18));
@@ -37,7 +32,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     log: true,
     args: [
       stabilityPoolDeployment.address,
-      mockLiquityPriceFeedDeployment.address,
+      liquityPriceFeed.address,
     ],
   });
   const troveManager = await ethers.getContractAt(

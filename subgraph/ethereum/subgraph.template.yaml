@@ -29,6 +29,8 @@ dataSources:
         - name: IVaultSettings
           file: ./abis/contracts/vault/IVaultSettings.sol/IVaultSettings.json
       eventHandlers:
+        - event: StrategyUpdated(indexed address)
+          handler: handleStrategyUpdated
         - event: DepositMinted(indexed uint256,uint256,uint256,uint256,indexed address,indexed address,address,uint64,bytes,string)
           handler: handleDepositMinted
         - event: DepositWithdrawn(indexed uint256,uint256,uint256,indexed address,bool)
