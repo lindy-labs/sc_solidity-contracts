@@ -49,6 +49,6 @@ services:
       dockerfile: docker/hardhat.Dockerfile
     restart: unless-stopped
     environment:
-      MNEMONIC: '${MNEMONIC:-"core tornado motion pigeon kiss dish differ asthma much ritual black foil"}'
+      TESTNET_MNEMONIC: "${TESTNET_MNEMONIC}"
     ports:
       - "8545:8545"

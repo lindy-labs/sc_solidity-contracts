@@ -11,10 +11,6 @@ task('accounts', 'Prints the list of accounts', async (taskArgs, hre) => {
   }
 });
 
-const devMnemonic =
-  process.env.MNEMONIC ||
-  'core tornado motion pigeon kiss dish differ asthma much ritual black foil';
-
 // You need to export an object to set up your config
 // Go to https://hardhat.org/config/ to learn more
 
@@ -26,7 +22,7 @@ module.exports = {
   networks: {
     hardhat: {
       accounts: {
-        mnemonic: devMnemonic,
+        mnemonic: process.env.TESTNET_MNEMONIC,
         accountsBalance: '100000000000000000000000000',
       },
       initialBaseFeePerGas: 0,

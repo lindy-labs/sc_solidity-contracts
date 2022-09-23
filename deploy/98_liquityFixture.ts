@@ -3,7 +3,7 @@ import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { ethers } from 'hardhat';
 import { BigNumber } from 'ethers';
 import { includes } from 'lodash';
-import { parseUnits } from 'ethers/lib/utils';
+import { parseEther, parseUnits } from 'ethers/lib/utils';
 
 const func = async function (env: HardhatRuntimeEnvironment) {
   const [owner, _alice, _bob] = await ethers.getSigners();
@@ -12,15 +12,10 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
   // Deploy and gather needed mock contracts
 
-  const mockLiquityPriceFeedDeployment = await deploy('LiquityPriceFeed', {
-    contract: 'MockLiquityPriceFeed',
-    from: deployer,
-    log: true,
-    args: [],
-  });
+  const liquityPriceFeedDeployment = await get('LiquityPriceFeed');
   const liquityPriceFeed = await ethers.getContractAt(
     'MockLiquityPriceFeed',
-    mockLiquityPriceFeedDeployment.address,
+    liquityPriceFeedDeployment.address,
   );
 
   await liquityPriceFeed.setPrice(parseUnits('1700', 18));
@@ -35,10 +30,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     contract: 'MockTroveManager',
     from: deployer,
     log: true,
-    args: [
-      stabilityPoolDeployment.address,
-      mockLiquityPriceFeedDeployment.address,
-    ],
+    args: [stabilityPoolDeployment.address, liquityPriceFeed.address],
   });
   const troveManager = await ethers.getContractAt(
     'MockTroveManager',
@@ -65,6 +57,11 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
   await liquityPriceFeed.setPrice(parseUnits('1750', 18));
 
+  await owner.sendTransaction({
+    to: stabilityPool.address,
+    value: parseEther('0.1'),
+  });
+
   await troveManager.liquidation(
     BigNumber.from('2000000000000000000000'),
     BigNumber.from('1397404171184386761'),
@@ -72,9 +69,31 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     BigNumber.from('200000000000000000000'),
   );
 
+  // Move time forward 12 days
+  await ethers.provider.send('evm_increaseTime', [1.037e6]);
+  await ethers.provider.send('evm_mine', []);
+
   await liquityPriceFeed.setPrice(parseUnits('1800', 18));
 
   await stabilityPool.withdrawFromSP(0);
+
+  await troveManager.liquidation(
+    BigNumber.from('2000000000000000000000'),
+    BigNumber.from('1397404171184386761'),
+    BigNumber.from('7022131513489380'),
+    BigNumber.from('200000000000000000000'),
+  );
+
+  await owner.sendTransaction({
+    to: stabilityPool.address,
+    value: parseEther('0.8'),
+  });
+
+  // Move time forward 12 days
+  await ethers.provider.send('evm_increaseTime', [1.037e6]);
+  await ethers.provider.send('evm_mine', []);
+
+  await liquityPriceFeed.setPrice(parseUnits('1500', 18));
 
   await troveManager.liquidation(
     BigNumber.from('2000000000000000000000'),
