@@ -582,9 +582,9 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
         EXPECTED_ETH_REWARD,
       );
 
-      const EXPECTED_INVESTED_ASSETS = BigNumber.from('5000736699812217881367');
+      const expectedInvestedAssets = BigNumber.from('5000736699812217881367');
 
-      expect(await strategy.investedAssets()).to.eq(EXPECTED_INVESTED_ASSETS);
+      expect(await strategy.investedAssets()).to.eq(expectedInvestedAssets);
       expect(await lusd.balanceOf(vault.address)).to.eq(amountToWithdraw);
     });
   });
@@ -621,16 +621,16 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       expect(await lqty.balanceOf(strategy.address)).to.eq('0');
       expect(await ethers.provider.getBalance(strategy.address)).to.eq('0');
 
-      let EXPECTED_INVESTED_ASSETS = BigNumber.from('10000736699812217881367');
+      let expectedInvestedAssets = BigNumber.from('10000736699812217881367');
 
       // check that the investedAssets method is calculating the unclaimed ETH too
-      expect(await strategy.investedAssets()).to.eq(EXPECTED_INVESTED_ASSETS);
+      expect(await strategy.investedAssets()).to.eq(expectedInvestedAssets);
 
       // this will also claim the rewards from the stability pool
       const amountToWithdraw = parseUnits('5000');
       await strategy.connect(admin).withdrawToVault(amountToWithdraw);
 
-      EXPECTED_INVESTED_ASSETS = EXPECTED_INVESTED_ASSETS.sub(amountToWithdraw);
+      expectedInvestedAssets = expectedInvestedAssets.sub(amountToWithdraw);
 
       expect(await lusd.balanceOf(strategy.address)).to.eq('0');
       expect(await lqty.balanceOf(strategy.address)).to.eq(
@@ -640,7 +640,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
         EXPECTED_ETH_REWARD,
       );
 
-      expect(await strategy.investedAssets()).to.eq(EXPECTED_INVESTED_ASSETS);
+      expect(await strategy.investedAssets()).to.eq(expectedInvestedAssets);
       expect(await lusd.balanceOf(vault.address)).to.eq(amountToWithdraw);
 
       //////////////////////////////////////////////////////////////////////////
@@ -666,7 +666,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       const actualInvestedAssets = await strategy.investedAssets();
 
       expect(removeDecimals(actualInvestedAssets)).to.equal(
-        removeDecimals(EXPECTED_INVESTED_ASSETS),
+        removeDecimals(expectedInvestedAssets),
       );
     });
   });
