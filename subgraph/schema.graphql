@@ -5,6 +5,7 @@ type Vault @entity {
   foundations: [Foundation!]! @derivedFrom(field: "vault")
   claimers: [Claimer!]! @derivedFrom(field: "vault")
   treasury: Bytes
+  strategy: Bytes
 }
 
 type Foundation @entity {
@@ -78,4 +79,12 @@ type Liquidation @entity {
   tokenGasCompensation: BigInt!
   strategyBalance: BigInt!
   ethPrice: BigInt!
+  highestPrice: BigInt!
+}
+
+type LiquidationState @entity {
+  id: ID!
+  highestPrice: BigInt!
+  priceFeed: Bytes
+  lastBlock: BigInt!
 }

@@ -10,11 +10,14 @@ contract MockStabilityPool is IStabilityPool {
     event StabilityPoolETHBalanceUpdated(uint _newBalance);
     event ETHGainWithdrawn(address indexed _depositor, uint _ETH, uint _LUSDLoss);
 
-    constructor(address _lusd) {
+    constructor(address _lusd, address _pricefeed) {
         lusd = IERC20(_lusd);
+        pricefeed = _pricefeed;
     }
 
     mapping(address => uint256) public balances;
+
+    address public pricefeed;
 
     function provideToSP(
         uint256 _amount,
@@ -37,13 +40,16 @@ contract MockStabilityPool is IStabilityPool {
 
         lusd.transfer(msg.sender, _amount);
 
-        emit ETHGainWithdrawn(msg.sender, 0.1 ether, 0);
+        uint256 ethBal = address(this).balance;
+
+        payable(msg.sender).transfer(ethBal);
+        emit ETHGainWithdrawn(msg.sender, ethBal, 0);
     }
 
     function getDepositorETHGain(
         address /* _depositor */
-    ) external pure returns (uint256) {
-        return 0.1 ether;
+    ) external view returns (uint256) {
+        return address(this).balance;
     }
 
     function getDepositorLQTYGain(
@@ -65,4 +71,6 @@ contract MockStabilityPool is IStabilityPool {
     function troveManager() public pure returns (address) {
         return address(0);
     }
+
+    receive() external payable {}
 }

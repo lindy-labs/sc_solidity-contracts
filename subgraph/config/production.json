@@ -21,12 +21,12 @@
   },
   "liquityPool": {
     "network": "mainnet",
-    "startBlock": 0,
+    "startBlock": 12178565,
     "address": "0x66017d22b0f8556afdd19fc67041899eb65a21bb"
   },
   "liquityPriceFeed": {
     "network": "mainnet",
-    "startBlock": 0,
+    "startBlock": 15000000,
     "address": "0x4c517d4e2c851ca76d7ec94b805269df0f2201de"
   }
 }
