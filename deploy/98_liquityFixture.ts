@@ -30,10 +30,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     contract: 'MockTroveManager',
     from: deployer,
     log: true,
-    args: [
-      stabilityPoolDeployment.address,
-      liquityPriceFeed.address,
-    ],
+    args: [stabilityPoolDeployment.address, liquityPriceFeed.address],
   });
   const troveManager = await ethers.getContractAt(
     'MockTroveManager',
@@ -57,8 +54,6 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   // Move time forward 12 days
   await ethers.provider.send('evm_increaseTime', [1.037e6]);
   await ethers.provider.send('evm_mine', []);
-  // await ethers.provider.send('evm_increaseBlocks', [50]);
-  // await ethers.provider.send('hardhat_mine', [parseInt('50', 16), parseInt('1.037e6', 16)]);
 
   await liquityPriceFeed.setPrice(parseUnits('1750', 18));
 
