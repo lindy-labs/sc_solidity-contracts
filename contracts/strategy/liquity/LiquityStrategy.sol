@@ -195,7 +195,9 @@ contract LiquityStrategy is
         override(IStrategy)
         returns (uint256)
     {
-        uint256 ethBalance = address(this).balance;
+        uint256 ethBalance = address(this).balance +
+            stabilityPool.getDepositorETHGain(address(this));
+
         // need to do this because the get_exchange_amount method reverts if ethBalance is zero
         if (ethBalance == 0) {
             return stabilityPool.getCompoundedLUSDDeposit(address(this));
