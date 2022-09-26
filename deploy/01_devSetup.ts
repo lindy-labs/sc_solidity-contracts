@@ -11,6 +11,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   ) {
     await deployDevToken(env, 'DAI', 'MockDAI');
     await deployDevToken(env, 'USDC', 'MockUSDC');
+    await deployDevToken(env, 'LQTY', 'MockLQTY');
   }
 
   await deployDevToken(env, 'LUSD', 'MockLUSD');
