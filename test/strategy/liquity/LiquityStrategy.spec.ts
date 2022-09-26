@@ -60,7 +60,10 @@ describe('LiquityStrategy', () => {
       'MockStabilityPool',
     );
 
-    stabilityPool = await StabilityPoolFactory.deploy(underlying.address);
+    stabilityPool = await StabilityPoolFactory.deploy(
+      underlying.address,
+      '0x0000000000000000000000000000000000000000',
+    );
 
     const VaultFactory = await ethers.getContractFactory('Vault');
 
