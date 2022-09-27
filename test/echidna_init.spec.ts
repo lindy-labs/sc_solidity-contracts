@@ -90,17 +90,17 @@ describe('LiquityStrategy', () => {
 
     // await strategyProxy.deployed();
 
-    strategy = LiquityStrategyFactory.attach(strategyProxy.address);
+    // strategy = LiquityStrategyFactory.attach(strategyProxy.address);
 
     // await strategy.connect(admin).grantRole(MANAGER_ROLE, manager.address);
-
-    // await vault.setStrategy(strategy.address);
 
     await underlying
       .connect(admin)
       .approve(vault.address, constants.MaxUint256);
 
-    console.log('Strategy deployed at', strategy.address);
+    await vault.setStrategy(strategyProxy.address);
+
+    console.log('Strategy deployed at', strategyProxy.address);
     console.log('Vault deployed at', vault.address);
     console.log('Underlying deployed at', underlying.address);
     console.log('LQTY deployed at', lqty.address);

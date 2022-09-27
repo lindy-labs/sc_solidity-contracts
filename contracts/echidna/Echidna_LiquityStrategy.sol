@@ -7,19 +7,10 @@ contract Echidna_LiquityStrategy is Helper {
     address constant SWAP_TARGET = 0xDef1C0ded9bec7F1a1670819833240f027b25EfF;
     uint256[] depositIds = [0];
 
-    // invest should revert when not manager
-    function invest_not_manager() public {
-        assert(address(vault.strategy()) == address(strategy));
-        // try strategy.invest() {
-        //     assert(false);
-        // } catch {
-        //     assert(true);
-        // }
-    }
-
-    // // harvest should revert if not manager
-    // function harvest_not_manager() public {
-    //     try strategy.harvest(SWAP_TARGET, [], []) {
+    // // invest should revert when not manager
+    // function invest_not_manager() public {
+    //     assert(address(vault.strategy()) == address(strategy));
+    //     try strategy.invest() {
     //         assert(false);
     //     } catch {
     //         assert(true);
@@ -28,44 +19,44 @@ contract Echidna_LiquityStrategy is Helper {
 
     // // reinvestRewards should revert if not manager
     // function reinvestRewards_not_manager() public {
-    //     try strategy.reinvestRewards(SWAP_TARGET, [], []) {
+    //     try strategy.reinvest(SWAP_TARGET, 0, "", 0, "", 0) {
     //         assert(false);
     //     } catch {
     //         assert(true);
     //     }
     // }
 
-    // // given some vault balance after running updateInvested approx
-    // // 90% should be moved to strategy.
-    // function updateInvested(uint256 amount) public {
-    //     Helper.mint_helper(
-    //         address(vault),
-    //         12 * 10**18 + Helper.one_to_max_uint64(amount)
-    //     );
-    //     uint256 balance_vault_before = vault.totalUnderlying();
-    //     emit Log("balance of vault before", balance_vault_before);
-    //     uint256 balance_strategy_before = underlying.balanceOf(
-    //         address(strategy)
-    //     );
-    //     emit Log("balance of strategy before", balance_strategy_before);
+    // given some vault balance after running updateInvested approx
+    // 90% should be moved to strategy.
+    function updateInvested(uint256 amount) public {
+        Helper.mint_helper(
+            address(vault),
+            12 * 10**18 + Helper.one_to_max_uint64(amount)
+        );
+        uint256 balance_vault_before = vault.totalUnderlying();
+        emit Log("balance of vault before", balance_vault_before);
+        uint256 balance_strategy_before = underlying.balanceOf(
+            address(strategy)
+        );
+        emit Log("balance of strategy before", balance_strategy_before);
 
-    //     emit Log("strategy.investedAssets()", strategy.investedAssets());
+        emit Log("strategy.investedAssets()", strategy.investedAssets());
 
-    //     try vault.updateInvested() {
-    //         assert(true);
-    //     } catch {
-    //         assert(false);
-    //     }
+        try vault.updateInvested() {
+            assert(true);
+        } catch {
+            assert(false);
+        }
 
-    //     uint256 balance_vault_after = underlying.balanceOf(address(vault));
-    //     emit Log("balance of vault after", balance_vault_after);
-    //     uint256 balance_strategy_after = underlying.balanceOf(
-    //         address(strategy)
-    //     );
-    //     emit Log("balance of strategy after", balance_strategy_after);
+        uint256 balance_vault_after = underlying.balanceOf(address(vault));
+        emit Log("balance of vault after", balance_vault_after);
+        uint256 balance_strategy_after = underlying.balanceOf(
+            address(strategy)
+        );
+        emit Log("balance of strategy after", balance_strategy_after);
 
-    //     assert(balance_vault_after * 8 < balance_strategy_after);
-    // }
+        assert(balance_vault_after * 8 < balance_strategy_after);
+    }
 
     // function rebalancing(uint256 amount, IVault.DepositParams memory _params)
     //     public
