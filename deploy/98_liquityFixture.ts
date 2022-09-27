@@ -40,6 +40,11 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   const vaultDeployment = await get('Vault_Liquity');
   const vault = await ethers.getContractAt('Vault', vaultDeployment.address);
 
+  const liquityStrategy = await ethers.getContractAt(
+    'LiquityStrategy',
+    await vault.strategy(),
+  );
+
   // Trigger events needed for backend development
 
   await vault.connect(owner).updateInvested();
@@ -75,7 +80,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
   await liquityPriceFeed.setPrice(parseUnits('1800', 18));
 
-  await stabilityPool.withdrawFromSP(0);
+  await liquityStrategy.harvest();
 
   await troveManager.liquidation(
     BigNumber.from('2000000000000000000000'),
