@@ -85,7 +85,7 @@ describe('Yearn Strategy (mainnet fork tests)', () => {
     lusd.connect(alice).approve(vault.address, MaxUint256);
   });
 
-  it('deposits underlying from our Vault to the Yearn Vault', async () => {
+  it.skip('deposits underlying from our Vault to the Yearn Vault', async () => {
     await ForkHelpers.mintToken(
       lusd,
       vault.address,
@@ -103,7 +103,7 @@ describe('Yearn Strategy (mainnet fork tests)', () => {
     );
   });
 
-  it('receives wrapped LUSD for the deposit to Yearn Vault', async () => {
+  it.skip('receives wrapped LUSD for the deposit to Yearn Vault', async () => {
     await ForkHelpers.mintToken(
       lusd,
       vault.address,
@@ -117,7 +117,7 @@ describe('Yearn Strategy (mainnet fork tests)', () => {
     expect(await wLusd.balanceOf(strategy.address)).not.to.eq(parseUnits('0'));
   });
 
-  it('withdraws underlying from Yearn Vault', async () => {
+  it.skip('withdraws underlying from Yearn Vault', async () => {
     await ForkHelpers.mintToken(
       lusd,
       alice.address,
@@ -152,7 +152,7 @@ describe('Yearn Strategy (mainnet fork tests)', () => {
     expect(aliceBalance).to.eq('999999999999999999999');
   });
 
-  it('allows user to claim yield when Yearn Vault performs', async () => {
+  it.skip('allows user to claim yield when Yearn Vault performs', async () => {
     await ForkHelpers.mintToken(
       lusd,
       alice,
@@ -186,7 +186,7 @@ describe('Yearn Strategy (mainnet fork tests)', () => {
     expect(aliceBalance).to.eq('1089999999999999999174');
   });
 
-  it('allows user to only do force withdrawal when Yearn Vault underperforms', async () => {
+  it.skip('allows user to only do force withdrawal when Yearn Vault underperforms', async () => {
     await ForkHelpers.mintToken(
       lusd,
       alice,

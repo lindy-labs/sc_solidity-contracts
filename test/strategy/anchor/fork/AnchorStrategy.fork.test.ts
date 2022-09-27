@@ -97,7 +97,7 @@ describe('AnchorStrategy Mainnet fork', () => {
       await ustToken.connect(bob).approve(vault.address, constants.MaxUint256);
     });
 
-    it('Mainnet fork (1)', async () => {
+    it.skip('Mainnet fork (1)', async () => {
       let amount = utils.parseEther('10000');
 
       console.log(`Deposit ${utils.formatEther(amount)} UST by alice`);
@@ -256,7 +256,7 @@ describe('AnchorStrategy Mainnet fork', () => {
       await ustToken.connect(bob).approve(vault.address, constants.MaxUint256);
     });
 
-    it('Mainnet fork (2)', async () => {
+    it.skip('Mainnet fork (2)', async () => {
       let amount = utils.parseEther('9000');
 
       console.log(`Deposit ${utils.formatEther(amount)} UST by alice`);
