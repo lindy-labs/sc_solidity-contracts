@@ -18,6 +18,7 @@ describe('LiquityStrategy', () => {
   let admin: SignerWithAddress;
   let alice: SignerWithAddress;
   let manager: SignerWithAddress;
+  let keeper: SignerWithAddress;
   let vault: Vault;
   let stabilityPool: MockStabilityPool;
   let strategy: LiquityStrategy;
@@ -35,7 +36,7 @@ describe('LiquityStrategy', () => {
   const MANAGER_ROLE = utils.keccak256(utils.toUtf8Bytes('MANAGER_ROLE'));
 
   it('Deployments', async () => {
-    [admin, alice, manager] = await ethers.getSigners();
+    [admin, alice, manager, keeper] = await ethers.getSigners();
 
     const MockERC20 = await ethers.getContractFactory('MockERC20');
 
@@ -52,7 +53,10 @@ describe('LiquityStrategy', () => {
       'MockStabilityPool',
     );
 
-    stabilityPool = await StabilityPoolFactory.deploy(underlying.address);
+    stabilityPool = await StabilityPoolFactory.deploy(
+      underlying.address,
+      '0x0000000000000000000000000000000000000000',
+    );
 
     const VaultFactory = await ethers.getContractFactory('Vault');
 
@@ -77,6 +81,7 @@ describe('LiquityStrategy', () => {
         stabilityPool.address,
         lqty.address,
         underlying.address,
+        keeper.address,
       ],
       {
         kind: 'uups',
@@ -85,7 +90,7 @@ describe('LiquityStrategy', () => {
 
     // await strategyProxy.deployed();
 
-    // strategy = LiquityStrategyFactory.attach(strategyProxy.address);
+    strategy = LiquityStrategyFactory.attach(strategyProxy.address);
 
     // await strategy.connect(admin).grantRole(MANAGER_ROLE, manager.address);
 
