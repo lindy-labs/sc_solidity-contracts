@@ -7,6 +7,8 @@ Solidity implementation of [Sandclock](https://sandclock.org)'s vaults, strategi
 
 Read the [contracts specification](./documentation/spec.md).
 
+Got a bug to report? Reach out to us at [engineering@sandclock.org](mailto:engineering@sandclock.org?subject=[URGENT]%20Bug%20Report).
+
 ## Build
 
 ### The Graph
