@@ -32,7 +32,7 @@ It was initially designed in order to incentivize giving, but it can fulfill oth
 
 3,235,547 were sold during Phase I
 
-500,000 were sold to a limited number of strategic partners (partnership incentive alignment and additional development services, 50% vested until TODO)
+500,000 were sold to a limited number of strategic partners (partnership incentive alignment and additional development services, 50% vested until October 23 2023)
 
 1,371,376 were sold during Phase II
 
