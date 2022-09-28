@@ -42,11 +42,10 @@ It was initially designed in order to incentivize giving, but it can fulfill oth
 
 56,087.5 were used for Liquidity Mining on SushiSwap
 
-xxxxx were used for Liquidity Mining on Olympus (TODO)
+168,500 were used for Liquidity Mining on Olympus
 
 470,583 were loaned to Wintermute for market making on Kucoin
 
 xxxxx were given to Kucoin for Marketing and Listing purposes
 
 20,000 have been used for grants (TODO get more accurate number)
-
