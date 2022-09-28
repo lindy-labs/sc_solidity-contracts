@@ -24,7 +24,7 @@ placeholder text
 
 ### Charity Mining: Permalocked Tokens
 
-A significant portion of QUARTZ shall remain locked in perpetuity. The purpose of this QUARTZ is to incentivize Giving or other actions on-chain without diluting existing holders. **It achieves this through a delegative function,** whereby a trusted backend can delegate voting power to an address on Polygon without transferring ownership of the tokens.
+At least 30% of QUARTZ shall remain locked in perpetuity. The purpose of this QUARTZ is to incentivize Giving or other actions on-chain without diluting existing holders. **It achieves this through a delegative function,** whereby a trusted backend can delegate voting power to an address on Polygon without transferring ownership of the tokens.
 
 It was initially designed in order to incentivize giving, but it can fulfill other objectives while preserving the value of QUARTZ.
 
