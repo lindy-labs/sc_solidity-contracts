@@ -8,19 +8,19 @@ The community will become responsible for spending of DAO QUARTZ upon deployment
 
 * Insurance
 
-placeholder text
+In the event of loss of funds, QUARTZ might be used to capitalize an insurance fund. Once in place, Quartz stakers will benefit from the coverage.
 
 * Liquidity Mining/Bonds
 
-placeholder text
+QUARTZ can be distributed to incentivize additional liquidity.
 
 * TVL Mining
 
-placeholder text
+QUARTZ can be distributed to increase the TVL of Sandclock's metavaults.
 
 * Ecosystem Development/Grants
 
-placeholder text
+QUARTZ can be granted to incentivize development of our growing ecosystem.
 
 ### Charity Mining: Permalocked Tokens
 
