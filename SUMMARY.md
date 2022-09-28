@@ -21,3 +21,4 @@
     * [Properties](specification/strategies/properties.md)
 * [Integration](integration.md)
 * [Security](security.md)
+* [Deployments](deployments.md)
