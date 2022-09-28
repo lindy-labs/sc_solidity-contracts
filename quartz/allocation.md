@@ -4,7 +4,7 @@
 
 <figure><img src="../.gitbook/assets/chart.svg" alt=""><figcaption><p>Team 20%, DAO 80%.</p></figcaption></figure>
 
-The community will become responsible for spending of DAO QUARTZ upon deployment of Snapshot and then, the DAO. Our recommendation for the allocation no longer contains hard values. Instead, we list relevant areas for efficient DAO spending:
+The community will become responsible for the spending of the DAO's QUARTZ upon deployment of Snapshot and then, the DAO. Our recommendation for the allocation no longer contains hard values. Instead, we list relevant areas for efficient DAO spending:
 
 * **Insurance**
 
