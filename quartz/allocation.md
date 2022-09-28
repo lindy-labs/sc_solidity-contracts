@@ -46,6 +46,8 @@ It was initially designed in order to incentivize giving, but it can fulfill oth
 
 470,583 were loaned to Wintermute for market making on Kucoin
 
+20,000 were given to Kucoin (plus an undisclosed amount of USDC) for listing purposes
+
 22,000 were given to Kucoin for their marketing campaign
 
 20,000 have been used for grants (TODO get more accurate number)
