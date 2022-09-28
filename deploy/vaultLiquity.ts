@@ -58,7 +58,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
     ],
   ];
 
-  const vaultDeployment = await deploy('Vault_LUSD', {
+  const vaultDeployment = await deploy('Vault_Liquity', {
     contract: 'Vault',
     from: deployer,
     log: true,
@@ -76,7 +76,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
     }
 
     await env.tenderly.persistArtifacts({
-      name: 'Vault_LUSD',
+      name: 'Vault_Liquity',
       address: vaultDeployment.address,
     });
   }
@@ -88,7 +88,7 @@ func.skip = async (env: HardhatRuntimeEnvironment) =>
     env.deployments.getNetworkName(),
   );
 
-func.tags = ['vault', 'lusd'];
+func.tags = ['vault', 'custom_liquity'];
 func.dependencies = ['dev'];
 
 export default func;

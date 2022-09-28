@@ -54,11 +54,11 @@ const config: HardhatUserConfig = {
         mnemonic: process.env.MAINNET_MNEMONIC || 'TODO',
       },
     },
-    ropsten: {
-      url: `https://ropsten.infura.io/v3/${
+    goerli: {
+      url: `https://goerli.infura.io/v3/${
         process.env.INFURA_KEY || 'missing-key'
       }`,
-      chainId: 3,
+      chainId: 5,
       accounts: {
         mnemonic: process.env.TESTNET_MNEMONIC || 'TODO',
       },
@@ -103,7 +103,7 @@ const config: HardhatUserConfig = {
   },
   etherscan: {
     apiKey: {
-      ropsten: process.env.ETHERSCAN_KEY || 'missing-key',
+      goerli: process.env.ETHERSCAN_KEY || 'missing-key',
       mainnet: process.env.ETHERSCAN_KEY || 'missing-key',
       polygon: process.env.POLYSCAN_KEY || 'missing-key',
       polygonMumbai: process.env.POLYSCAN_KEY || 'missing-key',

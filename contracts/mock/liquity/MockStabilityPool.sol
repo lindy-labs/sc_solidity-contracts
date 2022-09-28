@@ -7,11 +7,17 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 contract MockStabilityPool is IStabilityPool {
     IERC20 public immutable lusd;
 
-    constructor(address _lusd) {
+    event StabilityPoolETHBalanceUpdated(uint _newBalance);
+    event ETHGainWithdrawn(address indexed _depositor, uint _ETH, uint _LUSDLoss);
+
+    constructor(address _lusd, address _pricefeed) {
         lusd = IERC20(_lusd);
+        pricefeed = _pricefeed;
     }
 
     mapping(address => uint256) public balances;
+
+    address public pricefeed;
 
     function provideToSP(
         uint256 _amount,
@@ -33,12 +39,17 @@ contract MockStabilityPool is IStabilityPool {
         balances[msg.sender] -= _amount;
 
         lusd.transfer(msg.sender, _amount);
+
+        uint256 ethBal = address(this).balance;
+
+        payable(msg.sender).transfer(ethBal);
+        emit ETHGainWithdrawn(msg.sender, ethBal, 0);
     }
 
     function getDepositorETHGain(
         address /* _depositor */
-    ) external pure returns (uint256) {
-        return 0;
+    ) external view returns (uint256) {
+        return address(this).balance;
     }
 
     function getDepositorLQTYGain(
@@ -60,4 +71,6 @@ contract MockStabilityPool is IStabilityPool {
     function troveManager() public pure returns (address) {
         return address(0);
     }
+
+    receive() external payable {}
 }

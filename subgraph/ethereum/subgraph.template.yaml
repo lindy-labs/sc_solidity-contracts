@@ -29,15 +29,87 @@ dataSources:
         - name: IVaultSettings
           file: ./abis/contracts/vault/IVaultSettings.sol/IVaultSettings.json
       eventHandlers:
+        - event: StrategyUpdated(indexed address)
+          handler: handleStrategyUpdated
         - event: DepositMinted(indexed uint256,uint256,uint256,uint256,indexed address,indexed address,address,uint64,bytes,string)
           handler: handleDepositMinted
         - event: DepositWithdrawn(indexed uint256,uint256,uint256,indexed address,bool)
           handler: handleDepositWithdrawn
         - event: Sponsored(indexed uint256,uint256,indexed address,uint256)
           handler: handleSponsored
-        - event: Unsponsored(indexed uint256)
+        - event: Unsponsored(indexed uint256,uint256,indexed address,bool)
           handler: handleUnsponsored
         - event: YieldClaimed(address,indexed address,uint256,uint256,uint256,uint256,uint256)
           handler: handleYieldClaimed
         - event: TreasuryUpdated(indexed address)
           handler: handleTreasuryUpdated
+  - name: LiquityTrove
+    kind: ethereum/contract
+    {{#liquityTrove}}
+    network: {{network}}
+    source:
+      abi: LiquityTrove
+      address: "{{address}}"
+      startBlock: {{startBlock}}
+    {{/liquityTrove}}
+    mapping: &mapping
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      file: ./src/mappings/liquity.ts
+      entities:
+        - Liquidation
+        - LiquidationCounter
+      abis:
+        - name: LiquityTrove
+          file: ./external_abis/LiquityTrove.json
+        - name: StabilityPool
+          file: ./abis/contracts/mock/liquity/MockStabilityPool.sol/MockStabilityPool.json
+        - name: LiquityPriceFeed
+          file: ./abis/contracts/mock/liquity/MockLiquityPriceFeed.sol/MockLiquityPriceFeed.json
+      eventHandlers:
+        - event: Liquidation(uint256,uint256,uint256,uint256)
+          handler: handleLiquidation
+  - name: StabilityPool
+    kind: ethereum/contract
+    {{#liquityPool}}
+    network: {{network}}
+    source:
+      abi: StabilityPool
+      address: "{{address}}"
+      startBlock: {{startBlock}}
+    {{/liquityPool}}
+    mapping: &mapping
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      file: ./src/mappings/liquity.ts
+      entities:
+        - LiquidationCounter
+      abis:
+        - name: StabilityPool
+          file: ./abis/contracts/mock/liquity/MockStabilityPool.sol/MockStabilityPool.json
+      eventHandlers:
+        - event: ETHGainWithdrawn(indexed address,uint256,uint256)
+          handler: handleETHGainWithdrawn
+  - name: LiquityPriceFeed
+    kind: ethereum/contract
+    {{#liquityPriceFeed}}
+    network: {{network}}
+    source:
+      abi: LiquityPriceFeed
+      address: "{{address}}"
+      startBlock: {{startBlock}}
+    {{/liquityPriceFeed}}
+    mapping: &mapping
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      file: ./src/mappings/liquity.ts
+      entities:
+        - LiquidationCounter
+      abis:
+        - name: LiquityPriceFeed
+          file: ./abis/contracts/mock/liquity/MockLiquityPriceFeed.sol/MockLiquityPriceFeed.json
+      blockHandlers:
+        - handler: trackHighestPrice

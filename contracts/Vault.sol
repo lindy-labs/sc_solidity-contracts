@@ -50,7 +50,7 @@ contract Vault is
     //
 
     /// Role allowed to invest/desinvest from strategy
-    bytes32 public constant INVESTOR_ROLE = keccak256("INVESTOR_ROLE");
+    bytes32 public constant KEEPER_ROLE = keccak256("KEEPER_ROLE");
 
     /// Role allowed to change settings such as performance fee and investment fee
     bytes32 public constant SETTINGS_ROLE = keccak256("SETTINGS_ROLE");
@@ -154,7 +154,7 @@ contract Vault is
             revert VaultInvalidMinLockPeriod();
 
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
-        _grantRole(INVESTOR_ROLE, _admin);
+        _grantRole(KEEPER_ROLE, _admin);
         _grantRole(SETTINGS_ROLE, _admin);
         _grantRole(SPONSOR_ROLE, _admin);
 
@@ -188,9 +188,8 @@ contract Vault is
         _;
     }
 
-    modifier onlyInvestor() {
-        if (!hasRole(INVESTOR_ROLE, msg.sender))
-            revert VaultCallerNotInvestor();
+    modifier onlyKeeper() {
+        if (!hasRole(KEEPER_ROLE, msg.sender)) revert VaultCallerNotKeeper();
         _;
     }
 
@@ -213,12 +212,12 @@ contract Vault is
             revert VaultCannotTransferAdminRightsToSelf();
 
         _grantRole(DEFAULT_ADMIN_ROLE, _newAdmin);
-        _grantRole(INVESTOR_ROLE, _newAdmin);
+        _grantRole(KEEPER_ROLE, _newAdmin);
         _grantRole(SETTINGS_ROLE, _newAdmin);
         _grantRole(SPONSOR_ROLE, _newAdmin);
 
         _revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
-        _revokeRole(INVESTOR_ROLE, msg.sender);
+        _revokeRole(KEEPER_ROLE, msg.sender);
         _revokeRole(SETTINGS_ROLE, msg.sender);
         _revokeRole(SPONSOR_ROLE, msg.sender);
     }
@@ -250,11 +249,12 @@ contract Vault is
     {
         uint256 claimerPrincipal = claimer[_to].totalPrincipal;
         uint256 claimerShares = claimer[_to].totalShares;
+        uint256 _totalUnderlyingMinusSponsored = totalUnderlyingMinusSponsored();
 
         uint256 currentClaimerPrincipal = _computeAmount(
             claimerShares,
             totalShares,
-            totalUnderlyingMinusSponsored()
+            _totalUnderlyingMinusSponsored
         );
 
         if (currentClaimerPrincipal <= claimerPrincipal) {
@@ -266,12 +266,12 @@ contract Vault is
         shares = _computeShares(
             yieldWithPerfFee,
             totalShares,
-            totalUnderlyingMinusSponsored()
+            _totalUnderlyingMinusSponsored
         );
         uint256 sharesAmount = _computeAmount(
             shares,
             totalShares,
-            totalUnderlyingMinusSponsored()
+            _totalUnderlyingMinusSponsored
         );
 
         perfFee = sharesAmount.pctOf(perfFeePct);
@@ -432,7 +432,7 @@ contract Vault is
     }
 
     /// @inheritdoc IVault
-    function updateInvested() external override(IVault) onlyInvestor {
+    function updateInvested() external override(IVault) onlyKeeper {
         if (address(strategy) == address(0)) revert VaultStrategyNotSet();
 
         (uint256 maxInvestableAmount, uint256 alreadyInvested) = investState();
@@ -466,7 +466,7 @@ contract Vault is
     }
 
     /// @inheritdoc IVault
-    function withdrawPerformanceFee() external override(IVault) onlyInvestor {
+    function withdrawPerformanceFee() external override(IVault) onlyKeeper {
         uint256 _perfFee = accumulatedPerfFee;
         if (_perfFee == 0) revert VaultNoPerformanceFee();
 
@@ -688,8 +688,6 @@ contract Vault is
     /**
      * Withdraws the principal from the deposits with the ids provided in @param _ids and sends it to @param _to.
      *
-     * @notice the NFTs of the deposits will be burned.
-     *
      * @param _to Address that will receive the funds.
      * @param _ids Array with the ids of the deposits.
      * @param _force Boolean to specify if the action should be perfomed when there's loss.
@@ -780,8 +778,6 @@ contract Vault is
      * Withdraws the sponsored amount for the deposits with the ids provided
      * in @param _ids and sends it to @param _to.
      *
-     * @notice the NFTs of the deposits will be burned.
-     *
      * @param _to Address that will receive the funds.
      * @param _ids Array with the ids of the deposits.
      */
@@ -793,7 +789,7 @@ contract Vault is
             uint256 tokenId = _ids[i];
             uint256 amount = deposits[tokenId].amount;
 
-            _unsponsorSingle(tokenId, amount);
+            _unsponsorSingle(_to, tokenId, amount);
 
             sponsorAmount += amount;
         }
@@ -818,10 +814,10 @@ contract Vault is
         uint256 idsLen = _ids.length;
 
         for (uint8 i = 0; i < idsLen; ++i) {
-            uint256 tokenId = _ids[i];
+            uint256 depositId = _ids[i];
             uint256 amount = _amounts[i];
 
-            _unsponsorSingle(tokenId, amount);
+            _unsponsorSingle(_to, depositId, amount);
 
             sponsorAmount += amount;
         }
@@ -832,13 +828,16 @@ contract Vault is
     /**
      * Validates conditions for unsponsoring amount @param _amount of the deposit with the id @param _id.
      *
-     * @notice The NFTs of the deposit will be burned if the deposited amount is equal to the amount being withdrawn.
-     *
-     * @param _id Id of the deposit.
+     * @param _to Address that will receive the funds.
+     * @param _tokenId Id of the deposit.
      * @param _amount Amount to be unsponsored/withdrawn.
      */
-    function _unsponsorSingle(uint256 _id, uint256 _amount) internal {
-        Deposit memory _deposit = deposits[_id];
+    function _unsponsorSingle(
+        address _to,
+        uint256 _tokenId,
+        uint256 _amount
+    ) internal {
+        Deposit memory _deposit = deposits[_tokenId];
 
         if (_deposit.owner != msg.sender) revert VaultNotAllowed();
         if (_deposit.lockedUntil > block.timestamp) revert VaultAmountLocked();
@@ -846,14 +845,16 @@ contract Vault is
         if (_deposit.amount < _amount)
             revert VaultCannotWithdrawMoreThanAvailable();
 
-        if (_amount != _deposit.amount) {
-            deposits[_id].amount -= _amount;
+        bool isFull = _amount == _deposit.amount;
+
+        emit Unsponsored(_tokenId, _amount, _to, isFull);
+
+        if (!isFull) {
+            deposits[_tokenId].amount -= _amount;
             return;
         }
 
-        delete deposits[_id];
-
-        emit Unsponsored(_id);
+        delete deposits[_tokenId];
     }
 
     /**
@@ -1017,7 +1018,7 @@ contract Vault is
     }
 
     /**
-     * Burns a deposit NFT and reduces the principal and shares of the claimer.
+     * Reduces the principal and shares of the claimer.
      * If there were any yield to be claimed, the claimer will also keep shares to withdraw later on.
      *
      * @notice This function doesn't transfer any funds, it only updates the state.
@@ -1065,7 +1066,7 @@ contract Vault is
             _claim.totalPrincipal;
 
         if (!_force && amountShares > claimerShares)
-            revert VaultCannotWithdrawMoreThanAvailable();
+            revert VaultMustUseForceWithdrawToAcceptLosses();
 
         uint256 sharesToBurn = amountShares;
 

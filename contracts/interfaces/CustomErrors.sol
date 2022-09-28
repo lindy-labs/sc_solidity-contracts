@@ -18,7 +18,7 @@ interface CustomErrors {
     // Vault: no performance fee
     error VaultNoPerformanceFee();
 
-    // Vault: invalid investment fee
+    // Vault: invalid lossTolerance
     error VaultInvalidLossTolerance();
 
     // Vault: underlying cannot be 0x0
@@ -39,8 +39,8 @@ interface CustomErrors {
     // Vault: caller is not settings
     error VaultCallerNotSettings();
 
-    // Vault: caller is not investor
-    error VaultCallerNotInvestor();
+    // Vault: caller is not keeper
+    error VaultCallerNotKeeper();
 
     // Vault: caller is not sponsor
     error VaultCallerNotSponsor();
@@ -69,7 +69,7 @@ interface CustomErrors {
     // Vault: cannot deposit when the claimer is in debt
     error VaultCannotDepositWhenClaimerInDebt();
 
-    // Vault: cannot deposit when yield is negative
+    // Vault: cannot withdraw when yield is negative
     error VaultCannotWithdrawWhenYieldNegative();
 
     // Vault: nothing to do
@@ -116,6 +116,9 @@ interface CustomErrors {
 
     // Vault: cannot withdraw more than the available amount
     error VaultCannotWithdrawMoreThanAvailable();
+
+    // Vault: must force withdraw to withdraw with a loss
+    error VaultMustUseForceWithdrawToAcceptLosses();
 
     // Vault: amount received does not match params
     error VaultAmountDoesNotMatchParams();

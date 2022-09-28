@@ -4,7 +4,10 @@ import {
   DepositMinted,
   YieldClaimed,
 } from '../types/Vault/IVault';
-import { TreasuryUpdated } from '../types/Vault/IVaultSettings';
+import {
+  TreasuryUpdated,
+  StrategyUpdated,
+} from '../types/Vault/IVaultSettings';
 import { Sponsored, Unsponsored } from '../types/Vault/IVaultSponsoring';
 import {
   Sponsor,
@@ -14,13 +17,20 @@ import {
   Vault,
   Donation,
 } from '../types/schema';
+import { createVault } from './helpers';
+
+export function handleStrategyUpdated(event: StrategyUpdated): void {
+  const vault = createVault();
+
+  vault.strategy = event.params.strategy;
+  vault.save();
+}
 
 export function handleYieldClaimed(event: YieldClaimed): void {
   const claimerId = event.params.claimerId.toHexString();
   const claimer = Claimer.load(claimerId)!;
 
-  createVault(claimer.vault);
-  const vault = Vault.load(claimer.vault)!;
+  const vault = createVault();
 
   claimer.claimed = claimer.claimed.plus(event.params.amount);
   claimer.shares = claimer.shares.minus(event.params.burnedShares);
@@ -55,8 +65,9 @@ export function handleYieldClaimed(event: YieldClaimed): void {
     deposit.save();
 
     foundation.shares = foundation.shares.minus(depositClaimedShares);
-    foundation.amountClaimed =
-      foundation.amountClaimed.plus(depositClaimedAmount);
+    foundation.amountClaimed = foundation.amountClaimed.plus(
+      depositClaimedAmount,
+    );
     foundation.save();
 
     // If the claim is to the treasury, create a Donation
@@ -90,13 +101,12 @@ export function handleYieldClaimed(event: YieldClaimed): void {
 }
 
 export function handleDepositMinted(event: DepositMinted): void {
-  const vaultId = event.address.toHexString();
+  const vaultId = '0';
   const foundationId = vaultId + '-' + event.params.groupId.toString();
   const depositId = event.params.id.toString();
   const claimerId = event.params.claimerId.toHexString();
 
-  createVault(vaultId);
-  const vault = Vault.load(vaultId)!;
+  const vault = createVault();
   vault.totalShares = vault.totalShares.plus(event.params.shares);
   log.debug('mint, adding shares {}', [event.params.shares.toString()]);
 
@@ -152,10 +162,9 @@ export function handleDepositMinted(event: DepositMinted): void {
 }
 
 export function handleTreasuryUpdated(event: TreasuryUpdated): void {
-  const vaultId = event.address.toHexString();
+  const vaultId = '0';
 
-  createVault(vaultId);
-  const vault = Vault.load(vaultId)!;
+  const vault = createVault();
 
   vault.treasury = event.params.treasury;
 
@@ -170,8 +179,7 @@ export function handleDepositWithdrawn(event: DepositWithdrawn): void {
   const claimer = Claimer.load(deposit.claimer)!;
   const foundation = Foundation.load(deposit.foundation)!;
 
-  createVault(foundation.vault);
-  const vault = Vault.load(foundation.vault)!;
+  const vault = createVault();
 
   claimer.principal = claimer.principal.minus(deposit.amount);
   claimer.shares = claimer.shares.minus(event.params.shares);
@@ -202,15 +210,13 @@ export function handleDepositWithdrawn(event: DepositWithdrawn): void {
 }
 
 export function handleSponsored(event: Sponsored): void {
-  const vaultId = event.address.toHexString();
-
   const sponsor = new Sponsor(event.params.id.toString());
 
   sponsor.depositor = event.params.depositor;
   sponsor.amount = event.params.amount;
   sponsor.burned = false;
   sponsor.lockedUntil = event.params.lockedUntil;
-  sponsor.vault = vaultId;
+  sponsor.vault = '0';
   sponsor.save();
 }
 
@@ -218,16 +224,11 @@ export function handleUnsponsored(event: Unsponsored): void {
   const sponsorId = event.params.id.toString();
   const sponsor = Sponsor.load(sponsorId)!;
 
-  sponsor.burned = true;
-  sponsor.save();
-}
-
-function createVault(id: string): void {
-  let vault = Vault.load(id);
-
-  if (vault == null) {
-    vault = new Vault(id);
-    vault.totalShares = BigInt.fromString('0');
-    vault.save();
+  if (event.params.burned) {
+    sponsor.burned = true;
+  } else {
+    sponsor.amount = sponsor.amount.minus(event.params.amount);
   }
+
+  sponsor.save();
 }
