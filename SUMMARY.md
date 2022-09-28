@@ -20,3 +20,4 @@
   * [Strategies](specification/strategies/README.md)
     * [Properties](specification/strategies/properties.md)
 * [Integration](integration.md)
+* [Security](security.md)
