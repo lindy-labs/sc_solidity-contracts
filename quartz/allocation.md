@@ -4,23 +4,23 @@
 
 <figure><img src="../.gitbook/assets/chart.svg" alt=""><figcaption><p>Team 20%, DAO 80%.</p></figcaption></figure>
 
-The community will become responsible for spending of DAO QUARTZ upon deployment of Snapshot and then, the DAO. Our recommendation for the allocation no longer contains hard values. Instead, we list all the relevant areas for efficient DAO spending:
+The community will become responsible for spending of DAO QUARTZ upon deployment of Snapshot and then, the DAO. Our recommendation for the allocation no longer contains hard values. Instead, we list relevant areas for efficient DAO spending:
 
-* Insurance
+* **Insurance**
 
-In the event of loss of funds, QUARTZ might be used to capitalize an insurance fund. Once in place, Quartz stakers will benefit from the coverage.
+QUARTZ might be used to capitalize an insurance fund. Once in place, Quartz stakers will benefit from the coverage.
 
-* Liquidity Mining/Bonds
+* **Liquidity Mining/Bonds**
 
-QUARTZ can be distributed to incentivize additional liquidity.
+QUARTZ can be distributed to incentivize additional liquidity (e.g. through KPI options).
 
-* TVL Mining
+* **TVL Mining**
 
-QUARTZ can be distributed to increase the TVL of Sandclock's metavaults.
+QUARTZ can be distributed to increase the TVL of Sandclock's metavaults (e.g. through KPI options).
 
-* Ecosystem Development/Grants
+* **Ecosystem Development/Grants**
 
-QUARTZ can be granted to incentivize development of our growing ecosystem.
+QUARTZ can be granted to incentivize development or marketing of our growing ecosystem.
 
 ### Charity Mining: Permalocked Tokens
 
