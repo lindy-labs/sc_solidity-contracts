@@ -33,11 +33,17 @@
 
 [2022-09, by WatchPug](https://drive.google.com/file/d/1kR3nshIZNR6EqWHDFBWuKVSd2a76hZUD/view?usp=sharing)
 
-## Formal Verification
+## Internal
+
+### Formal Verification
 
 For information on which properties have been proven, check the Vault [properties.md](specification/vault/properties.md "mention") and Strategy [properties.md](specification/strategies/properties.md "mention") documents.
 
 For a more thorough overview, consult [https://github.com/lindy-labs/sc\_solidity-contracts/tree/Formal-Verification](https://github.com/lindy-labs/sc\_solidity-contracts/tree/Formal-Verification)
+
+### Coverage
+
+[![Coverage Status](https://coveralls.io/repos/github/lindy-labs/sc\_solidity-contracts/badge.svg?branch=main\&kill\_cache=1)](https://coveralls.io/github/lindy-labs/sc\_solidity-contracts)
 
 ## Frontend
 
