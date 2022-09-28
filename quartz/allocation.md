@@ -2,7 +2,7 @@
 
 
 
-<figure><img src="../.gitbook/assets/chart.svg" alt=""><figcaption><p>Team 20%, DAO 80%.</p></figcaption></figure>
+<figure><img src="../.gitbook/assets/chart.svg" alt=""><figcaption><p>Team 20% vested for 3 years, DAO 80%.</p></figcaption></figure>
 
 The community will become responsible for the spending of the DAO's QUARTZ upon deployment of Snapshot and then, the DAO. Our recommendation for the allocation no longer contains hard values. Instead, we list relevant areas for efficient DAO spending:
 
@@ -32,7 +32,7 @@ It was initially designed in order to incentivize giving, but it can fulfill oth
 
 3,235,547 were sold during Phase I
 
-500,000 were sold to a select number of strategic partners (partnership incentive alignment and additional development services)
+500,000 were sold to a limited number of strategic partners (partnership incentive alignment and additional development services, 50% vested until TODO)
 
 1,371,376 were sold during Phase II
 
