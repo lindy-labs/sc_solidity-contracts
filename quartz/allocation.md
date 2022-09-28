@@ -34,17 +34,17 @@ It was initially designed in order to incentivize giving, but it can fulfill oth
 
 500,000 were sold to a select number of strategic partners (partnership incentive alignment and additional development services)
 
-1,500,000 were sold during Phase II (TODO get more accurate number)
+1,371,376 were sold during Phase II
 
-xxxxx were loaned to Lindy Labs for liquidity provision on SushiSwap (TODO matched with n,nnn,nnn USDC)
+116,279 were loaned to Lindy Labs for liquidity provision on SushiSwap (matched with 2,000,000 USDC)
 
-xxxxx were loaned to Wintermute for liquidity provision on SushiSwap (TODO matched with n,nnn,nnn USDC)
+29,412 were loaned to Wintermute for liquidity provision on SushiSwap (matched with 500,000 USDC)
 
-xxxxx were used for Liquidity Mining on SushiSwap TODO
+xxxxx were used for Liquidity Mining on SushiSwap (TODO)
 
-xxxxx were used for Liquidity Mining on Olympus TODO
+xxxxx were used for Liquidity Mining on Olympus (TODO)
 
-xxxxx were loaned to Wintermute for market making on Kucoin TODO
+470,583 were loaned to Wintermute for market making on Kucoin
 
 20,000 have been used for grants (TODO get more accurate number)
 
