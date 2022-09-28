@@ -19,8 +19,8 @@
 #### Current Architecture
 
 {% hint style="info" %}
-* Some of the audits below are in mht format
-* All of them address the vault contract as well as the strategy contract at the time of audit
+* Some of the audits below are in .mht format
+* All audits address the vault contract, as well as the strategy contract in use at the time of audit
 {% endhint %}
 
 [2022-01, by Code4rena](https://drive.google.com/file/d/18HOx6IFj87JZ72J-tz-AbRNF62Jadr3V/view?usp=sharing)
