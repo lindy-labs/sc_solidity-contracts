@@ -39,19 +39,27 @@ Examples:
 $ echidna-test . --contract Echidna_Valid_Deposit --config contracts/echidna/Echidna_Deposit_Withdraw.yml
 ```
 
-In order to initialize echidna install [Etheno] and run:
+In order to initialize echidna install [Etheno] version `etheno==0.3a1` and run:
 
 ```
-$ etheno --ganache --ganache-args "--gasLimit=0x1fffffffffffff --allowUnlimitedContractSize -e 1000000000" -x ./init.json --debug
+$ etheno --ganache --ganache-args "--gasLimit=0x1fffffffffffff --chain.allowUnlimitedContractSize -e 1000000000" -x ./init.json --debug
 ```
 
 In another terminal run one test, for example:
 
 ```
-$ yarn hardhat test test/Vault.spec.ts  --grep "works with valid parameters" --network etheno
+$ NODE_ENV=test yarn hardhat test test/strategy/liquity/LiquityStrategy.spec.ts  --grep "emits a StrategyInvested event" --network etheno
 ```
 
-Then Ctrl-C in the first terminal (twice) to save.
+Then Ctrl-C in the first terminal (twice) to save. The `init.json`
+file may include duplicate contract deployments and furthermore some
+contract deployments may be in the wrong order(contract referenced
+before it was deployed). This needs to be corrected. Otherwise Echidna
+will fail with errors such as:
+
+```
+VM failed for unhandled reason, Query <EVM.Query: fetch contract 0x0B1ba0af832d7C05fD64161E0Db78E85978E8082>.
+```
 
 [echidna]: https://github.com/crytic/echidna
 [etheno]: https://github.com/crytic/etheno
