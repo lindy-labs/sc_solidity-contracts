@@ -8,6 +8,8 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  *
  */
 interface IRyskLiquidityPool is IERC20 {
+    function depositEpoch() external view returns (uint256);
+
     /**
      * Gets the current withdrawal epoch.
      *
@@ -19,6 +21,11 @@ interface IRyskLiquidityPool is IERC20 {
      * @return the current withdrawal epoch
      */
     function withdrawalEpoch() external view returns (uint256);
+
+    function depositEpochPricePerShare(uint256 _epoch)
+        external
+        view
+        returns (uint256);
 
     /**
      * Gets the price per share for the requrested withdrawal epoch.

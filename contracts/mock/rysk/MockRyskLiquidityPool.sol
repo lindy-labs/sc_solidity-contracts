@@ -18,7 +18,10 @@ import {IRyskLiquidityPool} from "../../interfaces/rysk/IRyskLiquidityPool.sol";
 contract MockRyskLiquidityPool is ERC20 {
     IERC20 immutable underlying;
     uint256 public depositEpoch;
+    uint256 public pendingDeposits;
     uint256 public withdrawalEpoch;
+
+    mapping(uint256 => uint256) public depositEpochPricePerShare;
     mapping(uint256 => uint256) public withdrawalEpochPricePerShare;
     mapping(address => IRyskLiquidityPool.DepositReceipt)
         public depositReceipts;
@@ -33,7 +36,7 @@ contract MockRyskLiquidityPool is ERC20 {
         underlying = IERC20(_underlying);
 
         depositEpoch++;
-        withdrawalEpochPricePerShare[depositEpoch] = 1e18;
+        depositEpochPricePerShare[depositEpoch] = 1e18;
         withdrawalEpoch++;
         withdrawalEpochPricePerShare[withdrawalEpoch] = 1e18;
     }
@@ -41,18 +44,26 @@ contract MockRyskLiquidityPool is ERC20 {
     function deposit(uint256 _amount) external returns (bool) {
         require(_amount > 0);
 
+        IRyskLiquidityPool.DepositReceipt
+            storage depositReceipt = depositReceipts[msg.sender];
+
+        if (depositReceipt.epoch != 0 && depositReceipt.epoch < depositEpoch) {
+            depositReceipt.unredeemedShares += _getSharesForAmount(
+                depositReceipt.amount,
+                depositEpochPricePerShare[depositReceipt.epoch]
+            );
+        }
+
+        if (depositReceipt.epoch == depositEpoch) {
+            depositReceipt.amount += uint128(_amount);
+        } else {
+            depositReceipt.amount = uint128(_amount);
+        }
+
+        depositReceipt.epoch = uint128(depositEpoch);
+
+        pendingDeposits += _amount;
         underlying.transferFrom(msg.sender, address(this), _amount);
-
-        uint256 toMint = _getSharesForAmount(_amount);
-        _mint(address(this), toMint);
-
-        IRyskLiquidityPool.DepositReceipt storage receipt = depositReceipts[
-            msg.sender
-        ];
-
-        receipt.epoch = uint128(depositEpoch);
-        receipt.amount += uint128(_amount);
-        receipt.unredeemedShares += toMint;
 
         return true;
     }
@@ -108,8 +119,31 @@ contract MockRyskLiquidityPool is ERC20 {
         return amount;
     }
 
+    // TODO: -rename
     function advanceWithdrawalEpoch() public {
+        calculateDepositEpoch();
+        calculateWithdrawalEpoch();
+    }
+
+    function calculateDepositEpoch() public {
+        if (pendingDeposits != 0) {
+            uint256 sharesToMint = _getSharesForAmount(
+                pendingDeposits,
+                depositEpochPricePerShare[depositEpoch]
+            );
+            _mint(address(this), sharesToMint);
+            delete pendingDeposits;
+        }
+
+        depositEpoch++;
+
+        uint256 pricePerShare = (totalAssets() * 1e18) / totalSupply();
+        depositEpochPricePerShare[depositEpoch] = pricePerShare;
+    }
+
+    function calculateWithdrawalEpoch() public {
         withdrawalEpoch++;
+
         uint256 pricePerShare = (totalAssets() * 1e18) / totalSupply();
         withdrawalEpochPricePerShare[withdrawalEpoch] = pricePerShare;
     }
@@ -118,20 +152,36 @@ contract MockRyskLiquidityPool is ERC20 {
         return underlying.balanceOf(address(this));
     }
 
-    function _getSharesForAmount(uint256 _amount)
+    function _getSharesForAmount(uint256 _amount, uint256 _pricePerShare)
         internal
-        view
+        pure
         returns (uint256)
     {
-        return (_amount * 1e18) / withdrawalEpochPricePerShare[withdrawalEpoch];
+        return (_amount * 1e18) / _pricePerShare;
     }
 
     function _redeemUnredeemedShares() internal {
-        uint256 unredeemedShares = depositReceipts[msg.sender].unredeemedShares;
+        IRyskLiquidityPool.DepositReceipt
+            storage depositReceipt = depositReceipts[msg.sender];
 
-        if (unredeemedShares != 0) {
-            _transfer(address(this), msg.sender, unredeemedShares);
+        if (depositReceipt.epoch != 0 && depositReceipt.epoch < depositEpoch) {
+            depositReceipt.unredeemedShares += _getSharesForAmount(
+                depositReceipt.amount,
+                depositEpochPricePerShare[depositReceipt.epoch]
+            );
+        }
+
+        if (depositReceipt.unredeemedShares != 0) {
+            _transfer(
+                address(this),
+                msg.sender,
+                depositReceipt.unredeemedShares
+            );
             depositReceipts[msg.sender].unredeemedShares = 0;
+        }
+
+        if (depositReceipt.epoch < depositEpoch) {
+            depositReceipt.amount = 0;
         }
     }
 }
