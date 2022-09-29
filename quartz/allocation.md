@@ -50,4 +50,4 @@ It was initially designed in order to incentivize giving, but it can fulfill oth
 
 22,000 were given to Kucoin for their marketing campaign
 
-20,000 have been used for grants (TODO get more accurate number)
+21,776 have been used for grants

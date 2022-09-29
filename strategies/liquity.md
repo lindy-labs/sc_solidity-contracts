@@ -8,9 +8,13 @@ description: The Liquity Strategy
 
 Liquity is a credit protocol. Users deposit collateral and can open a credit line denominated in LUSD.
 
-LUSD can be deposited to the stability pool to protect Liquity against insolvency. LUSD in this contract is used to pay off debt. When it does, it receives ETH at a discount, as well as other rewards, LQTY and LUSD. Sandclock uses the set of heuristics outlined below to liquidate these for LUSD and compounds it, thereby maximizing returns on user deposits.
+LUSD can be deposited to the Stability Pool to protect Liquity against insolvency. LUSD in this contract is used to pay off debt, in exchange for discounted collateral and other rewards.
 
-During bear markets and bull/crab market high volatility periods, prices drop. When they do, the frequency of liquidations increases, and so does the stability pool's revenue.
+{% hint style="info" %}
+The Metavault **receives LQTY at a fixed APR of 8%** and **earns additional dynamic returns on its stablecoin deposits by dollar-cost averaging into liquidated ETH** through Liquity Protocol's Stability Pool and swapping for the underlying. Liquidation profits are then reinvested into the strategy, compounding yield for depositors over time.
+{% endhint %}
+
+During bear markets and bull/crab market high volatility periods, the frequency of liquidations increases, and so does the Stability Pool's revenue. Because of this **we recommend a minimum deposit duration of 1 month.**
 
 For more information, [visit Liquity's Docs.](https://docs.liquity.org/)
 
