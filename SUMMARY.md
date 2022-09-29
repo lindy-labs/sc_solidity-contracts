@@ -19,7 +19,7 @@
     * [Properties](specification/vault/properties.md)
   * [Strategies](specification/strategies/README.md)
     * [Properties](specification/strategies/properties.md)
-* [Security](security/README.md)
+* [Security](security.md)
   * [External](security/external.md)
   * [Internal](security/internal.md)
 * [Integration](integration.md)
