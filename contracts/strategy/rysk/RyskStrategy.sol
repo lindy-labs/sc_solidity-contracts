@@ -93,13 +93,15 @@ contract RyskStrategy is BaseStrategy {
             ryskLqPool.balanceOf(address(this)) != 0
         ) return true;
 
-        return ryskLqPool.depositReceipts(address(this)).epoch != 0;
+        IRyskLiquidityPool.DepositReceipt memory depositReceipt = ryskLqPool
+            .depositReceipts(address(this));
+
+        return
+            depositReceipt.amount != 0 || depositReceipt.unredeemedShares != 0;
     }
 
     /// @inheritdoc IStrategy
-
-    // TODO: has to redeem before calculating assets!!!
-    /// @notice this also includes shares from the pending withdrawal
+    /// @notice this also includes shares from the pending withdrawal and shares yet to be minted for pending deposits
     function investedAssets()
         public
         view
@@ -111,31 +113,37 @@ contract RyskStrategy is BaseStrategy {
             .depositReceipts(address(this));
         uint256 currentPricePerShare = _getWithdrawalPricePerShare();
 
-        // shares yet to be minted for pending deposits
-        uint256 pendingSharesAmount = 0;
-        if (depositReceipt.epoch != 0) {
-            uint256 depositPricePerShare = ryskLqPool.depositEpochPricePerShare(
-                depositReceipt.epoch
+        // shares for pending deposit (not yet minted or not yet updated on the deposit receipt as unredeemed)
+        uint256 amountInPendingDepositShares = _getAmountInSharesForPendingDeposit(
+                depositReceipt.epoch,
+                depositReceipt.amount,
+                currentPricePerShare
             );
 
-            pendingSharesAmount =
-                (((depositReceipt.amount * SHARES_CONVERSION_FACTOR) /
-                    depositPricePerShare) * currentPricePerShare) /
-                SHARES_CONVERSION_FACTOR;
-        }
+        // shares marked for withdrawal that are now owned by the pool itself
+        uint256 amountInPendingWithdrawalShares = _sharesToUnderlying(
+            pendingWithdrawal.shares,
+            ryskLqPool.withdrawalEpochPricePerShare(pendingWithdrawal.epoch)
+        );
 
-        // shares marked by initiated withdrawal (now owned by the pool itself)
-        uint256 withdrawalSharesAmount = (pendingWithdrawal.shares *
-            ryskLqPool.withdrawalEpochPricePerShare(pendingWithdrawal.epoch)) /
-            SHARES_CONVERSION_FACTOR;
+        // unredeemed shares are not counted in the strategy's balance
+        // because they are not yet claimed (they are still owned by the pool)
+        uint256 amountInUnredeemedShares = _sharesToUnderlying(
+            depositReceipt.unredeemedShares,
+            currentPricePerShare
+        );
 
-        // entitled = redeemed + unredeemed
-        uint256 entitledSharesAmount = ((depositReceipt.unredeemedShares +
-            ryskLqPool.balanceOf(address(this))) * currentPricePerShare) /
-            SHARES_CONVERSION_FACTOR;
+        // redeemed shares that are owned by the strategy
+        uint256 amountInRedeemedShares = _sharesToUnderlying(
+            ryskLqPool.balanceOf(address(this)),
+            currentPricePerShare
+        );
 
         return
-            pendingSharesAmount + withdrawalSharesAmount + entitledSharesAmount;
+            amountInPendingDepositShares +
+            amountInPendingWithdrawalShares +
+            amountInUnredeemedShares +
+            amountInRedeemedShares;
     }
 
     /// @inheritdoc IStrategy
@@ -158,10 +166,27 @@ contract RyskStrategy is BaseStrategy {
         if (_amount == 0) revert StrategyAmountZero();
         if (_amount > investedAssets()) revert StrategyNotEnoughShares();
 
-        _initializePendingWithdrawal();
+        uint256 currentWithdrawalEpoch = ryskLqPool.withdrawalEpoch();
 
-        uint256 sharesToWithdraw = _underlyingToShares(_amount);
-        pendingWithdrawal.shares += uint128(sharesToWithdraw);
+        // cannot initiate another withdrawal if a pending withdrawal from older epoch is not completed
+        if (
+            pendingWithdrawal.epoch != 0 &&
+            pendingWithdrawal.epoch != currentWithdrawalEpoch
+        ) revert RyskPendingWithdrawalNotCompleted();
+
+        uint256 currentPricePerShare = ryskLqPool.withdrawalEpochPricePerShare(
+            currentWithdrawalEpoch
+        );
+
+        uint256 sharesToWithdraw = _underlyingToShares(
+            _amount,
+            currentPricePerShare
+        );
+
+        _updateCachedPendingWithdrawalReceipt(
+            currentWithdrawalEpoch,
+            sharesToWithdraw
+        );
 
         emit RyskWithdrawalInitiated(_amount);
         ryskLqPool.initiateWithdraw(sharesToWithdraw);
@@ -190,32 +215,39 @@ contract RyskStrategy is BaseStrategy {
     }
 
     /**
-     * Get the number of Rysk liquidity pool shares owned by the strategy.
+     * Used in the investedAssets() to get the amount of underlying as shares we would receive for making a deposit since shares are not minted immediately.
+     * Shares are minted in the next deposit epoch, but are owned by the pool and deposit receipt property 'unredeemedShares' is not updated at that point.
+     * For the deposit receipt to be updated with the actual count of unredeemed shares from the past epochs,
+     * the strategy has to interact with the Rysk liquidity pool by either depositing, withdrawing or redeeming.
+     * This is why we rely on the deposit receipt epoch and price per share properties to calculate the amount of shares we would receive for that deposit.
      *
-     * @return shares owned by the strategy including unredeemed shares and shares yet to be minted for pending deposits
+     * @param _depositEpoch deposit epoch
+     * @param _depositAmount amount of underlying tokens in the deposit receipt
+     * @param _pricePerShare price per share for the current withdrawal epoch
+     *
+     * @return amount of underlying expressed as pending shares * @param _pricePerShare
      */
-    // function _getTotalShares() internal view returns (uint256) {
-    //     IRyskLiquidityPool.DepositReceipt memory depositReceipt = ryskLqPool
-    //         .depositReceipts(address(this));
+    function _getAmountInSharesForPendingDeposit(
+        uint256 _depositEpoch,
+        uint256 _depositAmount,
+        uint256 _pricePerShare
+    ) internal view returns (uint256) {
+        if (_depositEpoch == 0 || _depositAmount == 0) return 0;
 
-    //     uint256 pendingShares = 0;
-    //     if (depositReceipt.amount != 0) {
-    //         (depositReceipt.amount * 1e18) /
-    //             ryskLqPool.depositEpochPricePerShare(depositReceipt.epoch);
-    //     }
+        uint256 depositPricePerShare = ryskLqPool.depositEpochPricePerShare(
+            _depositEpoch
+        );
 
-    //     // total shares = redeemed shares + unredeemed shares
-    //     return
-    //         // we also need to take into account the pending deposit amount
-    //         // for which shares are not minted yet nor they are redeemed
-    //         // shares are minted when new epoch starts
-    //         pendingShares +
-    //         depositReceipt.unredeemedShares +
-    //         ryskLqPool.balanceOf(address(this)) +
-    // }
+        uint256 pendingDepositShares = _underlyingToShares(
+            _depositAmount,
+            depositPricePerShare
+        );
+
+        return _sharesToUnderlying(pendingDepositShares, _pricePerShare);
+    }
 
     /**
-     * Get the price per share of the Rysk liquidity pool.
+     * Get the price per share for the current withdrawal epoch.
      *
      * @return price per share
      */
@@ -227,39 +259,52 @@ contract RyskStrategy is BaseStrategy {
     }
 
     /**
-     * Calculates the amount of underlying in number of Rysk liquidity pool shares.
+     * Calculates the amount of shares for provided amount of underlying and price per share.
      *
      * @param _underlying amount of underlying
+     * @param _pricePerShare price per share
      *
      * @return number of shares
      */
-    function _underlyingToShares(uint256 _underlying)
+    function _underlyingToShares(uint256 _underlying, uint256 _pricePerShare)
         internal
-        view
+        pure
         returns (uint256)
     {
-        return
-            (_underlying * SHARES_CONVERSION_FACTOR) /
-            _getWithdrawalPricePerShare();
+        return (_underlying * SHARES_CONVERSION_FACTOR) / _pricePerShare;
     }
 
     /**
-     * Initializes the cached pending withdrawal receipt field.
+     * Calculates the amount of underlying for provided number of Rysk liquidity pool shares and price per share.
+     *
+     * @param _shares number of shares
+     * @param _pricePerShare price per share
+     *
+     * @return amount of underlying
      */
-    function _initializePendingWithdrawal() internal {
-        uint256 currentEpoch = ryskLqPool.withdrawalEpoch();
+    function _sharesToUnderlying(uint256 _shares, uint256 _pricePerShare)
+        internal
+        pure
+        returns (uint256)
+    {
+        return (_shares * _pricePerShare) / SHARES_CONVERSION_FACTOR;
+    }
 
+    /**
+     * Updates the cached pending withdrawal receipt field.
+     *
+     * @param _epoch current withdrawal epoch
+     * @param _shares number of shares to withdraw
+     */
+    function _updateCachedPendingWithdrawalReceipt(
+        uint256 _epoch,
+        uint256 _shares
+    ) internal {
         if (pendingWithdrawal.epoch == 0) {
             // there is no pending withdrawal so we can initialize a new one
-            pendingWithdrawal.epoch = uint128(currentEpoch);
-            return;
+            pendingWithdrawal.epoch = uint128(_epoch);
         }
 
-        // the pending withdrawal receipt is already initialized for the current withdrawal epoch
-        if (pendingWithdrawal.epoch == currentEpoch) return;
-
-        // rysk liquidity pool doesn't allow for a withdrawal to be initiated in a new epoch
-        // when a pending withdrawal from a previous epoch isn't completed
-        revert RyskPendingWithdrawalNotCompleted();
+        pendingWithdrawal.shares += uint128(_shares);
     }
 }

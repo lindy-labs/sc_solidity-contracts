@@ -74,7 +74,7 @@ contract MockRyskLiquidityPool is ERC20 {
     function initiateWithdraw(uint256 _shares) external {
         require(_shares > 0);
 
-        _redeemUnredeemedShares();
+        redeem(type(uint256).max);
 
         require(
             _shares <= balanceOf(msg.sender),
@@ -105,6 +105,32 @@ contract MockRyskLiquidityPool is ERC20 {
         require(false, "Withdrawal already initiated");
     }
 
+    function redeem(uint256 _sharesToRedeem) public {
+        IRyskLiquidityPool.DepositReceipt
+            storage depositReceipt = depositReceipts[msg.sender];
+
+        if (depositReceipt.epoch != 0 && depositReceipt.epoch < depositEpoch) {
+            depositReceipt.unredeemedShares += _getSharesForAmount(
+                depositReceipt.amount,
+                depositEpochPricePerShare[depositReceipt.epoch]
+            );
+        }
+
+        if (depositReceipt.unredeemedShares != 0) {
+            _sharesToRedeem = _sharesToRedeem > depositReceipt.unredeemedShares
+                ? depositReceipt.unredeemedShares
+                : _sharesToRedeem;
+
+            _transfer(address(this), msg.sender, _sharesToRedeem);
+
+            depositReceipts[msg.sender].unredeemedShares -= _sharesToRedeem;
+        }
+
+        if (depositReceipt.epoch < depositEpoch) {
+            depositReceipt.amount = 0;
+        }
+    }
+
     function completeWithdraw(uint256 _shares) external returns (uint256) {
         require(_shares > 0);
 
@@ -119,8 +145,7 @@ contract MockRyskLiquidityPool is ERC20 {
         return amount;
     }
 
-    // TODO: -rename
-    function advanceWithdrawalEpoch() public {
+    function executeEpochCalculation() public {
         calculateDepositEpoch();
         calculateWithdrawalEpoch();
     }
@@ -131,6 +156,7 @@ contract MockRyskLiquidityPool is ERC20 {
                 pendingDeposits,
                 depositEpochPricePerShare[depositEpoch]
             );
+
             _mint(address(this), sharesToMint);
             delete pendingDeposits;
         }
@@ -158,30 +184,5 @@ contract MockRyskLiquidityPool is ERC20 {
         returns (uint256)
     {
         return (_amount * 1e18) / _pricePerShare;
-    }
-
-    function _redeemUnredeemedShares() internal {
-        IRyskLiquidityPool.DepositReceipt
-            storage depositReceipt = depositReceipts[msg.sender];
-
-        if (depositReceipt.epoch != 0 && depositReceipt.epoch < depositEpoch) {
-            depositReceipt.unredeemedShares += _getSharesForAmount(
-                depositReceipt.amount,
-                depositEpochPricePerShare[depositReceipt.epoch]
-            );
-        }
-
-        if (depositReceipt.unredeemedShares != 0) {
-            _transfer(
-                address(this),
-                msg.sender,
-                depositReceipt.unredeemedShares
-            );
-            depositReceipts[msg.sender].unredeemedShares = 0;
-        }
-
-        if (depositReceipt.epoch < depositEpoch) {
-            depositReceipt.amount = 0;
-        }
     }
 }
