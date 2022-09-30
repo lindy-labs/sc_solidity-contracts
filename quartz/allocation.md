@@ -40,7 +40,7 @@ It was initially designed in order to incentivize giving, but it can fulfill oth
 
 29,412 were loaned to Wintermute for liquidity provision on SushiSwap (matched with 500,000 USDC)
 
-56,087.5 were used for Liquidity Mining on SushiSwap
+56,088 were used for Liquidity Mining on SushiSwap
 
 168,500 were used for Liquidity Mining on Olympus
 
