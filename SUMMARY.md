@@ -16,9 +16,9 @@
 
 * [Specification](specification/README.md)
   * [Vault](specification/vault/README.md)
-    * [Properties](specification/vault/properties.md)
+    * [Vault Properties](specification/vault/vault-properties.md)
   * [Strategies](specification/strategies/README.md)
-    * [Properties](specification/strategies/properties.md)
+    * [Strategy Properties](specification/strategies/strategy-properties.md)
 * [Security](security.md)
   * [External](security/external.md)
   * [Internal](security/internal.md)
