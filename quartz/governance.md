@@ -14,6 +14,8 @@ Initially Snapshot will be used in order to take temperature checks. Snapshot do
 
 SafeSnap combines Snapshot and Gnosis Safe to enable trustless on-chain execution of off-chain votes. This makes SafeSnap a very good decentralization solution for Sandclock, and one that could in theory be used for a long time.
 
+Once launched, we will have the current multisig as a safeguard. Thus, on-chain execution of off-chain votes is handled by the SafeSnap module, but there are still multisig owners that can veto malicious actions or act quickly in the case of an emergency. &#x20;
+
 ### DAO
 
 The DAO itself represents the pinnacle of trustlessness and decentralization. Our particular DAO, developed from scratch, comes with,

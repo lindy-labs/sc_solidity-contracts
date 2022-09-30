@@ -9,6 +9,7 @@
   * [Allocation](quartz/allocation.md)
   * [Governance](quartz/governance.md)
   * [Utility](quartz/utility.md)
+* [Resources](resources.md)
 
 ## Technical Documentation
 
