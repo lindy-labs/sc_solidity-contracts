@@ -10,6 +10,9 @@ import {IRyskLiquidityPool} from "../../interfaces/rysk/IRyskLiquidityPool.sol";
 // the LiquidityPool has the 'epoch' (or 'depositReceipts', etc.) public field and to match that
 // we have the same field implemented here.
 //
+// The mechanics for deposits/withdrawals used in the Rysk LiquidityPool are replicated by this contract
+// and it should behave in the same way as the LiquidityPool in that sense.
+//
 // Because we want to interact with the LiquidityPool contract's fields in our strategy through an interface,
 // and we cannot declare a field on an interface, we do not implement the IRyskLiquidityPool interface here.
 // Instead, our strategy tests ensure that the API defined by IRyskLiquidityPool and the actual API of the LiquidityPool

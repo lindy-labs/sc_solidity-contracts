@@ -70,11 +70,7 @@ contract RyskStrategy is BaseStrategy {
     // IStrategy
     //
 
-    /**
-     * Rysk strategy is asynchronous meaning it doesn't support immediate withdrawals.
-     *
-     * @return false always
-     */
+    /// @inheritdoc IStrategy
     function isSync() external pure override(IStrategy) returns (bool) {
         return false;
     }

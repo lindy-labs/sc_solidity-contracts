@@ -8,20 +8,40 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
  *
  */
 interface IRyskLiquidityPool is IERC20 {
+    /**
+     * Gets the current deposit epoch.
+     *
+     * @notice Deposit epochs represent time resolution on which the pool handles deposits.
+     * For every new deposit epoch a new deposit price per share is calculated.
+     * Deposits are initiated in one epoch and completed during epoch calculation by
+     * minting appropriate amout of pool shares for that deposit, calculated as amount/pps.
+     *
+     * @notice Expected duration for an epoch is around 1 week at the moment.
+     *
+     * @return the current deposit epoch
+     */
     function depositEpoch() external view returns (uint256);
 
     /**
      * Gets the current withdrawal epoch.
      *
-     * @notice Epochs represent time resolution on which the pool operates.
-     * For every epoch a new price per share is calculated and pool rebalances.
-     * Withdrawals are initiated in one epoch and completed in some later epoch.
-     * There are two epoch types, deposit and withdrawal epochs.
+     * @notice Epochs represent time resolution on which the pool handles withdrawals.
+     * For every new withdrawal epoch a new withdrawal price per share is calculated.
+     * Withdrawals are initiated in one epoch and completed in another.
+     *
+     * @notice Expected duration for an epoch is around 1 week at the moment.
      *
      * @return the current withdrawal epoch
      */
     function withdrawalEpoch() external view returns (uint256);
 
+    /**
+     * Gets the price per share for the requrested deposit epoch.
+     *
+     * @param _epoch the deposit epoch
+     *
+     * @return the price per share at the requested deposit epoch
+     */
     function depositEpochPricePerShare(uint256 _epoch)
         external
         view
@@ -43,10 +63,11 @@ interface IRyskLiquidityPool is IERC20 {
      * Deposits the specified amount of underlying currency into the pool.
      *
      * @notice The amount of underlying currency deposited is converted to shares.
-     * On sucessful deposit, deposit receipt is created containing the amount of unredeemed shares.
-     * Only when a new deposit epoch is initiated, those shares are minted but
-     * ownership of the shares is not transferred to the caller (unredeemed shares).
-     * Shares will be redeemed on the next initiateWithdrawal call.
+     * On sucessful deposit, deposit receipt is created containing only the amount deposited, no unredeemed shares.
+     * Only when a new deposit epoch is initiated, corresponding number of shares is minted but
+     * the ownership of the shares is not transferred to the caller, they remain owned by the pool.
+     * Those shares will become unreddemed on the next deposit call.
+     * All shares are redeemed on call to initiateWithdrawal.
      *
      * @return true if the deposit was successful
      */
@@ -69,10 +90,10 @@ interface IRyskLiquidityPool is IERC20 {
      *
      * @notice This is the first part of the asynchronous withdrawal operation.
      * Unredeemed shares are transferred (redeemed) to the caller and withdrawal receipt is created for the current withdrawal epoch.
-     * To actually withdraw the funds, the completeWithdrawal must be called.
+     * To actually withdraw the funds, the caller must execute completeWithdrawal function in another withdrawal epoch.
      *
      * @notice Multiple calls in the same epoch will aggregate the shares to withdraw in the withdrawal receipt.
-     * Calling this method in a later withdrawal epoch will revert, assuming the initiated withdrawal isn't completed.
+     * Calling this method in a later withdrawal epoch will revert if the previously initiated withdrawal wasn't completed.
      *
      * @param _shares the amount of shares to withdraw
      */
@@ -84,9 +105,10 @@ interface IRyskLiquidityPool is IERC20 {
      * @notice This is the second part of the asynchronous withdrawal operation.
      * Shares are converted to underlying currency and transferred to the caller, using price per share for the current withdrawal epoch.
      * initiateWithdrawal and completeWithdrawal cannot be called in the same epoch.
-     * On success, the withdrawal receipt is updated, shares are burned and the caller receives the underlying currency.
+     * On success, the withdrawal receipt is updated, shares are burned and the caller receives the underlying assets.
      *
-     * @param _shares the amount of shares to withdraw. Can be less than the amount of shares in the withdrawal receipt.
+     * @param _shares the amount of shares to withdraw.
+     * Can be less than the amount of shares in the withdrawal receipt but that will not complete the initiated withdrawal.
      */
     function completeWithdraw(uint256 _shares) external returns (uint256);
 
@@ -115,7 +137,7 @@ interface IRyskLiquidityPool is IERC20 {
         // amount of underlying currency deposited
         uint128 amount;
         // amount of shares minted by the pool, waiting to be redeemed
-        uint256 unredeemedShares; // 18 decimals assumed
+        uint256 unredeemedShares; // 18 decimals
     }
 
     /**
