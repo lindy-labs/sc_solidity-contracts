@@ -16,8 +16,12 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
   const LUSDDeployment = await get('LUSD');
 
+  let liquityStrategyContract = 'LiquityStrategy';
+  if (getNetworkName() === 'hardhat' || getNetworkName() === 'docker') {
+    liquityStrategyContract = 'MockLiquityStrategyV3';
+  }
   const liquityStrategyDeployment = await deploy('LiquityStrategy', {
-    contract: 'LiquityStrategy',
+    contract: liquityStrategyContract,
     from: deployer,
     args: [],
     log: true,
