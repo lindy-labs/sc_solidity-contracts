@@ -315,7 +315,7 @@ describe('RyskStrategy', () => {
       await strategy.connect(manager).invest();
       await ryskLqPool.executeEpochCalculation();
 
-      const amountTooBig = parseUnits('150');
+      const amountTooBig = parseUnits('100').add('1');
       await expect(
         strategy.connect(manager).withdrawToVault(amountTooBig),
       ).to.be.revertedWith('StrategyNotEnoughShares');
@@ -482,13 +482,111 @@ describe('RyskStrategy', () => {
     });
   });
 
+  describe('#hasAssets', () => {
+    it('returns false when no assets are invested', async () => {
+      expect(await strategy.hasAssets()).to.be.false;
+    });
+
+    it('checks for pending deposit', async () => {
+      await underlying.mint(strategy.address, parseUnits('100'));
+      await strategy.connect(manager).invest();
+
+      expect(await strategy.hasAssets()).to.be.true;
+    });
+
+    it('checks for pending withdrawal', async () => {
+      await underlying.mint(strategy.address, parseUnits('100'));
+      await strategy.connect(manager).invest();
+      await ryskLqPool.executeEpochCalculation();
+
+      await strategy.connect(manager).withdrawToVault(parseUnits('100'));
+
+      expect((await strategy.pendingWithdrawal()).shares).to.eq(
+        parseUnits('100'),
+      );
+      expect(await strategy.hasAssets()).to.be.true;
+    });
+
+    it('checks for redeemed shares', async () => {
+      await underlying.mint(strategy.address, parseUnits('100'));
+      await strategy.connect(manager).invest();
+      await ryskLqPool.executeEpochCalculation();
+
+      await strategy.connect(manager).withdrawToVault(parseUnits('50'));
+      await ryskLqPool.executeEpochCalculation();
+
+      await strategy.completeWithdrawal();
+
+      expect((await strategy.pendingWithdrawal()).shares).to.eq(
+        parseUnits('0'),
+      );
+      expect(await ryskLqPool.balanceOf(strategy.address)).to.eq(
+        parseUnits('50'),
+      );
+
+      expect(await strategy.hasAssets()).to.be.true;
+    });
+  });
+
   describe('#investedAssets', async () => {
     it('returns 0 when no assets are invested', async () => {
       expect(await strategy.hasAssets()).to.be.false;
       expect(await strategy.investedAssets()).to.eq(0);
     });
 
-    it('includes into account pending, unredeemed, redeemed shares and shares in pending withdrawal', async () => {
+    it('includes amount for pending deposit shares', async () => {
+      await underlying.mint(strategy.address, parseUnits('100'));
+      await strategy.connect(manager).invest();
+
+      expect(await strategy.investedAssets()).to.eq(parseUnits('100'));
+    });
+
+    it('includes amount for pending withdrawal shares', async () => {
+      await underlying.mint(strategy.address, parseUnits('100'));
+      await strategy.connect(manager).invest();
+      await ryskLqPool.executeEpochCalculation();
+
+      await strategy.connect(manager).withdrawToVault(parseUnits('100'));
+
+      expect(await strategy.investedAssets()).to.eq(parseUnits('100'));
+    });
+
+    it('includes amount for redeemed shares', async () => {
+      await underlying.mint(strategy.address, parseUnits('100'));
+      await strategy.connect(manager).invest();
+      await ryskLqPool.executeEpochCalculation();
+
+      await strategy.connect(manager).withdrawToVault(parseUnits('50'));
+      await ryskLqPool.executeEpochCalculation();
+
+      await strategy.completeWithdrawal();
+
+      expect((await strategy.pendingWithdrawal()).shares).to.eq(
+        parseUnits('0'),
+      );
+      expect(await ryskLqPool.balanceOf(strategy.address)).to.eq(
+        parseUnits('50'),
+      );
+
+      expect(await strategy.investedAssets()).to.eq(parseUnits('50'));
+    });
+
+    it('includes amount for unredeemed shares', async () => {
+      await underlying.mint(strategy.address, parseUnits('100'));
+      await strategy.connect(manager).invest();
+      await ryskLqPool.executeEpochCalculation();
+
+      await underlying.mint(strategy.address, parseUnits('100'));
+      await strategy.connect(manager).invest();
+
+      expect(
+        (await ryskLqPool.depositReceipts(strategy.address)).unredeemedShares,
+      ).to.eq(parseUnits('100'));
+
+      expect(await strategy.investedAssets()).to.eq(parseUnits('200'));
+    });
+
+    it('sums amounts for pending deposit, pending withdrawal, unredeemed and redeemed shares', async () => {
       await underlying.mint(strategy.address, parseUnits('100'));
       await strategy.connect(manager).invest();
       await ryskLqPool.executeEpochCalculation();
@@ -506,11 +604,14 @@ describe('RyskStrategy', () => {
       await underlying.mint(strategy.address, parseUnits('100'));
       await strategy.connect(manager).invest();
 
-      // all shares
+      // total = 300
       // - pending deposit: 100
       // - unredeemed: 100
       // - redeemed: 50
       // - pending withdrawal: 50
+      expect((await ryskLqPool.depositReceipts(strategy.address)).amount).to.eq(
+        parseUnits('100'),
+      );
       expect(
         (await ryskLqPool.depositReceipts(strategy.address)).unredeemedShares,
       ).to.eq(parseUnits('100'));
@@ -521,7 +622,6 @@ describe('RyskStrategy', () => {
         parseUnits('50'),
       );
 
-      expect(await strategy.hasAssets()).to.be.true;
       expect(await strategy.investedAssets()).to.eq(parseUnits('300'));
     });
   });
