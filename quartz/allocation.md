@@ -44,10 +44,10 @@ It was initially designed in order to incentivize giving, but it can fulfill oth
 
 168,500 were used for Liquidity Mining on Olympus
 
-470,583 were loaned to Wintermute for market making on Kucoin
+470,583 were loaned to Wintermute for market making on KuCoin
 
-20,000 were given to Kucoin (plus an undisclosed amount of USDC) for listing purposes
+20,000 were given to KuCoin (plus an undisclosed amount of USDC) for listing purposes
 
-22,000 were given to Kucoin for their marketing campaign
+22,000 were given to KuCoin for their marketing campaign
 
-21,776 have been used for grants
+23,673 have been used for grants
