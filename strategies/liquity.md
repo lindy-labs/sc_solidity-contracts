@@ -12,6 +12,8 @@ LUSD can be deposited to the Stability Pool to protect Liquity against insolvenc
 
 {% hint style="info" %}
 The Metavault **receives LQTY at a fixed APR of 8%** and **earns additional dynamic returns on its stablecoin deposits by dollar-cost averaging into liquidated ETH** through Liquity Protocol's Stability Pool and swapping for the underlying. Liquidation profits are then reinvested into the strategy, compounding yield for depositors over time.
+
+Because of this, the short term APY could be as low as 6% and as high as 1000%. It is completely unpredictable. As a result, for our frontend, we use a range using the 7d and the 365d average rolling APR.
 {% endhint %}
 
 During bear markets and bull/crab market high volatility periods, the frequency of liquidations increases, and so does the Stability Pool's revenue. Because of this **we recommend a minimum deposit duration of 1 month.**
@@ -21,6 +23,8 @@ For more information, [visit Liquity's Docs.](https://docs.liquity.org/)
 ### Risk
 
 Other than the ever present smart contract risk, loss is incurred when the average value of the asset acquired at the time of compounding is lower than its market value. Due to the deep liquidity of all assets involved, as well as the lower price of acquisition of these assets, we expect such events to be extremely unlikely, but not impossible to transpire.
+
+&#x20;Sandclock makes no promises regarding the yield generated.
 
 ## Methods
 
