@@ -23,4 +23,4 @@ When you deposit to Sandclock, **the contract invests your initial deposit to a 
 
     <figure><img src=".gitbook/assets/image (6).png" alt=""><figcaption></figcaption></figure>
 
-For information on the various strategies supported by our Metavaults, [go to Strategies.](strategies/)
+For information on the various strategies supported by our Metavaults, go to [strategies](strategies/ "mention").
