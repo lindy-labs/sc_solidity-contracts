@@ -35,7 +35,7 @@ contract RyskStrategy is BaseStrategy {
      *
      *@param amount to be withdrawn
      */
-    event RyskWithdrawalInitiated(uint256 amount);
+    event StrategyWithdrawalInitiated(uint256 amount);
 
     // rysk liquidity pool cannot be 0 address
     error RyskLiquidityPoolCannotBe0Address();
@@ -83,7 +83,6 @@ contract RyskStrategy is BaseStrategy {
         override(IStrategy)
         returns (bool)
     {
-        // TODO: refactor & test
         if (
             pendingWithdrawal.shares != 0 ||
             ryskLqPool.balanceOf(address(this)) != 0
@@ -107,7 +106,9 @@ contract RyskStrategy is BaseStrategy {
     {
         IRyskLiquidityPool.DepositReceipt memory depositReceipt = ryskLqPool
             .depositReceipts(address(this));
-        uint256 currentPricePerShare = _getWithdrawalPricePerShare();
+        uint256 currentPricePerShare = ryskLqPool.withdrawalEpochPricePerShare(
+            ryskLqPool.withdrawalEpoch()
+        );
 
         // shares for pending deposit (not yet minted or not yet updated on the deposit receipt as unredeemed)
         uint256 amountInPendingDepositShares = _getAmountInSharesForPendingDeposit(
@@ -160,7 +161,6 @@ contract RyskStrategy is BaseStrategy {
         onlyManager
     {
         if (_amount == 0) revert StrategyAmountZero();
-        if (_amount > investedAssets()) revert StrategyNotEnoughShares();
 
         uint256 currentWithdrawalEpoch = ryskLqPool.withdrawalEpoch();
 
@@ -170,13 +170,9 @@ contract RyskStrategy is BaseStrategy {
             pendingWithdrawal.epoch != currentWithdrawalEpoch
         ) revert RyskPendingWithdrawalNotCompleted();
 
-        uint256 currentPricePerShare = ryskLqPool.withdrawalEpochPricePerShare(
-            currentWithdrawalEpoch
-        );
-
-        uint256 sharesToWithdraw = _underlyingToShares(
+        uint256 sharesToWithdraw = _calculateSharesNeededToWithdraw(
             _amount,
-            currentPricePerShare
+            ryskLqPool.withdrawalEpochPricePerShare(currentWithdrawalEpoch)
         );
 
         _updateCachedPendingWithdrawalReceipt(
@@ -184,7 +180,7 @@ contract RyskStrategy is BaseStrategy {
             sharesToWithdraw
         );
 
-        emit RyskWithdrawalInitiated(_amount);
+        emit StrategyWithdrawalInitiated(_amount);
         ryskLqPool.initiateWithdraw(sharesToWithdraw);
     }
 
@@ -243,18 +239,6 @@ contract RyskStrategy is BaseStrategy {
     }
 
     /**
-     * Get the price per share for the current withdrawal epoch.
-     *
-     * @return price per share
-     */
-    function _getWithdrawalPricePerShare() internal view returns (uint256) {
-        return
-            ryskLqPool.withdrawalEpochPricePerShare(
-                ryskLqPool.withdrawalEpoch()
-            );
-    }
-
-    /**
      * Calculates the amount of shares for provided amount of underlying and price per share.
      *
      * @param _underlying amount of underlying
@@ -284,6 +268,35 @@ contract RyskStrategy is BaseStrategy {
         returns (uint256)
     {
         return (_shares * _pricePerShare) / SHARES_CONVERSION_FACTOR;
+    }
+
+    /**
+     * Gets the amount of shares needed to withdraw the specified amount of underlying.
+     *
+     * @notice reverts if the amount of shares needed is greater than the amount of shares available
+     *
+     * @param _amount amount of underlying to withdraw
+     * @param _pricePerShare price per share
+     *
+     * @return shares needed to withdraw the specified amount of underlying
+     */
+    function _calculateSharesNeededToWithdraw(
+        uint256 _amount,
+        uint256 _pricePerShare
+    ) internal returns (uint256) {
+        uint256 sharesBalance = ryskLqPool.balanceOf(address(this));
+
+        uint256 sharesNeeded = _underlyingToShares(_amount, _pricePerShare);
+
+        if (sharesNeeded > sharesBalance) {
+            // try to redeem any unredeemed shares
+            uint256 redeemedShares = ryskLqPool.redeem(type(uint256).max);
+
+            if (sharesBalance + redeemedShares < sharesNeeded)
+                revert StrategyNotEnoughShares();
+        }
+
+        return sharesNeeded;
     }
 
     /**

@@ -280,7 +280,7 @@ describe('RyskStrategy', () => {
       );
     });
 
-    it('emits RyskWithdrawalInitiated event', async () => {
+    it('emits StrategyWithdrawalInitiated event', async () => {
       let underlyingAmount = parseUnits('100');
       await underlying.mint(strategy.address, underlyingAmount);
       await strategy.connect(manager).invest();
@@ -293,7 +293,7 @@ describe('RyskStrategy', () => {
         .withdrawToVault(amountToWithdraw);
 
       await expect(tx)
-        .to.emit(strategy, 'RyskWithdrawalInitiated')
+        .to.emit(strategy, 'StrategyWithdrawalInitiated')
         .withArgs(amountToWithdraw);
     });
 
@@ -548,6 +548,11 @@ describe('RyskStrategy', () => {
 
       await strategy.connect(manager).withdrawToVault(parseUnits('100'));
 
+      // generate yield to increase share value
+      await underlying.mint(ryskLqPool.address, parseUnits('100'));
+      await ryskLqPool.executeEpochCalculation();
+
+      // expected to include gains only from the epoch when withdrawal was initiated
       expect(await strategy.investedAssets()).to.eq(parseUnits('100'));
     });
 
@@ -561,14 +566,20 @@ describe('RyskStrategy', () => {
 
       await strategy.completeWithdrawal();
 
+      // generate yield to increase share value 2x
+      await underlying.mint(
+        ryskLqPool.address,
+        await underlying.balanceOf(ryskLqPool.address),
+      );
+      await ryskLqPool.executeEpochCalculation();
+
       expect((await strategy.pendingWithdrawal()).shares).to.eq(
         parseUnits('0'),
       );
       expect(await ryskLqPool.balanceOf(strategy.address)).to.eq(
         parseUnits('50'),
       );
-
-      expect(await strategy.investedAssets()).to.eq(parseUnits('50'));
+      expect(await strategy.investedAssets()).to.eq(parseUnits('100'));
     });
 
     it('includes amount for unredeemed shares', async () => {
@@ -579,11 +590,18 @@ describe('RyskStrategy', () => {
       await underlying.mint(strategy.address, parseUnits('100'));
       await strategy.connect(manager).invest();
 
+      // generate yield to increase share value 2x
+      await underlying.mint(
+        ryskLqPool.address,
+        await underlying.balanceOf(ryskLqPool.address),
+      );
+      await ryskLqPool.executeEpochCalculation();
+
+      // at this point we have 100 redeemed and 100 unredeemed shares which both doubled in value
       expect(
         (await ryskLqPool.depositReceipts(strategy.address)).unredeemedShares,
       ).to.eq(parseUnits('100'));
-
-      expect(await strategy.investedAssets()).to.eq(parseUnits('200'));
+      expect(await strategy.investedAssets()).to.eq(parseUnits('400'));
     });
 
     it('sums amounts for pending deposit, pending withdrawal, unredeemed and redeemed shares', async () => {

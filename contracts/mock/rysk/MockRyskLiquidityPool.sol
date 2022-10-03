@@ -108,30 +108,41 @@ contract MockRyskLiquidityPool is ERC20 {
         require(false, "Withdrawal already initiated");
     }
 
-    function redeem(uint256 _sharesToRedeem) public {
+    function redeem(uint256 _sharesToRedeem) public returns (uint256) {
+        require(_sharesToRedeem > 0, "Shares to redeem must be greater than 0");
+
         IRyskLiquidityPool.DepositReceipt
             storage depositReceipt = depositReceipts[msg.sender];
 
-        if (depositReceipt.epoch != 0 && depositReceipt.epoch < depositEpoch) {
+        if (
+            depositReceipt.epoch == 0 ||
+            (depositReceipt.amount == 0 && depositReceipt.unredeemedShares == 0)
+        ) {
+            return 0;
+        }
+
+        if (depositReceipt.epoch < depositEpoch && depositReceipt.amount != 0) {
             depositReceipt.unredeemedShares += _getSharesForAmount(
                 depositReceipt.amount,
                 depositEpochPricePerShare[depositReceipt.epoch]
             );
-        }
 
-        if (depositReceipt.unredeemedShares != 0) {
-            _sharesToRedeem = _sharesToRedeem > depositReceipt.unredeemedShares
-                ? depositReceipt.unredeemedShares
-                : _sharesToRedeem;
-
-            _transfer(address(this), msg.sender, _sharesToRedeem);
-
-            depositReceipts[msg.sender].unredeemedShares -= _sharesToRedeem;
-        }
-
-        if (depositReceipt.epoch < depositEpoch) {
             depositReceipt.amount = 0;
         }
+
+        if (depositReceipt.unredeemedShares == 0) {
+            return 0;
+        }
+
+        _sharesToRedeem = _sharesToRedeem > depositReceipt.unredeemedShares
+            ? depositReceipt.unredeemedShares
+            : _sharesToRedeem;
+
+        _transfer(address(this), msg.sender, _sharesToRedeem);
+
+        depositReceipts[msg.sender].unredeemedShares -= _sharesToRedeem;
+
+        return _sharesToRedeem;
     }
 
     function completeWithdraw(uint256 _shares) external returns (uint256) {

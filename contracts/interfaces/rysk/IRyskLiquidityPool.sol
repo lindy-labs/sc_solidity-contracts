@@ -74,16 +74,21 @@ interface IRyskLiquidityPool is IERC20 {
     function deposit(uint256 _amount) external returns (bool);
 
     /**
-     * Gets the deposit receipt for the requrested user.
+     * Redeems the specified amount of shares from the pool.
      *
-     * @notice Deposit receipts are created when a user deposits funds
+     * @notice A depositor is entitled to a certain amount of shares for his deposit, which are not being minted upon depositing.
+     * Shares are actually being minted asynchronously, when the liquidity pool enters a new deposit epoch.
+     * Newly minted shares are not owned by the depositor immediately, instead they are owned by the pool itself when minted.
+     * For the depositor to claim his shares, it is required for him to interact with the pool. For example, when making a new deposit,
+     * unredemed shares from the previous epoch are added to the deposit receipt as unredeemed shares. When initiating a withdrawal,
+     * all unredeemed shares will be redeemed, meaning ownership of those shares is transfered from the pool to the depositor and
+     * deposit receipt fields (amount and unredeemed shares) are reset.
      *
-     * @return the deposit receipt
+     * @param _shares amount of shares to redeem
+     *
+     * @return amount of shares actually redeemed
      */
-    function depositReceipts(address _user)
-        external
-        view
-        returns (DepositReceipt memory);
+    function redeem(uint256 _shares) external returns (uint256);
 
     /**
      * Initiates a withdrawal in amount of shares from the pool.
@@ -111,6 +116,18 @@ interface IRyskLiquidityPool is IERC20 {
      * Can be less than the amount of shares in the withdrawal receipt but that will not complete the initiated withdrawal.
      */
     function completeWithdraw(uint256 _shares) external returns (uint256);
+
+    /**
+     * Gets the deposit receipt for the requrested user.
+     *
+     * @notice Deposit receipts are created when a user deposits funds
+     *
+     * @return the deposit receipt
+     */
+    function depositReceipts(address _user)
+        external
+        view
+        returns (DepositReceipt memory);
 
     /**
      * Gets the withdrawal receipt for the requrested user.
