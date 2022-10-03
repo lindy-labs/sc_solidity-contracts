@@ -1,4 +1,4 @@
-# Properties
+# Vault Properties
 
 ## Sandclock System Properties
 
@@ -67,10 +67,17 @@ Invoking Vault.withdraw() with invalid parameters always reverts when
 
 Invoking Vault.deposit() or Vault.withdraw() does not change price per share
 
-| Property                           | Echidna | Formally Verified |
-| ---------------------------------- | :-----: | :---------------: |
-| deposit preserves price per share  |         |         ✓         |
-| withdraw preserves price per share |         |         ✓         |
+| Property                             | Echidna | Formally Verified |
+| ------------------------------------ | :-----: | :---------------: |
+| deposits preserve price per share    |         |         ✓         |
+| withdrawals preserve price per share |         |         ✓         |
+
+Invoking Vault.deposit() or Vault.withdraw() does not change the relation $$totalPrincipal == \sum deposits$$
+
+| Property                             | Echidna | Formally Verified |
+| ------------------------------------ | :-----: | :---------------: |
+| deposits preserve price per share    |         |         ✓         |
+| withdrawals preserve price per share |         |         ✓         |
 
 ### Access Control
 
