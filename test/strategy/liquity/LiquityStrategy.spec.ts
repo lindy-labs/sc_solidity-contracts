@@ -1,4 +1,5 @@
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
+import { time } from '@openzeppelin/test-helpers';
 import { ethers, upgrades } from 'hardhat';
 import { expect } from 'chai';
 import { BigNumber, utils, constants } from 'ethers';
@@ -30,7 +31,7 @@ describe('LiquityStrategy', () => {
   let LiquityStrategyFactory: LiquityStrategy__factory;
 
   const TREASURY = generateNewAddress();
-  const MIN_LOCK_PERIOD = 1;
+  const MIN_LOCK_PERIOD = BigNumber.from(time.duration.weeks(2).toNumber());
   const PERFORMANCE_FEE_PCT = BigNumber.from('0');
   const INVEST_PCT = BigNumber.from('10000');
   const INVESTMENT_FEE_PCT = BigNumber.from('0');
@@ -106,6 +107,11 @@ describe('LiquityStrategy', () => {
     await underlying
       .connect(admin)
       .approve(vault.address, constants.MaxUint256);
+
+    console.log('Strategy deployed at', strategyProxy.address);
+    console.log('Vault deployed at', vault.address);
+    console.log('Underlying deployed at', underlying.address);
+    console.log('LQTY deployed at', lqty.address);
   });
 
   describe('#initialize', () => {
