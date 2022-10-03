@@ -148,13 +148,20 @@ contract MockRyskLiquidityPool is ERC20 {
     function completeWithdraw(uint256 _shares) external returns (uint256) {
         require(_shares > 0);
 
-        uint256 sharesToWithdraw = withdrawalReceipts[msg.sender].shares;
+        IRyskLiquidityPool.WithdrawalReceipt
+            storage withdrawalReceipt = withdrawalReceipts[msg.sender];
 
-        uint256 amount = (sharesToWithdraw *
+        require(
+            _shares <= withdrawalReceipt.shares,
+            "Not enough shares to withdraw"
+        );
+
+        withdrawalReceipt.shares -= uint128(_shares);
+        _burn(address(this), _shares);
+
+        uint256 amount = (_shares *
             withdrawalEpochPricePerShare[withdrawalEpoch]) / 1e18;
-
         underlying.transfer(msg.sender, amount);
-        _burn(address(this), sharesToWithdraw);
 
         return amount;
     }

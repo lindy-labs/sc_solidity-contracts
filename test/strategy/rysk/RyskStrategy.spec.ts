@@ -278,26 +278,6 @@ describe('RyskStrategy', () => {
       expect(withdrawalReceipt.shares).to.eq(amountToWithdraw);
     });
 
-    it('caches initiated (pending) withdrawal', async () => {
-      const underlyingAmount = parseUnits('100');
-      await underlying.mint(strategy.address, underlyingAmount);
-      await strategy.connect(manager).invest();
-      await ryskLqPool.executeEpochCalculation();
-
-      const amountToWithdraw = parseUnits('100');
-      await strategy.connect(manager).withdrawToVault(amountToWithdraw);
-
-      const withdrawalReceipt = await ryskLqPool.withdrawalReceipts(
-        strategy.address,
-      );
-      expect((await strategy.pendingWithdrawal()).epoch).to.eq(
-        withdrawalReceipt.epoch,
-      );
-      expect((await strategy.pendingWithdrawal()).shares).to.eq(
-        withdrawalReceipt.shares,
-      );
-    });
-
     it('emits StrategyWithdrawalInitiated event', async () => {
       let underlyingAmount = parseUnits('100');
       await underlying.mint(strategy.address, underlyingAmount);
@@ -366,7 +346,9 @@ describe('RyskStrategy', () => {
       await strategy.connect(manager).withdrawToVault(parseUnits('60'));
       await strategy.connect(manager).withdrawToVault(parseUnits('40'));
 
-      const pendingWithdrawal = await strategy.pendingWithdrawal();
+      const pendingWithdrawal = await ryskLqPool.withdrawalReceipts(
+        strategy.address,
+      );
       expect(pendingWithdrawal.epoch).to.eq(await ryskLqPool.withdrawalEpoch());
       // 1 mocked share = 1 underlying
       expect(pendingWithdrawal.shares).to.eq(parseUnits('100'));
@@ -446,23 +428,6 @@ describe('RyskStrategy', () => {
       );
     });
 
-    it('clears cached pending withdrawal', async () => {
-      await underlying.mint(strategy.address, parseUnits('100'));
-      await strategy.connect(manager).invest();
-      await ryskLqPool.executeEpochCalculation();
-
-      const amountToWithdraw = parseUnits('50');
-      await strategy.connect(manager).withdrawToVault(amountToWithdraw);
-
-      await ryskLqPool.executeEpochCalculation();
-
-      await strategy.connect(keeper).completeWithdrawal();
-
-      const pendingWithdrawal = await strategy.pendingWithdrawal();
-      expect(pendingWithdrawal.epoch).to.eq('0');
-      expect(pendingWithdrawal.shares).to.eq('0');
-    });
-
     it('emits strategy withdrawn event', async () => {
       await underlying.mint(strategy.address, parseUnits('100'));
       await strategy.connect(manager).invest();
@@ -529,9 +494,9 @@ describe('RyskStrategy', () => {
 
       await strategy.connect(manager).withdrawToVault(parseUnits('100'));
 
-      expect((await strategy.pendingWithdrawal()).shares).to.eq(
-        parseUnits('100'),
-      );
+      expect(
+        (await ryskLqPool.withdrawalReceipts(strategy.address)).shares,
+      ).to.eq(parseUnits('100'));
       expect(await strategy.hasAssets()).to.be.true;
     });
 
@@ -545,9 +510,9 @@ describe('RyskStrategy', () => {
 
       await strategy.connect(keeper).completeWithdrawal();
 
-      expect((await strategy.pendingWithdrawal()).shares).to.eq(
-        parseUnits('0'),
-      );
+      expect(
+        (await ryskLqPool.withdrawalReceipts(strategy.address)).shares,
+      ).to.eq(parseUnits('0'));
       expect(await ryskLqPool.balanceOf(strategy.address)).to.eq(
         parseUnits('50'),
       );
@@ -601,9 +566,9 @@ describe('RyskStrategy', () => {
       );
       await ryskLqPool.executeEpochCalculation();
 
-      expect((await strategy.pendingWithdrawal()).shares).to.eq(
-        parseUnits('0'),
-      );
+      expect(
+        (await ryskLqPool.withdrawalReceipts(strategy.address)).shares,
+      ).to.eq(parseUnits('0'));
       expect(await ryskLqPool.balanceOf(strategy.address)).to.eq(
         parseUnits('50'),
       );
@@ -661,9 +626,9 @@ describe('RyskStrategy', () => {
       expect(
         (await ryskLqPool.depositReceipts(strategy.address)).unredeemedShares,
       ).to.eq(parseUnits('100'));
-      expect((await strategy.pendingWithdrawal()).shares).to.eq(
-        parseUnits('50'),
-      );
+      expect(
+        (await ryskLqPool.withdrawalReceipts(strategy.address)).shares,
+      ).to.eq(parseUnits('50'));
       expect(await ryskLqPool.balanceOf(strategy.address)).to.eq(
         parseUnits('50'),
       );
