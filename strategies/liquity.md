@@ -16,6 +16,8 @@ The Metavault **receives LQTY at a fixed APR of 8%** and **earns additional dyna
 Because of this, the short term APY could be as low as 6% and as high as 1000%. It is completely unpredictable. As a result, for our frontend, we use a range using the 7d and the 365d average rolling APR.
 {% endhint %}
 
+<figure><img src="../.gitbook/assets/image.png" alt=""><figcaption></figcaption></figure>
+
 During bear markets and bull/crab market high volatility periods, the frequency of liquidations increases, and so does the Stability Pool's revenue. Because of this **we recommend a minimum deposit duration of 1 month.**
 
 For more information, [visit Liquity's Docs.](https://docs.liquity.org/)
