@@ -1,0 +1,17 @@
+{
+    "topics": [
+        {
+            "name": "type_check",
+            "messages": [
+                {
+                    "message": "Syntax error in spec file (TotalPrincipal.spec:12:1): Type mismatch: keys to vault.deposits should have type uint256 but a has type address",
+                    "location": []
+                },
+                {
+                    "message": "Syntax error in spec file (TotalPrincipal.spec:12:1): Slot pattern vault.deposits[KEY address a] is not a integral type: struct IVault.Deposit",
+                    "location": []
+                }
+            ]
+        }
+    ]
+}

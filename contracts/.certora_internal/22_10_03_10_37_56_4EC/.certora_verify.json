@@ -1,0 +1,10 @@
+[
+    {
+        "importFilesToOrigRelpaths": {},
+        "primary_contract": "VaultDeposit",
+        "specfile": ".certora_internal/22_10_03_10_37_56_4EC/.certora_config/0_TotalPrincipal.spec.spec",
+        "specfileOrigRelpath": "properties/certora/Invariants/TotalPrincipal.spec",
+        "specfilesToImportDecls": {},
+        "type": "spec"
+    }
+]

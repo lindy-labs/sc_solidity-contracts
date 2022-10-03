@@ -1,0 +1,13 @@
+{
+    "topics": [
+        {
+            "name": "type_check",
+            "messages": [
+                {
+                    "message": "Syntax error in spec file (TotalPrincipal.spec:12:1): Slot pattern vault.deposits[KEY uint256 k] is not a integral type: struct IVault.Deposit",
+                    "location": []
+                }
+            ]
+        }
+    ]
+}

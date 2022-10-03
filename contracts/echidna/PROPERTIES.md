@@ -70,6 +70,13 @@ Invoking Vault.deposit() or Vault.withdraw() do not change price per share
 | deposit preserve price per share   |   | ✓  |
 | withdraw preserve price per share  |   | ✓  |
 
+Invoking Vault.deposit() does not change the relation: totalPrincipal == SUM(deposits amount)
+
+| Property  | Echidna | Formally Verified |
+| ------------- | :-------------: | :-------------: |
+| deposit preserve price per share   |   | ✓  |
+| withdraw preserve price per share  |   | ✓  |
+
 ## Access Control
 
 | Property  | Echidna | Formally Verified |
