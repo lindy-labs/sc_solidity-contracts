@@ -55,15 +55,19 @@ contract RyskStrategy is BaseStrategy {
     constructor(
         address _vault,
         address _admin,
+        address _keeper,
         address _ryskLiquidityPool,
         IERC20 _underlying
     ) BaseStrategy(_vault, _underlying, _admin) {
         if (_ryskLiquidityPool == address(0))
             revert RyskLiquidityPoolCannotBe0Address();
+        if (_keeper == address(0)) revert StrategyKeeperCannotBe0Address();
 
         ryskLqPool = IRyskLiquidityPool(_ryskLiquidityPool);
 
         underlying.safeIncreaseAllowance(_ryskLiquidityPool, type(uint256).max);
+
+        _grantRole(KEEPER_ROLE, _keeper);
     }
 
     //
@@ -191,7 +195,7 @@ contract RyskStrategy is BaseStrategy {
      * The backend should subscribe to 'WithdrawalEpochExecuted' event on the Rysk LiquidityPool contract,
      * and act by calling this function when the event is emitted to complete pending withdrawal.
      */
-    function completeWithdrawal() external {
+    function completeWithdrawal() external onlyKeeper {
         if (pendingWithdrawal.epoch == 0) revert RyskNoWithdrawalInitiated();
         if (pendingWithdrawal.epoch == ryskLqPool.withdrawalEpoch())
             revert RyskCannotCompleteWithdrawalInSameEpoch();

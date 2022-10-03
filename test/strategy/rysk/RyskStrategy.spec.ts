@@ -18,6 +18,7 @@ describe('RyskStrategy', () => {
   let admin: SignerWithAddress;
   let alice: SignerWithAddress;
   let manager: SignerWithAddress;
+  let keeper: SignerWithAddress;
   let vault: Vault;
   let ryskLqPool: MockRyskLiquidityPool;
   let strategy: RyskStrategy;
@@ -29,7 +30,7 @@ describe('RyskStrategy', () => {
   const MANAGER_ROLE = utils.keccak256(utils.toUtf8Bytes('MANAGER_ROLE'));
 
   beforeEach(async () => {
-    [admin, alice, manager] = await ethers.getSigners();
+    [admin, alice, manager, keeper] = await ethers.getSigners();
 
     const MockERC20 = await ethers.getContractFactory('MockUSDC');
     underlying = await MockERC20.deploy(parseUnits('1000000000'));
@@ -62,6 +63,7 @@ describe('RyskStrategy', () => {
     strategy = await RyskStrategyFactory.deploy(
       vault.address,
       admin.address,
+      keeper.address,
       ryskLqPool.address,
       underlying.address,
     );
@@ -81,10 +83,23 @@ describe('RyskStrategy', () => {
         RyskStrategyFactory.deploy(
           vault.address,
           constants.AddressZero,
+          keeper.address,
           ryskLqPool.address,
           underlying.address,
         ),
       ).to.be.revertedWith('StrategyAdminCannotBe0Address');
+    });
+
+    it('reverts if the keeper is address(0)', async () => {
+      await expect(
+        RyskStrategyFactory.deploy(
+          vault.address,
+          admin.address,
+          constants.AddressZero,
+          ryskLqPool.address,
+          underlying.address,
+        ),
+      ).to.be.revertedWith('StrategyKeeperCannotBe0Address');
     });
 
     it('reverts if the Rysk liquidity pool is address(0)', async () => {
@@ -92,6 +107,7 @@ describe('RyskStrategy', () => {
         RyskStrategyFactory.deploy(
           vault.address,
           admin.address,
+          keeper.address,
           constants.AddressZero,
           underlying.address,
         ),
@@ -103,6 +119,7 @@ describe('RyskStrategy', () => {
         RyskStrategyFactory.deploy(
           vault.address,
           admin.address,
+          keeper.address,
           ryskLqPool.address,
           constants.AddressZero,
         ),
@@ -114,6 +131,7 @@ describe('RyskStrategy', () => {
         RyskStrategyFactory.deploy(
           manager.address, // vault param
           admin.address,
+          keeper.address,
           ryskLqPool.address,
           underlying.address,
         ),
@@ -374,13 +392,23 @@ describe('RyskStrategy', () => {
   });
 
   describe('#completeWithdrawal', () => {
+    it('fails if caller is not keeper', async () => {
+      await underlying.mint(strategy.address, parseUnits('100'));
+      await strategy.connect(manager).invest();
+      await ryskLqPool.executeEpochCalculation();
+
+      await expect(
+        strategy.connect(alice).completeWithdrawal(),
+      ).to.be.revertedWith('StrategyCallerNotKeeper');
+    });
+
     it('fails if withdrawal is not initiated', async () => {
       await underlying.mint(strategy.address, parseUnits('100'));
       await strategy.connect(manager).invest();
       await ryskLqPool.executeEpochCalculation();
 
       await expect(
-        strategy.connect(manager).completeWithdrawal(),
+        strategy.connect(keeper).completeWithdrawal(),
       ).to.be.revertedWith('RyskNoWithdrawalInitiated');
     });
 
@@ -392,9 +420,9 @@ describe('RyskStrategy', () => {
       // initiate withdrawal
       await strategy.connect(manager).withdrawToVault(parseUnits('50'));
 
-      await expect(strategy.completeWithdrawal()).to.be.revertedWith(
-        'RyskCannotCompleteWithdrawalInSameEpoch',
-      );
+      await expect(
+        strategy.connect(keeper).completeWithdrawal(),
+      ).to.be.revertedWith('RyskCannotCompleteWithdrawalInSameEpoch');
     });
 
     it('works if epoch has advanced', async () => {
@@ -409,7 +437,7 @@ describe('RyskStrategy', () => {
       // advance epoch
       await ryskLqPool.executeEpochCalculation();
 
-      await strategy.completeWithdrawal();
+      await strategy.connect(keeper).completeWithdrawal();
 
       expect(await underlying.balanceOf(vault.address)).to.eq(amountToWithdraw);
       expect(await underlying.balanceOf(strategy.address)).to.eq(0);
@@ -428,7 +456,7 @@ describe('RyskStrategy', () => {
 
       await ryskLqPool.executeEpochCalculation();
 
-      await strategy.completeWithdrawal();
+      await strategy.connect(keeper).completeWithdrawal();
 
       const pendingWithdrawal = await strategy.pendingWithdrawal();
       expect(pendingWithdrawal.epoch).to.eq('0');
@@ -447,7 +475,7 @@ describe('RyskStrategy', () => {
       // advance epoch
       await ryskLqPool.executeEpochCalculation();
 
-      const tx = await strategy.completeWithdrawal();
+      const tx = await strategy.connect(keeper).completeWithdrawal();
 
       await expect(tx)
         .to.emit(strategy, 'StrategyWithdrawn')
@@ -476,7 +504,7 @@ describe('RyskStrategy', () => {
       await strategy.connect(manager).withdrawToVault(amountToWithdraw);
       await ryskLqPool.executeEpochCalculation();
 
-      await strategy.completeWithdrawal();
+      await strategy.connect(keeper).completeWithdrawal();
 
       expect(await underlying.balanceOf(vault.address)).to.eq(amountToWithdraw);
     });
@@ -515,7 +543,7 @@ describe('RyskStrategy', () => {
       await strategy.connect(manager).withdrawToVault(parseUnits('50'));
       await ryskLqPool.executeEpochCalculation();
 
-      await strategy.completeWithdrawal();
+      await strategy.connect(keeper).completeWithdrawal();
 
       expect((await strategy.pendingWithdrawal()).shares).to.eq(
         parseUnits('0'),
@@ -564,7 +592,7 @@ describe('RyskStrategy', () => {
       await strategy.connect(manager).withdrawToVault(parseUnits('50'));
       await ryskLqPool.executeEpochCalculation();
 
-      await strategy.completeWithdrawal();
+      await strategy.connect(keeper).completeWithdrawal();
 
       // generate yield to increase share value 2x
       await underlying.mint(
