@@ -11,5 +11,7 @@ contract MockLiquityStrategyV3 is LiquityStrategy {
         uint256 _ethAmount,
         bytes calldata _ethSwapData,
         uint256 _amountOutMin
-    ) external virtual override onlyKeeper {}
+    ) external virtual override onlyKeeper {
+        emit StrategyReinvested(_ethAmount);
+    }
 }
