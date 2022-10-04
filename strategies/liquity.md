@@ -34,7 +34,7 @@ The Metavault earns a return on its stablecoin deposits by dollar-cost averaging
 
 1. Deposit LUSD to Liquity’s stability pool;
 2. Stability pool contract sends LQTY and LUSD, as well as ETH rewards from liquidations;
-3. Liquidate on 0x for LUSD using Flashbots to avoid getting frontrun;
+3. Backend uses heuristics to know when to liquidate on 0x for LUSD using Flashbots to avoid getting frontrun;
 4. Go to 1.
 
 ### Claim Heuristics
@@ -43,9 +43,11 @@ ETH, LUSD, and LQTY yield is received whenever an interaction with the contract 
 
 Typically, we only claim when we want to liquidate, based on the trailing stop loss heuristic. However, if it has been too long and we want fresher data on the principal for Sandclock's dashboard we use a heartbeat heuristic. We expect the heartbeat heuristic to be used infrequently, as all rewards accrue to the strategy contract with each interaction.
 
+All actions occur automatically.
+
 #### **Trailing Stop Loss**
 
-The backend checks for liquidations on the stability pool every couple of minutes, logging each event. When a liquidation takes place we need the amount of liquidated ETH we are entitled to, the price of acquisition, and our balance. The backend uses this data and ETH’s current price to calculate our weighted average price of acquisition, and to put a trailing stop loss order in place, which in turns sets the ETH liquidation price for the backend. The backend checks ETH’s price every 10 minutes and compares it to the liquidation price. If it is equal or lower than the liquidation price, it exchanges ETH and LQTY for LUSD and compounds.
+The backend checks for liquidations on the stability pool every 10 minutes, logging each event. When a liquidation takes place it logs the amount of ETH liquidated that we are entitled to, the price of acquisition, and our balance. The backend uses this data and ETH’s current price to calculate our weighted average price of acquisition, and puts a trailing stop loss order in place, which in turns sets the ETH liquidation price for the backend. The backend checks ETH’s price every 10 minutes and compares it to the liquidation price. If it is equal or lower than the liquidation price, it exchanges ETH and LQTY for LUSD and compounds.
 
 #### Heartbeat
 

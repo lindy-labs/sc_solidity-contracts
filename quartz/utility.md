@@ -12,7 +12,7 @@ Sandclock's metavaults charge a performance fee over the yield generated. **The 
 
 <figure><img src="../.gitbook/assets/image (7) (1).png" alt=""><figcaption></figcaption></figure>
 
-In the future, if the DAO desires, a rageQuit() function can be implemented, where burning $QUARTZ will withdraw a proportional account of the treasury to the account owner. Other value accrual mechanisms will also be considered, pending a DAO vote.
+In the future, if the DAO desires, a rageQuit() function can be implemented, where burning $QUARTZ will withdraw a proportional amount of the treasury to the account owner. Other value accrual mechanisms will also be considered, pending a DAO vote.
 
 ## Insurance Claim
 
