@@ -29,11 +29,11 @@ This is a non exhaustive list of possible emergency scenarios:
 
 In the event of an emergency situation, the following roles should be assigned to the contributors working to resolve the situation. Here we list them and the first choice.
 
-* Facilitator: [Cristiano](https://www.notion.so/Cristiano-Teixeira-048e7e9edfd64a7c90f9c3c587f0e183)
-* Multi-sig Herder: [Cristiano](https://www.notion.so/Cristiano-Teixeira-048e7e9edfd64a7c90f9c3c587f0e183)
-* Core Dev Lead (Guardian): [Diganta](https://www.notion.so/Diganta-Kalita-d969b5215e104f0aa174931fda851120), [Martin](https://www.notion.so/Martin-Stuessy-9e00375afe694a848a2fd2fd64123f38), [Nenad](https://www.notion.so/Nenad-Milenkovic-d4d9f0e8c9ab430eb1f17b20f78d954a), whoever is available/awake
-* Web Lead: N/A (for now)
-* Ops: [Cristiano](https://www.notion.so/Cristiano-Teixeira-048e7e9edfd64a7c90f9c3c587f0e183)
+* Facilitator
+* Multi-sig Herde
+* Core Dev Lead (Guardian9
+* Web Lead
+* Ops
 
 A contributor may be assigned up to two of these roles concurrently.
 
