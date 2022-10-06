@@ -23,5 +23,6 @@
 * [Security](security.md)
   * [External](security/external.md)
   * [Internal](security/internal.md)
+  * [Emergency Procedures](security/emergency-procedures.md)
 * [Integration](integration.md)
 * [Deployments](deployments.md)
