@@ -22,7 +22,7 @@ abstract contract BaseStrategy is IStrategy, AccessControl, CustomErrors {
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
     /// role allowed to change settings of the strategy
     bytes32 public constant SETTINGS_ROLE = keccak256("SETTINGS_ROLE");
-    // role allowed to call mainteinance functions
+    // role allowed to call maintenance functions
     bytes32 public constant KEEPER_ROLE = keccak256("KEEPER_ROLE");
     // underlying ERC20 token
     IERC20 public underlying;

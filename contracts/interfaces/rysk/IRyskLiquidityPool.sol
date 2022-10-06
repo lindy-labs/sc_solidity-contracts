@@ -64,10 +64,10 @@ interface IRyskLiquidityPool is IERC20 {
      *
      * @notice The amount of underlying currency deposited is converted to shares.
      * On sucessful deposit, deposit receipt is created containing only the amount deposited, no unredeemed shares.
-     * Only when a new deposit epoch is initiated, corresponding number of shares is minted but
-     * the ownership of the shares is not transferred to the caller, they remain owned by the pool.
-     * Those shares will become unreddemed on the next deposit call.
-     * All shares are redeemed on call to initiateWithdrawal.
+     * Only when a new deposit epoch is initiated, corresponding number of shares is minted. Shares minted are not
+     * immediately transferred to the caller and they will not show in the call to balanceOf() function on the pool.
+     * Those shares will become unreddemed on the next deposit call and that will be reflected on the deposit receipt.
+     * All shares will be redeemed on the next call to initiateWithdrawal or redeem functions.
      *
      * @return true if the deposit was successful
      */
@@ -81,8 +81,8 @@ interface IRyskLiquidityPool is IERC20 {
      * Newly minted shares are not owned by the depositor immediately, instead they are owned by the pool itself when minted.
      * For the depositor to claim his shares, it is required for him to interact with the pool. For example, when making a new deposit,
      * unredemed shares from the previous epoch are added to the deposit receipt as unredeemed shares. When initiating a withdrawal,
-     * all unredeemed shares will be redeemed, meaning ownership of those shares is transfered from the pool to the depositor and
-     * deposit receipt fields (amount and unredeemed shares) are reset.
+     * all unredeemed shares will be redeemed, deposit receipt fields (amount and unredeemed shares) are reset and those shares
+     * are now counted in the return value of the balanceOf() function on the pool.
      *
      * @param _shares amount of shares to redeem
      *
@@ -108,7 +108,7 @@ interface IRyskLiquidityPool is IERC20 {
      * Completes the withdrawal operation.
      *
      * @notice This is the second part of the asynchronous withdrawal operation.
-     * Shares are converted to underlying currency and transferred to the caller, using price per share for the current withdrawal epoch.
+     * Shares are converted to underlying currency and transferred to the caller, using price per share for the withdrawal epoch.
      * initiateWithdrawal and completeWithdrawal cannot be called in the same epoch.
      * On success, the withdrawal receipt is updated, shares are burned and the caller receives the underlying assets.
      *

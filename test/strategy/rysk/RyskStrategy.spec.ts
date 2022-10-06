@@ -11,7 +11,7 @@ import {
   RyskStrategy__factory,
 } from '../../../typechain';
 
-import { generateNewAddress } from '../../shared/';
+import { generateNewAddress, ForkHelpers } from '../../shared/';
 import { parseUnits } from 'ethers/lib/utils';
 
 describe('RyskStrategy', () => {
@@ -152,39 +152,6 @@ describe('RyskStrategy', () => {
       expect(
         await underlying.allowance(strategy.address, ryskLqPool.address),
       ).to.eq(constants.MaxUint256);
-    });
-  });
-
-  describe('#transferAdminRights', () => {
-    it('can only be called by the current admin', async () => {
-      await expect(
-        strategy.connect(alice).transferAdminRights(alice.address),
-      ).to.be.revertedWith('StrategyCallerNotAdmin');
-    });
-
-    it('reverts if new admin is address(0)', async () => {
-      await expect(
-        strategy.connect(admin).transferAdminRights(constants.AddressZero),
-      ).to.be.revertedWith('StrategyAdminCannotBe0Address');
-    });
-
-    it('reverts if the new admin is the same as the current one', async () => {
-      await expect(
-        strategy.connect(admin).transferAdminRights(admin.address),
-      ).to.be.revertedWith('StrategyCannotTransferAdminRightsToSelf');
-    });
-
-    it('transfers admin rights from current account to the new one', async () => {
-      expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, admin.address)).to.be
-        .true;
-
-      await strategy.connect(admin).transferAdminRights(alice.address);
-
-      expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, admin.address)).to.be
-        .false;
-
-      expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, alice.address)).to.be
-        .true;
     });
   });
 
@@ -329,7 +296,7 @@ describe('RyskStrategy', () => {
       await strategy.connect(manager).withdrawToVault(amountOk);
 
       // second call
-      const amountTooBig = parseUnits('110');
+      const amountTooBig = parseUnits('10').add('1');
       await expect(
         strategy.connect(manager).withdrawToVault(amountTooBig),
       ).to.be.revertedWith('StrategyNotEnoughShares');
@@ -460,7 +427,7 @@ describe('RyskStrategy', () => {
       const epoch = await ryskLqPool.withdrawalEpoch();
       const shares = await ryskLqPool.totalSupply();
       const pricePerShare = await ryskLqPool.withdrawalEpochPricePerShare(
-        epoch,
+        epoch.sub(1),
       );
       const amountToWithdraw = shares
         .mul(pricePerShare)
@@ -527,7 +494,7 @@ describe('RyskStrategy', () => {
       expect(await strategy.investedAssets()).to.eq(0);
     });
 
-    it('includes amount for pending deposit shares', async () => {
+    it('includes amount for deposits in the current epoch', async () => {
       await underlying.mint(strategy.address, parseUnits('100'));
       await strategy.connect(manager).invest();
 
@@ -545,8 +512,7 @@ describe('RyskStrategy', () => {
       await underlying.mint(ryskLqPool.address, parseUnits('100'));
       await ryskLqPool.executeEpochCalculation();
 
-      // expected to include gains only from the epoch when withdrawal was initiated
-      expect(await strategy.investedAssets()).to.eq(parseUnits('100'));
+      expect(await strategy.investedAssets()).to.eq(parseUnits('200'));
     });
 
     it('includes amount for redeemed shares', async () => {
@@ -559,6 +525,13 @@ describe('RyskStrategy', () => {
 
       await strategy.connect(keeper).completeWithdrawal();
 
+      expect(await underlying.balanceOf(vault.address)).to.eq(parseUnits('50'));
+      expect(await underlying.balanceOf(ryskLqPool.address)).to.eq(
+        parseUnits('50'),
+      );
+      expect(await ryskLqPool.balanceOf(strategy.address)).to.eq(
+        parseUnits('50'),
+      );
       // generate yield to increase share value 2x
       await underlying.mint(
         ryskLqPool.address,
@@ -580,9 +553,6 @@ describe('RyskStrategy', () => {
       await strategy.connect(manager).invest();
       await ryskLqPool.executeEpochCalculation();
 
-      await underlying.mint(strategy.address, parseUnits('100'));
-      await strategy.connect(manager).invest();
-
       // generate yield to increase share value 2x
       await underlying.mint(
         ryskLqPool.address,
@@ -590,11 +560,19 @@ describe('RyskStrategy', () => {
       );
       await ryskLqPool.executeEpochCalculation();
 
-      // at this point we have 100 redeemed and 100 unredeemed shares which both doubled in value
+      await ForkHelpers.impersonate([strategy.address]);
+      const stratSigner = await ethers.getSigner(strategy.address);
+      ForkHelpers.setBalance(stratSigner.address, parseUnits('1'));
+      await ryskLqPool.connect(stratSigner).redeem(parseUnits('50'));
+
+      // at this point we have 50 redeemed and 50 unredeemed shares which both doubled in value
       expect(
         (await ryskLqPool.depositReceipts(strategy.address)).unredeemedShares,
-      ).to.eq(parseUnits('100'));
-      expect(await strategy.investedAssets()).to.eq(parseUnits('400'));
+      ).to.eq(parseUnits('50'));
+      expect(await ryskLqPool.balanceOf(strategy.address)).to.eq(
+        parseUnits('50'),
+      );
+      expect(await strategy.investedAssets()).to.eq(parseUnits('200'));
     });
 
     it('sums amounts for pending deposit, pending withdrawal, unredeemed and redeemed shares', async () => {
@@ -606,9 +584,10 @@ describe('RyskStrategy', () => {
       // this will result in 50 shares on pending withdrawal receipt and 50 redeemed shares
       await strategy.connect(manager).withdrawToVault(parseUnits('50'));
 
-      // add 100 unredeemed shares
+      // add 100 shares that will be unredeemed after next deposit
       await underlying.mint(strategy.address, parseUnits('100'));
       await strategy.connect(manager).invest();
+
       await ryskLqPool.executeEpochCalculation();
 
       // add 100 shares for pending deposit

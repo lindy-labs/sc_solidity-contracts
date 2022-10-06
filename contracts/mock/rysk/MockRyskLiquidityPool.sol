@@ -38,10 +38,10 @@ contract MockRyskLiquidityPool is ERC20 {
     ) ERC20(_name, _symbol) {
         underlying = IERC20(_underlying);
 
-        depositEpoch++;
         depositEpochPricePerShare[depositEpoch] = 1e18;
-        withdrawalEpoch++;
+        depositEpoch++;
         withdrawalEpochPricePerShare[withdrawalEpoch] = 1e18;
+        withdrawalEpoch++;
     }
 
     function deposit(uint256 _amount) external returns (bool) {
@@ -61,9 +61,8 @@ contract MockRyskLiquidityPool is ERC20 {
             depositReceipt.amount += uint128(_amount);
         } else {
             depositReceipt.amount = uint128(_amount);
+            depositReceipt.epoch = uint128(depositEpoch);
         }
-
-        depositReceipt.epoch = uint128(depositEpoch);
 
         pendingDeposits += _amount;
         underlying.transferFrom(msg.sender, address(this), _amount);
@@ -90,22 +89,21 @@ contract MockRyskLiquidityPool is ERC20 {
         // transfer shares to the pool to initiate withdrawal
         _transfer(msg.sender, address(this), _shares);
 
-        if (withdrawalReceipt.epoch == 0) {
-            // initiate withdrawal receipt
-            withdrawalReceipt.epoch = uint128(withdrawalEpoch);
-            withdrawalReceipt.shares = uint128(_shares);
-            return;
-        }
-
         if (withdrawalReceipt.epoch == withdrawalEpoch) {
             // add to the previous receipt since withdrawal is already initiated for this epoch
             withdrawalReceipt.shares = uint128(
                 withdrawalReceipt.shares + _shares
             );
+
             return;
         }
 
-        require(false, "Withdrawal already initiated");
+        if (withdrawalReceipt.shares > 0) {
+            require(false, "Withdrawal already initiated");
+        }
+
+        withdrawalReceipt.epoch = uint128(withdrawalEpoch);
+        withdrawalReceipt.shares = uint128(_shares);
     }
 
     function redeem(uint256 _sharesToRedeem) public returns (uint256) {
@@ -160,22 +158,29 @@ contract MockRyskLiquidityPool is ERC20 {
         _burn(address(this), _shares);
 
         uint256 amount = (_shares *
-            withdrawalEpochPricePerShare[withdrawalEpoch]) / 1e18;
+            withdrawalEpochPricePerShare[withdrawalReceipt.epoch]) / 1e18;
         underlying.transfer(msg.sender, amount);
 
         return amount;
     }
 
     function executeEpochCalculation() public {
-        calculateDepositEpoch();
-        calculateWithdrawalEpoch();
-    }
+        uint256 newPricePerShare;
+        if (totalSupply() == 0) {
+            newPricePerShare = 1e18;
+        } else {
+            newPricePerShare =
+                ((totalAssets() - pendingDeposits) * 1e18) /
+                totalSupply();
+        }
 
-    function calculateDepositEpoch() public {
+        depositEpochPricePerShare[depositEpoch] = newPricePerShare;
+        withdrawalEpochPricePerShare[withdrawalEpoch] = newPricePerShare;
+
         if (pendingDeposits != 0) {
             uint256 sharesToMint = _getSharesForAmount(
                 pendingDeposits,
-                depositEpochPricePerShare[depositEpoch]
+                newPricePerShare
             );
 
             _mint(address(this), sharesToMint);
@@ -183,16 +188,7 @@ contract MockRyskLiquidityPool is ERC20 {
         }
 
         depositEpoch++;
-
-        uint256 pricePerShare = (totalAssets() * 1e18) / totalSupply();
-        depositEpochPricePerShare[depositEpoch] = pricePerShare;
-    }
-
-    function calculateWithdrawalEpoch() public {
         withdrawalEpoch++;
-
-        uint256 pricePerShare = (totalAssets() * 1e18) / totalSupply();
-        withdrawalEpochPricePerShare[withdrawalEpoch] = pricePerShare;
     }
 
     function totalAssets() internal view returns (uint256) {
