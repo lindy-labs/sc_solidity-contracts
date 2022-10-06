@@ -14,7 +14,7 @@ import {
   newParamString,
   donationId,
   createDeposit,
-} from '../../tests/helpers';
+} from '../tests/helpers';
 
 import {
   handleDepositMinted,
@@ -40,8 +40,10 @@ import {
   Foundation,
 } from '../src/types/schema';
 
-const MOCK_ADDRESS_1 = '0xC80B3caAd6d2DE80Ac76a41d5F0072E36D2519Cd'.toLowerCase();
-const MOCK_ADDRESS_2 = '0xE80B3caAd6d2DE80Ac76a41d5F0072E36D2519Ce'.toLowerCase();
+const MOCK_ADDRESS_1 =
+  '0xC80B3caAd6d2DE80Ac76a41d5F0072E36D2519Cd'.toLowerCase();
+const MOCK_ADDRESS_2 =
+  '0xE80B3caAd6d2DE80Ac76a41d5F0072E36D2519Ce'.toLowerCase();
 const TREASURY_ADDRESS = '0x4940c6e628da11ac0bdcf7f82be8579b4696fa33';
 
 test('handleTreasuryUpdated updates the treasury', () => {

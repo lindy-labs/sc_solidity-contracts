@@ -24,7 +24,7 @@ import {
   mockGetDepositorETHGain,
   setupLiquityMocks,
   mockLastGoodPrice,
-} from '../../tests/helpers';
+} from '../tests/helpers';
 
 import { LiquidationState, Vault } from '../src/types/schema';
 
