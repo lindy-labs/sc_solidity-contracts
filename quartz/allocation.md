@@ -23,12 +23,12 @@ QUARTZ can be distributed to increase the TVL of Sandclock's metavaults (e.g. th
 QUARTZ can be granted to incentivize development or marketing of our growing ecosystem.
 
 {% hint style="info" %}
-Team tokens are being vested linearly over three years. If at any point during our temperature checks, the community wishes for complete decentralization, we will gradually distribute our share of the tokens through OTC deals, dutch auctions, and other such mechanisms, in order to minimize negative price action. Initially, for the success of the project, the team will retain a significant portion of the tokens, outlined above. That being said we will generally refrain from voting on proposals with an excessive amount of tokens unless to veto outright malicious actions.
+Team tokens are being vested linearly over three years (vesting time increase being considered). If at any point during our temperature checks, the community wishes for complete decentralization, we will gradually distribute our share of the tokens through OTC deals, dutch auctions, and other such mechanisms, in order to minimize negative price action. Initially, for the success of the project, the team will retain a significant portion of the tokens, outlined above. That being said we will generally refrain from voting on proposals with an excessive amount of tokens unless to veto outright malicious actions.
 {% endhint %}
 
 ### Charity Mining: Permalocked Tokens
 
-At least 30% of QUARTZ shall remain locked in perpetuity. The purpose of this QUARTZ is to incentivize Giving or other actions on-chain without diluting existing holders. **It achieves this through a delegative function,** whereby a trusted backend can delegate voting power to an address on Polygon without transferring ownership of the tokens.
+At least 30% of QUARTZ shall remain locked in perpetuity. The purpose of this QUARTZ is to incentivize TVL growth and Giving or other actions on-chain **without diluting existing holders.** It achieves this through a delegative function, whereby a trusted backend can delegate voting power to an address on Polygon without transferring ownership of the tokens.
 
 It was initially designed in order to incentivize giving, but it can fulfill other objectives while preserving the value of QUARTZ.
 
