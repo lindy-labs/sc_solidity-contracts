@@ -166,4 +166,6 @@ interface IRyskLiquidityPool is IERC20 {
         // max amount of shares intended for withdrawal
         uint128 shares; // 18 decimals assumed
     }
+
+    function getAssets() external view returns (uint256);
 }

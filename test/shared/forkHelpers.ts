@@ -52,7 +52,11 @@ export async function mintToken(
   account: SignerWithAddress | Contract | string,
   amount: BigNumber | number | string,
 ) {
+  console.log('mintToken', token.address, account, amount);
+
   const index = await bruteForceTokenBalanceSlotIndex(token.address);
+
+  console.log('index', index);
 
   const slot = dirtyFix(
     keccak256(
@@ -111,13 +115,15 @@ async function bruteForceTokenBalanceSlotIndex(
 
   for (let i = 0; i < 100; i++) {
     let probedSlot = keccak256(encodeSlot(['address', 'uint'], [account, i])); // remove padding for JSON RPC
-    while (probedSlot.startsWith('0x0'))
-      probedSlot = '0x' + probedSlot.slice(3);
+
     const prev = await network.provider.send('eth_getStorageAt', [
       tokenAddress,
       probedSlot,
       'latest',
     ]);
+
+    while (probedSlot.startsWith('0x0'))
+      probedSlot = '0x' + probedSlot.slice(3);
 
     // make sure the probe will change the slot value
     const probe = prev === probeA ? probeB : probeA;

@@ -38,17 +38,24 @@ describe('AnchorStrategy Mainnet fork', () => {
   const MANAGER_ROLE = utils.keccak256(utils.toUtf8Bytes('MANAGER_ROLE'));
 
   before(async () => {
+    console.log('Forking mainnet...');
     await ForkHelpers.forkToMainnet(FORK_BLOCK);
+    console.log('Forked mainnet');
     [owner, alice, bob] = await ethers.getSigners();
 
     ustToken = IERC20__factory.connect(config.ust, owner);
     aUstToken = IERC20__factory.connect(config.aUst, owner);
+
+    console.log('Deploying mock AUst/UST feed...');
 
     await ForkHelpers.mintToken(
       ustToken,
       alice,
       utils.parseEther('100000000000'),
     );
+
+    console.log('Deploying mock AUst/UST feed...');
+
     await ForkHelpers.mintToken(
       ustToken,
       bob,
