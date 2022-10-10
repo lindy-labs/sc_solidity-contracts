@@ -23,7 +23,7 @@
     "polygon:prep:staging": "mustache ./config/staging.json polygon/subgraph.template.yaml > subgraph.yaml",
     "polygon:prep:production": "mustache ./config/production.json polygon/subgraph.template.yaml > subgraph.yaml",
     "polygon:remove-local": "graph remove --node http://localhost:8020/ sandclock-polygon",
-    "polygon:test": "yarn polygon:prep:local && cd polygon && graph test",
+    "polygon:test": "yarn polygon:prep:local && graph test",
     "test": "yarn ethereum:test && yarn polygon:test"
   },
   "dependencies": {

@@ -14,7 +14,12 @@ import {
   DonationMinted,
 } from '../src/types/Donations/Donations';
 import { DonationMint } from '../src/types/schema';
-import { donationId, newParamAddress, newParamI32, newParamString } from '../../tests/helpers';
+import {
+  donationId,
+  newParamAddress,
+  newParamI32,
+  newParamString,
+} from '../tests/helpers';
 
 test('DonationMinted event creates DonationMint record', () => {
   clearStore();
