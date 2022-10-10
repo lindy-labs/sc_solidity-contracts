@@ -23,7 +23,6 @@
   "dependencies": {
     "@graphprotocol/graph-cli": "0.25.1",
     "@graphprotocol/graph-ts": "0.27.0",
-    "json-merger": "^1.1.9",
     "matchstick-as": "^0.5.0",
     "mustache": "^4.2.0"
   }
