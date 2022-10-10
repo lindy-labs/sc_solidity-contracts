@@ -1,6 +1,4 @@
 /node_modules
-/subgraph/node_modules/*
-!/subgraph/node_modules/.gitkeep
 
 #Hardhat files
 cache
@@ -15,18 +13,17 @@ docs/
 deployments/localhost
 deployments/hardhat
 deployments/docker*
-subgraph/generated
-subgraph/tests/.bin/*
 crytic-export/
 corpus/
-subgraph/ethereum/subgraph.yaml
-subgraph/polygon/subgraph.yaml
-subgraph/ethereum/tests/.bin/*
-subgraph/polygon/tests/.bin/*
-subgraph/ethereum/src/types/*
-subgraph/polygon/src/types/*
 yarn-error.log
-subgraph/subgraph.yaml
 tenderly.yaml
 docker/tenderly.yaml
 package-lock.json
+
+# Subgraph
+/subgraph/node_modules/*
+!/subgraph/node_modules/.gitkeep
+subgraph/generated
+subgraph/subgraph.yaml
+subgraph/src/types/*
+subgraph/tests/.bin/*
