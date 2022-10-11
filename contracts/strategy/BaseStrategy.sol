@@ -72,6 +72,22 @@ abstract contract BaseStrategy is IStrategy, AccessControl, CustomErrors {
         _;
     }
 
+    function sendYield(uint256 amount, address to)
+        external
+        virtual
+        override(IStrategy)
+    {}
+
+    function isDirect()
+        external
+        pure
+        virtual
+        override(IStrategy)
+        returns (bool)
+    {
+        return false;
+    }
+
     /**
      * Transfers administrator rights for the Strategy to another account,
      * revoking current admin roles and setting up the roles for the new admin.

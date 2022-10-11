@@ -167,6 +167,21 @@ contract LiquityStrategy is
     // IStrategy
     //
 
+    function sendYield(uint256 amount, address to)
+        external
+        override(IStrategy)
+    {}
+
+    function isDirect()
+        external
+        pure
+        virtual
+        override(IStrategy)
+        returns (bool)
+    {
+        return false;
+    }
+
     /**
      * Returns true since strategy is synchronous.
      */

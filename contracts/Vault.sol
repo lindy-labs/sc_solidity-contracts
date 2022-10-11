@@ -362,9 +362,17 @@ contract Vault is
 
         accumulatedPerfFee += fee;
 
-        _rebalanceBeforeWithdrawing(yield);
+        if (strategy.isDirect()) {
+            if (!strategy.sendYield(yield, _to)) {
+                _rebalanceBeforeWithdrawing(yield);
 
-        underlying.safeTransfer(_to, yield);
+                underlying.safeTransfer(_to, yield);
+            }
+        } else {
+            _rebalanceBeforeWithdrawing(yield);
+
+            underlying.safeTransfer(_to, yield);
+        }
 
         claimer[msg.sender].totalShares -= shares;
         totalShares -= shares;

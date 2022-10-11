@@ -48,6 +48,11 @@ interface IStrategy {
      */
     function withdrawToVault(uint256 amount) external;
 
+    // TODO: sends yield from the strategy to the user
+    function sendYield(uint256 amount, address to) external;
+
+    function isDirect() external view returns (bool);
+
     /**
      * Amount of the underlying currency currently invested by the strategy.
      *
