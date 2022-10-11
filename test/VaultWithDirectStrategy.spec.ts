@@ -6,7 +6,7 @@ import { expect } from 'chai';
 
 import {
   Vault,
-  MockStrategySync,
+  MockStrategyDirect,
   Vault__factory,
   MockLUSD__factory,
   MockLUSD,
@@ -38,7 +38,7 @@ describe('VaultWithDirectStrategy', () => {
   let yieldUnderlying: MockERC20;
   let vault: Vault;
 
-  let strategy: MockStrategySync;
+  let strategy: MockStrategyDirect;
 
   let addUnderlyingBalance: (
     account: SignerWithAddress,
@@ -114,6 +114,7 @@ describe('VaultWithDirectStrategy', () => {
       underlying.address,
       admin.address,
       yieldUnderlying.address,
+      10000,
     );
 
     await vault.setStrategy(strategy.address);
@@ -138,7 +139,7 @@ describe('VaultWithDirectStrategy', () => {
 
     await addYieldToVault('100');
 
-    // await vault.updateInvested();
+    await vault.updateInvested();
 
     await vault.connect(alice).claimYield(alice.address);
 
@@ -147,5 +148,54 @@ describe('VaultWithDirectStrategy', () => {
     expect(await yieldUnderlying.balanceOf(alice.address)).to.eq(
       parseUnits('100'),
     );
+  });
+
+  it('throws an error if funds are not available', async () => {
+    await addUnderlyingBalance(alice, '100');
+
+    await strategy.setPrincipalPct(11000);
+
+    const params = depositParams.build({
+      amount: parseUnits('100'),
+      inputToken: underlying.address,
+      claims: [claimParams.percent(100).to(alice.address).build()],
+    });
+
+    await vault.connect(alice).deposit(params);
+
+    await addYieldToVault('100');
+
+    await vault.updateInvested();
+
+    await expect(
+      vault.connect(alice).claimYield(alice.address),
+    ).to.be.revertedWith('ERC20: transfer amount exceeds balance');
+  });
+
+  it('throws an error if funds are not available - 2', async () => {
+    await addUnderlyingBalance(alice, '100');
+
+    await vault.setInvestPct(5000);
+
+    await strategy.setPrincipalPct(11000);
+
+    const params = depositParams.build({
+      amount: parseUnits('100'),
+      inputToken: underlying.address,
+      claims: [
+        claimParams.percent(50).to(alice.address).build(),
+        claimParams.percent(50).to(bob.address).build(),
+      ],
+    });
+
+    await vault.connect(alice).deposit(params);
+
+    await addYieldToVault('200');
+
+    await vault.updateInvested();
+
+    await expect(
+      vault.connect(alice).claimYield(alice.address),
+    ).to.be.revertedWith('ERC20: transfer amount exceeds balance');
   });
 });
