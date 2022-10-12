@@ -34,7 +34,7 @@ describe('LiquityStrategy', () => {
   const MIN_LOCK_PERIOD = BigNumber.from(time.duration.weeks(2).toNumber());
   const PERFORMANCE_FEE_PCT = BigNumber.from('0');
   const INVEST_PCT = BigNumber.from('10000');
-  const INVESTMENT_FEE_PCT = BigNumber.from('0');
+  const INVESTMENT_FEE_PCT = BigNumber.from('200');
 
   const DEFAULT_ADMIN_ROLE = constants.HashZero;
   const MANAGER_ROLE = utils.keccak256(utils.toUtf8Bytes('MANAGER_ROLE'));
@@ -108,10 +108,11 @@ describe('LiquityStrategy', () => {
       .connect(admin)
       .approve(vault.address, constants.MaxUint256);
 
-    console.log('Strategy deployed at', strategyProxy.address);
-    console.log('Vault deployed at', vault.address);
-    console.log('Underlying deployed at', underlying.address);
-    console.log('LQTY deployed at', lqty.address);
+    // console.log('Strategy deployed at', strategyProxy.address);
+    // console.log('Vault deployed at', vault.address);
+    // console.log('Underlying deployed at', underlying.address);
+    // console.log('LQTY deployed at', lqty.address);
+    // console.log('Stability Pool deployed at', stabilityPool.address);
   });
 
   describe('#initialize', () => {
