@@ -2,16 +2,14 @@ specVersion: 0.0.2
 schema:
   file: schema.graphql
 dataSources:
-  {{#liquity}}
+  {{#vault}}
   - name: Vault
     kind: ethereum/contract
-    {{#vault}}
     network: {{network}}
     source:
       abi: Vault
       address: "{{address}}"
       startBlock: {{startBlock}}
-    {{/vault}}
     mapping: &mapping
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -44,15 +42,15 @@ dataSources:
           handler: handleYieldClaimed
         - event: TreasuryUpdated(indexed address)
           handler: handleTreasuryUpdated
+  {{/vault}}
+  {{#liquityTrove}}
   - name: LiquityTrove
     kind: ethereum/contract
-    {{#liquityTrove}}
     network: {{network}}
     source:
       abi: LiquityTrove
       address: "{{address}}"
       startBlock: {{startBlock}}
-    {{/liquityTrove}}
     mapping: &mapping
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -71,15 +69,15 @@ dataSources:
       eventHandlers:
         - event: Liquidation(uint256,uint256,uint256,uint256)
           handler: handleLiquidation
+  {{/liquityTrove}}
+  {{#liquityPool}}
   - name: StabilityPool
     kind: ethereum/contract
-    {{#liquityPool}}
     network: {{network}}
     source:
       abi: StabilityPool
       address: "{{address}}"
       startBlock: {{startBlock}}
-    {{/liquityPool}}
     mapping: &mapping
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -93,15 +91,15 @@ dataSources:
       eventHandlers:
         - event: ETHGainWithdrawn(indexed address,uint256,uint256)
           handler: handleETHGainWithdrawn
+  {{/liquityPool}}
+  {{#liquityPriceFeed}}
   - name: LiquityPriceFeed
     kind: ethereum/contract
-    {{#liquityPriceFeed}}
     network: {{network}}
     source:
       abi: LiquityPriceFeed
       address: "{{address}}"
       startBlock: {{startBlock}}
-    {{/liquityPriceFeed}}
     mapping: &mapping
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -114,7 +112,7 @@ dataSources:
           file: ./abis/contracts/mock/liquity/MockLiquityPriceFeed.sol/MockLiquityPriceFeed.json
       blockHandlers:
         - handler: trackHighestPrice
-  {{/liquity}}
+  {{/liquityPriceFeed}}
   {{#donations}}
   - name: Donations
     kind: ethereum/contract
