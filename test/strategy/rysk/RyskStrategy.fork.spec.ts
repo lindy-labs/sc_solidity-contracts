@@ -47,18 +47,16 @@ describe('Rysk Strategy (mainnet fork tests)', () => {
   const TREASURY = generateNewAddress();
   const PERFORMANCE_FEE_PCT = BigNumber.from('0');
   const MANAGER_ROLE = utils.keccak256(utils.toUtf8Bytes('MANAGER_ROLE'));
-  const TX_GAS_LIMIT = 5_000_000;
 
   // mainnet addresses
   const RYSK_LIQUIDITY_POOL = '0xC10B976C671Ce9bFf0723611F01422ACbAe100A5';
   const RYSK_POOL_KEEPER = '0xfbde2e477ed031f54ed5ad52f35ee43cd82cf2a6';
-  const USDC = '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8';
+  const USDC = '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8'; // collateral & strike asset of the pool
+  // const WETH = '0x82af49447d8a07e3bd95bd0d56f35241523fbab1', // underlying asset of the pool
+  // const PROTOCOL = '0x08674f64DaC31f36828B63A4468A3AC3C68Db5B2', // protocol address
+  // const ACCOUNTING = '0xd527BE017Be2C3d3d14D6bdF5C796E26bA0c5EE8', // accounting address
+  // const PORTFOLIO_VALUES_FEED = '0x14eF340B33bD4f64C160E3bfcD2B84D67E9b33dF', // portfolio values feed address
 
-  // const FORK_BLOCK = 27622256;
-  // https://arbiscan.io/block/28312284
-
-  // const FORK_BLOCK = 27422851; // initiate withdraw from 0x74812ecC3BdCF41C287d4Cdb64d03f5c4A3c2818 epoch 2
-  // const FORK_BLOCK = 27455441; // withrawal completed
   // fork block number had to be determined manually by trial and error
   // this is because liquidity pool uses oracles to detrmine the price of the collateral when calculating NAV (net asset value)
   // there is a time delta tolerance that is used to check if the prices are stale and that tolerance requires
@@ -146,11 +144,7 @@ describe('Rysk Strategy (mainnet fork tests)', () => {
       await ForkHelpers.mintToken(usdc, strategy.address, amount);
       await strategy.connect(admin).invest();
 
-      await ryskLiquidityPool.connect(ryskPoolKeeper).pauseTradingAndRequest();
-      await ryskLiquidityPool
-        .connect(ryskPoolKeeper)
-        // has to have explicit gas limit since hardhat is not able to estimate gas for this call
-        .executeEpochCalculation({ gasLimit: TX_GAS_LIMIT });
+      await executeEpochCalculation();
 
       await ForkHelpers.mintToken(usdc, strategy.address, amount);
       await strategy.connect(admin).invest();
@@ -168,11 +162,7 @@ describe('Rysk Strategy (mainnet fork tests)', () => {
 
       await strategy.connect(admin).invest();
 
-      await ryskLiquidityPool.connect(ryskPoolKeeper).pauseTradingAndRequest();
-      await ryskLiquidityPool
-        .connect(ryskPoolKeeper)
-        // has to have explicit gas limit since hardhat is not able to estimate gas for this call
-        .executeEpochCalculation({ gasLimit: TX_GAS_LIMIT });
+      await executeEpochCalculation();
 
       await strategy.connect(admin).withdrawToVault(parseUnits('500', 6));
 
@@ -182,15 +172,8 @@ describe('Rysk Strategy (mainnet fork tests)', () => {
       expect(depositReceipt.amount).to.eq('0');
       expect(depositReceipt.unredeemedShares).to.eq('0');
 
-      const withdrawalEpoch = await ryskLiquidityPool.withdrawalEpoch();
-      const withdrawalReceipt = await ryskLiquidityPool.withdrawalReceipts(
-        strategy.address,
-      );
-      expect(withdrawalReceipt.epoch).to.eq(withdrawalEpoch);
-      expect(withdrawalReceipt.shares).to.eq(parseUnits('499'));
-
       expect(await strategy.hasAssets()).to.be.true;
-      expect(await strategy.investedAssets()).to.eq('999999999');
+      expect(await strategy.investedAssets()).to.gte('999999998');
     });
 
     it('can initiate a withdrawal for amount returned by investedAssets()', async () => {
@@ -199,11 +182,7 @@ describe('Rysk Strategy (mainnet fork tests)', () => {
 
       await strategy.connect(admin).invest();
 
-      await ryskLiquidityPool.connect(ryskPoolKeeper).pauseTradingAndRequest();
-      await ryskLiquidityPool
-        .connect(ryskPoolKeeper)
-        // has to have explicit gas limit since hardhat is not able to estimate gas for this call
-        .executeEpochCalculation({ gasLimit: TX_GAS_LIMIT });
+      await executeEpochCalculation();
 
       const invested = await strategy.investedAssets();
       await strategy.connect(admin).withdrawToVault(invested);
@@ -214,15 +193,8 @@ describe('Rysk Strategy (mainnet fork tests)', () => {
       expect(depositReceipt.amount).to.eq('0');
       expect(depositReceipt.unredeemedShares).to.eq('0');
 
-      const withdrawalEpoch = await ryskLiquidityPool.withdrawalEpoch();
-      const withdrawalReceipt = await ryskLiquidityPool.withdrawalReceipts(
-        strategy.address,
-      );
-      expect(withdrawalReceipt.epoch).to.eq(withdrawalEpoch);
-      expect(withdrawalReceipt.shares).to.eq(parseUnits('997'));
-
       expect(await strategy.hasAssets()).to.be.true;
-      expect(await strategy.investedAssets()).to.eq('999999998');
+      expect(await strategy.investedAssets()).to.gte('999999998');
     });
 
     it('can be called multiple times in the same epoch', async () => {
@@ -231,23 +203,13 @@ describe('Rysk Strategy (mainnet fork tests)', () => {
 
       await strategy.connect(admin).invest();
 
-      await ryskLiquidityPool.connect(ryskPoolKeeper).pauseTradingAndRequest();
-      await ryskLiquidityPool
-        .connect(ryskPoolKeeper)
-        // has to have explicit gas limit since hardhat is not able to estimate gas for this call
-        .executeEpochCalculation({ gasLimit: TX_GAS_LIMIT });
+      await executeEpochCalculation();
 
       await strategy.connect(admin).withdrawToVault(amount.div(2));
       await strategy.connect(admin).withdrawToVault(amount.div(2));
 
-      const withdrawalEpoch = await ryskLiquidityPool.withdrawalEpoch();
-      const withdrawalReceipt = await ryskLiquidityPool.withdrawalReceipts(
-        strategy.address,
-      );
-      expect(withdrawalReceipt.epoch).to.eq(withdrawalEpoch);
-      expect(withdrawalReceipt.shares).to.eq(parseUnits('998'));
       expect(await strategy.hasAssets()).to.be.true;
-      expect(await strategy.investedAssets()).to.eq('999999998');
+      expect(await strategy.investedAssets()).to.gte('999999998');
     });
 
     it('fails if called without completing withdrawal from previous epoch', async () => {
@@ -256,17 +218,11 @@ describe('Rysk Strategy (mainnet fork tests)', () => {
 
       await strategy.connect(admin).invest();
 
-      await ryskLiquidityPool.connect(ryskPoolKeeper).pauseTradingAndRequest();
-      await ryskLiquidityPool
-        .connect(ryskPoolKeeper)
-        .executeEpochCalculation({ gasLimit: TX_GAS_LIMIT });
+      await executeEpochCalculation();
 
       await strategy.connect(admin).withdrawToVault(amount.div(2));
 
-      await ryskLiquidityPool.connect(ryskPoolKeeper).pauseTradingAndRequest();
-      await ryskLiquidityPool
-        .connect(ryskPoolKeeper)
-        .executeEpochCalculation({ gasLimit: TX_GAS_LIMIT });
+      await executeEpochCalculation();
 
       await expect(strategy.connect(admin).withdrawToVault(amount.div(2))).to.be
         .reverted;
@@ -296,10 +252,7 @@ describe('Rysk Strategy (mainnet fork tests)', () => {
       await strategy.connect(admin).invest();
       console.log('invested');
 
-      await ryskLiquidityPool.connect(ryskPoolKeeper).pauseTradingAndRequest();
-      await ryskLiquidityPool
-        .connect(ryskPoolKeeper)
-        .executeEpochCalculation({ gasLimit: TX_GAS_LIMIT });
+      await executeEpochCalculation();
 
       console.log('nav', await ryskLiquidityPool.getNAV());
 
@@ -325,10 +278,7 @@ describe('Rysk Strategy (mainnet fork tests)', () => {
       );
       console.log('withdrawal receipt', receipt);
 
-      await ryskLiquidityPool.connect(ryskPoolKeeper).pauseTradingAndRequest();
-      await ryskLiquidityPool
-        .connect(ryskPoolKeeper)
-        .executeEpochCalculation({ gasLimit: TX_GAS_LIMIT });
+      await executeEpochCalculation();
 
       const receipt2 = await ryskLiquidityPool.withdrawalReceipts(
         strategy.address,
@@ -433,4 +383,12 @@ describe('Rysk Strategy (mainnet fork tests)', () => {
       );
     });
   });
+
+  async function executeEpochCalculation() {
+    await ryskLiquidityPool.connect(ryskPoolKeeper).pauseTradingAndRequest();
+    await ryskLiquidityPool
+      .connect(ryskPoolKeeper)
+      // has to have explicit gas limit since hardhat is not able to estimate gas for this call
+      .executeEpochCalculation({ gasLimit: 5_000_000 });
+  }
 });

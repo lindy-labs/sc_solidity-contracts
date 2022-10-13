@@ -12,8 +12,6 @@ import {BaseStrategy} from "../BaseStrategy.sol";
 import {IRyskLiquidityPool} from "../../interfaces/rysk/IRyskLiquidityPool.sol";
 import {IVault} from "../../vault/IVault.sol";
 
-import "hardhat/console.sol";
-
 /**
  * RyskStrategy generates yield by investing into a Rysk LiquidityPool,
  * that serves to provide liquidity for a dynamic hedging options AMM.
@@ -260,10 +258,8 @@ contract RyskStrategy is BaseStrategy {
         view
         returns (uint256)
     {
-        return
-            ((_underlying * SHARES_CONVERSION_FACTOR) /
-                _pricePerShare /
-                10**underlyingDecimals) * SHARES_CONVERSION_FACTOR;
+        return ((((_underlying * SHARES_CONVERSION_FACTOR) / _pricePerShare) *
+            SHARES_CONVERSION_FACTOR) / 10**underlyingDecimals);
     }
 
     /**
@@ -320,10 +316,7 @@ contract RyskStrategy is BaseStrategy {
         uint256 _pricePerShare
     ) internal returns (uint256) {
         uint256 sharesBalance = _getSharesBalance();
-
         uint256 sharesNeeded = _underlyingToShares(_amount, _pricePerShare);
-        console.log("shares needed", sharesNeeded);
-        console.log("shares balance", sharesBalance);
 
         if (sharesNeeded > sharesBalance) {
             // try to redeem any unredeemed shares
@@ -334,7 +327,6 @@ contract RyskStrategy is BaseStrategy {
         }
 
         sharesBalance = _getSharesBalance();
-        console.log("shares balance", sharesBalance);
 
         return sharesNeeded;
     }
