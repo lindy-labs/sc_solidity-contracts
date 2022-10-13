@@ -173,7 +173,7 @@ describe('Rysk Strategy (mainnet fork tests)', () => {
       expect(depositReceipt.unredeemedShares).to.eq('0');
 
       expect(await strategy.hasAssets()).to.be.true;
-      expect(await strategy.investedAssets()).to.gte('999999998');
+      expect(await strategy.investedAssets()).to.gte('999999995');
     });
 
     it('can initiate a withdrawal for amount returned by investedAssets()', async () => {
@@ -194,7 +194,7 @@ describe('Rysk Strategy (mainnet fork tests)', () => {
       expect(depositReceipt.unredeemedShares).to.eq('0');
 
       expect(await strategy.hasAssets()).to.be.true;
-      expect(await strategy.investedAssets()).to.gte('999999998');
+      expect(await strategy.investedAssets()).to.gte('999999995');
     });
 
     it('can be called multiple times in the same epoch', async () => {
@@ -209,7 +209,7 @@ describe('Rysk Strategy (mainnet fork tests)', () => {
       await strategy.connect(admin).withdrawToVault(amount.div(2));
 
       expect(await strategy.hasAssets()).to.be.true;
-      expect(await strategy.investedAssets()).to.gte('999999998');
+      expect(await strategy.investedAssets()).to.gte('999999995');
     });
 
     it('fails if called without completing withdrawal from previous epoch', async () => {
@@ -229,7 +229,53 @@ describe('Rysk Strategy (mainnet fork tests)', () => {
     });
   });
 
-  describe('completeWithdrawal', () => {});
+  describe('completeWithdrawal', async () => {
+    it('completes an initiated withdrawal from the liquidity pool', async () => {
+      const amount = parseUnits('1000', 6);
+      await ForkHelpers.mintToken(usdc, strategy.address, amount);
+
+      await strategy.connect(admin).invest();
+
+      await executeEpochCalculation();
+
+      await strategy.connect(admin).withdrawToVault(parseUnits('500', 6));
+
+      await executeEpochCalculation();
+
+      await strategy.connect(admin).completeWithdrawal();
+
+      expect(await usdc.balanceOf(vault.address)).to.gte('499999500');
+      expect(await usdc.balanceOf(strategy.address)).to.eq(0);
+      expect(await strategy.investedAssets()).to.gte('499999500');
+    });
+
+    it('withdaws more if yield is generated in the liquidity pool', async () => {
+      const amount = parseUnits('1000', 6);
+      await ForkHelpers.mintToken(usdc, strategy.address, amount);
+
+      await strategy.connect(admin).invest();
+
+      await executeEpochCalculation();
+
+      await strategy.connect(admin).withdrawToVault(parseUnits('500', 6));
+
+      // generate ~10% yield
+      const poolBalance = await usdc.balanceOf(ryskLiquidityPool.address);
+      await ForkHelpers.mintToken(
+        usdc,
+        ryskLiquidityPool.address,
+        poolBalance.div(10),
+      );
+
+      await executeEpochCalculation();
+
+      await strategy.connect(admin).completeWithdrawal();
+
+      expect(await usdc.balanceOf(vault.address)).to.gte('546514000');
+      expect(await usdc.balanceOf(strategy.address)).to.eq(0);
+      expect(await strategy.investedAssets()).to.gte('546514000');
+    });
+  });
 
   describe('debugging...', () => {
     it('only nav', async () => {
