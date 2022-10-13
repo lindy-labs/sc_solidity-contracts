@@ -13,6 +13,8 @@ import {CustomErrors} from "../interfaces/CustomErrors.sol";
 import {MockERC20} from "./MockERC20.sol";
 import {PercentMath} from "../lib/PercentMath.sol";
 
+import "hardhat/console.sol";
+
 contract MockStrategyDirect is BaseStrategy {
     using PercentMath for uint256;
     using PercentMath for uint16;
@@ -44,7 +46,7 @@ contract MockStrategyDirect is BaseStrategy {
         external
         pure
         virtual
-        override(BaseStrategy)
+        override(IStrategy)
         returns (bool)
     {
         return true;
@@ -55,6 +57,10 @@ contract MockStrategyDirect is BaseStrategy {
             IVaultSponsoring(vault).totalSponsored()).pctOf(principalPct);
         uint256 balance = underlyingBalance();
         uint256 yieldBalance = yieldUnderlying.balanceOf(address(this));
+
+        console.log(toProtect);
+        console.log(balance);
+        console.log(yieldBalance);
 
         if (balance < toProtect && yieldBalance > 0) {
             uint256 diff = toProtect - balance;
@@ -70,25 +76,28 @@ contract MockStrategyDirect is BaseStrategy {
         }
     }
 
-    function setPrincipalPct(uint16 pct) external {
+    function setPrincipalProtectionPct(uint16 pct) external {
         principalPct = pct;
     }
 
     function transferYield(address to, uint256 amount)
         external
         virtual
-        override(BaseStrategy)
+        override(IStrategy)
         returns (bool)
     {
+        uint256 balance = yieldUnderlying.balanceOf(address(this));
+
+        if (balance < amount) return false;
+
         return yieldUnderlying.transfer(to, amount);
     }
 
     function withdrawToVault(uint256 amount) external override(IStrategy) {
         uint256 balance = underlying.balanceOf(address(this));
 
-        if (balance > amount) return underlying.safeTransfer(vault, amount);
-
-        return underlying.safeTransfer(vault, balance);
+        if (balance > amount) underlying.safeTransfer(vault, amount);
+        else underlying.safeTransfer(vault, balance);
     }
 
     function investedAssets()

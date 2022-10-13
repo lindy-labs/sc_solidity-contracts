@@ -20,6 +20,25 @@ contract MockStrategySync is BaseStrategy {
         return true;
     }
 
+    function isDirect()
+        external
+        pure
+        virtual
+        override(IStrategy)
+        returns (bool)
+    {
+        return false;
+    }
+
+    function transferYield(address, uint256)
+        external
+        virtual
+        override(IStrategy)
+        returns (bool)
+    {
+        return false;
+    }
+
     function invest() external virtual override(IStrategy) {}
 
     function withdrawToVault(uint256 amount) external override(IStrategy) {

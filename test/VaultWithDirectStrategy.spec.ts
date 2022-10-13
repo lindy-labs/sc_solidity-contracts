@@ -46,6 +46,9 @@ describe('VaultWithDirectStrategy', () => {
   ) => Promise<BigNumber>;
   let addYieldToVault: (amount: string) => Promise<BigNumber>;
   let removeUnderlyingFromVault: (amount: string) => Promise<BigNumber>;
+  let underlyingBalanceOf: (
+    account: SignerWithAddress | Vault,
+  ) => Promise<BigNumber>;
 
   const MOCK_STRATEGY = 'MockStrategyDirect';
   const TWO_WEEKS = BigNumber.from(time.duration.weeks(2).toNumber());
@@ -54,7 +57,7 @@ describe('VaultWithDirectStrategy', () => {
   );
   const TREASURY = generateNewAddress();
   const PERFORMANCE_FEE_PCT = BigNumber.from('0');
-  const INVESTMENT_FEE_PCT = BigNumber.from('200');
+  const INVESTMENT_FEE_PCT = BigNumber.from('0');
   const INVEST_PCT = BigNumber.from('10000');
   const DENOMINATOR = BigNumber.from('10000');
 
@@ -119,14 +122,18 @@ describe('VaultWithDirectStrategy', () => {
 
     await vault.setStrategy(strategy.address);
 
-    ({ addUnderlyingBalance, addYieldToVault, removeUnderlyingFromVault } =
-      createVaultHelpers({
-        vault,
-        underlying,
-      }));
+    ({
+      addUnderlyingBalance,
+      addYieldToVault,
+      removeUnderlyingFromVault,
+      underlyingBalanceOf,
+    } = createVaultHelpers({
+      vault,
+      underlying,
+    }));
   });
 
-  it('sends funds directly from the strategy', async () => {
+  it('transfer yield in the yield underlying from the strategy to the user', async () => {
     await addUnderlyingBalance(alice, '100');
 
     const params = depositParams.build({
@@ -143,59 +150,41 @@ describe('VaultWithDirectStrategy', () => {
 
     await vault.connect(alice).claimYield(alice.address);
 
-    expect(await underlying.balanceOf(alice.address)).to.eq(parseUnits('0'));
-
-    expect(await yieldUnderlying.balanceOf(alice.address)).to.eq(
-      parseUnits('100'),
-    );
+    expect(await underlyingBalanceOf(alice)).to.eq(parseUnits('0'));
+    expect(await yieldBalanceOf(alice)).to.eq(parseUnits('100'));
   });
 
-  // it('throws an error if funds are not available', async () => {
-  //   await addUnderlyingBalance(alice, '100');
+  it("uses the default mechanism when the yield underlying doen't have enough balance", async () => {
+    await strategy.setPrincipalProtectionPct(15000);
 
-  //   await strategy.setPrincipalPct(11000);
+    await addUnderlyingBalance(alice, '100');
 
-  //   const params = depositParams.build({
-  //     amount: parseUnits('100'),
-  //     inputToken: underlying.address,
-  //     claims: [claimParams.percent(100).to(alice.address).build()],
-  //   });
+    const params = depositParams.build({
+      amount: parseUnits('100'),
+      inputToken: underlying.address,
+      claims: [claimParams.percent(100).to(alice.address).build()],
+    });
 
-  //   await vault.connect(alice).deposit(params);
+    await vault.connect(alice).deposit(params);
 
-  //   await addYieldToVault('100');
+    await addYieldToVault('100');
 
-  //   await vault.updateInvested();
+    await vault.updateInvested();
 
-  //   await expect(
-  //     vault.connect(alice).claimYield(alice.address),
-  //   ).to.be.revertedWith('ERC20: transfer amount exceeds balance');
-  // });
+    expect(await underlyingBalanceOf(vault)).to.eq(parseUnits('0'));
+    expect(await yieldBalanceOf(strategy)).to.eq(parseUnits('50'));
 
-  // it('throws an error if funds are not available - 2', async () => {
-  //   await addUnderlyingBalance(alice, '100');
+    await vault.connect(alice).claimYield(alice.address);
 
-  //   await vault.setInvestPct(5000);
+    expect(await underlyingBalanceOf(alice)).to.eq(parseUnits('100'));
+    expect(await yieldBalanceOf(alice)).to.eq(parseUnits('0'));
 
-  //   await strategy.setPrincipalPct(11000);
+    expect(await underlyingBalanceOf(vault)).to.eq(parseUnits('0'));
+  });
 
-  //   const params = depositParams.build({
-  //     amount: parseUnits('100'),
-  //     inputToken: underlying.address,
-  //     claims: [
-  //       claimParams.percent(50).to(alice.address).build(),
-  //       claimParams.percent(50).to(bob.address).build(),
-  //     ],
-  //   });
-
-  //   await vault.connect(alice).deposit(params);
-
-  //   await addYieldToVault('200');
-
-  //   await vault.updateInvested();
-
-  //   await expect(
-  //     vault.connect(alice).claimYield(alice.address),
-  //   ).to.be.revertedWith('ERC20: transfer amount exceeds balance');
-  // });
+  async function yieldBalanceOf(
+    account: SignerWithAddress | MockStrategyDirect,
+  ) {
+    return yieldUnderlying.balanceOf(account.address);
+  }
 });

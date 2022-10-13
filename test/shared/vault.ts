@@ -1,6 +1,8 @@
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { ethers } from 'hardhat';
 
+import { Vault } from '../../typechain';
+
 const { parseUnits } = ethers.utils;
 
 export default ({ underlying, vault }) => {
@@ -23,9 +25,14 @@ export default ({ underlying, vault }) => {
     return underlying.burn(vault.address, parseUnits(amount));
   }
 
+  async function underlyingBalanceOf(account: SignerWithAddress | Vault) {
+    return underlying.balanceOf(account.address);
+  }
+
   return {
     addUnderlyingBalance,
     addYieldToVault,
     removeUnderlyingFromVault,
+    underlyingBalanceOf,
   };
 };

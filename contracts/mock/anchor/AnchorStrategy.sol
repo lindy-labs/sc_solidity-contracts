@@ -99,6 +99,19 @@ contract AnchorStrategy is IAnchorStrategy, BaseStrategy {
     // IStrategy
     //
 
+    function transferYield(address, uint256)
+        external
+        virtual
+        override(IStrategy)
+        returns (bool)
+    {
+        return false;
+    }
+
+    function isDirect() external pure override(IStrategy) returns (bool) {
+        return false;
+    }
+
     /**
      * Returns false since strategy is asynchronous.
      */

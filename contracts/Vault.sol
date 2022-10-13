@@ -20,6 +20,8 @@ import {ExitPausable} from "./lib/ExitPausable.sol";
 import {IStrategy} from "./strategy/IStrategy.sol";
 import {CustomErrors} from "./interfaces/CustomErrors.sol";
 
+import "hardhat/console.sol";
+
 /**
  * A vault where other accounts can deposit an underlying token
  * currency and set distribution params for their principal and yield
@@ -362,14 +364,6 @@ contract Vault is
 
         accumulatedPerfFee += fee;
 
-        if (strategy.isDirect()) {
-            strategy.transferYield(_to, yield);
-        } else {
-            _rebalanceBeforeWithdrawing(yield);
-
-            underlying.safeTransfer(_to, yield);
-        }
-
         claimer[msg.sender].totalShares -= shares;
         totalShares -= shares;
 
@@ -382,6 +376,19 @@ contract Vault is
             _totalUnderlyingMinusSponsored,
             _totalShares
         );
+
+        if (
+            address(strategy) != address(0) &&
+            strategy.isDirect() &&
+            strategy.transferYield(_to, yield)
+        ) {
+            // if (strategy.isDirect()) {
+            return;
+        }
+
+        _rebalanceBeforeWithdrawing(yield);
+
+        underlying.safeTransfer(_to, yield);
     }
 
     /// @inheritdoc IVault
