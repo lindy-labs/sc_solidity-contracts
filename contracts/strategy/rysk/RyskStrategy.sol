@@ -2,6 +2,7 @@
 pragma solidity =0.8.10;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 
 import {PercentMath} from "../../lib/PercentMath.sol";
@@ -29,6 +30,7 @@ contract RyskStrategy is BaseStrategy {
 
     // number of decimal places of a Liquidity Pool share (ERC20)
     uint256 constant SHARES_CONVERSION_FACTOR = 1e18;
+    uint256 immutable underlyingDecimals;
 
     /**
      * Emmited when a withdrawal has been initiated.
@@ -66,6 +68,7 @@ contract RyskStrategy is BaseStrategy {
         ryskLqPool = IRyskLiquidityPool(_ryskLiquidityPool);
 
         underlying.safeIncreaseAllowance(_ryskLiquidityPool, type(uint256).max);
+        underlyingDecimals = IERC20Metadata(address(_underlying)).decimals();
 
         _grantRole(KEEPER_ROLE, _keeper);
     }
@@ -158,7 +161,6 @@ contract RyskStrategy is BaseStrategy {
         if (balance == 0) revert StrategyNoUnderlying();
 
         emit StrategyInvested(balance);
-        console.log("StrategyInvested", balance);
         ryskLqPool.deposit(balance);
     }
 
@@ -172,6 +174,7 @@ contract RyskStrategy is BaseStrategy {
         if (_amount == 0) revert StrategyAmountZero();
 
         uint256 withdrawalEpoch = ryskLqPool.withdrawalEpoch();
+        // TODO: possibly remove this?
         _checkPendingWithdrawal(withdrawalEpoch);
 
         // since withdrawal price per share is not updated until the end of the epoch,
@@ -203,9 +206,7 @@ contract RyskStrategy is BaseStrategy {
         if (withdrawalReceipt.epoch == ryskLqPool.withdrawalEpoch())
             revert RyskCannotCompleteWithdrawalInSameEpoch();
 
-        uint256 amountWithdrawn = ryskLqPool.completeWithdraw(
-            withdrawalReceipt.shares
-        );
+        uint256 amountWithdrawn = ryskLqPool.completeWithdraw();
 
         emit StrategyWithdrawn(amountWithdrawn);
         underlying.safeTransfer(vault, amountWithdrawn);
@@ -256,26 +257,31 @@ contract RyskStrategy is BaseStrategy {
      */
     function _underlyingToShares(uint256 _underlying, uint256 _pricePerShare)
         internal
-        pure
+        view
         returns (uint256)
     {
-        return (_underlying * SHARES_CONVERSION_FACTOR) / _pricePerShare;
+        return
+            ((_underlying * SHARES_CONVERSION_FACTOR) /
+                _pricePerShare /
+                10**underlyingDecimals) * SHARES_CONVERSION_FACTOR;
     }
 
     /**
      * Calculates the amount of underlying for provided number of Rysk liquidity pool shares and price per share.
      *
-     * @param _shares number of shares
-     * @param _pricePerShare price per share
+     * @param _shares number of shares in e18 decimals
+     * @param _pricePerShare price per share i e18 decimals
      *
      * @return amount of underlying
      */
     function _sharesToUnderlying(uint256 _shares, uint256 _pricePerShare)
         internal
-        pure
+        view
         returns (uint256)
     {
-        return (_shares * _pricePerShare) / SHARES_CONVERSION_FACTOR;
+        return
+            (((_shares * 10**underlyingDecimals) / SHARES_CONVERSION_FACTOR) *
+                _pricePerShare) / SHARES_CONVERSION_FACTOR;
     }
 
     /**
@@ -316,6 +322,8 @@ contract RyskStrategy is BaseStrategy {
         uint256 sharesBalance = _getSharesBalance();
 
         uint256 sharesNeeded = _underlyingToShares(_amount, _pricePerShare);
+        console.log("shares needed", sharesNeeded);
+        console.log("shares balance", sharesBalance);
 
         if (sharesNeeded > sharesBalance) {
             // try to redeem any unredeemed shares
@@ -324,6 +332,9 @@ contract RyskStrategy is BaseStrategy {
             if (sharesBalance + redeemedShares < sharesNeeded)
                 revert StrategyNotEnoughShares();
         }
+
+        sharesBalance = _getSharesBalance();
+        console.log("shares balance", sharesBalance);
 
         return sharesNeeded;
     }

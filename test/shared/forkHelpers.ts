@@ -20,6 +20,21 @@ export async function forkToMainnet(block?: number) {
   });
 }
 
+export async function forkToArbitrumMainnet(block?: number) {
+  await network.provider.request({
+    method: 'hardhat_reset',
+    params: [
+      {
+        forking: {
+          jsonRpcUrl: process.env.ARBITRUM_RPC!,
+          blockNumber: block,
+          ignoreUnknownTxType: true,
+        },
+      },
+    ],
+  });
+}
+
 const { keccak256, defaultAbiCoder } = ethers.utils;
 
 export function impersonate(accounts: string[]) {
@@ -52,11 +67,7 @@ export async function mintToken(
   account: SignerWithAddress | Contract | string,
   amount: BigNumber | number | string,
 ) {
-  console.log('mintToken', token.address, account, amount);
-
   const index = await bruteForceTokenBalanceSlotIndex(token.address);
-
-  console.log('index', index);
 
   const slot = dirtyFix(
     keccak256(
