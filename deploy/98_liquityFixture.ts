@@ -58,7 +58,10 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
   // Move time forward 12 days
   await ethers.provider.send('evm_increaseTime', [1.037e6]);
-  await ethers.provider.send('evm_mine', []);
+  // ideal way of advancing block but cannot be done because graph interprets
+  // the blocks as being uncled which prevents sync
+  // await ethers.provider.send("hardhat_mine", ["0x32"]);
+  await mineNBlocks(75);
 
   await liquityPriceFeed.setPrice(parseUnits('1750', 18));
 
@@ -76,7 +79,8 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
   // Move time forward 12 days
   await ethers.provider.send('evm_increaseTime', [1.037e6]);
-  await ethers.provider.send('evm_mine', []);
+  // await ethers.provider.send('evm_mine', []);
+  await mineNBlocks(75);
 
   await liquityPriceFeed.setPrice(parseUnits('1800', 18));
 
@@ -96,7 +100,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
   // Move time forward 12 days
   await ethers.provider.send('evm_increaseTime', [1.037e6]);
-  await ethers.provider.send('evm_mine', []);
+  await mineNBlocks(75);
 
   await liquityPriceFeed.setPrice(parseUnits('1500', 18));
 
@@ -113,5 +117,11 @@ func.dependencies = ['dev', 'fixtures', 'vault', 'strategy'];
 
 func.skip = async (env: HardhatRuntimeEnvironment) =>
   !includes(['docker', 'hardhat'], env.deployments.getNetworkName());
+
+async function mineNBlocks(n: number) {
+  for (let index = 0; index < n; index++) {
+    await ethers.provider.send('evm_mine', []);
+  }
+}
 
 export default func;
