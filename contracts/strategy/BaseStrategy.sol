@@ -72,11 +72,14 @@ abstract contract BaseStrategy is IStrategy, AccessControl, CustomErrors {
         _;
     }
 
-    function sendYield(uint256 amount, address to)
+    function transferYield(address, uint256)
         external
         virtual
         override(IStrategy)
-    {}
+        returns (bool)
+    {
+        return false;
+    }
 
     function isDirect()
         external

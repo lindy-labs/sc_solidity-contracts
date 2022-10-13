@@ -363,7 +363,7 @@ contract Vault is
         accumulatedPerfFee += fee;
 
         if (strategy.isDirect()) {
-            strategy.sendYield(yield, _to);
+            strategy.transferYield(_to, yield);
         } else {
             _rebalanceBeforeWithdrawing(yield);
 

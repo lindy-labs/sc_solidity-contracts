@@ -167,10 +167,13 @@ contract LiquityStrategy is
     // IStrategy
     //
 
-    function sendYield(uint256 amount, address to)
+    function transferYield(address, uint256)
         external
         override(IStrategy)
-    {}
+        returns (bool)
+    {
+        return false;
+    }
 
     function isDirect()
         external

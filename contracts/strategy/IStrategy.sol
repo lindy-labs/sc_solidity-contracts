@@ -49,7 +49,7 @@ interface IStrategy {
     function withdrawToVault(uint256 amount) external;
 
     // TODO: sends yield from the strategy to the user
-    function sendYield(uint256 amount, address to) external;
+    function transferYield(address to, uint256 amount) external returns (bool);
 
     function isDirect() external view returns (bool);
 
