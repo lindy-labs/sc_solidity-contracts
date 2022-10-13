@@ -1,0 +1,13 @@
+{
+    "topics": [
+        {
+            "name": "type_check",
+            "messages": [
+                {
+                    "message": "properties/certora/Valid_Deposit/Valid_Deposit_NoRevertSync.spec:46:1: Syntax error: unexpected token near }",
+                    "location": []
+                }
+            ]
+        }
+    ]
+}

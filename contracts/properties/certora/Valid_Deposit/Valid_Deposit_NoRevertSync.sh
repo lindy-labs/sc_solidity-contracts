@@ -4,5 +4,4 @@ certoraRun ./properties/certora/VaultForCertora.sol Vault.sol mock/MockStrategyS
 	--settings -postProcessCounterExamples=true \
 	--optimistic_loop \
 	--packages @openzeppelin=../node_modules/@openzeppelin \
-	--multi_assert_check \
 	--msg "Checking Vault" 

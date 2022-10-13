@@ -1,0 +1,21 @@
+{
+    "topics": [
+        {
+            "name": "type_check",
+            "messages": [
+                {
+                    "message": "Syntax error in spec file (Valid_Deposit_NoRevertSync.spec:24:16): could not type expression \"underlying.?mint_helper(?eV, ?currentContract, ?amount)\", message: No function-like entry for mint_helper was found in the symbol table. Perhaps something was misspelled?",
+                    "location": []
+                },
+                {
+                    "message": "Syntax error in spec file (Valid_Deposit_NoRevertSync.spec:24:16): A FunctionIdExp should not be used as a command",
+                    "location": []
+                },
+                {
+                    "message": "Syntax error in spec file (Valid_Deposit_NoRevertSync.spec:24:16): Some ambiguous applications have not been resolved successfully",
+                    "location": []
+                }
+            ]
+        }
+    ]
+}
