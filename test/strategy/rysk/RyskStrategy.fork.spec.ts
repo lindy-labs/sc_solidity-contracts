@@ -1,15 +1,10 @@
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { BigNumber, utils } from 'ethers';
-import { ethers, upgrades } from 'hardhat';
+import { ethers } from 'hardhat';
 import { expect } from 'chai';
 import { time } from '@openzeppelin/test-helpers';
 
-import {
-  ForkHelpers,
-  generateNewAddress,
-  moveForwardTwoWeeks,
-  removeDecimals,
-} from '../../shared';
+import { ForkHelpers, generateNewAddress } from '../../shared';
 
 import {
   Vault,
@@ -54,7 +49,7 @@ describe('Rysk Strategy (mainnet fork tests)', () => {
   const USDC = '0xFF970A61A04b1cA14834A43f5dE4533eBDDB5CC8'; // collateral & strike asset of the pool
   // const WETH = '0x82af49447d8a07e3bd95bd0d56f35241523fbab1', // underlying asset of the pool
   // const PROTOCOL = '0x08674f64DaC31f36828B63A4468A3AC3C68Db5B2', // protocol address
-  // const ACCOUNTING = '0xd527BE017Be2C3d3d14D6bdF5C796E26bA0c5EE8', // accounting address
+  const ACCOUNTING = '0xd527BE017Be2C3d3d14D6bdF5C796E26bA0c5EE8'; // accounting address
   // const PORTFOLIO_VALUES_FEED = '0x14eF340B33bD4f64C160E3bfcD2B84D67E9b33dF', // portfolio values feed address
 
   // fork block number had to be determined manually by trial and error
@@ -173,6 +168,7 @@ describe('Rysk Strategy (mainnet fork tests)', () => {
       expect(depositReceipt.unredeemedShares).to.eq('0');
 
       expect(await strategy.hasAssets()).to.be.true;
+      // have to use gte because of the changing rounding errors
       expect(await strategy.investedAssets()).to.gte('999999995');
     });
 
@@ -194,6 +190,7 @@ describe('Rysk Strategy (mainnet fork tests)', () => {
       expect(depositReceipt.unredeemedShares).to.eq('0');
 
       expect(await strategy.hasAssets()).to.be.true;
+      // have to use gte because of changing rounding errors
       expect(await strategy.investedAssets()).to.gte('999999995');
     });
 
@@ -209,6 +206,7 @@ describe('Rysk Strategy (mainnet fork tests)', () => {
       await strategy.connect(admin).withdrawToVault(amount.div(2));
 
       expect(await strategy.hasAssets()).to.be.true;
+      // have to use gte because of the changing rounding errors
       expect(await strategy.investedAssets()).to.gte('999999995');
     });
 
@@ -244,6 +242,7 @@ describe('Rysk Strategy (mainnet fork tests)', () => {
 
       await strategy.connect(admin).completeWithdrawal();
 
+      // have to use gte because of the changing rounding errors
       expect(await usdc.balanceOf(vault.address)).to.gte('499999500');
       expect(await usdc.balanceOf(strategy.address)).to.eq(0);
       expect(await strategy.investedAssets()).to.gte('499999500');
@@ -271,9 +270,68 @@ describe('Rysk Strategy (mainnet fork tests)', () => {
 
       await strategy.connect(admin).completeWithdrawal();
 
+      // have to use gte because of the changing rounding errors
       expect(await usdc.balanceOf(vault.address)).to.gte('546514000');
       expect(await usdc.balanceOf(strategy.address)).to.eq(0);
       expect(await strategy.investedAssets()).to.gte('546514000');
+    });
+  });
+
+  describe('bug: stuck after initiating a withdrawal with shares amount less than 1e12', () => {
+    it.only('should not be stuck', async () => {
+      const amount = parseUnits('1000', 6);
+      await ForkHelpers.mintToken(usdc, admin.address, amount);
+
+      console.log('deposit...');
+      await usdc.connect(admin).approve(ryskLiquidityPool.address, amount);
+      await ryskLiquidityPool
+        .connect(admin)
+        .deposit(amount, { gasLimit: 1000000 });
+      console.log('deposit done');
+
+      await executeEpochCalculation();
+
+      const shareFraction = '99999999999'; // 1e12 - 1
+      console.log('initiateWithdraw, shares:', shareFraction);
+      await ryskLiquidityPool
+        .connect(admin)
+        .initiateWithdraw(shareFraction, { gasLimit: 1000000 });
+      console.log('initiateWithdraw done');
+
+      await executeEpochCalculation();
+      console.log('new epoch started');
+
+      // this should not fail but it does
+      console.log('completeWithdraw...');
+      await expect(ryskLiquidityPool.connect(admin).completeWithdraw()).to.be
+        .reverted;
+      console.log('completeWithdraw failed');
+
+      // this is expected to fail because of incomplete withdrawal started in previous epoch
+      const sharesInRegularRange = parseUnits('10');
+      console.log('second initiateWithdraw, shares:');
+      await expect(
+        ryskLiquidityPool.connect(admin).initiateWithdraw(sharesInRegularRange),
+      ).to.be.reverted;
+      console.log('second initiateWithdraw failed');
+
+      console.log("aaaand we're stuck");
+      // effectivly at this point we are stuck, we can only deposit but not withdraw
+      // this comes because failing 'amountForShares' function at line 293 Accounting.sol returns 0 and completeWIthdraw at line 218 Accounting.sol reverts
+      // it fails for values of shares less than 1e12 because of the rounding error when converting shares (18 decimals) to USDC amount (6 decimals)
+      // if 1 USDC = 1 share, converting 1e12-1 shares to USDC is rounded to 0
+      // as a workaround to withdraw the rest of funds (unstuck), we can transfer shares to another account and then withdraw from there
+      const withdrawalEpoch = await ryskLiquidityPool.withdrawalEpoch();
+      const pricePerShare =
+        await ryskLiquidityPool.withdrawalEpochPricePerShare(
+          withdrawalEpoch.sub(1),
+        );
+      accounting = Accounting__factory.connect(ACCOUNTING, admin);
+      const amountForShares = await accounting.amountForShares(
+        shareFraction,
+        pricePerShare,
+      );
+      expect(amountForShares).to.eq('0');
     });
   });
 
