@@ -115,34 +115,47 @@ contract RyskStrategy is BaseStrategy {
             memory depositReceipt = _getDepositReceipt();
         IRyskLiquidityPool.WithdrawalReceipt
             memory withdrawalReceipt = _getWithdrawalReceipt();
+        uint256 currentWithdrawalEpoch = ryskLqPool.withdrawalEpoch();
         // since withdrawal price per share is not updated until the end of the epoch,
         // we need to use the price per share from the previous epoch
-        uint256 withdrawalPricePerShare = ryskLqPool
+        uint256 currentWithdrawalPricePerShare = ryskLqPool
             .withdrawalEpochPricePerShare(ryskLqPool.withdrawalEpoch() - 1);
 
         // shares for pending deposit (not yet minted or not yet updated on the deposit receipt as unredeemed)
         uint256 amountInPendingDepositShares = _getAmountInSharesForPendingDeposit(
                 depositReceipt,
-                withdrawalPricePerShare
+                currentWithdrawalPricePerShare
             );
 
         // shares marked for withdrawal that are now owned by the pool itself
-        uint256 amountInPendingWithdrawalShares = _sharesToUnderlying(
-            withdrawalReceipt.shares,
-            withdrawalPricePerShare
-        );
+        uint256 amountInPendingWithdrawalShares = 0;
+        if (withdrawalReceipt.epoch != 0) {
+            if (withdrawalReceipt.epoch == currentWithdrawalEpoch) {
+                amountInPendingWithdrawalShares = _sharesToUnderlying(
+                    withdrawalReceipt.shares,
+                    currentWithdrawalPricePerShare
+                );
+            } else {
+                amountInPendingWithdrawalShares = _sharesToUnderlying(
+                    withdrawalReceipt.shares,
+                    ryskLqPool.withdrawalEpochPricePerShare(
+                        withdrawalReceipt.epoch
+                    )
+                );
+            }
+        }
 
         // unredeemed shares are not counted in the strategy's balance
         // because they are not yet claimed (they are still owned by the pool)
         uint256 amountInUnredeemedShares = _sharesToUnderlying(
             depositReceipt.unredeemedShares,
-            withdrawalPricePerShare
+            currentWithdrawalPricePerShare
         );
 
         // redeemed shares that are owned by the strategy
         uint256 amountInRedeemedShares = _sharesToUnderlying(
             _getSharesBalance(),
-            withdrawalPricePerShare
+            currentWithdrawalPricePerShare
         );
 
         return

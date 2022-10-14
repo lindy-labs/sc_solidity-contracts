@@ -103,7 +103,7 @@ describe('Rysk Strategy (mainnet fork tests)', () => {
     await ForkHelpers.setBalance(RYSK_POOL_KEEPER, parseUnits('1'));
   });
 
-  describe('invest', () => {
+  describe('#invest', () => {
     it('deposits into liquidity pool', async () => {
       const amount = parseUnits('1000', 6);
       await ForkHelpers.mintToken(usdc, strategy.address, amount);
@@ -134,7 +134,7 @@ describe('Rysk Strategy (mainnet fork tests)', () => {
       expect(await strategy.investedAssets()).to.eq(amount.mul(2));
     });
 
-    it('can be called multiple times in the different epoch', async () => {
+    it('can be called multiple times in the different epochs', async () => {
       const amount = parseUnits('1000', 6);
       await ForkHelpers.mintToken(usdc, strategy.address, amount);
       await strategy.connect(admin).invest();
@@ -150,7 +150,7 @@ describe('Rysk Strategy (mainnet fork tests)', () => {
     });
   });
 
-  describe('withdrawToVault', () => {
+  describe('#withdrawToVault', () => {
     it('initiates a withdrawal from liquidity pool', async () => {
       const amount = parseUnits('1000', 6);
       await ForkHelpers.mintToken(usdc, strategy.address, amount);
@@ -227,7 +227,7 @@ describe('Rysk Strategy (mainnet fork tests)', () => {
     });
   });
 
-  describe('completeWithdrawal', async () => {
+  describe('#completeWithdrawal', async () => {
     it('completes an initiated withdrawal from the liquidity pool', async () => {
       const amount = parseUnits('1000', 6);
       await ForkHelpers.mintToken(usdc, strategy.address, amount);
@@ -277,8 +277,56 @@ describe('Rysk Strategy (mainnet fork tests)', () => {
     });
   });
 
-  describe('bug: stuck after initiating a withdrawal with shares amount less than 1e12', () => {
-    it.only('should not be stuck', async () => {
+  describe('#investedAssets', () => {
+    it('accounts for share price appreciation after deposit', async () => {
+      const amount = parseUnits('1000', 6);
+      await ForkHelpers.mintToken(usdc, strategy.address, amount);
+
+      await strategy.connect(admin).invest();
+
+      await executeEpochCalculation();
+
+      // generate ~20% yield
+      const poolBalance = await usdc.balanceOf(ryskLiquidityPool.address);
+      await ForkHelpers.mintToken(
+        usdc,
+        ryskLiquidityPool.address,
+        poolBalance.div(5),
+      );
+
+      await executeEpochCalculation();
+
+      expect(await strategy.investedAssets()).to.gte('1186057000');
+    });
+
+    it("doesn't account for share price appreciation after withdrawal is initiated", async () => {
+      const amount = parseUnits('1000', 6);
+      await ForkHelpers.mintToken(usdc, strategy.address, amount);
+
+      await strategy.connect(admin).invest();
+
+      await executeEpochCalculation();
+
+      await strategy.connect(admin).withdrawToVault(amount);
+
+      await executeEpochCalculation();
+
+      // generate ~20% yield
+      const poolBalance = await usdc.balanceOf(ryskLiquidityPool.address);
+      await ForkHelpers.mintToken(
+        usdc,
+        ryskLiquidityPool.address,
+        poolBalance.div(5),
+      );
+
+      await executeEpochCalculation();
+
+      expect(await strategy.investedAssets()).to.lte(amount);
+    });
+  });
+
+  describe('bug: stuck after initiating a withdrawal with shares amount less than 1e12', async () => {
+    it('should not be stuck', async () => {
       const amount = parseUnits('1000', 6);
       await ForkHelpers.mintToken(usdc, admin.address, amount);
 
@@ -332,159 +380,6 @@ describe('Rysk Strategy (mainnet fork tests)', () => {
         pricePerShare,
       );
       expect(amountForShares).to.eq('0');
-    });
-  });
-
-  describe('debugging...', () => {
-    it('only nav', async () => {
-      console.log(
-        'epoch at fork block',
-        FORK_BLOCK,
-        await ryskLiquidityPool.connect(admin).depositEpoch(),
-      );
-
-      console.log('nav', await ryskLiquidityPool.getNAV());
-    });
-
-    // failing at 217 Accounting.sol, withdrawal amount == 0 is true
-    it('nav and 2 epochs', async () => {
-      console.log('nav', await ryskLiquidityPool.getNAV());
-
-      const amount = parseUnits('1000', 6);
-      await ForkHelpers.mintToken(usdc, strategy.address, amount);
-
-      await strategy.connect(admin).invest();
-      console.log('invested');
-
-      await executeEpochCalculation();
-
-      console.log('nav', await ryskLiquidityPool.getNAV());
-
-      console.log(
-        'epoch',
-        await ryskLiquidityPool.connect(admin).withdrawalEpoch(),
-      );
-      console.log(
-        'epoch pps',
-        await ryskLiquidityPool.withdrawalEpochPricePerShare(
-          (await ryskLiquidityPool.withdrawalEpoch()).sub(1),
-        ),
-      );
-
-      await strategy.connect(admin).withdrawToVault(amount);
-      console.log('withdrawal intiated');
-
-      console.log('invested assets', await strategy.investedAssets());
-      // 999 999999999999999999
-
-      const receipt = await ryskLiquidityPool.withdrawalReceipts(
-        strategy.address,
-      );
-      console.log('withdrawal receipt', receipt);
-
-      await executeEpochCalculation();
-
-      const receipt2 = await ryskLiquidityPool.withdrawalReceipts(
-        strategy.address,
-      );
-      console.log('withdrawal receipt2', receipt);
-
-      console.log(
-        'new epoch',
-        await ryskLiquidityPool.connect(admin).withdrawalEpoch(),
-      );
-      const newPps = await ryskLiquidityPool.withdrawalEpochPricePerShare(
-        (await ryskLiquidityPool.withdrawalEpoch()).sub(1),
-      );
-      console.log('new epoch pps', newPps);
-      // 1 001141479816023623
-
-      console.log('nav', await ryskLiquidityPool.getNAV());
-
-      accounting = await Accounting__factory.connect(
-        '0xd527be017be2c3d3d14d6bdf5c796e26ba0c5ee8',
-        admin,
-      );
-
-      // had to check but this shit returns 0 for receipt.shares for some reason and it reverts
-      const accountingAmount = await accounting.amountForShares(
-        receipt.shares,
-        newPps,
-      );
-
-      console.log('accounting amount', accountingAmount);
-
-      // const accountingCompleteWithdraw = await accounting.completeWithdraw(
-      //   strategy.address,
-      // );
-      // console.log('accounting complete withdraw', accountingCompleteWithdraw);
-
-      console.log('completing withdrawal');
-      await strategy.completeWithdrawal();
-      console.log('withdrawal completed');
-
-      console.log('vault balance', await usdc.balanceOf(vault.address));
-    });
-
-    it('assets & liablities', async () => {
-      const assets = await ryskLiquidityPool.getAssets();
-      console.log('assets', assets);
-
-      protocol = Protocol__factory.connect(
-        await ryskLiquidityPool.protocol(),
-        admin,
-      );
-
-      portfolioValuesFeed = PortfolioValuesFeed__factory.connect(
-        await protocol.portfolioValuesFeed(),
-        admin,
-      );
-
-      const portfolioValues = await portfolioValuesFeed.getPortfolioValues(
-        '0x82af49447d8a07e3bd95bd0d56f35241523fbab1', // WETH underlying
-        '0xff970a61a04b1ca14834a43f5de4533ebddb5cc8', // USDC strike asset
-      );
-
-      const liablities = portfolioValues.callPutsValue.add(
-        await ryskLiquidityPool.ephemeralLiabilities(),
-      );
-      console.log('liablities', liablities);
-
-      console.log('nav', await assets.sub(liablities));
-
-      console.log('portfolio values timestamp', portfolioValues.timestamp);
-
-      console.log(
-        'block timestamp',
-        (await ethers.provider.getBlock(FORK_BLOCK)).timestamp,
-      );
-
-      console.log(
-        'time delta',
-        (await ethers.provider.getBlock(FORK_BLOCK)).timestamp -
-          portfolioValues.timestamp.toNumber(),
-      );
-    });
-
-    it('is keeper', async () => {
-      console.log(
-        'is admin keeper',
-        await ryskLiquidityPool.keeper(admin.address),
-      );
-
-      console.log(
-        'is governor keeper',
-        await ryskLiquidityPool.keeper(ryskPoolKeeper.address),
-      );
-
-      await ryskLiquidityPool
-        .connect(ryskPoolKeeper)
-        .setKeeper(admin.address, true);
-
-      console.log(
-        'is admin keeper',
-        await ryskLiquidityPool.keeper(admin.address),
-      );
     });
   });
 
