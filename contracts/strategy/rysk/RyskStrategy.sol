@@ -185,9 +185,7 @@ contract RyskStrategy is BaseStrategy {
         if (_amount == 0) revert StrategyAmountZero();
 
         uint256 withdrawalEpoch = ryskLqPool.withdrawalEpoch();
-        // TODO: possibly remove this?
-        // since this already fails at the pool contract and this check saves only around 1000 gas of around 120k gas
-        // _checkPendingWithdrawal(withdrawalEpoch);
+        _checkPendingWithdrawal(withdrawalEpoch);
 
         // since withdrawal price per share is not updated until the end of the epoch,
         // we need to use the price per share from the previous epoch
