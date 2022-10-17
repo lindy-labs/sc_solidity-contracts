@@ -99,6 +99,7 @@ contract AnchorStrategy is IAnchorStrategy, BaseStrategy {
     // IStrategy
     //
 
+    /// @inheritdoc IStrategy
     function transferYield(address, uint256)
         external
         virtual
@@ -108,9 +109,7 @@ contract AnchorStrategy is IAnchorStrategy, BaseStrategy {
         return false;
     }
 
-    /**
-     * Returns false since strategy is asynchronous.
-     */
+    /// @inheritdoc IStrategy
     function isSync() external pure override(IStrategy) returns (bool) {
         return false;
     }

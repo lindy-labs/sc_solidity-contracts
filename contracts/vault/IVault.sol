@@ -85,7 +85,7 @@ interface IVault {
     //
 
     /**
-     * Total amount of principal 
+     * Total amount of principal.
      */
     function totalPrincipal() external view returns (uint256);
 

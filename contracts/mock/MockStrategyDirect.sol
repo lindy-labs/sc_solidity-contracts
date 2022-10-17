@@ -43,10 +43,12 @@ contract MockStrategyDirect is BaseStrategy {
         underlyingDebt = 0;
     }
 
+    /// @inheritdoc IStrategy
     function isSync() external pure virtual override(IStrategy) returns (bool) {
         return true;
     }
 
+    /// @inheritdoc IStrategy
     function invest() external virtual override(IStrategy) {
         uint256 toProtect = (IVault(vault).totalPrincipal() +
             IVaultSponsoring(vault).totalSponsored()).pctOf(principalPct);
@@ -71,6 +73,7 @@ contract MockStrategyDirect is BaseStrategy {
         principalPct = pct;
     }
 
+    /// @inheritdoc IStrategy
     function transferYield(address to, uint256 amount)
         external
         virtual
@@ -84,6 +87,7 @@ contract MockStrategyDirect is BaseStrategy {
         return yieldUnderlying.transfer(to, amount);
     }
 
+    /// @inheritdoc IStrategy
     function withdrawToVault(uint256 amount) external override(IStrategy) {
         uint256 balance = underlying.balanceOf(address(this));
 
@@ -91,6 +95,7 @@ contract MockStrategyDirect is BaseStrategy {
         else underlying.safeTransfer(vault, balance);
     }
 
+    /// @inheritdoc IStrategy
     function investedAssets()
         external
         view
@@ -103,6 +108,7 @@ contract MockStrategyDirect is BaseStrategy {
             yieldUnderlying.balanceOf(address(this));
     }
 
+    /// @inheritdoc IStrategy
     function hasAssets() external view override(IStrategy) returns (bool) {
         return
             underlying.balanceOf(address(this)) > 0 ||

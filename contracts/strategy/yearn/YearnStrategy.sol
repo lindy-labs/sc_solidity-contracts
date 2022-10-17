@@ -84,6 +84,7 @@ contract YearnStrategy is BaseStrategy {
         _revokeRole(SETTINGS_ROLE, msg.sender);
     }
 
+    /// @inheritdoc IStrategy
     function transferYield(address, uint256)
         external
         virtual
@@ -93,11 +94,7 @@ contract YearnStrategy is BaseStrategy {
         return false;
     }
 
-    /**
-     * Yearn strategy is synchronous meaning it supports immediate withdrawals.
-     *
-     * @return true always
-     */
+    /// @inheritdoc IStrategy
     function isSync() external pure override(IStrategy) returns (bool) {
         return true;
     }
