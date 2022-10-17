@@ -1,4 +1,3 @@
-build
 /node_modules
 /subgraph/node_modules/*
 !/subgraph/node_modules/.gitkeep
@@ -31,3 +30,11 @@ subgraph/subgraph.yaml
 tenderly.yaml
 docker/tenderly.yaml
 package-lock.json
+
+#Certora files
+contracts/.certora_config/*
+contracts/.certora_internal/*
+contracts/.certora_sources/*
+contracts/.last_confs/*
+contracts/certora_*.json
+contracts/certora_debug_log.txt
