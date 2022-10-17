@@ -11,7 +11,7 @@ import {
   MockUSDC,
 } from '../../../typechain';
 
-import { generateNewAddress, ForkHelpers } from '../../shared/';
+import { generateNewAddress, ForkHelpers, parseUSDC } from '../../shared/';
 import { parseUnits } from 'ethers/lib/utils';
 
 describe('RyskStrategy', () => {
@@ -618,7 +618,3 @@ describe('RyskStrategy', () => {
     });
   });
 });
-
-function parseUSDC(amount: string) {
-  return parseUnits(amount, 6);
-}
