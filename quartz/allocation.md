@@ -26,9 +26,11 @@ QUARTZ can be granted to incentivize development or marketing of our growing eco
 Team tokens are being vested linearly over three years (vesting time increase being considered). If at any point during our temperature checks, the community wishes for complete decentralization, we will gradually distribute our share of the tokens through OTC deals, dutch auctions, and other such mechanisms, in order to minimize negative price action. Initially, for the success of the project, the team will retain a significant portion of the tokens, outlined above. That being said we will generally refrain from voting on proposals with an excessive amount of tokens unless to veto outright malicious actions.
 {% endhint %}
 
-### Charity Mining: Permalocked Tokens
+QUARTZ has been whitelisted by UMA. This will allow us to craft KPI options in order to significantly improve the capital efficiency of emissions and ensure they are providing a value to the DAO that is comparable to the amount being spent.
 
-At least 30% of QUARTZ shall remain locked in perpetuity. The purpose of this QUARTZ is to incentivize TVL growth and Giving or other actions on-chain **without diluting existing holders.** It achieves this through a delegative function, whereby a trusted backend can delegate voting power to an address on Polygon without transferring ownership of the tokens.
+### Permalocked Tokens
+
+At least 30% of QUARTZ shall remain locked in perpetuity. The purpose of this QUARTZ is to incentivize TVL growth, Giving, or other actions on-chain **without diluting existing holders.** It achieves this through a delegative function, whereby a trusted backend can delegate voting power to an address on Polygon without transferring ownership of the tokens.
 
 It was initially designed in order to incentivize giving, but it can fulfill other objectives while preserving the value of QUARTZ.
 
@@ -55,3 +57,16 @@ It was initially designed in order to incentivize giving, but it can fulfill oth
 22,000 were given to KuCoin for their marketing campaign
 
 23,673 have been used for grants
+
+## Circulating
+
+6,013,458 QUARTZ
+
+## Non-circulating
+
+| Purpose     | Scheduled Emissions                                                                                                                                                                                                                                                                                                                         | Tokens     |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| DAO         | <p>None. The DAO will control the use of these tokens. Possible future use cases are listed under <a href="allocation.md">DAO Tokens</a>, designed to increase the value of the treasury and lessen the effects of dilution for $QUARTZ holders. In other words, they'll be used to accelerate growth and benefit all stakeholders.<br></p> | 43,986,542 |
+| Permalocked | None. These will be locked in perpetuity. Learn more under [Permalocked Tokens](allocation.md#permalocked-tokens)​.                                                                                                                                                                                                                         | 30,000,000 |
+| Team        | Nondeterministic.  The cliff has ended and team members should theoretically be allowed to claim some, as they are being vested. They don’t fall under circulating until claimed.                                                                                                                                                           | 20,000,000 |
+
