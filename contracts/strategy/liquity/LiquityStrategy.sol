@@ -167,6 +167,7 @@ contract LiquityStrategy is
     // IStrategy
     //
 
+    /// @inheritdoc IStrategy
     function transferYield(address, uint256)
         external
         override(IStrategy)
@@ -175,9 +176,7 @@ contract LiquityStrategy is
         return false;
     }
 
-    /**
-     * Returns true since strategy is synchronous.
-     */
+    /// @inheritdoc IStrategy
     function isSync() external pure override(IStrategy) returns (bool) {
         return true;
     }
