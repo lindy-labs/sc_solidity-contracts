@@ -1,0 +1,13 @@
+{
+    "topics": [
+        {
+            "name": "solc",
+            "messages": [
+                {
+                    "message": "TypeError: Contract \"Vault\" should be marked as abstract.",
+                    "location": []
+                }
+            ]
+        }
+    ]
+}

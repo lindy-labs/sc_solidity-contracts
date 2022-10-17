@@ -1,3 +1,4 @@
+build
 /node_modules
 /subgraph/node_modules/*
 !/subgraph/node_modules/.gitkeep

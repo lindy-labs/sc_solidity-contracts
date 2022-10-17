@@ -1,0 +1,21 @@
+{
+    "topics": [
+        {
+            "name": "type_check",
+            "messages": [
+                {
+                    "message": "Syntax error in spec file (Valid_Deposit_NoRevertSync.spec:27:5): could not type expression \"?depositParams(?eV, ?lockDuration, ?amount, ?name, ?slippage)\", message: No function-like entry for depositParams was found in the symbol table. Perhaps something was misspelled?",
+                    "location": []
+                },
+                {
+                    "message": "Syntax error in spec file (Valid_Deposit_NoRevertSync.spec:27:5): A FunctionIdExp should not be used as a command",
+                    "location": []
+                },
+                {
+                    "message": "Syntax error in spec file (Valid_Deposit_NoRevertSync.spec:27:5): Some ambiguous applications have not been resolved successfully",
+                    "location": []
+                }
+            ]
+        }
+    ]
+}

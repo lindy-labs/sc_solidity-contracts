@@ -1,0 +1,13 @@
+{
+    "topics": [
+        {
+            "name": "type_check",
+            "messages": [
+                {
+                    "message": "Syntax error in spec file (Valid_Deposit_NoRevertSync.spec:43:5): could not type expression \"deposit(eV,getParams(eV,lockDuration,amount,name,slippage))\", message: Could not find an overloading of method deposit that matches the given arguments: address, uint64, uint256, (uint16,address,bytes)[], string, uint256.",
+                    "location": []
+                }
+            ]
+        }
+    ]
+}

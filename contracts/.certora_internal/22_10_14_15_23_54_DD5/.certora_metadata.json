@@ -1,0 +1,164 @@
+{
+    "CLI_version": "3.4.0",
+    "args": {
+        "address": {},
+        "assert_contracts": null,
+        "build_dir": null,
+        "build_only": false,
+        "bytecode_jsons": null,
+        "bytecode_spec": null,
+        "cache": "Vault.sol-mock/MockERC20.sol-mock/MockStrategySync.sol-optimisticTrue-iterNone",
+        "check_args": false,
+        "cloud": null,
+        "coinbaseMode": false,
+        "contract_to_file": {
+            "MockERC20": "mock/MockERC20.sol",
+            "MockStrategySync": "mock/MockStrategySync.sol",
+            "Vault": "Vault.sol"
+        },
+        "contracts": [
+            "Vault",
+            "MockStrategySync",
+            "MockERC20"
+        ],
+        "debug": null,
+        "debug_topics": false,
+        "delay_fetch_output_seconds": null,
+        "disableLocalTypeChecking": false,
+        "disable_auto_cache_key_gen": false,
+        "dynamic_bound": null,
+        "dynamic_dispatch": false,
+        "env": "production",
+        "expected_file": "expected.json",
+        "file_paths": [
+            "mock/MockStrategySync.sol",
+            "Vault.sol",
+            "mock/MockERC20.sol"
+        ],
+        "file_to_contract": {
+            "Vault.sol": [
+                "Vault"
+            ],
+            "mock/MockERC20.sol": [
+                "MockERC20"
+            ],
+            "mock/MockStrategySync.sol": [
+                "MockStrategySync"
+            ]
+        },
+        "files": [
+            "Vault.sol",
+            "mock/MockERC20.sol",
+            "mock/MockStrategySync.sol"
+        ],
+        "get_conf": null,
+        "include_empty_fallback": false,
+        "internal_funcs": null,
+        "jar": null,
+        "java_args": null,
+        "link": [
+            "MockStrategySync:underlying=MockERC20",
+            "Vault:strategy=MockStrategySync",
+            "Vault:underlying=MockERC20"
+        ],
+        "local": false,
+        "log_branch": null,
+        "log_query_frequency_seconds": null,
+        "loop_iter": null,
+        "max_attempts_to_fetch_output": null,
+        "max_graph_depth": null,
+        "max_poll_minutes": null,
+        "method": null,
+        "mode": "Mode.VERIFY",
+        "msg": "Checking Vault",
+        "multi_assert_check": false,
+        "no_compare": false,
+        "optimistic_loop": true,
+        "optimize": null,
+        "optimize_map": null,
+        "packages": [
+            "@openzeppelin=../node_modules/@openzeppelin"
+        ],
+        "packages_path": "/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/node_modules",
+        "path": "/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts",
+        "process": "emv",
+        "prototype": null,
+        "queue_wait_minutes": null,
+        "rule": null,
+        "rule_sanity": null,
+        "send_only": false,
+        "settings": [
+            "-assumeUnwindCond",
+            "-postProcessCounterExamples=true"
+        ],
+        "short_output": false,
+        "skip_payable_envfree_check": false,
+        "smt_timeout": null,
+        "solc": "/Users/alexandremota/Desktop/LindyLabs/solc",
+        "solc_args": null,
+        "solc_map": null,
+        "spec_files": [
+            "./properties/certora/Valid_Deposit/Valid_Deposit_NoRevertSync.spec"
+        ],
+        "staging": null,
+        "struct_link": null,
+        "tool_output": null,
+        "typecheck_only": false,
+        "user_defined_cache": false,
+        "verified_contract_files": [
+            "Vault.sol"
+        ],
+        "verify": [
+            "Vault:./properties/certora/Valid_Deposit/Valid_Deposit_NoRevertSync.spec"
+        ]
+    },
+    "branch": "Formal-Verification",
+    "conf": {
+        "files": [
+            "Vault.sol",
+            "mock/MockERC20.sol",
+            "mock/MockStrategySync.sol"
+        ],
+        "link": [
+            "MockStrategySync:underlying=MockERC20",
+            "Vault:strategy=MockStrategySync",
+            "Vault:underlying=MockERC20"
+        ],
+        "msg": "Checking Vault",
+        "optimistic_loop": true,
+        "packages": [
+            "@openzeppelin=../node_modules/@openzeppelin"
+        ],
+        "process": "emv",
+        "settings": [
+            "-postProcessCounterExamples=true"
+        ],
+        "verify": [
+            "Vault:./properties/certora/Valid_Deposit/Valid_Deposit_NoRevertSync.spec"
+        ]
+    },
+    "cwd_relative": "contracts",
+    "dirty": true,
+    "origin": "https://github.com/lindy-labs/sc_solidity-contracts.git",
+    "raw_args": [
+        "/Users/alexandremota/Library/Python/3.9/bin/certoraRun",
+        "Vault.sol",
+        "mock/MockStrategySync.sol",
+        "mock/MockERC20.sol",
+        "--link",
+        "Vault:strategy=MockStrategySync",
+        "Vault:underlying=MockERC20",
+        "MockStrategySync:underlying=MockERC20",
+        "--verify",
+        "Vault:./properties/certora/Valid_Deposit/Valid_Deposit_NoRevertSync.spec",
+        "--settings",
+        "-postProcessCounterExamples=true",
+        "--optimistic_loop",
+        "--packages",
+        "@openzeppelin=../node_modules/@openzeppelin",
+        "--msg",
+        "Checking Vault"
+    ],
+    "revision": "2c76138313c7a88c1d1f1a0b7b96f09b3682d51d",
+    "timestamp": "1665782634.289434"
+}

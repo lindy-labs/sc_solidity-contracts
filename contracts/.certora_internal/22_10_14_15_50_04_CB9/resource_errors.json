@@ -1,0 +1,17 @@
+{
+    "topics": [
+        {
+            "name": "type_check",
+            "messages": [
+                {
+                    "message": "Syntax error in spec file (Valid_Deposit_NoRevertSync.spec:22:20): could not type expression \"underlying.mint(addThis,amount)\", message: Could not find an overloading of method underlying.mint that matches the given arguments: address, uint256. Method is not envfree; did you forget to provide the environment as the first function argument?",
+                    "location": []
+                },
+                {
+                    "message": "Syntax error in spec file (Valid_Deposit_NoRevertSync.spec:23:20): could not type expression \"underlying.approve(currentContract,amount)\", message: Could not find an overloading of method underlying.approve that matches the given arguments: address, uint256. Method is not envfree; did you forget to provide the environment as the first function argument?",
+                    "location": []
+                }
+            ]
+        }
+    ]
+}

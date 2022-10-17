@@ -1,0 +1,17 @@
+{
+    "topics": [
+        {
+            "name": "type_check",
+            "messages": [
+                {
+                    "message": "Syntax error in spec file: could not type expression \"vault.DepositParams\", message: The user defined type vault.DepositParams is currently unsupported in CVL",
+                    "location": []
+                },
+                {
+                    "message": "Syntax error in spec file: could not type expression \"DepositParams\", message: vault.DepositParams is used as a type but is not a type, perhaps you spelled it wrong or used the wrong imported contract name.",
+                    "location": []
+                }
+            ]
+        }
+    ]
+}

@@ -1,0 +1,76 @@
+Saving last configuration file to /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/.certora_internal/22_10_14_07_43_54_643/.last_confs/last_conf_14_10_2022__07_43_54.conf
+args.packages_path is /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/node_modules
+setting cache key to Vault.sol-mock/MockERC20.sol-mock/MockStrategySync.sol-optimisticTrue-iterNone
+parsed args successfully.
+args= Namespace(files=['Vault.sol', 'mock/MockERC20.sol', 'mock/MockStrategySync.sol'], verify=['Vault:./properties/certora/Valid_Deposit/Valid_Deposit_NoRevertSync.spec'], assert_contracts=None, bytecode_jsons=None, bytecode_spec=None, msg='Checking Vault', rule=None, multi_assert_check=False, include_empty_fallback=False, rule_sanity=None, short_output=False, typecheck_only=False, send_only=False, solc='/Users/alexandremota/Desktop/LindyLabs/solc', solc_args=None, solc_map=None, path='/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts', optimize=None, optimize_map=None, packages_path='/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/node_modules', packages=['@openzeppelin=../node_modules/@openzeppelin'], optimistic_loop=True, loop_iter=None, method=None, cache='Vault.sol-mock/MockERC20.sol-mock/MockStrategySync.sol-optimisticTrue-iterNone', smt_timeout=None, link=['MockStrategySync:underlying=MockERC20', 'Vault:strategy=MockStrategySync', 'Vault:underlying=MockERC20'], address={}, struct_link=None, prototype=None, dynamic_bound=None, dynamic_dispatch=False, debug=None, debug_topics=False, staging=None, cloud=None, jar=None, java_args=None, check_args=False, build_only=False, build_dir=None, disableLocalTypeChecking=False, no_compare=False, expected_file='expected.json', queue_wait_minutes=None, max_poll_minutes=None, log_query_frequency_seconds=None, max_attempts_to_fetch_output=None, delay_fetch_output_seconds=None, process='emv', settings=['-assumeUnwindCond', '-postProcessCounterExamples=true'], log_branch=None, disable_auto_cache_key_gen=False, max_graph_depth=None, tool_output=None, internal_funcs=None, coinbaseMode=False, get_conf=None, skip_payable_envfree_check=False, mode=<Mode.VERIFY>, contracts={'Vault', 'MockStrategySync', 'MockERC20'}, file_paths={'mock/MockERC20.sol', 'mock/MockStrategySync.sol', 'Vault.sol'}, file_to_contract={'Vault.sol': {'Vault'}, 'mock/MockERC20.sol': {'MockERC20'}, 'mock/MockStrategySync.sol': {'MockStrategySync'}}, contract_to_file={'Vault': 'Vault.sol', 'MockERC20': 'mock/MockERC20.sol', 'MockStrategySync': 'mock/MockStrategySync.sol'}, verified_contract_files=['Vault.sol'], spec_files=['./properties/certora/Valid_Deposit/Valid_Deposit_NoRevertSync.spec'], local=False, env='production', user_defined_cache=False)
+There is no TAC file. Going to script EVMVerifier/certoraBuild.py to main_with_args()
+Creating dir /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/.certora_internal/22_10_14_07_43_54_643/.certora_config
+In /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/properties/certora/Valid_Deposit/Valid_Deposit_NoRevertSync.spec, found the imports: []
+copying spec file /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/properties/certora/Valid_Deposit/Valid_Deposit_NoRevertSync.spec to /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/.certora_internal/22_10_14_07_43_54_643/.certora_config/0_Valid_Deposit_NoRevertSync.spec.spec
+writing /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/.certora_internal/22_10_14_07_43_54_643/.certora_verify.json
+
+building file Vault.sol
+relevant solc is /Users/alexandremota/Desktop/LindyLabs/solc
+remappings=['@openzeppelin=../node_modules/@openzeppelin']
+paths_for_remappings=['"../node_modules/@openzeppelin"']
+
+Join remappings: "../node_modules/@openzeppelin"
+
+about to run /Users/alexandremota/Desktop/LindyLabs/solc -o "/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/.certora_internal/22_10_14_07_43_54_643/.certora_config/Vault.sol_0/" --overwrite --allow-paths "/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts","../node_modules/@openzeppelin",. --standard-json
+solc input = {
+    "language": "Solidity",
+    "sources": {
+        "/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/Vault.sol": {
+            "urls": [
+                "/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/Vault.sol"
+            ]
+        }
+    },
+    "settings": {
+        "remappings": [
+            "@openzeppelin=../node_modules/@openzeppelin"
+        ],
+        "outputSelection": {
+            "*": {
+                "*": [
+                    "storageLayout",
+                    "abi",
+                    "evm.bytecode",
+                    "evm.deployedBytecode",
+                    "evm.methodIdentifiers",
+                    "evm.assembly"
+                ],
+                "": [
+                    "id",
+                    "ast"
+                ]
+            }
+        }
+    }
+}
+Running cmd /Users/alexandremota/Desktop/LindyLabs/solc -o "/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/.certora_internal/22_10_14_07_43_54_643/.certora_config/Vault.sol_0/" --overwrite --allow-paths "/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts","../node_modules/@openzeppelin",. --standard-json
+stdout, stderr = /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/.certora_internal/22_10_14_07_43_54_643/.certora_config/Vault.sol_0.standard.json.stdout, /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/.certora_internal/22_10_14_07_43_54_643/.certora_config/Vault.sol_0.standard.json.stderr
+Exitcode 0
+Collecting standard json: /Users/alexandremota/Desktop/LindyLabs/solc -o "/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/.certora_internal/22_10_14_07_43_54_643/.certora_config/Vault.sol_0/" --overwrite --allow-paths "/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts","../node_modules/@openzeppelin",. --standard-json
+reading standard json data from /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/.certora_internal/22_10_14_07_43_54_643/.certora_config/Vault.sol_0.standard.json.stdout
+Error: standard-json invocation of solc encountered an error: {'component': 'general', 'errorCode': '6651', 'formattedMessage': 'TypeError: Data location must be "memory" or "calldata" for return parameter in function, but none was given.\n   --> /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/Vault.sol:303:114:\n    |\n303 |     function getParams(uint64 lockDuration, uint64 amount, string memory name, uint256 slippage) public returns (DepositParams) {\n    |                                                                                                                  ^^^^^^^^^^^^^\n\n', 'message': 'Data location must be "memory" or "calldata" for return parameter in function, but none was given.', 'severity': 'error', 'sourceLocation': {'end': 9861, 'file': '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/Vault.sol', 'start': 9848}, 'type': 'TypeError'}
+/Users/alexandremota/Desktop/LindyLabs/solc had an error:
+TypeError: Data location must be "memory" or "calldata" for return parameter in function, but none was given.
+   --> /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/Vault.sol:303:114:
+    |
+303 |     function getParams(uint64 lockDuration, uint64 amount, string memory name, uint256 slippage) public returns (DepositParams) {
+    |                                                                                                                  ^^^^^^^^^^^^^
+
+
+build failed
+Failure traceback: 
+Exception: /Users/alexandremota/Desktop/LindyLabs/solc had an error:
+TypeError: Data location must be "memory" or "calldata" for return parameter in function, but none was given.
+   --> /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/Vault.sol:303:114:
+    |
+303 |     function getParams(uint64 lockDuration, uint64 amount, string memory name, uint256 slippage) public returns (DepositParams) {
+    |                                                                                                                  ^^^^^^^^^^^^^
+
+
+Encountered an error running Certora Prover, please contact Certora; consider running the script again with --debug to find out why it failed:
+certoraRun Vault.sol mock/MockStrategySync.sol mock/MockERC20.sol --link Vault:strategy=MockStrategySync Vault:underlying=MockERC20 MockStrategySync:underlying=MockERC20 --verify Vault:./properties/certora/Valid_Deposit/Valid_Deposit_NoRevertSync.spec --settings -postProcessCounterExamples=true --optimistic_loop --packages @openzeppelin=../node_modules/@openzeppelin --msg 'Checking Vault' --debug

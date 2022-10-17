@@ -1,0 +1,13 @@
+{
+    "topics": [
+        {
+            "name": "solc",
+            "messages": [
+                {
+                    "message": "TypeError: Invalid type for argument in function call. Invalid implicit conversion from string memory to string calldata requested.",
+                    "location": []
+                }
+            ]
+        }
+    ]
+}

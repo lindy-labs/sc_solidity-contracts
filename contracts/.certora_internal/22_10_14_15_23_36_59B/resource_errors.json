@@ -1,0 +1,13 @@
+{
+    "topics": [
+        {
+            "name": "solc",
+            "messages": [
+                {
+                    "message": "TypeError: Invalid type for argument in function call. Invalid implicit conversion from struct IVault.DepositParams storage pointer to struct IVault.DepositParams calldata requested.",
+                    "location": []
+                }
+            ]
+        }
+    ]
+}

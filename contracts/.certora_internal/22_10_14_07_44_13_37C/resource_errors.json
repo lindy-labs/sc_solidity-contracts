@@ -1,0 +1,13 @@
+{
+    "topics": [
+        {
+            "name": "solc",
+            "messages": [
+                {
+                    "message": "ParserError: Expected type name",
+                    "location": []
+                }
+            ]
+        }
+    ]
+}

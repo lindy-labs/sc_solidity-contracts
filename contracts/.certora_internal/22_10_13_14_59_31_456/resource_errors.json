@@ -1,0 +1,13 @@
+{
+    "topics": [
+        {
+            "name": "type_check",
+            "messages": [
+                {
+                    "message": "Syntax error in spec file (Valid_Deposit_NoRevertSync.spec:32:5): last statement of the rule VaultBalanceIncreases in Valid_Deposit_NoRevertSync.spec:12:6 is not an assert command (but must be)",
+                    "location": []
+                }
+            ]
+        }
+    ]
+}

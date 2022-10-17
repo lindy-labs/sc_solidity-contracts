@@ -1,0 +1,17 @@
+{
+    "topics": [
+        {
+            "name": "type_check",
+            "messages": [
+                {
+                    "message": "Syntax error in spec file (Valid_Deposit_NoRevertSync.spec:15:1): hook contract 'erc20' must be an imported contract (using contract_name as Contract) but is undefined. Did you mean currentContract.erc20?",
+                    "location": []
+                },
+                {
+                    "message": "Syntax error in spec file: \"using erc20\" - could not find contract instance for \"erc20\"",
+                    "location": []
+                }
+            ]
+        }
+    ]
+}

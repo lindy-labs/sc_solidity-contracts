@@ -1,0 +1,1 @@
+Saving last configuration file to /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/.certora_internal/22_10_17_06_44_44_D63/.last_confs/last_conf_17_10_2022__06_44_44.conf

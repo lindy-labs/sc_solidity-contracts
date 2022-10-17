@@ -1,0 +1,13 @@
+{
+    "topics": [
+        {
+            "name": "type_check",
+            "messages": [
+                {
+                    "message": "properties/certora/Valid_Deposit/Valid_Deposit_NoRevertSync.spec:27:12: Syntax error: unexpected token near ID(DepositParams)",
+                    "location": []
+                }
+            ]
+        }
+    ]
+}

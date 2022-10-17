@@ -1,0 +1,10 @@
+[
+    {
+        "importFilesToOrigRelpaths": {},
+        "primary_contract": "Vault",
+        "specfile": ".certora_internal/22_10_14_07_33_05_CE0/.certora_config/0_Valid_Deposit_NoRevertSync.spec.spec",
+        "specfileOrigRelpath": "properties/certora/Valid_Deposit/Valid_Deposit_NoRevertSync.spec",
+        "specfilesToImportDecls": {},
+        "type": "spec"
+    }
+]

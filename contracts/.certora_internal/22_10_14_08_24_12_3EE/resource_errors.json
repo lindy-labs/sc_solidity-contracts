@@ -1,0 +1,37 @@
+{
+    "topics": [
+        {
+            "name": "type_check",
+            "messages": [
+                {
+                    "message": "Syntax error in spec file (Valid_Deposit_NoRevertSync.spec:19:5): could not type expression \"DepositParams\", message: Cannot resolve sort \"DepositParams\"",
+                    "location": []
+                },
+                {
+                    "message": "Syntax error in spec file (Valid_Deposit_NoRevertSync.spec:31:9): could not type expression \"_params.inputToken\", message: type DepositParams has no field called inputToken",
+                    "location": []
+                },
+                {
+                    "message": "Syntax error in spec file (Valid_Deposit_NoRevertSync.spec:32:9): could not type expression \"_params.lockDuration\", message: type DepositParams has no field called lockDuration",
+                    "location": []
+                },
+                {
+                    "message": "Syntax error in spec file (Valid_Deposit_NoRevertSync.spec:33:9): could not type expression \"_params.amount\", message: type DepositParams has no field called amount",
+                    "location": []
+                },
+                {
+                    "message": "Syntax error in spec file (Valid_Deposit_NoRevertSync.spec:34:9): could not type expression \"_params.name\", message: type DepositParams has no field called name",
+                    "location": []
+                },
+                {
+                    "message": "Syntax error in spec file (Valid_Deposit_NoRevertSync.spec:35:9): could not type expression \"_params.slippage\", message: type DepositParams has no field called slippage",
+                    "location": []
+                },
+                {
+                    "message": "Syntax error in spec file (Valid_Deposit_NoRevertSync.spec:37:5): could not type expression \"deposit(eV,_params)\", message: Could not find an overloading of method deposit that matches the given arguments: DepositParams.",
+                    "location": []
+                }
+            ]
+        }
+    ]
+}

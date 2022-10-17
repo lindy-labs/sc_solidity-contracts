@@ -1,0 +1,13 @@
+{
+    "topics": [
+        {
+            "name": "solc",
+            "messages": [
+                {
+                    "message": "DocstringParsingError: Documentation tag @inheritdoc references inexistent contract \"IVault DepositParams calldata _params)\".",
+                    "location": []
+                }
+            ]
+        }
+    ]
+}

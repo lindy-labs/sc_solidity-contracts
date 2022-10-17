@@ -1,0 +1,17 @@
+{
+    "topics": [
+        {
+            "name": "type_check",
+            "messages": [
+                {
+                    "message": "Syntax error in spec file (Valid_Deposit_NoRevertSync.spec:15:1): named pattern root 'erc20' is not defined: did you spell something wrong? Note, named slots are only supported from solc 0.5.13 onward.",
+                    "location": []
+                },
+                {
+                    "message": "Syntax error in spec file: \"using erc20\" - could not find contract instance for \"erc20\"",
+                    "location": []
+                }
+            ]
+        }
+    ]
+}

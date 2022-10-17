@@ -1,0 +1,21 @@
+{
+    "topics": [
+        {
+            "name": "type_check",
+            "messages": [
+                {
+                    "message": "Syntax error in spec file (Valid_Deposit_NoRevertSync.spec:18:5): could not type expression \"WrapDP\", message: Cannot resolve sort \"WrapDP\"",
+                    "location": []
+                },
+                {
+                    "message": "Syntax error in spec file (Valid_Deposit_NoRevertSync.spec:30:5): could not type expression \"wdp.dp\", message: type WrapDP has no field called dp",
+                    "location": []
+                },
+                {
+                    "message": "Syntax error in spec file (Valid_Deposit_NoRevertSync.spec:30:5): could not type expression \"deposit(eV,wdp.dp)\", message: at location Valid_Deposit_NoRevertSync.spec:30:5 : looked up a method deposit but some arguments are not well typed",
+                    "location": []
+                }
+            ]
+        }
+    ]
+}

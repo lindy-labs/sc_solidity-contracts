@@ -1,0 +1,13 @@
+{
+    "topics": [
+        {
+            "name": "solc",
+            "messages": [
+                {
+                    "message": "TypeError: Calldata structs are read-only.",
+                    "location": []
+                }
+            ]
+        }
+    ]
+}

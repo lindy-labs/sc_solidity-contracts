@@ -1,0 +1,13 @@
+{
+    "topics": [
+        {
+            "name": "solc",
+            "messages": [
+                {
+                    "message": "DeclarationError: Undeclared identifier.",
+                    "location": []
+                }
+            ]
+        }
+    ]
+}

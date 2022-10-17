@@ -1,0 +1,53 @@
+{
+    "topics": [
+        {
+            "name": "type_check",
+            "messages": [
+                {
+                    "message": "Syntax error in spec file (Valid_Deposit_NoRevertSync.spec:43:5): could not type expression \"mint_helper(eV,eV.msg.sender,amount)\", message: Could not find an overloading of method mint_helper that matches the given arguments: struct env, address, uint64.",
+                    "location": []
+                },
+                {
+                    "message": "Syntax error in spec file (Valid_Deposit_NoRevertSync.spec:47:5): could not type expression \"depositParts(eV,lockDuration,amount,name,slippage)\", message: Could not find an overloading of method depositParts that matches the given arguments: struct env, uint64, uint64, string, uint256.",
+                    "location": []
+                },
+                {
+                    "message": "Syntax error in spec file (Valid_Deposit_NoRevertSync.spec:14:20): could not type expression \"underlying.mint(recip,amount)\", message: Could not find an overloading of method underlying.mint that matches the given arguments: address, uint256. Method is not envfree; did you forget to provide the environment as the first function argument?",
+                    "location": []
+                },
+                {
+                    "message": "Syntax error in spec file (Valid_Deposit_NoRevertSync.spec:15:20): could not type expression \"underlying.approve(currentContract,amount)\", message: Could not find an overloading of method underlying.approve that matches the given arguments: address, uint256. Method is not envfree; did you forget to provide the environment as the first function argument?",
+                    "location": []
+                },
+                {
+                    "message": "Syntax error in spec file (Valid_Deposit_NoRevertSync.spec:19:9): could not type expression \"DepositParams\", message: Cannot resolve sort \"DepositParams\"",
+                    "location": []
+                },
+                {
+                    "message": "Syntax error in spec file (Valid_Deposit_NoRevertSync.spec:21:9): could not type expression \"_params.inputToken\", message: type DepositParams has no field called inputToken",
+                    "location": []
+                },
+                {
+                    "message": "Syntax error in spec file (Valid_Deposit_NoRevertSync.spec:22:9): could not type expression \"_params.lockDuration\", message: type DepositParams has no field called lockDuration",
+                    "location": []
+                },
+                {
+                    "message": "Syntax error in spec file (Valid_Deposit_NoRevertSync.spec:23:9): could not type expression \"_params.amount\", message: type DepositParams has no field called amount",
+                    "location": []
+                },
+                {
+                    "message": "Syntax error in spec file (Valid_Deposit_NoRevertSync.spec:24:9): could not type expression \"_params.name\", message: type DepositParams has no field called name",
+                    "location": []
+                },
+                {
+                    "message": "Syntax error in spec file (Valid_Deposit_NoRevertSync.spec:25:9): could not type expression \"_params.slippage\", message: type DepositParams has no field called slippage",
+                    "location": []
+                },
+                {
+                    "message": "Syntax error in spec file (Valid_Deposit_NoRevertSync.spec:28:9): could not type expression \"deposit(_params)\", message: Could not find an overloading of method deposit that matches the given arguments: DepositParams.",
+                    "location": []
+                }
+            ]
+        }
+    ]
+}

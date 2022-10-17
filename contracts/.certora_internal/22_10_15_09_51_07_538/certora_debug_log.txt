@@ -1,0 +1,238 @@
+Saving last configuration file to /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/.certora_internal/22_10_15_09_51_07_538/.last_confs/last_conf_15_10_2022__09_51_07.conf
+args.packages_path is /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/node_modules
+setting cache key to ../node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol-Vault.sol-mock/MockERC20.sol-mock/MockStrategySync.sol-optimisticTrue-iterNone
+parsed args successfully.
+args= Namespace(files=['../node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol', 'Vault.sol', 'mock/MockERC20.sol', 'mock/MockStrategySync.sol'], verify=['Vault:./properties/certora/Valid_Deposit/Valid_Deposit_NoRevertSync.spec'], assert_contracts=None, bytecode_jsons=None, bytecode_spec=None, msg='Checking Vault', rule=None, multi_assert_check=False, include_empty_fallback=False, rule_sanity=None, short_output=False, typecheck_only=False, send_only=False, solc='/Users/alexandremota/Desktop/LindyLabs/solc', solc_args=None, solc_map=None, path='/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts', optimize=None, optimize_map=None, packages_path='/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/node_modules', packages=['@openzeppelin=../node_modules/@openzeppelin'], optimistic_loop=True, loop_iter=None, method=None, cache='../node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol-Vault.sol-mock/MockERC20.sol-mock/MockStrategySync.sol-optimisticTrue-iterNone', smt_timeout=None, link=['MockStrategySync:underlying=MockERC20', 'Vault:strategy=MockStrategySync', 'Vault:underlying=MockERC20'], address={}, struct_link=None, prototype=None, dynamic_bound=None, dynamic_dispatch=False, debug=None, debug_topics=False, staging=None, cloud=None, jar=None, java_args=None, check_args=False, build_only=False, build_dir=None, disableLocalTypeChecking=False, no_compare=False, expected_file='expected.json', queue_wait_minutes=None, max_poll_minutes=None, log_query_frequency_seconds=None, max_attempts_to_fetch_output=None, delay_fetch_output_seconds=None, process='emv', settings=['-assumeUnwindCond', '-postProcessCounterExamples=true'], log_branch=None, disable_auto_cache_key_gen=False, max_graph_depth=None, tool_output=None, internal_funcs=None, coinbaseMode=False, get_conf=None, skip_payable_envfree_check=False, mode=<Mode.VERIFY>, contracts={'MockStrategySync', 'ERC20', 'Vault', 'MockERC20'}, file_paths={'Vault.sol', 'mock/MockStrategySync.sol', '../node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol', 'mock/MockERC20.sol'}, file_to_contract={'../node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol': {'ERC20'}, 'Vault.sol': {'Vault'}, 'mock/MockERC20.sol': {'MockERC20'}, 'mock/MockStrategySync.sol': {'MockStrategySync'}}, contract_to_file={'ERC20': '../node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol', 'Vault': 'Vault.sol', 'MockERC20': 'mock/MockERC20.sol', 'MockStrategySync': 'mock/MockStrategySync.sol'}, verified_contract_files=['Vault.sol'], spec_files=['./properties/certora/Valid_Deposit/Valid_Deposit_NoRevertSync.spec'], local=False, env='production', user_defined_cache=False)
+There is no TAC file. Going to script EVMVerifier/certoraBuild.py to main_with_args()
+Creating dir /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/.certora_internal/22_10_15_09_51_07_538/.certora_config
+In /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/properties/certora/Valid_Deposit/Valid_Deposit_NoRevertSync.spec, found the imports: []
+copying spec file /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/properties/certora/Valid_Deposit/Valid_Deposit_NoRevertSync.spec to /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/.certora_internal/22_10_15_09_51_07_538/.certora_config/0_Valid_Deposit_NoRevertSync.spec.spec
+writing /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/.certora_internal/22_10_15_09_51_07_538/.certora_verify.json
+
+building file ../node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol
+relevant solc is /Users/alexandremota/Desktop/LindyLabs/solc
+remappings=['@openzeppelin=../node_modules/@openzeppelin']
+paths_for_remappings=['"../node_modules/@openzeppelin"']
+
+Join remappings: "../node_modules/@openzeppelin"
+
+about to run /Users/alexandremota/Desktop/LindyLabs/solc -o "/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/.certora_internal/22_10_15_09_51_07_538/.certora_config/ERC20.sol_0/" --overwrite --allow-paths "/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts","../node_modules/@openzeppelin",. --standard-json
+solc input = {
+    "language": "Solidity",
+    "sources": {
+        "/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol": {
+            "urls": [
+                "/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol"
+            ]
+        }
+    },
+    "settings": {
+        "remappings": [
+            "@openzeppelin=../node_modules/@openzeppelin"
+        ],
+        "outputSelection": {
+            "*": {
+                "*": [
+                    "storageLayout",
+                    "abi",
+                    "evm.bytecode",
+                    "evm.deployedBytecode",
+                    "evm.methodIdentifiers",
+                    "evm.assembly"
+                ],
+                "": [
+                    "id",
+                    "ast"
+                ]
+            }
+        }
+    }
+}
+Running cmd /Users/alexandremota/Desktop/LindyLabs/solc -o "/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/.certora_internal/22_10_15_09_51_07_538/.certora_config/ERC20.sol_0/" --overwrite --allow-paths "/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts","../node_modules/@openzeppelin",. --standard-json
+stdout, stderr = /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/.certora_internal/22_10_15_09_51_07_538/.certora_config/ERC20.sol_0.standard.json.stdout, /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/.certora_internal/22_10_15_09_51_07_538/.certora_config/ERC20.sol_0.standard.json.stderr
+Exitcode 0
+Collecting standard json: /Users/alexandremota/Desktop/LindyLabs/solc -o "/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/.certora_internal/22_10_15_09_51_07_538/.certora_config/ERC20.sol_0/" --overwrite --allow-paths "/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts","../node_modules/@openzeppelin",. --standard-json
+reading standard json data from /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/.certora_internal/22_10_15_09_51_07_538/.certora_config/ERC20.sol_0.standard.json.stdout
+visiting contract file /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol
+relevant solc is /Users/alexandremota/Desktop/LindyLabs/solc
+Running cmd /Users/alexandremota/Desktop/LindyLabs/solc --version
+stdout, stderr = /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/.certora_internal/22_10_15_09_51_07_538/.certora_config/version_check_solc.stdout, /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/.certora_internal/22_10_15_09_51_07_538/.certora_config/version_check_solc.stderr
+Exitcode 0
+collecting worklist for /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol
+available keys: dict_keys(['/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol', '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol', '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol', '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/utils/Context.sol'])
+Adding a base contract link ref /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/utils/Context.sol to worklist
+Adding a base contract link ref /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol to worklist
+Adding a base contract link ref /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol to worklist
+base contracts [('/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol', 'ERC20', False), ('/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/utils/Context.sol', 'Context', False), ('/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol', 'IERC20', False), ('/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol', 'IERC20Metadata', False), ('/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol', 'IERC20', False)]
+Adding internal link ref /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol to worklist
+Adding internal link ref /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/utils/Context.sol to worklist
+Adding internal link ref /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol to worklist
+available keys: dict_keys(['/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol', '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol', '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol', '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/utils/Context.sol'])
+base contracts [('/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol', 'ERC20', False), ('/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/utils/Context.sol', 'Context', False), ('/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol', 'IERC20', False), ('/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol', 'IERC20Metadata', False), ('/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol', 'IERC20', False)]
+available keys: dict_keys(['/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol', '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol', '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol', '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/utils/Context.sol'])
+base contracts [('/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol', 'IERC20', False)]
+available keys: dict_keys(['/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol', '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol', '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol', '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/utils/Context.sol'])
+base contracts [('/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/utils/Context.sol', 'Context', False)]
+available keys: dict_keys(['/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol', '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol', '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol', '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/utils/Context.sol'])
+base contracts [('/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol', 'IERC20Metadata', False), ('/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol', 'IERC20', False)]
+available keys: dict_keys(['/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol', '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol', '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol', '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/utils/Context.sol'])
+base contracts [('/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol', 'IERC20', False)]
+available keys: dict_keys(['/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol', '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol', '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol', '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/utils/Context.sol'])
+base contracts [('/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/utils/Context.sol', 'Context', False)]
+Contracts in ERC20.sol_0 (file ../node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol): ['ERC20']
+Contracts with their chosen addresses: [(274184521717934524641157099916833587200, '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20'), (274184521717934524641157099916833587201, '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20'), (274184521717934524641157099916833587202, '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol:IERC20Metadata'), (274184521717934524641157099916833587203, '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/utils/Context.sol:Context')]
+For contracts of primary ERC20
+Working on contract ERC20
+Working on contract ERC20
+Working on contract IERC20
+Working on contract IERC20
+Working on contract IERC20Metadata
+Working on contract IERC20Metadata
+Working on contract Context
+Working on contract Context
+finding primary contract address of /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20 in [(274184521717934524641157099916833587200, '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol:ERC20'), (274184521717934524641157099916833587201, '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20'), (274184521717934524641157099916833587202, '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol:IERC20Metadata'), (274184521717934524641157099916833587203, '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/utils/Context.sol:Context')]
+Contracts in SDC ERC20.sol_0: ['ERC20', 'IERC20', 'IERC20Metadata', 'Context']
+relevant solc is /Users/alexandremota/Desktop/LindyLabs/solc
+remappings=['@openzeppelin=../node_modules/@openzeppelin']
+paths_for_remappings=['"../node_modules/@openzeppelin"']
+
+Join remappings: "../node_modules/@openzeppelin"
+
+about to run /Users/alexandremota/Desktop/LindyLabs/solc -o "/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/.certora_internal/22_10_15_09_51_07_538/.certora_config/autoFinder_ERC20.sol_0/" --overwrite --allow-paths "/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts","../node_modules/@openzeppelin",. --standard-json
+solc input = {
+    "language": "Solidity",
+    "sources": {
+        "/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/autoFinder_ERC20.sol": {
+            "urls": [
+                "/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/autoFinder_ERC20.sol"
+            ]
+        }
+    },
+    "settings": {
+        "remappings": [
+            "@openzeppelin=../node_modules/@openzeppelin"
+        ],
+        "outputSelection": {
+            "*": {
+                "*": [
+                    "storageLayout",
+                    "abi",
+                    "evm.bytecode",
+                    "evm.deployedBytecode",
+                    "evm.methodIdentifiers",
+                    "evm.assembly"
+                ],
+                "": [
+                    "id",
+                    "ast"
+                ]
+            }
+        }
+    }
+}
+Running cmd /Users/alexandremota/Desktop/LindyLabs/solc -o "/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/.certora_internal/22_10_15_09_51_07_538/.certora_config/autoFinder_ERC20.sol_0/" --overwrite --allow-paths "/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts","../node_modules/@openzeppelin",. --standard-json
+stdout, stderr = /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/.certora_internal/22_10_15_09_51_07_538/.certora_config/autoFinder_ERC20.sol_0.standard.json.stdout, /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/.certora_internal/22_10_15_09_51_07_538/.certora_config/autoFinder_ERC20.sol_0.standard.json.stderr
+Exitcode 0
+Collecting standard json: /Users/alexandremota/Desktop/LindyLabs/solc -o "/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/.certora_internal/22_10_15_09_51_07_538/.certora_config/autoFinder_ERC20.sol_0/" --overwrite --allow-paths "/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts","../node_modules/@openzeppelin",. --standard-json
+reading standard json data from /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/.certora_internal/22_10_15_09_51_07_538/.certora_config/autoFinder_ERC20.sol_0.standard.json.stdout
+collecting worklist for /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/autoFinder_ERC20.sol
+available keys: dict_keys(['/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol', '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/autoFinder_ERC20.sol', '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol', '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/utils/autoFinder_Context.sol'])
+Adding a base contract link ref /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/utils/autoFinder_Context.sol to worklist
+Adding a base contract link ref /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol to worklist
+Adding a base contract link ref /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol to worklist
+base contracts [('/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/autoFinder_ERC20.sol', 'ERC20', False), ('/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/utils/autoFinder_Context.sol', 'Context', False), ('/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol', 'IERC20', False), ('/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol', 'IERC20Metadata', False), ('/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol', 'IERC20', False)]
+Adding internal link ref /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/autoFinder_ERC20.sol to worklist
+Adding internal link ref /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/utils/autoFinder_Context.sol to worklist
+Adding internal link ref /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol to worklist
+available keys: dict_keys(['/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol', '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/autoFinder_ERC20.sol', '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol', '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/utils/autoFinder_Context.sol'])
+base contracts [('/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/utils/autoFinder_Context.sol', 'Context', False)]
+available keys: dict_keys(['/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol', '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/autoFinder_ERC20.sol', '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol', '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/utils/autoFinder_Context.sol'])
+base contracts [('/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol', 'IERC20', False)]
+available keys: dict_keys(['/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol', '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/autoFinder_ERC20.sol', '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol', '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/utils/autoFinder_Context.sol'])
+base contracts [('/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/utils/autoFinder_Context.sol', 'Context', False)]
+available keys: dict_keys(['/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol', '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/autoFinder_ERC20.sol', '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol', '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/utils/autoFinder_Context.sol'])
+base contracts [('/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol', 'IERC20Metadata', False), ('/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol', 'IERC20', False)]
+available keys: dict_keys(['/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol', '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/autoFinder_ERC20.sol', '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol', '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/utils/autoFinder_Context.sol'])
+base contracts [('/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol', 'IERC20', False)]
+available keys: dict_keys(['/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol', '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/autoFinder_ERC20.sol', '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol', '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/utils/autoFinder_Context.sol'])
+base contracts [('/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/autoFinder_ERC20.sol', 'ERC20', False), ('/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/utils/autoFinder_Context.sol', 'Context', False), ('/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol', 'IERC20', False), ('/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol', 'IERC20Metadata', False), ('/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol', 'IERC20', False)]
+Contracts in autoFinder_ERC20.sol_0 (file ../node_modules/@openzeppelin/contracts/token/ERC20/autoFinder_ERC20.sol): ['ERC20']
+Contracts with their chosen addresses: [(274184521717934524641157099916833587204, '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20'), (274184521717934524641157099916833587205, '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/autoFinder_ERC20.sol:ERC20'), (274184521717934524641157099916833587206, '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol:IERC20Metadata'), (274184521717934524641157099916833587207, '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/utils/autoFinder_Context.sol:Context')]
+For contracts of primary ERC20
+Working on contract IERC20
+Working on contract IERC20
+Working on contract ERC20
+Working on contract ERC20
+Working on contract IERC20Metadata
+Working on contract IERC20Metadata
+Working on contract Context
+Working on contract Context
+finding primary contract address of /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/autoFinder_ERC20.sol:ERC20 in [(274184521717934524641157099916833587204, '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20'), (274184521717934524641157099916833587205, '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/autoFinder_ERC20.sol:ERC20'), (274184521717934524641157099916833587206, '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol:IERC20Metadata'), (274184521717934524641157099916833587207, '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/node_modules/@openzeppelin/contracts/utils/autoFinder_Context.sol:Context')]
+Contracts in SDC autoFinder_ERC20.sol_0: ['IERC20', 'ERC20', 'IERC20Metadata', 'Context']
+Libraries to add = []
+
+building file Vault.sol
+relevant solc is /Users/alexandremota/Desktop/LindyLabs/solc
+remappings=['@openzeppelin=../node_modules/@openzeppelin']
+paths_for_remappings=['"../node_modules/@openzeppelin"']
+
+Join remappings: "../node_modules/@openzeppelin"
+
+about to run /Users/alexandremota/Desktop/LindyLabs/solc -o "/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/.certora_internal/22_10_15_09_51_07_538/.certora_config/Vault.sol_1/" --overwrite --allow-paths "/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts","../node_modules/@openzeppelin",. --standard-json
+solc input = {
+    "language": "Solidity",
+    "sources": {
+        "/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/Vault.sol": {
+            "urls": [
+                "/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/Vault.sol"
+            ]
+        }
+    },
+    "settings": {
+        "remappings": [
+            "@openzeppelin=../node_modules/@openzeppelin"
+        ],
+        "outputSelection": {
+            "*": {
+                "*": [
+                    "storageLayout",
+                    "abi",
+                    "evm.bytecode",
+                    "evm.deployedBytecode",
+                    "evm.methodIdentifiers",
+                    "evm.assembly"
+                ],
+                "": [
+                    "id",
+                    "ast"
+                ]
+            }
+        }
+    }
+}
+Running cmd /Users/alexandremota/Desktop/LindyLabs/solc -o "/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/.certora_internal/22_10_15_09_51_07_538/.certora_config/Vault.sol_1/" --overwrite --allow-paths "/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts","../node_modules/@openzeppelin",. --standard-json
+stdout, stderr = /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/.certora_internal/22_10_15_09_51_07_538/.certora_config/Vault.sol_1.standard.json.stdout, /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/.certora_internal/22_10_15_09_51_07_538/.certora_config/Vault.sol_1.standard.json.stderr
+Exitcode 0
+Collecting standard json: /Users/alexandremota/Desktop/LindyLabs/solc -o "/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/.certora_internal/22_10_15_09_51_07_538/.certora_config/Vault.sol_1/" --overwrite --allow-paths "/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts","../node_modules/@openzeppelin",. --standard-json
+reading standard json data from /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/.certora_internal/22_10_15_09_51_07_538/.certora_config/Vault.sol_1.standard.json.stdout
+Error: standard-json invocation of solc encountered an error: {'component': 'general', 'errorCode': '7576', 'formattedMessage': 'DeclarationError: Undeclared identifier. Did you mean "IERC20"?\n    --> /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/Vault.sol:1106:33:\n     |\n1106 |         uint256 balanceBefore = ERC20(_token).balanceOf(address(this));\n     |                                 ^^^^^\n\n', 'message': 'Undeclared identifier. Did you mean "IERC20"?', 'severity': 'error', 'sourceLocation': {'end': 34225, 'file': '/Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/Vault.sol', 'start': 34220}, 'type': 'DeclarationError'}
+/Users/alexandremota/Desktop/LindyLabs/solc had an error:
+DeclarationError: Undeclared identifier. Did you mean "IERC20"?
+    --> /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/Vault.sol:1106:33:
+     |
+1106 |         uint256 balanceBefore = ERC20(_token).balanceOf(address(this));
+     |                                 ^^^^^
+
+
+build failed
+Failure traceback: 
+Exception: /Users/alexandremota/Desktop/LindyLabs/solc had an error:
+DeclarationError: Undeclared identifier. Did you mean "IERC20"?
+    --> /Users/alexandremota/Desktop/LindyLabs/sc_solidity-contracts/contracts/Vault.sol:1106:33:
+     |
+1106 |         uint256 balanceBefore = ERC20(_token).balanceOf(address(this));
+     |                                 ^^^^^
+
+
+Encountered an error running Certora Prover, please contact Certora; consider running the script again with --debug to find out why it failed:
+certoraRun Vault.sol mock/MockStrategySync.sol mock/MockERC20.sol ../node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol --link Vault:strategy=MockStrategySync Vault:underlying=MockERC20 MockStrategySync:underlying=MockERC20 --verify Vault:./properties/certora/Valid_Deposit/Valid_Deposit_NoRevertSync.spec --settings -postProcessCounterExamples=true --optimistic_loop --packages @openzeppelin=../node_modules/@openzeppelin --msg 'Checking Vault' --debug

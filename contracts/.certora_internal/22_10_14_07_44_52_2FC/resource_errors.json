@@ -1,0 +1,21 @@
+{
+    "topics": [
+        {
+            "name": "type_check",
+            "messages": [
+                {
+                    "message": "Syntax error in spec file (Valid_Deposit_NoRevertSync.spec:38:20): could not type expression \"underlying.mint(eV.msg.sender,amount)\", message: Could not find an overloading of method underlying.mint that matches the given arguments: address, uint64. Method is not envfree; did you forget to provide the environment as the first function argument?",
+                    "location": []
+                },
+                {
+                    "message": "Syntax error in spec file (Valid_Deposit_NoRevertSync.spec:39:20): could not type expression \"underlying.approve(currentContract,amount)\", message: Could not find an overloading of method underlying.approve that matches the given arguments: address, uint64. Method is not envfree; did you forget to provide the environment as the first function argument?",
+                    "location": []
+                },
+                {
+                    "message": "Syntax error in spec file (Valid_Deposit_NoRevertSync.spec:44:9): could not type expression \"deposit(eV,getParams(eV,lockDuration,amount,name,slippage))\", message: Could not find an overloading of method deposit that matches the given arguments: address, uint64, uint256, (uint16,address,bytes)[], string, uint256.",
+                    "location": []
+                }
+            ]
+        }
+    ]
+}

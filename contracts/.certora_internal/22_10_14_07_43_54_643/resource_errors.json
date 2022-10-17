@@ -1,0 +1,13 @@
+{
+    "topics": [
+        {
+            "name": "solc",
+            "messages": [
+                {
+                    "message": "TypeError: Data location must be \"memory\" or \"calldata\" for return parameter in function, but none was given.",
+                    "location": []
+                }
+            ]
+        }
+    ]
+}

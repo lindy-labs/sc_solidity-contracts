@@ -1,0 +1,13 @@
+{
+    "topics": [
+        {
+            "name": "solc",
+            "messages": [
+                {
+                    "message": "TypeError: Member \"balanceOf\" not found or not visible after argument-dependent lookup in address.",
+                    "location": []
+                }
+            ]
+        }
+    ]
+}

@@ -1,0 +1,13 @@
+{
+    "topics": [
+        {
+            "name": "type_check",
+            "messages": [
+                {
+                    "message": "Syntax error in spec file (Valid_Deposit_NoRevertSync.spec:19:9): could not type expression \"DepositParams\", message: Contract name IVault for type IVault.DepositParams not found",
+                    "location": []
+                }
+            ]
+        }
+    ]
+}

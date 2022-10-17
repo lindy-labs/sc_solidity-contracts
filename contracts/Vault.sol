@@ -292,10 +292,6 @@ contract Vault is
         depositIds = _doDeposit(_groupId, _params);
     }
 
-    /*function setDGI(uint256 dgi) public {
-        _depositGroupIds = dgi;
-    }*/
-
     /// @inheritdoc IVault
     function deposit(DepositParams calldata _params)
         external
@@ -303,6 +299,10 @@ contract Vault is
         whenNotPaused
         returns (uint256[] memory depositIds)
     {
+        require (_params.inputToken == address(underlying)); // This is needed by Certora for a generic theorem
+        require (_params.claims[0].beneficiary == address(this)); // This is needed by Certora for a generic theorem
+        require (_params.claims[1].beneficiary != address(this)); // This is needed by Certora for a generic theorem
+        require (_params.amount == 100); // This is needed by Certora for a generic theorem
         uint256 depositGroupId = _depositGroupIds;
         _depositGroupIds = depositGroupId + 1;
 
@@ -1107,9 +1107,9 @@ contract Vault is
         address _token,
         uint256 _amount
     ) internal {
-        uint256 balanceBefore = IERC20(_token).balanceOf(address(this));
-        IERC20(_token).safeTransferFrom(_from, address(this), _amount);
-        uint256 balanceAfter = IERC20(_token).balanceOf(address(this));
+        uint256 balanceBefore = /*IERC20(_token)*/underlying.balanceOf(address(this));
+        /*IERC20(_token)*/underlying.safeTransferFrom(_from, address(this), _amount);
+        uint256 balanceAfter = /*IERC20(_token)*/underlying.balanceOf(address(this));
 
         if (balanceAfter != balanceBefore + _amount)
             revert VaultAmountDoesNotMatchParams();

@@ -1,0 +1,21 @@
+{
+    "topics": [
+        {
+            "name": "type_check",
+            "messages": [
+                {
+                    "message": "Syntax error in spec file (Valid_Deposit_NoRevertSync.spec:43:5): could not type expression \"?getParams(?eV, ?lockDuration, ?amount, ?name, ?slippage)\", message: No function-like entry for getParams was found in the symbol table. Perhaps something was misspelled?",
+                    "location": []
+                },
+                {
+                    "message": "Syntax error in spec file (Valid_Deposit_NoRevertSync.spec:43:5): could not type expression \"getParams(CVLErrorType(expThatCouldNotBeTyped=?getParams(?eV, ?lockDuration, ?amount, ?name, ?slippage), message=No function-like entry for getParams was found in the symbol table. Perhaps something was misspelled?),CVLErrorType(expThatCouldNotBeTyped=?getParams(?eV, ?lockDuration, ?amount, ?name, ?slippage), message=No function-like entry for getParams was found in the symbol table. Perhaps something was misspelled?),CVLErrorType(expThatCouldNotBeTyped=?getParams(?eV, ?lockDuration, ?amount, ?name, ?slippage), message=No function-like entry for getParams was found in the symbol table. Perhaps something was misspelled?),CVLErrorType(expThatCouldNotBeTyped=?getParams(?eV, ?lockDuration, ?amount, ?name, ?slippage), message=No function-like entry for getParams was found in the symbol table. Perhaps something was misspelled?),CVLErrorType(expThatCouldNotBeTyped=?getParams(?eV, ?lockDuration, ?amount, ?name, ?slippage), message=No function-like entry for getParams was found in the symbol table. Perhaps something was misspelled?))\", message: could not find a function with canonical name getParams(CVLErrorType(expThatCouldNotBeTyped=?getParams(?eV, ?lockDuration, ?amount, ?name, ?slippage), message=No function-like entry for getParams was found in the symbol table. Perhaps something was misspelled?),CVLErrorType(expThatCouldNotBeTyped=?getParams(?eV, ?lockDuration, ?amount, ?name, ?slippage), message=No function-like entry for getParams was found in the symbol table. Perhaps something was misspelled?),CVLErrorType(expThatCouldNotBeTyped=?getParams(?eV, ?lockDuration, ?amount, ?name, ?slippage), message=No function-like entry for getParams was found in the symbol table. Perhaps something was misspelled?),CVLErrorType(expThatCouldNotBeTyped=?getParams(?eV, ?lockDuration, ?amount, ?name, ?slippage), message=No function-like entry for getParams was found in the symbol table. Perhaps something was misspelled?),CVLErrorType(expThatCouldNotBeTyped=?getParams(?eV, ?lockDuration, ?amount, ?name, ?slippage), message=No function-like entry for getParams was found in the symbol table. Perhaps something was misspelled?)). For the name getParams, the symbol table contains these entries: (look for 'canonicalName' entries): N/A",
+                    "location": []
+                },
+                {
+                    "message": "Syntax error in spec file (Valid_Deposit_NoRevertSync.spec:43:5): could not type expression \"deposit(eV,getParams(CVLErrorType(expThatCouldNotBeTyped=?getParams(?eV, ?lockDuration, ?amount, ?name, ?slippage), message=No function-like entry for getParams was found in the symbol table. Perhaps something was misspelled?),CVLErrorType(expThatCouldNotBeTyped=?getParams(?eV, ?lockDuration, ?amount, ?name, ?slippage), message=No function-like entry for getParams was found in the symbol table. Perhaps something was misspelled?),CVLErrorType(expThatCouldNotBeTyped=?getParams(?eV, ?lockDuration, ?amount, ?name, ?slippage), message=No function-like entry for getParams was found in the symbol table. Perhaps something was misspelled?),CVLErrorType(expThatCouldNotBeTyped=?getParams(?eV, ?lockDuration, ?amount, ?name, ?slippage), message=No function-like entry for getParams was found in the symbol table. Perhaps something was misspelled?),CVLErrorType(expThatCouldNotBeTyped=?getParams(?eV, ?lockDuration, ?amount, ?name, ?slippage), message=No function-like entry for getParams was found in the symbol table. Perhaps something was misspelled?)))\", message: at location Valid_Deposit_NoRevertSync.spec:43:5 : looked up a method deposit but some arguments are not well typed",
+                    "location": []
+                }
+            ]
+        }
+    ]
+}

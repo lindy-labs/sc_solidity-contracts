@@ -1,0 +1,13 @@
+{
+    "topics": [
+        {
+            "name": "solc",
+            "messages": [
+                {
+                    "message": "DocstringParsingError: Documentation tag @ not valid for functions.",
+                    "location": []
+                }
+            ]
+        }
+    ]
+}

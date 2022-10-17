@@ -1,0 +1,13 @@
+{
+    "topics": [
+        {
+            "name": "solc",
+            "messages": [
+                {
+                    "message": "TypeError: Invalid type for argument in function call. Invalid implicit conversion from struct IVault.ClaimParams storage ref[] storage ref to struct IVault.ClaimParams calldata[] calldata requested.",
+                    "location": []
+                }
+            ]
+        }
+    ]
+}
