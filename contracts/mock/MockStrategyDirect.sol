@@ -13,8 +13,13 @@ import {CustomErrors} from "../interfaces/CustomErrors.sol";
 import {MockERC20} from "./MockERC20.sol";
 import {PercentMath} from "../lib/PercentMath.sol";
 
-import "hardhat/console.sol";
-
+/**
+ * This strategy uses an extra currency, _yieldUnderlying_, with an exchange
+ * rate of 1 to 1 to _underlying_. With this mechanism, we imitate strategies
+ * that keep yield in a different currency, the Liquity's Yield DCA. The purpose
+ * of this strategy is to write tests for the vault that use the `transferYield`
+ * function.
+ */
 contract MockStrategyDirect is BaseStrategy {
     using PercentMath for uint256;
     using PercentMath for uint16;
