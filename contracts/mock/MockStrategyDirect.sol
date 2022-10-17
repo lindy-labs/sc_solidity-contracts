@@ -48,6 +48,11 @@ contract MockStrategyDirect is BaseStrategy {
         return true;
     }
 
+    /**
+     * This function will rebalance the total amount taking into account the
+     * protected principal. The protected principal is set kept in `underlying`
+     * and the remaining is converted to/from `yieldUnderlying.`
+     */
     /// @inheritdoc IStrategy
     function invest() external virtual override(IStrategy) {
         uint256 toProtect = (IVault(vault).totalPrincipal() +
