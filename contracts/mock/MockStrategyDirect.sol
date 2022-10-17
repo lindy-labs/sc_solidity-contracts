@@ -42,25 +42,11 @@ contract MockStrategyDirect is BaseStrategy {
         return true;
     }
 
-    function isDirect()
-        external
-        pure
-        virtual
-        override(IStrategy)
-        returns (bool)
-    {
-        return true;
-    }
-
     function invest() external virtual override(IStrategy) {
         uint256 toProtect = (IVault(vault).totalPrincipal() +
             IVaultSponsoring(vault).totalSponsored()).pctOf(principalPct);
         uint256 balance = underlyingBalance();
         uint256 yieldBalance = yieldUnderlying.balanceOf(address(this));
-
-        console.log(toProtect);
-        console.log(balance);
-        console.log(yieldBalance);
 
         if (balance < toProtect && yieldBalance > 0) {
             uint256 diff = toProtect - balance;

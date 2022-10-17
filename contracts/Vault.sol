@@ -379,10 +379,8 @@ contract Vault is
 
         if (
             address(strategy) != address(0) &&
-            strategy.isDirect() &&
             strategy.transferYield(_to, yield)
         ) {
-            // if (strategy.isDirect()) {
             return;
         }
 

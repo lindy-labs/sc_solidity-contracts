@@ -108,10 +108,6 @@ contract AnchorStrategy is IAnchorStrategy, BaseStrategy {
         return false;
     }
 
-    function isDirect() external pure override(IStrategy) returns (bool) {
-        return false;
-    }
-
     /**
      * Returns false since strategy is asynchronous.
      */

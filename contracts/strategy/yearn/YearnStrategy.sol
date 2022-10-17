@@ -93,10 +93,6 @@ contract YearnStrategy is BaseStrategy {
         return false;
     }
 
-    function isDirect() external pure override(IStrategy) returns (bool) {
-        return false;
-    }
-
     /**
      * Yearn strategy is synchronous meaning it supports immediate withdrawals.
      *

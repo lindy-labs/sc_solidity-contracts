@@ -175,10 +175,6 @@ contract LiquityStrategy is
         return false;
     }
 
-    function isDirect() external pure override(IStrategy) returns (bool) {
-        return false;
-    }
-
     /**
      * Returns true since strategy is synchronous.
      */

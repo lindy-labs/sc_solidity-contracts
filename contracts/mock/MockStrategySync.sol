@@ -20,16 +20,6 @@ contract MockStrategySync is BaseStrategy {
         return true;
     }
 
-    function isDirect()
-        external
-        pure
-        virtual
-        override(IStrategy)
-        returns (bool)
-    {
-        return false;
-    }
-
     function transferYield(address, uint256)
         external
         virtual

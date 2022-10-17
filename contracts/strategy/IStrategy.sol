@@ -51,8 +51,6 @@ interface IStrategy {
     // TODO: sends yield from the strategy to the user
     function transferYield(address to, uint256 amount) external returns (bool);
 
-    function isDirect() external view returns (bool);
-
     /**
      * Amount of the underlying currency currently invested by the strategy.
      *

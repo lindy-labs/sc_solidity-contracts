@@ -1,6 +1,6 @@
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { time } from '@openzeppelin/test-helpers';
-import { utils, BigNumber, constants } from 'ethers';
+import { BigNumber } from 'ethers';
 import { ethers, deployments } from 'hardhat';
 import { expect } from 'chai';
 
@@ -15,15 +15,7 @@ import {
 
 import createVaultHelpers from './shared/vault';
 import { depositParams, claimParams } from './shared/factories';
-import {
-  getLastBlockTimestamp,
-  moveForwardTwoWeeks,
-  SHARES_MULTIPLIER,
-  generateNewAddress,
-  getRoleErrorMsg,
-  arrayFromTo,
-  CURVE_SLIPPAGE,
-} from './shared';
+import { generateNewAddress } from './shared';
 
 const { parseUnits } = ethers.utils;
 const { MaxUint256 } = ethers.constants;
@@ -45,26 +37,16 @@ describe('VaultWithDirectStrategy', () => {
     amount: string,
   ) => Promise<BigNumber>;
   let addYieldToVault: (amount: string) => Promise<BigNumber>;
-  let removeUnderlyingFromVault: (amount: string) => Promise<BigNumber>;
   let underlyingBalanceOf: (
     account: SignerWithAddress | Vault,
   ) => Promise<BigNumber>;
 
   const MOCK_STRATEGY = 'MockStrategyDirect';
   const TWO_WEEKS = BigNumber.from(time.duration.weeks(2).toNumber());
-  const MAX_DEPOSIT_LOCK_DURATION = BigNumber.from(
-    time.duration.weeks(24).toNumber(),
-  );
   const TREASURY = generateNewAddress();
   const PERFORMANCE_FEE_PCT = BigNumber.from('0');
   const INVESTMENT_FEE_PCT = BigNumber.from('0');
   const INVEST_PCT = BigNumber.from('10000');
-  const DENOMINATOR = BigNumber.from('10000');
-
-  const DEFAULT_ADMIN_ROLE = constants.HashZero;
-  const KEEPER_ROLE = utils.keccak256(utils.toUtf8Bytes('KEEPER_ROLE'));
-  const SETTINGS_ROLE = utils.keccak256(utils.toUtf8Bytes('SETTINGS_ROLE'));
-  const SPONSOR_ROLE = utils.keccak256(utils.toUtf8Bytes('SPONSOR_ROLE'));
 
   const fixtures = deployments.createFixture(async ({ deployments }) => {
     await deployments.fixture(['vault']);
