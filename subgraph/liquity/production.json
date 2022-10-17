@@ -1,0 +1,29 @@
+{
+  "liquity": {
+    "vault": {
+      "network": "mainnet",
+      "startBlock": 15308000,
+      "address": "0x91A6194F1278f6Cf25ae51B604029075695A74E5"
+    },
+    "strategy": {
+      "network": "mainnet",
+      "startBlock": 15308000,
+      "address": "0x537eE18Ca78C42E1e7fB87FECFE9FC811c3d3575"
+    },
+    "liquityTrove": {
+      "network": "mainnet",
+      "startBlock": 15308000,
+      "address": "0xA39739EF8b0231DbFA0DcdA07d7e29faAbCf4bb2"
+    },
+    "liquityPool": {
+      "network": "mainnet",
+      "startBlock": 15308000,
+      "address": "0x66017d22b0f8556afdd19fc67041899eb65a21bb"
+    },
+    "liquityPriceFeed": {
+      "network": "mainnet",
+      "startBlock": 15308000,
+      "address": "0x4c517d4e2c851ca76d7ec94b805269df0f2201de"
+    }
+  }
+}
