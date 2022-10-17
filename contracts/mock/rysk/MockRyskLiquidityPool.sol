@@ -161,32 +161,24 @@ contract MockRyskLiquidityPool is ERC20 {
         return amount;
     }
 
-    function executeEpochCalculation() public {
-        uint256 newPricePerShare;
-        if (totalSupply() == 0) {
-            newPricePerShare = 1e18;
-        } else {
-            newPricePerShare =
-                ((((totalAssets() - pendingDeposits) * 1e18) / totalSupply()) *
-                    1e18) /
-                10**underlyingDecimals;
-        }
+    function executeEpochCalculation() external {
+        uint256 newPricePerShare = _calculateNewPricePerShare();
+
+        _mintSharesForPendingDeposits(newPricePerShare);
 
         depositEpochPricePerShare[depositEpoch] = newPricePerShare;
-        withdrawalEpochPricePerShare[withdrawalEpoch] = newPricePerShare;
-
-        if (pendingDeposits != 0) {
-            uint256 sharesToMint = _getSharesForAmount(
-                pendingDeposits,
-                newPricePerShare
-            );
-
-            _mint(address(this), sharesToMint);
-            delete pendingDeposits;
-        }
-
         depositEpoch++;
+
+        withdrawalEpochPricePerShare[withdrawalEpoch] = newPricePerShare;
         withdrawalEpoch++;
+    }
+
+    function executeOnlyDepositEpochCalculation() external {
+        uint256 newPricePerShare = _calculateNewPricePerShare();
+        _mintSharesForPendingDeposits(newPricePerShare);
+
+        depositEpochPricePerShare[depositEpoch] = newPricePerShare;
+        depositEpoch++;
     }
 
     function totalAssets() internal view returns (uint256) {
@@ -211,5 +203,27 @@ contract MockRyskLiquidityPool is ERC20 {
         return
             (((_shares * _pricePerShare) / 1e18) * 10**underlyingDecimals) /
             1e18;
+    }
+
+    function _calculateNewPricePerShare() internal view returns (uint256) {
+        if (totalSupply() == 0) {
+            return 1e18;
+        }
+
+        return
+            ((((totalAssets() - pendingDeposits) * 1e18) / totalSupply()) *
+                1e18) / 10**underlyingDecimals;
+    }
+
+    function _mintSharesForPendingDeposits(uint256 _pricePerShare) internal {
+        if (pendingDeposits == 0) return;
+
+        uint256 sharesToMint = _getSharesForAmount(
+            pendingDeposits,
+            _pricePerShare
+        );
+
+        _mint(address(this), sharesToMint);
+        delete pendingDeposits;
     }
 }

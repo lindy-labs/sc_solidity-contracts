@@ -560,21 +560,21 @@ describe('RyskStrategy', () => {
         ryskLqPool.address,
         await underlying.balanceOf(ryskLqPool.address),
       );
-      await ryskLqPool.executeEpochCalculation();
+      await ryskLqPool.executeOnlyDepositEpochCalculation();
 
       await ForkHelpers.impersonate([strategy.address]);
       const stratSigner = await ethers.getSigner(strategy.address);
       ForkHelpers.setBalance(stratSigner.address, parseUnits('1'));
       await ryskLqPool.connect(stratSigner).redeem(parseUnits('50'));
 
-      // at this point we have 50 redeemed and 50 unredeemed shares which both doubled in value
+      // at this point we have 50 redeemed and 50 unredeemed shares (which doubled in value)
       expect(
         (await ryskLqPool.depositReceipts(strategy.address)).unredeemedShares,
       ).to.eq(parseUnits('50'));
       expect(await ryskLqPool.balanceOf(strategy.address)).to.eq(
         parseUnits('50'),
       );
-      expect(await strategy.investedAssets()).to.eq(parseUSDC('200'));
+      expect(await strategy.investedAssets()).to.eq(parseUSDC('150'));
     });
 
     it('sums amounts for pending deposit, pending withdrawal, unredeemed and redeemed shares', async () => {
