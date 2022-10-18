@@ -118,7 +118,7 @@ contract RyskStrategy is BaseStrategy {
 
         uint256 amountInDepositReceipt = _getAmountFromDepositReceipt();
 
-        uint256 amountInPendingWithdrawal = __getAmountForPendingWithdrawal(
+        uint256 amountInPendingWithdrawal = _getAmountForPendingWithdrawal(
             currentWithdrawalEpoch,
             latestWithdrawalPricePerShare
         );
@@ -324,7 +324,10 @@ contract RyskStrategy is BaseStrategy {
             memory depositReceipt = _getDepositReceipt();
         uint256 depositEpoch = ryskLqPool.depositEpoch();
 
-        if (depositReceipt.epoch == 0) return 0;
+        if (
+            depositReceipt.epoch == 0 ||
+            (depositReceipt.amount == 0 && depositReceipt.unredeemedShares == 0)
+        ) return 0;
 
         uint256 amountDepositedInCurrentEpoch = 0;
         uint256 pendingUnredeemedShares = 0;
@@ -356,7 +359,7 @@ contract RyskStrategy is BaseStrategy {
      *
      * @return amount of underlying for the pending withdrawal
      */
-    function __getAmountForPendingWithdrawal(
+    function _getAmountForPendingWithdrawal(
         uint256 _currentWithdrawalEpoch,
         uint256 _latestWithdrawalPricePerShare
     ) internal view returns (uint256) {
