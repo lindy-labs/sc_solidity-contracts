@@ -338,6 +338,22 @@ describe('RyskStrategy', () => {
         strategy.connect(manager).withdrawToVault(endAmountToWithdraw),
       ).to.be.revertedWith('RyskPendingWithdrawalNotCompleted');
     });
+
+    it('works when called after completing previous withdrawal in the same epoch', async () => {
+      let underlyingAmount = parseUSDC('100');
+      await underlying.mint(strategy.address, underlyingAmount);
+      await strategy.connect(manager).invest();
+      await ryskLqPool.executeEpochCalculation();
+
+      await strategy.connect(manager).withdrawToVault(parseUSDC('50'));
+
+      await ryskLqPool.executeEpochCalculation();
+
+      await strategy.connect(keeper).completeWithdrawal();
+
+      await expect(strategy.connect(manager).withdrawToVault(parseUSDC('50')))
+        .to.not.be.reverted;
+    });
   });
 
   describe('#completeWithdrawal', () => {

@@ -243,7 +243,8 @@ contract RyskStrategy is BaseStrategy {
 
         if (
             withdrawalReceipt.epoch != 0 &&
-            withdrawalReceipt.epoch != _currentWithdrawalEpoch
+            withdrawalReceipt.epoch != _currentWithdrawalEpoch &&
+            withdrawalReceipt.shares > 0
         ) revert RyskPendingWithdrawalNotCompleted();
     }
 

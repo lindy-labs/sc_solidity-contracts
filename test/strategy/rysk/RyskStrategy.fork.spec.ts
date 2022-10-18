@@ -355,9 +355,55 @@ describe('Rysk Strategy (mainnet fork tests)', () => {
       expect(await usdc.balanceOf(vault.address)).to.gte('999999000');
       expect(await strategy.investedAssets()).to.gte('1186057000');
     });
-  });
 
-  describe('more complex scenario...?', async () => {});
+    it('correctly summs amounts for pending deposit, pending withdrawal, unredeemed and redeemed shares ', async () => {
+      // scenario:
+      // 1. invest 1000
+      // 2. epoch++
+      // 3. shares increase 50%
+      // 4. initiate withdraw for 500
+      // 5. epoch++
+      // 6. complete withdraw and get 750 in the vault
+      // 7. initiate withdraw for 500
+      // 8. invest 1000
+      // 9. epoch++
+      // 10. invest 1000
+      // end result ~750 USDC in the vault & ~2750 USDC invested assets
+
+      const amount = parseUSDC('1000');
+      await ForkHelpers.mintToken(usdc, strategy.address, amount);
+      await strategy.connect(admin).invest();
+
+      await executeEpochCalculation();
+
+      // generate ~50% yield
+      const poolBalance = await usdc.balanceOf(ryskLiquidityPool.address);
+      await ForkHelpers.mintToken(
+        usdc,
+        ryskLiquidityPool.address,
+        poolBalance.div(2),
+      );
+
+      await strategy.connect(admin).withdrawToVault(parseUSDC('500'));
+
+      await executeEpochCalculation();
+
+      await strategy.connect(admin).completeWithdrawal();
+
+      await strategy.connect(admin).withdrawToVault('500');
+
+      await ForkHelpers.mintToken(usdc, strategy.address, amount);
+      await strategy.connect(admin).invest();
+
+      await executeEpochCalculation();
+
+      await ForkHelpers.mintToken(usdc, strategy.address, amount);
+      await strategy.connect(admin).invest();
+
+      expect(await usdc.balanceOf(vault.address)).to.gte('732572000');
+      expect(await strategy.investedAssets()).to.gte('2732572000');
+    });
+  });
 
   describe('bug: stuck after initiating a withdrawal with shares amount less than 1e12', async () => {
     it('should not be stuck', async () => {
