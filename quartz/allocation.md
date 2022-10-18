@@ -4,7 +4,11 @@
 
 <figure><img src="../.gitbook/assets/chart.svg" alt=""><figcaption><p>Initial Allocation: Team 20%, DAO 80%.</p></figcaption></figure>
 
-The community will become responsible for the spending of the DAO's QUARTZ upon deployment of Snapshot and then, the DAO. Our recommendation for the allocation no longer contains hard values. Instead, we list relevant areas for efficient DAO spending:
+The community will become responsible for the spending of the DAO's QUARTZ upon deployment of Snapshot and then, the DAO.
+
+QUARTZ has been whitelisted by UMA. This allows us to craft KPI options in order to significantly improve the capital efficiency of emissions and ensure they are providing a value to the DAO that is comparable to the amount being spent. They also allow Sandclock to prevent dilution of existing holders, provided KPIs are met, aligning incentives between the community and the success of the protocol.
+
+&#x20;Our recommendation for the allocation no longer contains hard values. Instead, we list relevant areas for efficient DAO spending, listed below:
 
 * **Insurance**
 
@@ -21,10 +25,6 @@ QUARTZ can be distributed to increase the TVL of Sandclock's metavaults (e.g. th
 * **Ecosystem Development/Grants**
 
 QUARTZ can be granted to incentivize development or marketing of our growing ecosystem.
-
-
-
-QUARTZ has been whitelisted by UMA. This will allow us to craft KPI options in order to significantly improve the capital efficiency of emissions and ensure they are providing a value to the DAO that is comparable to the amount being spent.
 
 ### Permalocked Tokens
 
