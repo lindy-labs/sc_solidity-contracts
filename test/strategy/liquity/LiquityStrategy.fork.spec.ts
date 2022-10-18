@@ -1,10 +1,12 @@
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
-import { BigNumber, utils } from 'ethers';
+import { BigNumber, constants, utils } from 'ethers';
 import { ethers, upgrades } from 'hardhat';
 import { expect } from 'chai';
 import { time } from '@openzeppelin/test-helpers';
 
 import {
+  claimParams,
+  depositParams,
   ForkHelpers,
   generateNewAddress,
   moveForwardTwoWeeks,
@@ -24,6 +26,7 @@ const { parseUnits } = ethers.utils;
 
 describe('Liquity Strategy (mainnet fork tests)', () => {
   let admin: SignerWithAddress;
+  let alice: SignerWithAddress;
 
   let vault: Vault;
   let lqtyStabilityPool: IStabilityPool;
@@ -66,7 +69,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
   beforeEach(async () => {
     await ForkHelpers.forkToMainnet(FORK_BLOCK);
 
-    [admin] = await ethers.getSigners();
+    [admin, alice] = await ethers.getSigners();
 
     lqtyStabilityPool = IStabilityPool__factory.connect(STABILITY_POOL, admin);
 
@@ -99,6 +102,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
         lqty.address,
         lusd.address,
         admin.address, // keeper
+        0,
       ],
       {
         kind: 'uups',
@@ -116,6 +120,24 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       .connect(admin)
       .approve(vault.address, ethers.constants.MaxUint256);
     await strategy.connect(admin).allowSwapTarget(SWAP_TARGET);
+
+    await lusd.connect(alice).approve(vault.address, constants.MaxUint256);
+  });
+
+  describe('#transferYield', () => {
+    it('sends ETH to the claimer', async () => {
+      const balance = await ethers.provider.getBalance(alice.address);
+
+      ForkHelpers.setBalance(strategy.address, parseUnits('1000'));
+
+      await strategy
+        .connect(admin)
+        .transferYield(alice.address, parseUnits('1'));
+
+      const newBalance = await ethers.provider.getBalance(alice.address);
+
+      expect(balance.lt(newBalance)).to.be.true;
+    });
   });
 
   describe('#invest', () => {
@@ -227,7 +249,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
   });
 
   describe('#reinvest', () => {
-    it('swaps LQTY and ETH already held by the strategy and reinvests all ', async () => {
+    it('swaps LQTY and ETH already held by the strategy and reinvests everything', async () => {
       const initialInvestment = parseUnits('10000');
       await ForkHelpers.mintToken(lusd, strategy.address, initialInvestment);
       await strategy.invest();
@@ -533,6 +555,40 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
           TOTAL_REWARD_IN_LUSD.add(1),
         ),
       ).to.be.revertedWith('StrategyInsufficientOutputAmount');
+    });
+
+    it('fails if the minimum principal protection is not ensured', async () => {
+      // the minimum principal protection to 200%
+      await strategy.setMinPrincipalProtectionPct(20000);
+
+      // make a deposit of 100 LUSD
+      const initialDeposit = LQTY_REWARD_IN_LUSD.add(ETH_REWARD_IN_LUSD).mul(2);
+      await ForkHelpers.mintToken(lusd, alice, parseUnits('10000000000'));
+
+      await vault.connect(alice).deposit(
+        depositParams.build({
+          amount: initialDeposit,
+          inputToken: lusd.address,
+          claims: [claimParams.percent(100).to(alice.address).build()],
+        }),
+      );
+
+      await vault.updateInvested();
+
+      // generated yield
+      await ForkHelpers.mintToken(lqty, strategy.address, EXPECTED_LQTY_REWARD);
+      ForkHelpers.setBalance(strategy.address, EXPECTED_ETH_REWARD);
+
+      await expect(
+        strategy.reinvest(
+          SWAP_TARGET,
+          EXPECTED_LQTY_REWARD,
+          SWAP_LQTY_DATA,
+          EXPECTED_ETH_REWARD,
+          SWAP_ETH_DATA,
+          LQTY_REWARD_IN_LUSD.add(ETH_REWARD_IN_LUSD),
+        ),
+      ).to.be.revertedWith('StrategyMinimumPrincipalProtection');
     });
   });
 

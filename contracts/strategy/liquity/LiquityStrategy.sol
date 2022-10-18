@@ -13,6 +13,8 @@ import {IStabilityPool} from "../../interfaces/liquity/IStabilityPool.sol";
 import {ERC165Query} from "../../lib/ERC165Query.sol";
 import {ICurveExchange} from "../../interfaces/curve/ICurveExchange.sol";
 
+import "hardhat/console.sol";
+
 /***
  * Liquity Strategy generates yield by investing LUSD assets into Liquity Stability Pool contract.
  * Stability pool gives out LQTY & ETH as rewards for liquidity providers.
@@ -46,6 +48,7 @@ contract LiquityStrategy is
     error StrategyTokenTransferFailed(address token);
     error StrategyInsufficientOutputAmount();
     error StrategyYieldTokenCannotBe0Address();
+    error StrategyMinimumPrincipalProtection();
 
     event StrategyReinvested(uint256 amountInLUSD);
 
@@ -71,6 +74,17 @@ contract LiquityStrategy is
     IStabilityPool public stabilityPool;
     IERC20 public lqty; // reward token
     mapping(address => bool) public allowedSwapTargets; // whitelist of swap targets
+
+    /**
+     * A percentage that specifies the minimum amount of principal to protect.
+     * The protected principal is kept in LUSD.
+     *
+     * For instance, if the minimum protected principal is 150%, the total
+     * principal is 100 LUSD, and the total yield is 100 LUSD. When the backend
+     * rebalances the strategy, it has to ensure that at least 50 ETH+LQTY is
+     * converted to LUSD to maintain a 150% minimum protected principal.
+     */
+    uint16 public minPrincipalProtectionPct;
 
     //
     // Modifiers
@@ -109,7 +123,8 @@ contract LiquityStrategy is
         address _stabilityPool,
         address _lqty,
         address _underlying,
-        address _keeper
+        address _keeper,
+        uint16 _principalProtectionPct
     ) public initializer {
         __AccessControl_init();
         __UUPSUpgradeable_init();
@@ -134,10 +149,15 @@ contract LiquityStrategy is
         underlying = IERC20(_underlying);
         stabilityPool = IStabilityPool(_stabilityPool);
         lqty = IERC20(_lqty);
+        minPrincipalProtectionPct = _principalProtectionPct;
 
         if (!underlying.approve(_stabilityPool, type(uint256).max)) {
             revert StrategyTokenApprovalFailed(_underlying);
         }
+    }
+
+    function setMinPrincipalProtectionPct(uint16 _pct) external {
+        minPrincipalProtectionPct = _pct;
     }
 
     /**
@@ -168,12 +188,32 @@ contract LiquityStrategy is
     //
 
     /// @inheritdoc IStrategy
-    function transferYield(address, uint256)
+    function transferYield(address _to, uint256 _amount)
         external
         override(IStrategy)
         returns (bool)
     {
-        return false;
+        uint256 amountInUSDT = ICurveExchange(CURVE_ROUTER).get_exchange_amount(
+            LUSD_CURVE_POOL,
+            address(underlying),
+            USDT,
+            _amount
+        );
+
+        uint256 amountInETH = ICurveExchange(CURVE_ROUTER).get_exchange_amount(
+            WETH_CURVE_POOL,
+            USDT,
+            WETH,
+            amountInUSDT
+        );
+
+        uint256 ethBalance = address(this).balance;
+
+        if (amountInETH > ethBalance) return false;
+
+        (bool sent, ) = _to.call{value: amountInETH}("");
+
+        return sent;
     }
 
     /// @inheritdoc IStrategy
@@ -314,6 +354,11 @@ contract LiquityStrategy is
         bytes calldata _ethSwapData,
         uint256 _amountOutMin
     ) external virtual onlyKeeper {
+        if (
+            IVault(vault).totalPrincipal() + _amountOutMin <
+            IVault(vault).totalPrincipal().pctOf(minPrincipalProtectionPct)
+        ) revert StrategyMinimumPrincipalProtection();
+
         _checkSwapTargetForZeroAddress(_swapTarget);
 
         if (!allowedSwapTargets[_swapTarget])

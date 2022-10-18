@@ -76,6 +76,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
       LQTYDeployment.address,
       LUSDDeployment.address,
       multisig,
+      0,
     )
   ).wait();
 

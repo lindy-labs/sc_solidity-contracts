@@ -90,6 +90,7 @@ describe('LiquityStrategy', () => {
         lqty.address,
         underlying.address,
         keeper.address,
+        0,
       ],
       {
         kind: 'uups',
@@ -126,6 +127,7 @@ describe('LiquityStrategy', () => {
             lqty.address,
             underlying.address,
             keeper.address,
+            0,
           ],
           {
             kind: 'uups',
@@ -145,6 +147,7 @@ describe('LiquityStrategy', () => {
             lqty.address,
             underlying.address,
             keeper.address,
+            0,
           ],
           {
             kind: 'uups',
@@ -164,6 +167,7 @@ describe('LiquityStrategy', () => {
             constants.AddressZero,
             underlying.address,
             keeper.address,
+            0,
           ],
           {
             kind: 'uups',
@@ -183,6 +187,7 @@ describe('LiquityStrategy', () => {
             lqty.address,
             constants.AddressZero,
             keeper.address,
+            0,
           ],
           {
             kind: 'uups',
@@ -202,6 +207,7 @@ describe('LiquityStrategy', () => {
             lqty.address,
             underlying.address,
             constants.AddressZero,
+            0,
           ],
           {
             kind: 'uups',
@@ -221,6 +227,7 @@ describe('LiquityStrategy', () => {
             lqty.address,
             underlying.address,
             keeper.address,
+            0,
           ],
           {
             kind: 'uups',
@@ -249,6 +256,26 @@ describe('LiquityStrategy', () => {
       expect(
         await underlying.allowance(strategy.address, stabilityPool.address),
       ).to.eq(constants.MaxUint256);
+    });
+  });
+
+  describe('setMinPrincipalProtectionPct', () => {
+    it('changes the percentage of principal to protect', async () => {
+      await strategy.setMinPrincipalProtectionPct(5000);
+
+      expect(await strategy.minPrincipalProtectionPct()).to.eq(5000);
+    });
+
+    it('allows for percentages above 0', async () => {
+      await strategy.setMinPrincipalProtectionPct(12000);
+
+      expect(await strategy.minPrincipalProtectionPct()).to.eq(12000);
+    });
+
+    it('allows for a percentage of 0', async () => {
+      await strategy.setMinPrincipalProtectionPct(0);
+
+      expect(await strategy.minPrincipalProtectionPct()).to.eq(0);
     });
   });
 
@@ -471,6 +498,17 @@ describe('LiquityStrategy', () => {
       await expect(
         strategy.connect(keeper).reinvest(SWAP_TARGET, 0, [], 0, [], 0),
       ).to.be.revertedWith('StrategyNothingToReinvest');
+    });
+
+    it('fails if the minimum principal protection is not guaranteed', async () => {
+      await depositToVault(parseUnits('100'));
+      await strategy.setMinPrincipalProtectionPct(12000);
+
+      await strategy.connect(admin).allowSwapTarget(SWAP_TARGET);
+
+      await expect(
+        strategy.connect(keeper).reinvest(SWAP_TARGET, 0, [], 0, [], 0),
+      ).to.be.revertedWith('StrategyMinimumPrincipalProtection');
     });
   });
 

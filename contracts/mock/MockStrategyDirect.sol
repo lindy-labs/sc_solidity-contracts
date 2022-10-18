@@ -74,8 +74,8 @@ contract MockStrategyDirect is BaseStrategy {
         }
     }
 
-    function setPrincipalProtectionPct(uint16 pct) external {
-        principalPct = pct;
+    function setPrincipalProtectionPct(uint16 _pct) external {
+        principalPct = _pct;
     }
 
     /// @inheritdoc IStrategy
