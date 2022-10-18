@@ -1,4 +1,7 @@
-certoraRun Vault.sol mock/MockStrategySync.sol mock/MockERC20.sol mock/MockERC20.sol:MockUST mock/anchor/MockAnchorStrategy.sol mock/MockCurvePool.sol:MockCurve ../node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol \
+certoraRun Vault.sol \
+	mock/MockStrategySync.sol mock/MockERC20.sol mock/MockERC20.sol:MockUST mock/MockCurvePool.sol:MockCurve \
+	mock/anchor/MockAnchorStrategy.sol \
+	../node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol \
 	--link  Vault:strategy=MockStrategySync Vault:underlying=MockUST MockStrategySync:underlying=MockUST MockAnchorStrategy:underlying=MockUST \
 	--verify Vault:./properties/certora/Valid_Deposit/Valid_Deposit_NoRevertSync.spec \
 	--settings -postProcessCounterExamples=true \
