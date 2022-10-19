@@ -104,15 +104,11 @@ describe('VaultWithDirectStrategy', () => {
 
     await vault.setStrategy(strategy.address);
 
-    ({
-      addUnderlyingBalance,
-      addYieldToVault,
-      removeUnderlyingFromVault,
-      underlyingBalanceOf,
-    } = createVaultHelpers({
-      vault,
-      underlying,
-    }));
+    ({ addUnderlyingBalance, addYieldToVault, underlyingBalanceOf } =
+      createVaultHelpers({
+        vault,
+        underlying,
+      }));
   });
 
   it('transfer yield in the yield underlying from the strategy to the user', async () => {
