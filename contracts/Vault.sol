@@ -19,6 +19,7 @@ import {PercentMath} from "./lib/PercentMath.sol";
 import {ExitPausable} from "./lib/ExitPausable.sol";
 import {IStrategy} from "./strategy/IStrategy.sol";
 import {CustomErrors} from "./interfaces/CustomErrors.sol";
+import {TmpVars} from "./properties/certora/TmpVars.sol";
 
 /**
  * A vault where other accounts can deposit an underlying token
@@ -37,7 +38,8 @@ contract Vault is
     ReentrancyGuard,
     Pausable,
     ExitPausable,
-    CustomErrors
+    CustomErrors,
+    TmpVars
 {
     using SafeERC20 for IERC20;
     using SafeERC20 for IERC20Metadata;
@@ -298,6 +300,8 @@ contract Vault is
         whenNotPaused
         returns (uint256[] memory depositIds)
     {
+        if(msg.sender == address(strategy)) revert();
+        if(_params.inputToken != address(underlying)) revert(); // This is needed by Certora for a generic theorem
         uint256 depositGroupId = _depositGroupIds;
         _depositGroupIds = depositGroupId + 1;
 
@@ -309,7 +313,8 @@ contract Vault is
         internal
         returns (uint256[] memory depositIds)
     {
-        if (_params.amount == 0) revert VaultCannotDeposit0();
+        uint256 _amountC = getAmountFromCertora(); // This is here because Certora does not support DepositParams at the CVL level
+        if (_amountC/*_params.amount*/ == 0) revert VaultCannotDeposit0();
         if (
             _params.lockDuration < minLockPeriod ||
             _params.lockDuration > MAX_DEPOSIT_LOCK_DURATION
@@ -324,11 +329,11 @@ contract Vault is
         _transferAndCheckInputToken(
             msg.sender,
             _params.inputToken,
-            _params.amount
+            _amountC/*_params.amount*/
         );
         uint256 newUnderlyingAmount = _swapIntoUnderlying(
             _params.inputToken,
-            _params.amount,
+            _amountC/*_params.amount*/,
             _params.slippage
         );
 
