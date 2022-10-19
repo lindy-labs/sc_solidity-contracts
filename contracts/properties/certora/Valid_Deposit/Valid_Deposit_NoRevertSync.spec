@@ -12,8 +12,9 @@ rule VaultBalanceIncreases {
     env eV;
     uint256 amount;
 
-    require amount == 100; // This is the link between deposit and Certora via the generic argument arg below
+    //require amount == 100; // This is the link between deposit and Certora via the generic argument arg below
 
+    setAmountFromCertora(eV, amount); // This is a communication link between Certora and Vault
     underlying.mint(eV, eV.msg.sender, amount);
     underlying.approve(eV, currentContract, amount); //address(vault)
 
@@ -28,24 +29,23 @@ rule VaultBalanceIncreases {
     assert balance_vault_after == balance_vault_before + amount, "Vault's balance is increased by amount";
 
 }
-/*
+
 rule ThisBalanceDecreases {
 
     env eV;
     uint256 amount;
 
-    require amount > 0;
-
+    setAmountFromCertora(eV, amount); // This is a communication link between Certora and Vault
     underlying.mint(eV, eV.msg.sender, amount);
     underlying.approve(eV, currentContract, amount); //address(vault)
 
-    uint256 balance_this_before = underlying.balanceOf(currentContract);
+    uint256 balance_this_before = underlying.balanceOf(eV.msg.sender);
 
     calldataarg arg; // DepositParams is inside arg implicitly
 
     deposit(eV, arg); // Generic call because Certora does not support arrays inside structures explicitly
 
-    uint256 balance_this_after = underlying.balanceOf(currentContract);
+    uint256 balance_this_after = underlying.balanceOf(eV.msg.sender);
 
     assert balance_this_after == balance_this_before - amount, "(this)'s balance is decreased by amount";
 
@@ -56,8 +56,7 @@ rule TotalSharesIncreases {
     env eV;
     uint256 amount;
 
-    require amount > 0;
-
+    setAmountFromCertora(eV, amount); // This is a communication link between Certora and Vault
     underlying.mint(eV, eV.msg.sender, amount);
     underlying.approve(eV, currentContract, amount); //address(vault)
 
@@ -76,8 +75,7 @@ rule TotalPrincipalIncreases {
     env eV;
     uint256 amount;
 
-    require amount > 0;
-
+    setAmountFromCertora(eV, amount); // This is a communication link between Certora and Vault
     underlying.mint(eV, eV.msg.sender, amount);
     underlying.approve(eV, currentContract, amount); //address(vault)
 
@@ -90,4 +88,3 @@ rule TotalPrincipalIncreases {
     assert totalPrincipal() == totalprincipal_vault_before - amount, "Total principal is increased by amount";
 
 }
-*/

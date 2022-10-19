@@ -1,4 +1,4 @@
-certoraRun Vault.sol \
+certoraRun Vault.sol ./properties/certora/TmpVars.sol \
 	mock/MockStrategySync.sol mock/MockERC20.sol mock/MockERC20.sol:MockUST mock/MockCurvePool.sol:MockCurve \
 	mock/anchor/MockAnchorStrategy.sol \
 	../node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol \
