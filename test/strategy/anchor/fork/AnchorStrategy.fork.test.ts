@@ -44,15 +44,11 @@ describe('AnchorStrategy Mainnet fork', () => {
     ustToken = IERC20__factory.connect(config.ust, owner);
     aUstToken = IERC20__factory.connect(config.aUst, owner);
 
-    console.log('Deploying mock AUst/UST feed...');
-
     await ForkHelpers.mintToken(
       ustToken,
       alice,
       utils.parseEther('100000000000'),
     );
-
-    console.log('Deploying mock AUst/UST feed...');
 
     await ForkHelpers.mintToken(
       ustToken,
@@ -105,7 +101,6 @@ describe('AnchorStrategy Mainnet fork', () => {
     it('Mainnet fork (1)', async () => {
       let amount = utils.parseEther('10000');
 
-      console.log(`Deposit ${utils.formatEther(amount)} UST by alice`);
       await vault.connect(alice).deposit({
         amount,
         inputToken: ustToken.address,
@@ -122,13 +117,7 @@ describe('AnchorStrategy Mainnet fork', () => {
       });
       expect(await ustToken.balanceOf(vault.address)).to.be.equal(amount);
       let exchangeRate = (await mockAUstUstFeed.latestRoundData()).answer;
-      console.log('ExchangeRate: ', utils.formatEther(exchangeRate));
 
-      console.log(
-        `Invest: totalUnderlying - ${utils.formatEther(
-          await vault.totalUnderlying(),
-        )} UST`,
-      );
       await vault.connect(owner).updateInvested();
       expect(await ustToken.balanceOf(vault.address)).to.be.equal('0');
       expect(await ustToken.balanceOf(strategy.address)).to.be.equal('0');
@@ -151,16 +140,8 @@ describe('AnchorStrategy Mainnet fork', () => {
 
       let totalUnderlying = await vault.totalUnderlying();
       exchangeRate = (await mockAUstUstFeed.latestRoundData()).answer;
-      console.log('ExchangeRate: ', utils.formatEther(exchangeRate));
-
-      console.log(
-        `FinishDepositStable: totalUnderlying - ${utils.formatEther(
-          totalUnderlying,
-        )} UST (0 UST + ${utils.formatEther(expectAUstReceive)} aUST)`,
-      );
 
       amount = utils.parseEther('1000');
-      console.log(`Deposit ${utils.formatEther(amount)} UST by bob`);
       await vault.connect(bob).deposit({
         amount,
         inputToken: ustToken.address,
@@ -181,17 +162,10 @@ describe('AnchorStrategy Mainnet fork', () => {
       );
       totalUnderlying = await vault.totalUnderlying();
 
-      console.log(
-        `Invest: totalUnderlying - ${utils.formatEther(
-          await vault.totalUnderlying(),
-        )} UST`,
-      );
       exchangeRate = (await mockAUstUstFeed.latestRoundData()).answer;
-      console.log('ExchangeRate: ', utils.formatEther(exchangeRate));
       await vault.updateInvested();
 
       exchangeRate = await (await mockAUstUstFeed.latestRoundData()).answer;
-      console.log('ExchangeRate: ', utils.formatEther(exchangeRate));
 
       depositOperations = await strategy.depositOperations(0);
       let aUstBalance = expectAUstReceive;
@@ -208,12 +182,6 @@ describe('AnchorStrategy Mainnet fork', () => {
       expect(await aUstToken.balanceOf(vault.address)).to.be.equal('0');
       expect(await aUstToken.balanceOf(strategy.address)).to.be.equal(
         aUstBalance,
-      );
-
-      console.log(
-        `FinishDepositStable: totalUnderlying - ${utils.formatEther(
-          await vault.totalUnderlying(),
-        )} UST (0 UST + ${utils.formatEther(aUstBalance)} aUST)`,
       );
     });
   });
@@ -264,7 +232,6 @@ describe('AnchorStrategy Mainnet fork', () => {
     it('Mainnet fork (2)', async () => {
       let amount = utils.parseEther('9000');
 
-      console.log(`Deposit ${utils.formatEther(amount)} UST by alice`);
       await vault.connect(alice).deposit({
         amount,
         inputToken: ustToken.address,
@@ -283,13 +250,6 @@ describe('AnchorStrategy Mainnet fork', () => {
       let exchangeRate = utils.parseEther('1.17');
       await mockAUstUstFeed.setAnswer(exchangeRate);
 
-      console.log('ExchangeRate: ', utils.formatEther(exchangeRate));
-
-      console.log(
-        `Invest: totalUnderlying - ${utils.formatEther(
-          await vault.totalUnderlying(),
-        )} UST`,
-      );
       await vault.connect(owner).updateInvested();
       expect(await ustToken.balanceOf(vault.address)).to.be.equal('0');
       expect(await ustToken.balanceOf(strategy.address)).to.be.equal('0');
@@ -312,14 +272,7 @@ describe('AnchorStrategy Mainnet fork', () => {
 
       let totalUnderlying = await vault.totalUnderlying();
 
-      console.log(
-        `FinishDepositStable: totalUnderlying - ${utils.formatEther(
-          totalUnderlying,
-        )} UST (0 UST + ${utils.formatEther(expectAUstReceive)} aUST)`,
-      );
-
       amount = utils.parseEther('1000');
-      console.log(`Deposit ${utils.formatEther(amount)} UST by bob`);
       await vault.connect(bob).deposit({
         amount,
         inputToken: ustToken.address,
@@ -340,11 +293,6 @@ describe('AnchorStrategy Mainnet fork', () => {
       );
       totalUnderlying = await vault.totalUnderlying();
 
-      console.log(
-        `Invest: totalUnderlying - ${utils.formatEther(
-          await vault.totalUnderlying(),
-        )} UST`,
-      );
       await vault.updateInvested();
 
       depositOperations = await strategy.depositOperations(0);
@@ -364,25 +312,8 @@ describe('AnchorStrategy Mainnet fork', () => {
         aUstBalance,
       );
 
-      console.log(
-        `FinishDepositStable: totalUnderlying - ${utils.formatEther(
-          await vault.totalUnderlying(),
-        )} UST (0 UST + ${utils.formatEther(aUstBalance)} aUST)`,
-      );
-
       exchangeRate = utils.parseEther('1.3');
       await mockAUstUstFeed.setAnswer(exchangeRate);
-      console.log(
-        `Update exchange rate: ${utils.formatEther(
-          (await mockAUstUstFeed.latestRoundData()).answer,
-        )}`,
-      );
-
-      console.log(
-        `TotalUnderlying - ${utils.formatEther(
-          await vault.totalUnderlying(),
-        )} UST`,
-      );
 
       totalUnderlying = await vault.totalUnderlying();
 
@@ -406,9 +337,6 @@ describe('AnchorStrategy Mainnet fork', () => {
         .mul(redeemAmount)
         .div(aUstBalance);
       let profit = expectUstReceive.sub(originalDeposit);
-      console.log(
-        `Finish redeem stable: profit - ${utils.formatEther(profit)} UST`,
-      );
       expect(await vault.totalUnderlying()).to.be.equal(
         '10885000000000000000000',
       );
