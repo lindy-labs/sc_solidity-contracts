@@ -246,7 +246,7 @@ describe('RyskStrategy', () => {
     });
 
     it('emits StrategyWithdrawalInitiated event', async () => {
-      let underlyingAmount = parseUSDC('100');
+      const underlyingAmount = parseUSDC('100');
       await underlying.mint(strategy.address, underlyingAmount);
       await strategy.connect(manager).invest();
       await ryskLqPool.executeEpochCalculation();
@@ -322,7 +322,7 @@ describe('RyskStrategy', () => {
     });
 
     it('fails if pending withdrawal from previous withdrawal epoch was not completed', async () => {
-      let underlyingAmount = parseUSDC('100');
+      const underlyingAmount = parseUSDC('100');
       await underlying.mint(strategy.address, underlyingAmount);
       await strategy.connect(manager).invest();
       await ryskLqPool.executeEpochCalculation();
@@ -340,7 +340,7 @@ describe('RyskStrategy', () => {
     });
 
     it('works when called after completing previous withdrawal in the same epoch', async () => {
-      let underlyingAmount = parseUSDC('100');
+      const underlyingAmount = parseUSDC('100');
       await underlying.mint(strategy.address, underlyingAmount);
       await strategy.connect(manager).invest();
       await ryskLqPool.executeEpochCalculation();

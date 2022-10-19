@@ -358,17 +358,17 @@ describe('Rysk Strategy (mainnet fork tests)', () => {
 
     it('correctly summs amounts for pending deposit, pending withdrawal, unredeemed and redeemed shares ', async () => {
       // scenario:
-      // 1. invest 1000
+      // 1. invest 1000 USDC
       // 2. epoch++
-      // 3. shares increase 50%
-      // 4. initiate withdraw for 500
+      // 3. shares increase in value by 50%
+      // 4. initiate withdraw for 500 USDC
       // 5. epoch++
-      // 6. complete withdraw and get 750 in the vault
-      // 7. initiate withdraw for 500
-      // 8. invest 1000
+      // 6. complete withdraw and get ~750 USDC in the vault
+      // 7. initiate another withdraw for ~500 USDC
+      // 8. invest 1000 USDC
       // 9. epoch++
-      // 10. invest 1000
-      // end result ~750 USDC in the vault & ~2750 USDC invested assets
+      // 10. invest 1000 USDC
+      // end result: ~750 USDC in the vault & ~2750 USDC invested assets
 
       const amount = parseUSDC('1000');
       await ForkHelpers.mintToken(usdc, strategy.address, amount);
