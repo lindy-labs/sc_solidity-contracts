@@ -13,6 +13,7 @@ import {
   Mock0x,
   LiquityStrategy,
   MockStabilityPool,
+  MockLQTY,
 } from '../typechain';
 
 import { setBalance } from '../test/shared/forkHelpers';
@@ -142,7 +143,7 @@ describe('VaultWithLiquity', () => {
 
     const Mock0x = await ethers.getContractFactory('Mock0x');
 
-    mock0x = await Mock0x.deploy();
+    mock0x = await Mock0x.deploy(lqty.address, underlying.address);
 
     await strategy.allowSwapTarget(mock0x.address);
 
@@ -168,12 +169,21 @@ describe('VaultWithLiquity', () => {
 
     setBalance(strategy.address, parseUnits('100'));
 
+    const swapData = ethers.utils.defaultAbiCoder.encode(
+      ['uint8', 'uint8', 'uint256'],
+      [
+        (await mock0x.ETH()).toString(), // from
+        (await mock0x.LUSD()).toString(), // to
+        parseUnits('10'),
+      ],
+    );
+
     await strategy.reinvest(
       mock0x.address,
       0,
       [],
       parseUnits('10'),
-      [await mock0x.ETH(), await mock0x.LUSD()],
+      swapData,
       parseUnits('10'),
     );
 

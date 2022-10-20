@@ -213,8 +213,8 @@ contract LiquityStrategy is
 
         uint256 ethBalance = address(this).balance;
 
-        console.log(amountInETH);
-        console.log(ethBalance);
+        console.log("amountInETH", amountInETH);
+        console.log("ethBalance", ethBalance);
 
         if (amountInETH > ethBalance) return false;
 
@@ -451,7 +451,8 @@ contract LiquityStrategy is
         if (_amount > ethBalance) revert StrategyNotEnoughETH();
 
         (bool success, ) = _swapTarget.call{value: _amount}(_ethSwapData);
-        console.log(success);
+        console.log("success", success);
+
         if (!success) revert StrategyETHSwapFailed();
     }
 
