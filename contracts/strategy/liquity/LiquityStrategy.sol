@@ -56,8 +56,9 @@ contract LiquityStrategy is
         0xD51a44d3FaE010294C616388b506AcdA1bfAAE46;
     address public constant LUSD_CURVE_POOL =
         0xEd279fDD11cA84bEef15AF5D39BB4d4bEE23F0cA;
-    address public constant CURVE_ROUTER =
-        0x81C46fECa27B31F3ADC2b91eE4be9717d1cd3DD7;
+    address public CURVE_ROUTER;
+    // address public constant CURVE_ROUTER =
+    //     0x81C46fECa27B31F3ADC2b91eE4be9717d1cd3DD7;
     address public constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address public constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
 
@@ -124,7 +125,8 @@ contract LiquityStrategy is
         address _lqty,
         address _underlying,
         address _keeper,
-        uint16 _principalProtectionPct
+        uint16 _principalProtectionPct,
+        address _curveRouter
     ) public initializer {
         __AccessControl_init();
         __UUPSUpgradeable_init();
@@ -144,6 +146,8 @@ contract LiquityStrategy is
         _grantRole(SETTINGS_ROLE, _admin);
         _grantRole(MANAGER_ROLE, _vault);
         _grantRole(KEEPER_ROLE, _keeper);
+
+        CURVE_ROUTER = _curveRouter;
 
         vault = _vault;
         underlying = IERC20(_underlying);
@@ -208,6 +212,9 @@ contract LiquityStrategy is
         );
 
         uint256 ethBalance = address(this).balance;
+
+        console.log(amountInETH);
+        console.log(ethBalance);
 
         if (amountInETH > ethBalance) return false;
 
@@ -434,13 +441,17 @@ contract LiquityStrategy is
         address _swapTarget,
         bytes calldata _ethSwapData
     ) internal {
+        console.log(_amount == 0, _ethSwapData.length == 0);
         // don't do cross-contract call if nothing to swap
         if (_amount == 0 || _ethSwapData.length == 0) return;
 
+        console.log("asd");
         uint256 ethBalance = address(this).balance;
+        console.log(ethBalance);
         if (_amount > ethBalance) revert StrategyNotEnoughETH();
 
         (bool success, ) = _swapTarget.call{value: _amount}(_ethSwapData);
+        console.log(success);
         if (!success) revert StrategyETHSwapFailed();
     }
 
