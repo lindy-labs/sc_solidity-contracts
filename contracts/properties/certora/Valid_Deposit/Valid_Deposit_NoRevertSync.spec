@@ -1,18 +1,30 @@
 using MockUST as underlying
+//using Vault as vault
 
 methods {
 	underlying.balanceOf(address account) returns (uint256) envfree;
     totalUnderlying() returns (uint256) envfree;
     totalShares() returns (uint256) envfree;
     totalPrincipal() returns (uint256) envfree;
+    //exchange_underlying(int128,int128,uint256,uint256) returns (uint256) => DISPATCHER(true)
 }
+//mapping(address => Swapper) public swappers;
+/*ghost ghostTotPrincipal(address) returns uint256;
+
+hook Sload uint256 totalPrincipal claimer[KEY address addr].(offset 32) STORAGE {
+  require ghostTotPrincipal(addr) == totalPrincipal;
+}
+
+hook Sstore claimer[KEY address addr].(offset 32) uint256 totalPrincipal STORAGE {
+  havoc ghostTotPrincipal assuming ghostTotPrincipal@new(addr) == totalPrincipal &&
+    (forall address a. a != addr =>
+        ghostTotPrincipal@new(a) == ghostTotPrincipal@old(a));
+}*/
 
 rule VaultBalanceIncreases {
 
     env eV;
     uint256 amount;
-
-    //require amount == 100; // This is the link between deposit and Certora via the generic argument arg below
 
     setAmountFromCertora(eV, amount); // This is a communication link between Certora and Vault
     underlying.mint(eV, eV.msg.sender, amount);

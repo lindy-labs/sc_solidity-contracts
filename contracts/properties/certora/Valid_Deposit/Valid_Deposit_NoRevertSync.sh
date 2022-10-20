@@ -1,9 +1,16 @@
-certoraRun Vault.sol ./properties/certora/TmpVars.sol \
-	mock/MockStrategySync.sol mock/MockERC20.sol mock/MockERC20.sol:MockUST mock/MockCurvePool.sol:MockCurve \
-	mock/anchor/MockAnchorStrategy.sol \
-	../node_modules/@openzeppelin/contracts/token/ERC20/ERC20.sol \
-	--link  Vault:strategy=MockStrategySync Vault:underlying=MockUST MockStrategySync:underlying=MockUST MockAnchorStrategy:underlying=MockUST \
-	--verify Vault:./properties/certora/Valid_Deposit/Valid_Deposit_NoRevertSync.spec \
+certoraRun VaultCertora.sol \
+			./properties/certora/TmpVars.sol \
+			mock/MockStrategySync.sol \
+			mock/MockERC20.sol \
+			mock/MockERC20.sol:MockUST \
+			mock/MockCurvePool.sol:MockCurve \
+	--link  VaultCertora:strategy=MockStrategySync \
+			VaultCertora:underlying=MockUST \
+			VaultCertora:bridge=MockCurve \
+			VaultCertora:bridgeSW=MockCurve \
+			MockStrategySync:underlying=MockUST \
+			MockCurve:bridgeMCP=MockUST \
+	--verify VaultCertora:./properties/certora/Valid_Deposit/Valid_Deposit_NoRevertSync.spec \
 	--settings -postProcessCounterExamples=true \
 	--optimistic_loop \
 	--packages @openzeppelin=../node_modules/@openzeppelin @chainlink=../node_modules/@chainlink \
