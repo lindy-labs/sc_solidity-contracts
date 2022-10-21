@@ -1,6 +1,6 @@
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { time } from '@openzeppelin/test-helpers';
-import { BigNumber } from 'ethers';
+import { BigNumber, constants } from 'ethers';
 import { ethers, deployments, upgrades } from 'hardhat';
 import { expect } from 'chai';
 
@@ -143,7 +143,7 @@ describe('VaultWithLiquity', () => {
 
     const Mock0x = await ethers.getContractFactory('Mock0x');
 
-    mock0x = await Mock0x.deploy(lqty.address, underlying.address);
+    mock0x = await Mock0x.deploy([lqty.address, underlying.address]);
 
     await strategy.allowSwapTarget(mock0x.address);
 
@@ -154,26 +154,32 @@ describe('VaultWithLiquity', () => {
       }));
   });
 
-  it('transfer yield in the yield underlying from the strategy to the user', async () => {
+  it('transfer yield in ETH from the strategy to the user', async () => {
     await addUnderlyingBalance(alice, '100');
+    const alicesInitialEthBalace = await getETHBalance(alice.address);
 
     const params = depositParams.build({
       amount: parseUnits('100'),
       inputToken: underlying.address,
-      claims: [claimParams.percent(100).to(alice.address).build()],
+      claims: [
+        claimParams.percent(50).to(alice.address).build(),
+        claimParams.percent(50).to(bob.address).build(),
+      ],
     });
 
     await vault.connect(alice).deposit(params);
 
     await vault.updateInvested();
 
+    // add 100 ETH to the strategy
     setBalance(strategy.address, parseUnits('100'));
 
+    // swap 10 ETH for LUSD and reinvest
     const swapData = ethers.utils.defaultAbiCoder.encode(
-      ['uint8', 'uint8', 'uint256'],
+      ['address', 'address', 'uint256'],
       [
-        (await mock0x.ETH()).toString(), // from
-        (await mock0x.LUSD()).toString(), // to
+        constants.AddressZero, // from
+        underlying.address, // to
         parseUnits('10'),
       ],
     );
@@ -190,8 +196,11 @@ describe('VaultWithLiquity', () => {
     await vault.connect(alice).claimYield(alice.address);
 
     expect(await underlyingBalanceOf(alice)).to.eq(parseUnits('0'));
-    // expect(await yieldBalanceOf(alice)).to.eq(parseUnits('100'));
-    expect(await getETHBalance(alice.address)).to.eq(parseUnits('100'));
+    expect(await getETHBalance(strategy.address)).to.eq(parseUnits('40'));
+    // we have to ignore the gas cost for alice here
+    expect(
+      (await getETHBalance(alice.address)).sub(alicesInitialEthBalace),
+    ).to.gte(parseUnits('4999', 16));
   });
 
   async function yieldBalanceOf(account: SignerWithAddress | LiquityStrategy) {

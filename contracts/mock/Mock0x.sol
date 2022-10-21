@@ -6,27 +6,68 @@ import "./MockERC20.sol";
 import "hardhat/console.sol";
 
 contract Mock0x {
-    uint8 public constant LQTY = 0;
-    uint8 public constant LUSD = 1;
-    uint8 public constant ETH = 2;
+    mapping(address => bool) supportedTokens;
+    mapping(uint160 => uint256) exchageRates;
 
-    MockLQTY public lqty;
-    MockLUSD public lusd;
+    constructor(address[] memory _tokens) {
+        addTokens(_tokens);
+    }
 
-    constructor(MockLQTY _lqty, MockLUSD _lusd) {
-        lqty = _lqty;
-        lusd = _lusd;
+    function addTokens(address[] memory _tokens) public {
+        for (uint8 i = 0; i < _tokens.length; i++) {
+            supportedTokens[_tokens[i]] = true;
+        }
+    }
+
+    function setExchageRate(
+        address from,
+        address to,
+        uint256 rate // e18
+    ) external {
+        exchageRates[uint160(from) ^ uint160(to)] = rate;
+    }
+
+    function getExchangeRate(address from, address to)
+        public
+        view
+        returns (uint256)
+    {
+        return
+            exchageRates[uint160(from) ^ uint160(to)] > 0
+                ? exchageRates[uint160(from) ^ uint160(to)]
+                : 1e18;
+    }
+
+    function swapTokens(
+        address _from,
+        address _to,
+        uint256 _amount
+    ) public payable {
+        if (_from == address(0) && msg.value != _amount) {
+            revert("Mock0x: ETH amount mismatch");
+        }
+
+        if (_to == address(0)) {
+            payable(msg.sender).transfer(
+                (_amount * getExchangeRate(_from, _to)) / 1e18
+            );
+        } else if (supportedTokens[_to]) {
+            uint256 toMint = (_amount * getExchangeRate(_from, _to)) / 1e18;
+            MockERC20(_to).mint(msg.sender, toMint);
+        }
+
+        if (supportedTokens[_from]) {
+            MockERC20(_from).burn(msg.sender, _amount);
+        }
     }
 
     fallback() external payable {
-        (uint8 from, uint8 to, uint256 amount) = abi.decode(
+        (address from, address to, uint256 amount) = abi.decode(
             msg.data,
-            (uint8, uint8, uint256)
+            (address, address, uint256)
         );
-        console.log("from: %s, to: %s", from, to);
-        console.log("amount: %s", amount);
 
-        lusd.mint(msg.sender, amount);
+        swapTokens(from, to, amount);
 
         assembly {
             let ptr := mload(0x40)
