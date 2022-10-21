@@ -2,7 +2,6 @@
 pragma solidity =0.8.10;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {IRyskLiquidityPool} from "../../interfaces/rysk/IRyskLiquidityPool.sol";
 
@@ -19,10 +18,11 @@ import {IRyskLiquidityPool} from "../../interfaces/rysk/IRyskLiquidityPool.sol";
 // (MockRyskLiquidityPool) are indeed a match, implying that public fields from the LiquidityPool are accessible
 // through methods with the same name described by the IRyskLiquidityPool interface.
 contract MockRyskLiquidityPool is ERC20 {
-    IERC20 immutable underlying;
+    ERC20 immutable underlying;
     uint256 public depositEpoch;
     uint256 public pendingDeposits;
     uint256 public withdrawalEpoch;
+    uint256 public underlyingDecimals;
 
     mapping(uint256 => uint256) public depositEpochPricePerShare;
     mapping(uint256 => uint256) public withdrawalEpochPricePerShare;
@@ -34,9 +34,10 @@ contract MockRyskLiquidityPool is ERC20 {
     constructor(
         string memory _name,
         string memory _symbol,
-        address _underlying
+        ERC20 _underlying
     ) ERC20(_name, _symbol) {
-        underlying = IERC20(_underlying);
+        underlying = _underlying;
+        underlyingDecimals = _underlying.decimals();
 
         depositEpochPricePerShare[depositEpoch] = 1e18;
         depositEpoch++;
@@ -143,52 +144,41 @@ contract MockRyskLiquidityPool is ERC20 {
         return _sharesToRedeem;
     }
 
-    function completeWithdraw(uint256 _shares) external returns (uint256) {
-        require(_shares > 0);
-
+    function completeWithdraw() external returns (uint256) {
         IRyskLiquidityPool.WithdrawalReceipt
             storage withdrawalReceipt = withdrawalReceipts[msg.sender];
 
-        require(
-            _shares <= withdrawalReceipt.shares,
-            "Not enough shares to withdraw"
+        _burn(address(this), withdrawalReceipt.shares);
+
+        uint256 amount = _getAmountForShares(
+            withdrawalReceipt.shares,
+            withdrawalEpochPricePerShare[withdrawalReceipt.epoch]
         );
-
-        withdrawalReceipt.shares -= uint128(_shares);
-        _burn(address(this), _shares);
-
-        uint256 amount = (_shares *
-            withdrawalEpochPricePerShare[withdrawalReceipt.epoch]) / 1e18;
         underlying.transfer(msg.sender, amount);
+
+        withdrawalReceipt.shares = 0;
 
         return amount;
     }
 
-    function executeEpochCalculation() public {
-        uint256 newPricePerShare;
-        if (totalSupply() == 0) {
-            newPricePerShare = 1e18;
-        } else {
-            newPricePerShare =
-                ((totalAssets() - pendingDeposits) * 1e18) /
-                totalSupply();
-        }
+    function executeEpochCalculation() external {
+        uint256 newPricePerShare = _calculateNewPricePerShare();
+
+        _mintSharesForPendingDeposits(newPricePerShare);
 
         depositEpochPricePerShare[depositEpoch] = newPricePerShare;
-        withdrawalEpochPricePerShare[withdrawalEpoch] = newPricePerShare;
-
-        if (pendingDeposits != 0) {
-            uint256 sharesToMint = _getSharesForAmount(
-                pendingDeposits,
-                newPricePerShare
-            );
-
-            _mint(address(this), sharesToMint);
-            delete pendingDeposits;
-        }
-
         depositEpoch++;
+
+        withdrawalEpochPricePerShare[withdrawalEpoch] = newPricePerShare;
         withdrawalEpoch++;
+    }
+
+    function executeOnlyDepositEpochCalculation() external {
+        uint256 newPricePerShare = _calculateNewPricePerShare();
+        _mintSharesForPendingDeposits(newPricePerShare);
+
+        depositEpochPricePerShare[depositEpoch] = newPricePerShare;
+        depositEpoch++;
     }
 
     function totalAssets() internal view returns (uint256) {
@@ -197,9 +187,43 @@ contract MockRyskLiquidityPool is ERC20 {
 
     function _getSharesForAmount(uint256 _amount, uint256 _pricePerShare)
         internal
-        pure
+        view
         returns (uint256)
     {
-        return (_amount * 1e18) / _pricePerShare;
+        return
+            (((_amount * 1e18) / _pricePerShare) * 1e18) /
+            10**underlyingDecimals;
+    }
+
+    function _getAmountForShares(uint256 _shares, uint256 _pricePerShare)
+        internal
+        view
+        returns (uint256)
+    {
+        return
+            (((_shares * _pricePerShare) / 1e18) * 10**underlyingDecimals) /
+            1e18;
+    }
+
+    function _calculateNewPricePerShare() internal view returns (uint256) {
+        if (totalSupply() == 0) {
+            return 1e18;
+        }
+
+        return
+            ((((totalAssets() - pendingDeposits) * 1e18) / totalSupply()) *
+                1e18) / 10**underlyingDecimals;
+    }
+
+    function _mintSharesForPendingDeposits(uint256 _pricePerShare) internal {
+        if (pendingDeposits == 0) return;
+
+        uint256 sharesToMint = _getSharesForAmount(
+            pendingDeposits,
+            _pricePerShare
+        );
+
+        _mint(address(this), sharesToMint);
+        delete pendingDeposits;
     }
 }

@@ -112,10 +112,9 @@ interface IRyskLiquidityPool is IERC20 {
      * initiateWithdrawal and completeWithdrawal cannot be called in the same epoch.
      * On success, the withdrawal receipt is updated, shares are burned and the caller receives the underlying assets.
      *
-     * @param _shares the amount of shares to withdraw.
      * Can be less than the amount of shares in the withdrawal receipt but that will not complete the initiated withdrawal.
      */
-    function completeWithdraw(uint256 _shares) external returns (uint256);
+    function completeWithdraw() external returns (uint256);
 
     /**
      * Gets the deposit receipt for the requrested user.
@@ -165,5 +164,66 @@ interface IRyskLiquidityPool is IERC20 {
         uint128 epoch;
         // max amount of shares intended for withdrawal
         uint128 shares; // 18 decimals assumed
+    }
+
+    /// functions used only in tests for debugging purposes ///
+
+    function getAssets() external view returns (uint256);
+
+    function executeEpochCalculation() external;
+
+    function pauseTradingAndRequest() external returns (bytes32);
+
+    function isTradingPaused() external view returns (bool);
+
+    function keeper(address account) external view returns (bool);
+
+    function setKeeper(address _keeper, bool _auth) external;
+
+    function getNAV() external view returns (uint256);
+
+    function protocol() external view returns (Protocol);
+
+    function ephemeralLiabilities() external view returns (int256);
+}
+
+/// interfaces used only in tests for debugging purposes ///
+
+interface Protocol {
+    function portfolioValuesFeed() external view returns (PortfolioValuesFeed);
+
+    function accounting() external view returns (Accounting);
+}
+
+interface Accounting {
+    function amountForShares(uint256 _shares, uint256 _assetPerShare)
+        external
+        view
+        returns (uint256 amount);
+
+    function completeWithdraw(address withdrawer)
+        external
+        view
+        returns (
+            uint256 withdrawalAmount,
+            uint256 withdrawalShares,
+            IRyskLiquidityPool.WithdrawalReceipt memory withdrawalReceipt
+        );
+}
+
+interface PortfolioValuesFeed {
+    function getPortfolioValues(address underlying, address strike)
+        external
+        view
+        returns (PortfolioValues memory);
+
+    struct PortfolioValues {
+        int256 delta;
+        int256 gamma;
+        int256 vega;
+        int256 theta;
+        int256 callPutsValue;
+        uint256 timestamp;
+        uint256 spotPrice;
     }
 }

@@ -29,3 +29,7 @@ export const removeDecimals = (
   const one_unit = utils.parseUnits('1', decimals);
   return from.div(one_unit);
 };
+
+export const parseUSDC = (from: BigNumber | string): BigNumber => {
+  return utils.parseUnits(from.toString(), 6);
+};

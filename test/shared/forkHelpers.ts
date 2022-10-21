@@ -20,6 +20,21 @@ export async function forkToMainnet(block?: number) {
   });
 }
 
+export async function forkToArbitrumMainnet(block?: number) {
+  await network.provider.request({
+    method: 'hardhat_reset',
+    params: [
+      {
+        forking: {
+          jsonRpcUrl: process.env.ARBITRUM_RPC!,
+          blockNumber: block,
+          ignoreUnknownTxType: true,
+        },
+      },
+    ],
+  });
+}
+
 const { keccak256, defaultAbiCoder } = ethers.utils;
 
 export function impersonate(accounts: string[]) {
@@ -111,13 +126,15 @@ async function bruteForceTokenBalanceSlotIndex(
 
   for (let i = 0; i < 100; i++) {
     let probedSlot = keccak256(encodeSlot(['address', 'uint'], [account, i])); // remove padding for JSON RPC
-    while (probedSlot.startsWith('0x0'))
-      probedSlot = '0x' + probedSlot.slice(3);
+
     const prev = await network.provider.send('eth_getStorageAt', [
       tokenAddress,
       probedSlot,
       'latest',
     ]);
+
+    while (probedSlot.startsWith('0x0'))
+      probedSlot = '0x' + probedSlot.slice(3);
 
     // make sure the probe will change the slot value
     const probe = prev === probeA ? probeB : probeA;
