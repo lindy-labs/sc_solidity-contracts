@@ -9,11 +9,6 @@
     "startBlock": 0,
     "address": "0x2b1Ce1eF546051d38A8e23917520a7A9C05Da281"
   },
-  "donations": {
-    "network": "mainnet",
-    "startBlock": 0,
-    "address": "0x94098e12433b507235582C3d0D0BEc5A8A802581"
-  },
   "liquityTrove": {
     "network": "mainnet",
     "startBlock": 0,

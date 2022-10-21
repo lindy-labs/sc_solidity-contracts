@@ -8,10 +8,5 @@
     "network": "goerli",
     "startBlock": 7547727,
     "address": "0x2ad2135dfa713f0066f154dca80c075517165138"
-  },
-  "donations": {
-    "network": "mumbai",
-    "startBlock": 26556016,
-    "address": "0x71D82D1400B5Af461300947b5F0744A975726Aaa"
   }
 }

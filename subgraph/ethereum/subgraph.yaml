@@ -4,13 +4,11 @@ schema:
 dataSources:
   - name: Vault
     kind: ethereum/contract
-    {{#vault}}
-    network: {{network}}
+    network: mainnet
     source:
       abi: Vault
-      address: "{{address}}"
-      startBlock: {{startBlock}}
-    {{/vault}}
+      address: "0xf8A247f88d1DEB118112613b69cE168b8F40CdeD"
+      startBlock: 0
     mapping: &mapping
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -45,13 +43,11 @@ dataSources:
           handler: handleTreasuryUpdated
   - name: LiquityTrove
     kind: ethereum/contract
-    {{#liquityTrove}}
-    network: {{network}}
+    network: mainnet
     source:
       abi: LiquityTrove
-      address: "{{address}}"
-      startBlock: {{startBlock}}
-    {{/liquityTrove}}
+      address: "0x092982E6d18d76CE4961910a9D65B6C63436A421"
+      startBlock: 0
     mapping: &mapping
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -72,13 +68,11 @@ dataSources:
           handler: handleLiquidation
   - name: StabilityPool
     kind: ethereum/contract
-    {{#liquityPool}}
-    network: {{network}}
+    network: mainnet
     source:
       abi: StabilityPool
-      address: "{{address}}"
-      startBlock: {{startBlock}}
-    {{/liquityPool}}
+      address: "0x83bD00DEa5d52d71F120D05Ef750407829F53Aa5"
+      startBlock: 0
     mapping: &mapping
       kind: ethereum/events
       apiVersion: 0.0.6
@@ -94,13 +88,11 @@ dataSources:
           handler: handleETHGainWithdrawn
   - name: LiquityPriceFeed
     kind: ethereum/contract
-    {{#liquityPriceFeed}}
-    network: {{network}}
+    network: mainnet
     source:
       abi: LiquityPriceFeed
-      address: "{{address}}"
-      startBlock: {{startBlock}}
-    {{/liquityPriceFeed}}
+      address: "0x9cd9AD4273C62E969F895c54790cd94fcD4895b5"
+      startBlock: 0
     mapping: &mapping
       kind: ethereum/events
       apiVersion: 0.0.6

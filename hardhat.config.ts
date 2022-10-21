@@ -46,18 +46,14 @@ const config: HardhatUserConfig = {
       live: false,
     },
     mainnet: {
-      url: `https://mainnet.infura.io/v3/${
-        process.env.INFURA_KEY || 'missing-key'
-      }`,
+      url: process.env.ALCHEMY_GOERLI_RPC || 'missing-rpc-endpoint',
       chainId: 1,
       accounts: {
         mnemonic: process.env.MAINNET_MNEMONIC || 'TODO',
       },
     },
     goerli: {
-      url: `https://goerli.infura.io/v3/${
-        process.env.INFURA_KEY || 'missing-key'
-      }`,
+      url: process.env.ALCHEMY_GOERLI_RPC || 'missing-rpc-endpoint',
       chainId: 5,
       accounts: {
         mnemonic: process.env.TESTNET_MNEMONIC || 'TODO',
@@ -71,7 +67,7 @@ const config: HardhatUserConfig = {
       },
     },
     polygon: {
-      url: process.env.POLYGON_RPC || 'missing-rpc-endpoint',
+      url: process.env.ALCHEMY_POLYGON_RPC || 'missing-rpc-endpoint',
       chainId: 137,
       accounts: {
         mnemonic: process.env.MAINNET_MNEMONIC || 'TODO',

@@ -1,0 +1,139 @@
+specVersion: 0.0.2
+schema:
+  file: schema.graphql
+dataSources:
+  {{#vault}}
+  - name: Vault
+    kind: ethereum/contract
+    network: {{network}}
+    source:
+      abi: Vault
+      address: "{{address}}"
+      startBlock: {{startBlock}}
+    mapping: &mapping
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      file: ./src/mappings/vault.ts
+      entities:
+        - Vault
+        - Foundation
+      abis:
+        - name: Vault
+          file: ./abis/contracts/Vault.sol/Vault.json
+        - name: IVault
+          file: ./abis/contracts/vault/IVault.sol/IVault.json
+        - name: IVaultSponsoring
+          file: ./abis/contracts/vault/IVaultSponsoring.sol/IVaultSponsoring.json
+        - name: IVaultSettings
+          file: ./abis/contracts/vault/IVaultSettings.sol/IVaultSettings.json
+      eventHandlers:
+        - event: StrategyUpdated(indexed address)
+          handler: handleStrategyUpdated
+        - event: DepositMinted(indexed uint256,uint256,uint256,uint256,indexed address,indexed address,address,uint64,bytes,string)
+          handler: handleDepositMinted
+        - event: DepositWithdrawn(indexed uint256,uint256,uint256,indexed address,bool)
+          handler: handleDepositWithdrawn
+        - event: Sponsored(indexed uint256,uint256,indexed address,uint256)
+          handler: handleSponsored
+        - event: Unsponsored(indexed uint256,uint256,indexed address,bool)
+          handler: handleUnsponsored
+        - event: YieldClaimed(address,indexed address,uint256,uint256,uint256,uint256,uint256)
+          handler: handleYieldClaimed
+        - event: TreasuryUpdated(indexed address)
+          handler: handleTreasuryUpdated
+  {{/vault}}
+  {{#liquityTrove}}
+  - name: LiquityTrove
+    kind: ethereum/contract
+    network: {{network}}
+    source:
+      abi: LiquityTrove
+      address: "{{address}}"
+      startBlock: {{startBlock}}
+    mapping: &mapping
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      file: ./src/mappings/liquity.ts
+      entities:
+        - Liquidation
+        - LiquidationCounter
+      abis:
+        - name: LiquityTrove
+          file: ./external_abis/LiquityTrove.json
+        - name: StabilityPool
+          file: ./abis/contracts/mock/liquity/MockStabilityPool.sol/MockStabilityPool.json
+        - name: LiquityPriceFeed
+          file: ./abis/contracts/mock/liquity/MockLiquityPriceFeed.sol/MockLiquityPriceFeed.json
+      eventHandlers:
+        - event: Liquidation(uint256,uint256,uint256,uint256)
+          handler: handleLiquidation
+  {{/liquityTrove}}
+  {{#liquityPool}}
+  - name: StabilityPool
+    kind: ethereum/contract
+    network: {{network}}
+    source:
+      abi: StabilityPool
+      address: "{{address}}"
+      startBlock: {{startBlock}}
+    mapping: &mapping
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      file: ./src/mappings/liquity.ts
+      entities:
+        - LiquidationCounter
+      abis:
+        - name: StabilityPool
+          file: ./abis/contracts/mock/liquity/MockStabilityPool.sol/MockStabilityPool.json
+      eventHandlers:
+        - event: ETHGainWithdrawn(indexed address,uint256,uint256)
+          handler: handleETHGainWithdrawn
+  {{/liquityPool}}
+  {{#liquityPriceFeed}}
+  - name: LiquityPriceFeed
+    kind: ethereum/contract
+    network: {{network}}
+    source:
+      abi: LiquityPriceFeed
+      address: "{{address}}"
+      startBlock: {{startBlock}}
+    mapping: &mapping
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      file: ./src/mappings/liquity.ts
+      entities:
+        - LiquidationCounter
+      abis:
+        - name: LiquityPriceFeed
+          file: ./abis/contracts/mock/liquity/MockLiquityPriceFeed.sol/MockLiquityPriceFeed.json
+      blockHandlers:
+        - handler: trackHighestPrice
+  {{/liquityPriceFeed}}
+  {{#donations}}
+  - name: Donations
+    kind: ethereum/contract
+    network: {{network}}
+    source:
+      abi: Donations
+      address: "{{address}}"
+      startBlock: {{startBlock}}
+    mapping: &mapping
+      kind: ethereum/events
+      apiVersion: 0.0.6
+      language: wasm/assemblyscript
+      file: ./src/mappings/donations.ts
+      entities:
+        - DonationMint
+      abis:
+        - name: Donations
+          file: ./abis/contracts/Donations.sol/Donations.json
+      eventHandlers:
+        - event: DonationMinted(indexed uint256,indexed uint128,indexed bytes32,address,uint256,uint256,address,string)
+          handler: handleDonationMinted
+        - event: DonationBurned(indexed uint256,string)
+          handler: handleDonationBurned
+  {{/donations}}

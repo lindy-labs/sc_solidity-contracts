@@ -4,13 +4,11 @@ schema:
 dataSources:
   - name: Donations
     kind: ethereum/contract
-    {{#donations}}
-    network: {{network}}
+    network: mainnet
     source:
       abi: Donations
-      address: "{{address}}"
-      startBlock: {{startBlock}}
-    {{/donations}}
+      address: "0x94098e12433b507235582C3d0D0BEc5A8A802581"
+      startBlock: 0
     mapping: &mapping
       kind: ethereum/events
       apiVersion: 0.0.6
