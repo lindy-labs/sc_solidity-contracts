@@ -21,9 +21,6 @@ import {IStrategy} from "./strategy/IStrategy.sol";
 import {CustomErrors} from "./interfaces/CustomErrors.sol";
 import {TmpVars} from "./properties/certora/TmpVars.sol";
 
-import {ICurve} from "./interfaces/curve/ICurve.sol";
-
-
 /**
  * A vault where other accounts can deposit an underlying token
  * currency and set distribution params for their principal and yield
@@ -81,8 +78,6 @@ contract VaultCertora is
 
     /// @inheritdoc IVault
     IERC20Metadata public override(IVault) underlying;
-
-    ICurve public bridge;
 
     /// @inheritdoc IVault
     uint16 public override(IVault) investPct;
@@ -338,7 +333,7 @@ contract VaultCertora is
         );
         uint256 newUnderlyingAmount = _swapIntoUnderlying(
             _params.inputToken,
-            _amountC/*_params.amount*/,
+            _amountC,//_params.amount
             _params.slippage
         );
 
@@ -504,6 +499,7 @@ contract VaultCertora is
         onlySponsor
         whenNotPaused
     {
+        if(_inputToken != address(underlying)) revert(); // This is needed by Certora
         if (_amount == 0) revert VaultCannotSponsor0();
 
         if (

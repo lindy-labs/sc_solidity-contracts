@@ -32,12 +32,9 @@ docker/tenderly.yaml
 package-lock.json
 
 #Certora files
-contracts/.certora_config/*
-contracts/.certora_internal/*
-contracts/.certora_sources/*
-contracts/.last_confs/*
-contracts/certora_*.json
-contracts/certora_debug_log.txt
-contracts/properties/certora/Valid_Deposit/.certora_config/*
-contracts/properties/certora/Valid_Deposit/.last_confs/*
-contracts/properties/certora/Valid_Deposit/*.json
+.certora*
+.certora*.json
+**.last_conf*
+certora-logs
+certora_debug_log.txt
+resource_errors.json

@@ -1,23 +1,22 @@
 using MockStrategySync as strategy
 using MockERC20 as underlying
-using Vault as vault
 
 methods {
-    vault.totalPrincipal() returns (uint256) envfree;
+    totalPrincipal() returns (uint256) envfree;
 }
 
 // declare the ghost functions
 ghost ghostSumOfAmount() returns uint256;
 ghost ghostSumOfClaimers() returns uint256;
 
-hook Sstore vault.deposits[KEY uint256 k].(offset 64) uint256 amount
+hook Sstore deposits[KEY uint256 k].(offset 64) uint256 amount
 // the old value ↓ already there
     (uint256 old_amount) STORAGE {
   havoc ghostSumOfAmount assuming ghostSumOfAmount@new() == ghostSumOfAmount@old() +
       (amount - old_amount);
 }
 
-hook Sstore vault.claimer[KEY uint256 k].(offset 64) uint256 totalPrincipal
+hook Sstore claimer[KEY uint256 k].(offset 64) uint256 totalPrincipal
 // the old value ↓ already there
     (uint256 old_totalPrincipal) STORAGE {
   havoc ghostSumOfClaimers assuming ghostSumOfClaimers@new() == ghostSumOfClaimers@old() +
@@ -27,21 +26,23 @@ hook Sstore vault.claimer[KEY uint256 k].(offset 64) uint256 totalPrincipal
 rule sumOfAmountsPreserved(method f) // For a deposit
 { // total principal must be preserved (sum of depositis amount == sum of claimers of total principal)
 
-  require vault.totalPrincipal() == ghostSumOfAmount();
+  require (f.selector == deposit((address,uint64,uint256,(uint16,address,bytes)[],string,uint256)).selector);
+  require totalPrincipal() == ghostSumOfAmount();
   calldataarg arg;
   env e;
   sinvoke f(e, arg);
-  assert vault.totalPrincipal() == ghostSumOfAmount(), "Total Principal equals the sum of deposits amount";
+  assert totalPrincipal() == ghostSumOfAmount(), "Total Principal equals the sum of deposits amount";
 
 }
 
 rule totalPrincipalOfClaimersPreserved(method f) // For a deposit
 { // total principal must be preserved (sum of depositis amount == sum of claimers of total principal)
 
-  require vault.totalPrincipal() == ghostSumOfClaimers();
+  require (f.selector == deposit((address,uint64,uint256,(uint16,address,bytes)[],string,uint256)).selector);
+  require totalPrincipal() == ghostSumOfClaimers();
   calldataarg arg;
   env e;
   sinvoke f(e, arg);
-  assert vault.totalPrincipal() == ghostSumOfClaimers(), "Total Principal equals the sum of the total principal of claimers";
+  assert totalPrincipal() == ghostSumOfClaimers(), "Total Principal equals the sum of the total principal of claimers";
 
 }

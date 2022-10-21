@@ -8,8 +8,8 @@ Invoking Vault.deposit() with valid parameters always succeeds when
 
 | Property  | Echidna | Formally Verified |
 | ------------- | :-------------: | :-------------: |
-| vault total underlying balance increases by the amount deposited  | ✓  |   |
-| user balance decreases by the amount deposited  | ✓  |   |
+| vault total underlying balance increases by the amount deposited  | ✓  | ✓  |
+| user balance decreases by the amount deposited  | ✓  | ✓  |
 | total shares of the vault increase by the amount deposited multiplied by shares multiplier  | ✓  |   |
 | total principal of the vault increases by the amount deposited  | ✓  |   |
 
@@ -30,9 +30,10 @@ Invoking Vault.sponsor() with valid parameters always succeeds when
 | Property  | Echidna | Formally Verified |
 | ------------- | :-------------: | :-------------: |
 | vault total underlying balance increases by the amount deposited  | ✓  |   |
-| user balance decreases by the amount deposited  | ✓  |   |
-| total shares of the vault increase by the amount deposited multiplied by shares multiplier  | ✓  |   |
-| total principal of the vault increases by the amount deposited  | ✓  |   |
+| vault balance increases by the amount deposited  | ✓  | ✓  |
+| user balance decreases by the amount deposited  | ✓  | ✓  |
+| total shares of the vault increase by the amount deposited multiplied by shares multiplier  | ✓  | ✓ (does not change)  |
+| total principal of the vault increases by the amount deposited  | ✓  | ✓ (does not change)  |
 
 Invoking Vault.sponsor() with invalid parameters always reverts when
 
@@ -71,6 +72,13 @@ Invoking Vault.withdraw() with invalid parameters always reverts when
 | invoking deposit or sponsor always reverts if vault is Paused  |   |   |
 | invoking withdraw or claimYield always reverts if vault is ExitPaused  |   |   |
 | invoking deposit or sponsor always reverts if vault is in Loss Mode  |   |   |
-| invoking deposit or sponsor always succeeds when all preconditions are met  |   | ✓  |
+| invoking deposit or sponsor always succeeds when all preconditions are met  | ✓  |   |
 
+## Invariants
 
+| Invariant  | Echidna | Formally Verified |
+| ------------- | :-------------: | :-------------: |
+| Prive per share must be preserved  |   | +/-  |
+Violated for: withdrawPerformanceFee(), addPool((address,address,int128,int128)), updateInvested(), partialWithdraw(address,uint256[],uint256[]), withdraw(address,uint256[]), claimYield(address), deposit((address,uint64,uint256,(uint16,address,bytes)[],string,uint256)), partialUnsponsor(address,uint256[],uint256[]), depositForGroupId(uint256,(address,uint64,uint256,(uint16,address,bytes)[],string,uint256)), sponsor(address,uint256,uint256,uint256), forceWithdraw(address,uint256[]), unsponsor(address,uint256[])
+This is probably because Certora is not finding some elements of the implementation correctly yet
+| Vault’s total principal == SUM(deposits amount) == SUM(claimers totalPrincipal)  |   |   |

@@ -6,10 +6,7 @@ certoraRun VaultCertora.sol \
 			mock/MockCurvePool.sol:MockCurve \
 	--link  VaultCertora:strategy=MockStrategySync \
 			VaultCertora:underlying=MockUST \
-			VaultCertora:bridge=MockCurve \
-			VaultCertora:bridgeSW=MockCurve \
 			MockStrategySync:underlying=MockUST \
-			MockCurve:bridgeMCP=MockUST \
 	--verify VaultCertora:./properties/certora/Valid_Deposit/Valid_Deposit_NoRevertSync.spec \
 	--settings -postProcessCounterExamples=true \
 	--optimistic_loop \
