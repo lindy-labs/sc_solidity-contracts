@@ -1,5 +1,5 @@
 ---
-description: The Liquity Strategy
+description: 'Blockchain: Ethereum'
 ---
 
 # Liquity

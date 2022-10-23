@@ -5,6 +5,8 @@
 * [Strategies](strategies/README.md)
   * [Liquity](strategies/liquity.md)
   * [Rysk](strategies/rysk.md)
+  * [Opyn](strategies/opyn.md)
+  * [Aura](strategies/aura.md)
 * [QUARTZ & The DAO](quartz-and-the-dao/README.md)
   * [Utility](quartz-and-the-dao/utility.md)
   * [Governance](quartz-and-the-dao/governance.md)

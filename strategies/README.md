@@ -10,4 +10,4 @@ To this end, each metavault supports a single highly curated strategy, selected 
 
 <figure><img src="../.gitbook/assets/image (5) (1).png" alt=""><figcaption></figcaption></figure>
 
-At present, two strategies have been implemented.
+At present, two strategies have been implemented with more to come, listed chronologically on the sidebar.
