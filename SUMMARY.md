@@ -5,10 +5,10 @@
 * [Strategies](strategies/README.md)
   * [Liquity](strategies/liquity.md)
   * [Rysk](strategies/rysk.md)
-* [QUARTZ](quartz/README.md)
-  * [Utility](quartz/utility.md)
-  * [Governance](quartz/governance.md)
-  * [Allocation](quartz/allocation.md)
+* [QUARTZ & The DAO](quartz-and-the-dao/README.md)
+  * [Utility](quartz-and-the-dao/utility.md)
+  * [Governance](quartz-and-the-dao/governance.md)
+  * [Allocation](quartz-and-the-dao/allocation.md)
 * [Resources](resources.md)
 
 ## Technical Documentation
