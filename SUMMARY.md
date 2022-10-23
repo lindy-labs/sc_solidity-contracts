@@ -6,9 +6,9 @@
   * [Liquity](strategies/liquity.md)
   * [Rysk](strategies/rysk.md)
 * [QUARTZ](quartz/README.md)
-  * [Allocation](quartz/allocation.md)
-  * [Governance](quartz/governance.md)
   * [Utility](quartz/utility.md)
+  * [Governance](quartz/governance.md)
+  * [Allocation](quartz/allocation.md)
 * [Resources](resources.md)
 
 ## Technical Documentation
