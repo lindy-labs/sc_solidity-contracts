@@ -78,7 +78,7 @@ describe('VaultWithLiquity', () => {
 
     stabilityPool = await StabilityPoolFactory.deploy(
       underlying.address,
-      '0x0000000000000000000000000000000000000000',
+      constants.AddressZero,
     );
 
     let Vault = await ethers.getContractFactory('Vault');
@@ -112,7 +112,7 @@ describe('VaultWithLiquity', () => {
 
     const CurveEchange = await ethers.getContractFactory('MockCurveExchange');
 
-    const curveEchange = await CurveEchange.deploy(underlying.address);
+    const curveEchange = await CurveEchange.deploy([underlying.address]);
 
     const LiquityStrategyFactory = await ethers.getContractFactory(
       'LiquityStrategy',
@@ -154,53 +154,99 @@ describe('VaultWithLiquity', () => {
       }));
   });
 
-  it('transfer yield in ETH from the strategy to the user', async () => {
-    await addUnderlyingBalance(alice, '100');
-    const alicesInitialEthBalace = await getETHBalance(alice.address);
+  describe('#transferYield', () => {
+    it('transfers yield in ETH from the strategy to the user', async () => {
+      await addUnderlyingBalance(alice, '100');
+      const alicesInitialEthBalace = await getETHBalance(alice.address);
 
-    const params = depositParams.build({
-      amount: parseUnits('100'),
-      inputToken: underlying.address,
-      claims: [
-        claimParams.percent(50).to(alice.address).build(),
-        claimParams.percent(50).to(bob.address).build(),
-      ],
+      const params = depositParams.build({
+        amount: parseUnits('100'),
+        inputToken: underlying.address,
+        claims: [
+          claimParams.percent(50).to(alice.address).build(),
+          claimParams.percent(50).to(bob.address).build(),
+        ],
+      });
+
+      await vault.connect(alice).deposit(params);
+
+      await vault.updateInvested();
+
+      // add 100 ETH to the strategy
+      setBalance(strategy.address, parseUnits('100'));
+
+      // swap 10 ETH for LUSD and reinvest
+      const swapData = ethers.utils.defaultAbiCoder.encode(
+        ['address', 'address', 'uint256'],
+        [
+          constants.AddressZero, // from
+          underlying.address, // to
+          parseUnits('10'),
+        ],
+      );
+
+      await strategy.reinvest(
+        mock0x.address,
+        0,
+        [],
+        parseUnits('10'),
+        swapData,
+        parseUnits('10'),
+      );
+
+      await vault.connect(alice).claimYield(alice.address);
+
+      expect(await underlyingBalanceOf(alice)).to.eq(parseUnits('0'));
+      expect(await getETHBalance(strategy.address)).to.eq(parseUnits('40'));
+      // we have to ignore the gas cost for alice here
+      expect(
+        (await getETHBalance(alice.address)).sub(alicesInitialEthBalace),
+      ).to.gte(parseUnits('4999', 16));
+      expect(await strategy.investedAssets()).to.eq(parseUnits('150'));
     });
 
-    await vault.connect(alice).deposit(params);
+    it('transfers yield in LUSD from the strategy to the user when ETH balance < yield amount', async () => {
+      await addUnderlyingBalance(alice, '100');
+      const alicesInitialEthBalace = await getETHBalance(alice.address);
 
-    await vault.updateInvested();
+      const params = depositParams.build({
+        amount: parseUnits('100'),
+        inputToken: underlying.address,
+        claims: [claimParams.percent(100).to(alice.address).build()],
+      });
 
-    // add 100 ETH to the strategy
-    setBalance(strategy.address, parseUnits('100'));
+      await vault.connect(alice).deposit(params);
 
-    // swap 10 ETH for LUSD and reinvest
-    const swapData = ethers.utils.defaultAbiCoder.encode(
-      ['address', 'address', 'uint256'],
-      [
-        constants.AddressZero, // from
-        underlying.address, // to
+      await vault.updateInvested();
+
+      // add 100 ETH to the strategy
+      setBalance(strategy.address, parseUnits('100'));
+
+      // swap 10 ETH for LUSD and reinvest
+      const swapData = ethers.utils.defaultAbiCoder.encode(
+        ['address', 'address', 'uint256'],
+        [
+          constants.AddressZero, // from
+          underlying.address, // to
+          parseUnits('10'),
+        ],
+      );
+
+      await strategy.reinvest(
+        mock0x.address,
+        0,
+        [],
         parseUnits('10'),
-      ],
-    );
+        swapData,
+        parseUnits('10'),
+      );
 
-    await strategy.reinvest(
-      mock0x.address,
-      0,
-      [],
-      parseUnits('10'),
-      swapData,
-      parseUnits('10'),
-    );
+      await vault.connect(alice).claimYield(alice.address);
 
-    await vault.connect(alice).claimYield(alice.address);
-
-    expect(await underlyingBalanceOf(alice)).to.eq(parseUnits('0'));
-    expect(await getETHBalance(strategy.address)).to.eq(parseUnits('40'));
-    // we have to ignore the gas cost for alice here
-    expect(
-      (await getETHBalance(alice.address)).sub(alicesInitialEthBalace),
-    ).to.gte(parseUnits('4999', 16));
+      expect(await underlyingBalanceOf(alice)).to.eq(parseUnits('100'));
+      expect(await getETHBalance(strategy.address)).to.eq(parseUnits('90'));
+      expect(await strategy.investedAssets()).to.eq(parseUnits('100'));
+    });
   });
 
   async function yieldBalanceOf(account: SignerWithAddress | LiquityStrategy) {
