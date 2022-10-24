@@ -405,64 +405,6 @@ describe('Rysk Strategy (mainnet fork tests)', () => {
     });
   });
 
-  describe('bug: stuck after initiating a withdrawal with shares amount less than 1e12', async () => {
-    it('should not be stuck', async () => {
-      const amount = parseUSDC('1000');
-      await ForkHelpers.mintToken(usdc, admin.address, amount);
-
-      console.log('deposit...');
-      await usdc.connect(admin).approve(ryskLiquidityPool.address, amount);
-      await ryskLiquidityPool
-        .connect(admin)
-        .deposit(amount, { gasLimit: 1000000 });
-      console.log('deposit done');
-
-      await executeEpochCalculation();
-
-      const shareFraction = '99999999999'; // 1e12 - 1
-      console.log('initiateWithdraw, shares:', shareFraction);
-      await ryskLiquidityPool
-        .connect(admin)
-        .initiateWithdraw(shareFraction, { gasLimit: 1000000 });
-      console.log('initiateWithdraw done');
-
-      await executeEpochCalculation();
-      console.log('new epoch started');
-
-      // this should not fail but it does
-      console.log('completeWithdraw...');
-      await expect(ryskLiquidityPool.connect(admin).completeWithdraw()).to.be
-        .reverted;
-      console.log('completeWithdraw failed');
-
-      // this is expected to fail because of incomplete withdrawal started in previous epoch
-      const sharesInRegularRange = parseUnits('10');
-      console.log('second initiateWithdraw, shares:');
-      await expect(
-        ryskLiquidityPool.connect(admin).initiateWithdraw(sharesInRegularRange),
-      ).to.be.reverted;
-      console.log('second initiateWithdraw failed');
-
-      console.log("aaaand we're stuck");
-      // effectivly at this point we are stuck, we can only deposit but not withdraw
-      // this comes because failing 'amountForShares' function at line 293 Accounting.sol returns 0 and completeWIthdraw at line 218 Accounting.sol reverts
-      // it fails for values of shares less than 1e12 because of the rounding error when converting shares (18 decimals) to USDC amount (6 decimals)
-      // if 1 USDC = 1 share, converting 1e12-1 shares to USDC is rounded to 0
-      // as a workaround to withdraw the rest of funds (unstuck), we can transfer shares to another account and then withdraw from there
-      const withdrawalEpoch = await ryskLiquidityPool.withdrawalEpoch();
-      const pricePerShare =
-        await ryskLiquidityPool.withdrawalEpochPricePerShare(
-          withdrawalEpoch.sub(1),
-        );
-      accounting = Accounting__factory.connect(ACCOUNTING, admin);
-      const amountForShares = await accounting.amountForShares(
-        shareFraction,
-        pricePerShare,
-      );
-      expect(amountForShares).to.eq('0');
-    });
-  });
-
   async function executeEpochCalculation() {
     await ryskLiquidityPool.connect(ryskPoolKeeper).pauseTradingAndRequest();
     await ryskLiquidityPool
