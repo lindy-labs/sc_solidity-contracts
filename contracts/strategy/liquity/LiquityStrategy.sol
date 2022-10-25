@@ -197,6 +197,7 @@ contract LiquityStrategy is
     function transferYield(address _to, uint256 _amount)
         external
         override(IStrategy)
+        onlyManager
         returns (bool)
     {
         uint256 amountInUSDT = curveExchange.get_exchange_amount(

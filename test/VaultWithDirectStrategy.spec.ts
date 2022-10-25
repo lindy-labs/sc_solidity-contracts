@@ -99,7 +99,6 @@ describe('VaultWithDirectStrategy', () => {
       underlying.address,
       admin.address,
       yieldUnderlying.address,
-      10000,
     );
 
     await vault.setStrategy(strategy.address);
@@ -124,6 +123,7 @@ describe('VaultWithDirectStrategy', () => {
       await vault.connect(alice).deposit(params);
 
       await addYieldToVault('100');
+      await yieldUnderlying.mint(strategy.address, parseUnits('100'));
 
       await vault.updateInvested();
 
@@ -134,8 +134,6 @@ describe('VaultWithDirectStrategy', () => {
     });
 
     it("uses the default mechanism when the yield underlying doen't have enough balance", async () => {
-      await strategy.setPrincipalProtectionPct(15000);
-
       await addUnderlyingBalance(alice, '100');
 
       const params = depositParams.build({
@@ -147,17 +145,17 @@ describe('VaultWithDirectStrategy', () => {
       await vault.connect(alice).deposit(params);
 
       await addYieldToVault('100');
+      await yieldUnderlying.mint(strategy.address, parseUnits('90'));
 
       await vault.updateInvested();
 
       expect(await underlyingBalanceOf(vault)).to.eq(parseUnits('0'));
-      expect(await yieldBalanceOf(strategy)).to.eq(parseUnits('50'));
+      expect(await yieldBalanceOf(strategy)).to.eq(parseUnits('90'));
 
       await vault.connect(alice).claimYield(alice.address);
 
       expect(await underlyingBalanceOf(alice)).to.eq(parseUnits('100'));
       expect(await yieldBalanceOf(alice)).to.eq(parseUnits('0'));
-
       expect(await underlyingBalanceOf(vault)).to.eq(parseUnits('0'));
     });
   });

@@ -11,22 +11,26 @@ import {
   MockERC20,
   LiquityStrategy__factory,
   MockCurveExchange,
+  Mock0x,
 } from '../../../typechain';
 
 import { generateNewAddress } from '../../shared/';
 import { depositParams, claimParams } from '../../shared/factories';
+import { setBalance } from '../../shared/forkHelpers';
 
 const { parseUnits } = ethers.utils;
 
 describe('LiquityStrategy', () => {
   let admin: SignerWithAddress;
   let alice: SignerWithAddress;
+  let bob: SignerWithAddress;
   let manager: SignerWithAddress;
   let keeper: SignerWithAddress;
   let vault: Vault;
   let stabilityPool: MockStabilityPool;
   let strategy: LiquityStrategy;
   let curveExchange: MockCurveExchange;
+  let mock0x: Mock0x;
   let underlying: MockERC20;
   let lqty: MockERC20;
 
@@ -47,7 +51,7 @@ describe('LiquityStrategy', () => {
   const SWAP_TARGET = '0xdef1c0ded9bec7f1a1670819833240f027b25eff';
 
   beforeEach(async () => {
-    [admin, alice, manager, keeper] = await ethers.getSigners();
+    [admin, alice, bob, manager, keeper] = await ethers.getSigners();
 
     const MockERC20 = await ethers.getContractFactory('MockERC20');
     underlying = await MockERC20.deploy(
@@ -114,6 +118,11 @@ describe('LiquityStrategy', () => {
     await strategy.connect(admin).grantRole(MANAGER_ROLE, manager.address);
 
     await vault.setStrategy(strategy.address);
+
+    const Mock0x = await ethers.getContractFactory('Mock0x');
+    mock0x = await Mock0x.deploy([lqty.address, underlying.address]);
+
+    await strategy.allowSwapTarget(mock0x.address);
 
     await underlying
       .connect(admin)
@@ -559,4 +568,63 @@ describe('LiquityStrategy', () => {
       }),
     );
   };
+
+  describe('#transferYield', () => {
+    it('fails if caller is not manager', async () => {
+      setBalance(strategy.address, parseUnits('100'));
+
+      await expect(
+        strategy.transferYield(admin.address, parseUnits('100')),
+      ).to.be.revertedWith('StrategyCallerNotManager');
+    });
+
+    it('transfers yield in ETH from the strategy to the user', async () => {
+      const alicesInitialEthBalace = await getETHBalance(alice.address);
+      await underlying.mint(strategy.address, parseUnits('100'));
+
+      await strategy.connect(manager).invest();
+
+      // add 100 ETH to the strategy
+      setBalance(strategy.address, parseUnits('100'));
+
+      // transfer 100 ETH to alice (1 eth = 1 underlying)
+      await strategy
+        .connect(manager)
+        .transferYield(alice.address, parseUnits('100'));
+
+      expect(await underlying.balanceOf(alice.address)).to.eq(parseUnits('0'));
+      expect(await getETHBalance(strategy.address)).to.eq(parseUnits('0'));
+      expect(
+        (await getETHBalance(alice.address)).sub(alicesInitialEthBalace),
+      ).to.eq(parseUnits('100'));
+      expect(await strategy.investedAssets()).to.eq(parseUnits('100'));
+    });
+
+    it("doesn't transfer yield to the user when ETH balance < yield amount", async () => {
+      const alicesInitialEthBalace = await getETHBalance(alice.address);
+      await underlying.mint(strategy.address, parseUnits('100'));
+
+      await strategy.connect(manager).invest();
+
+      // add 90 ETH to the strategy
+      setBalance(strategy.address, parseUnits('90'));
+
+      // try to transfer 100 ETH to alice (1 eth = 1 underlying)
+      await strategy
+        .connect(manager)
+        .transferYield(alice.address, parseUnits('100'));
+
+      // all balances remain unchanged
+      expect(await underlying.balanceOf(alice.address)).to.eq(parseUnits('0'));
+      expect(await getETHBalance(strategy.address)).to.eq(parseUnits('90'));
+      expect(
+        (await getETHBalance(alice.address)).sub(alicesInitialEthBalace),
+      ).to.eq('0');
+      expect(await strategy.investedAssets()).to.eq(parseUnits('190'));
+    });
+  });
+
+  function getETHBalance(account: string) {
+    return ethers.provider.getBalance(account);
+  }
 });
