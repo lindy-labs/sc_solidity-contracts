@@ -20,22 +20,20 @@ abstract contract MockExchange {
     }
 
     function setExchageRate(
-        address from,
-        address to,
-        uint256 rate // e18
+        address _from,
+        address _to,
+        uint256 _rate // e18
     ) external {
-        exchageRates[uint160(from) ^ uint160(to)] = rate;
+        exchageRates[_getExchangeRateKey(_from, _to)] = _rate;
     }
 
-    function getExchangeRate(address from, address to)
+    function getExchangeRate(address _from, address _to)
         public
         view
         returns (uint256)
     {
-        return
-            exchageRates[uint160(from) ^ uint160(to)] > 0
-                ? exchageRates[uint160(from) ^ uint160(to)]
-                : 1e18;
+        uint256 exchageRate = exchageRates[_getExchangeRateKey(_from, _to)];
+        return exchageRate > 0 ? exchageRate : 1e18;
     }
 
     function swapTokens(
@@ -59,5 +57,13 @@ abstract contract MockExchange {
         if (supportedTokens[_from]) {
             MockERC20(_from).burn(msg.sender, _amount);
         }
+    }
+
+    function _getExchangeRateKey(address _from, address _to)
+        internal
+        pure
+        returns (uint160)
+    {
+        return (uint160(_from) << 1) ^ uint160(_to);
     }
 }
