@@ -12,11 +12,13 @@ import {
   LiquityStrategy__factory,
   MockCurveExchange,
   Mock0x,
+  ERC20,
 } from '../../../typechain';
 
 import { generateNewAddress } from '../../shared/';
 import { depositParams, claimParams } from '../../shared/factories';
 import { setBalance } from '../../shared/forkHelpers';
+import { Address } from 'hardhat-deploy/types';
 
 const { parseUnits } = ethers.utils;
 
@@ -87,10 +89,7 @@ describe('LiquityStrategy', () => {
 
     const CurveExchange = await ethers.getContractFactory('MockCurveExchange');
 
-    curveExchange = await CurveExchange.deploy([
-      underlying.address,
-      lqty.address,
-    ]);
+    curveExchange = await CurveExchange.deploy();
 
     LiquityStrategyFactory = await ethers.getContractFactory('LiquityStrategy');
 
@@ -120,18 +119,13 @@ describe('LiquityStrategy', () => {
     await vault.setStrategy(strategy.address);
 
     const Mock0x = await ethers.getContractFactory('Mock0x');
-    mock0x = await Mock0x.deploy([lqty.address, underlying.address]);
+    mock0x = await Mock0x.deploy();
 
     await strategy.allowSwapTarget(mock0x.address);
 
     await underlying
       .connect(admin)
       .approve(vault.address, constants.MaxUint256);
-
-    console.log('Strategy deployed at', strategyProxy.address);
-    console.log('Vault deployed at', vault.address);
-    console.log('Underlying deployed at', underlying.address);
-    console.log('LQTY deployed at', lqty.address);
   });
 
   describe('#initialize', () => {
@@ -557,17 +551,45 @@ describe('LiquityStrategy', () => {
         strategy.connect(keeper).reinvest(SWAP_TARGET, 0, [], 0, [], 0),
       ).to.be.revertedWith('StrategyMinimumPrincipalProtection');
     });
-  });
 
-  const depositToVault = async (amount: BigNumber) => {
-    await vault.connect(admin).deposit(
-      depositParams.build({
-        amount,
-        inputToken: underlying.address,
-        claims: [claimParams.percent(100).to(admin.address).build()],
-      }),
-    );
-  };
+    it('works when selling and reinvesting all of LQTY and ETH', async () => {
+      const initialInvestment = parseUnits('10000');
+      await underlying.mint(strategy.address, initialInvestment);
+      await strategy.connect(manager).invest();
+
+      await lqty.mint(strategy.address, parseUnits('500'));
+      await setLqtyToUnderlyingExchageRate(parseUnits('2'));
+      const lqtySwapData = getSwapData(lqty, underlying, parseUnits('500'));
+
+      await setBalance(strategy.address, parseUnits('1'));
+      await setEthToUnderlyingExchageRate(parseUnits('1000'));
+      const ethSwapData = getSwapData(
+        constants.AddressZero,
+        underlying,
+        parseUnits('1'),
+      );
+
+      await strategy
+        .connect(keeper)
+        .reinvest(
+          mock0x.address,
+          parseUnits('500'),
+          lqtySwapData,
+          parseUnits('1'),
+          ethSwapData,
+          parseUnits('2000'),
+        );
+
+      // assert no funds remain held by the strategy
+      expect(await underlying.balanceOf(strategy.address)).to.eq('0');
+      expect(await lqty.balanceOf(strategy.address)).to.eq('0');
+      expect(await getETHBalance(strategy.address)).to.eq('0');
+
+      expect(await strategy.investedAssets()).to.eq(parseUnits('12000'));
+    });
+
+    it('works if LQTY and ETH amount sold is enough to protect the principal', async () => {});
+  });
 
   describe('#transferYield', () => {
     it('fails if caller is not manager', async () => {
@@ -579,14 +601,10 @@ describe('LiquityStrategy', () => {
     });
 
     it('transfers yield in ETH from the strategy to the user', async () => {
-      const alicesInitialEthBalace = await getETHBalance(alice.address);
-      await underlying.mint(strategy.address, parseUnits('100'));
-
-      await strategy.connect(manager).invest();
-
       // add 100 ETH to the strategy
       setBalance(strategy.address, parseUnits('100'));
 
+      const alicesInitialEthBalace = await getETHBalance(alice.address);
       // transfer 100 ETH to alice (1 eth = 1 underlying)
       await strategy
         .connect(manager)
@@ -597,18 +615,13 @@ describe('LiquityStrategy', () => {
       expect(
         (await getETHBalance(alice.address)).sub(alicesInitialEthBalace),
       ).to.eq(parseUnits('100'));
-      expect(await strategy.investedAssets()).to.eq(parseUnits('100'));
     });
 
     it("doesn't transfer yield to the user when ETH balance < yield amount", async () => {
-      const alicesInitialEthBalace = await getETHBalance(alice.address);
-      await underlying.mint(strategy.address, parseUnits('100'));
-
-      await strategy.connect(manager).invest();
-
       // add 90 ETH to the strategy
       setBalance(strategy.address, parseUnits('90'));
 
+      const alicesInitialEthBalace = await getETHBalance(alice.address);
       // try to transfer 100 ETH to alice (1 eth = 1 underlying)
       await strategy
         .connect(manager)
@@ -620,11 +633,87 @@ describe('LiquityStrategy', () => {
       expect(
         (await getETHBalance(alice.address)).sub(alicesInitialEthBalace),
       ).to.eq('0');
-      expect(await strategy.investedAssets()).to.eq(parseUnits('190'));
+      expect(await strategy.investedAssets()).to.eq(parseUnits('90'));
+    });
+
+    it('uses curve exchange LUSD -> USDT && USDT -> WETH to obtain ETH price', async () => {
+      // add 1 ETH to the strategy
+      setBalance(strategy.address, parseUnits('1'));
+
+      const weth = await strategy.WETH();
+      const usdt = await strategy.USDT();
+      await curveExchange.setExchageRate(
+        underlying.address,
+        usdt,
+        parseUnits('0.8'), // 1 LUSD = 1.25 USDT
+      );
+      await curveExchange.setExchageRate(usdt, weth, parseUnits('0.0005')); // 1 WETH = 2000 USDT
+
+      const alicesInitialEthBalace = await getETHBalance(alice.address);
+      const amountInUnderlying = parseUnits('2500');
+      await strategy
+        .connect(manager)
+        .transferYield(alice.address, amountInUnderlying);
+
+      expect(await underlying.balanceOf(alice.address)).to.eq(parseUnits('0'));
+      expect(await getETHBalance(strategy.address)).to.eq(parseUnits('0'));
+      expect(
+        (await getETHBalance(alice.address)).sub(alicesInitialEthBalace),
+      ).to.eq(parseUnits('1'));
     });
   });
 
+  async function depositToVault(amount: BigNumber) {
+    await vault.connect(admin).deposit(
+      depositParams.build({
+        amount,
+        inputToken: underlying.address,
+        claims: [claimParams.percent(100).to(admin.address).build()],
+      }),
+    );
+  }
+
   function getETHBalance(account: string) {
     return ethers.provider.getBalance(account);
+  }
+
+  function getSwapData(
+    from: ERC20 | string,
+    to: ERC20 | string,
+    amount: BigNumber | string,
+  ) {
+    const fromAddress = typeof from === 'string' ? from : from.address;
+    const toAddress = typeof to === 'string' ? to : to.address;
+
+    return ethers.utils.defaultAbiCoder.encode(
+      ['address', 'address', 'uint256'],
+      [fromAddress, toAddress, amount],
+    );
+  }
+
+  async function setEthToUnderlyingExchageRate(
+    exchangeRate: BigNumber | string,
+  ) {
+    await mock0x.setExchageRate(
+      constants.AddressZero,
+      underlying.address,
+      exchangeRate,
+    );
+    await curveExchange.setExchageRate(
+      constants.AddressZero,
+      underlying.address,
+      exchangeRate,
+    );
+  }
+
+  async function setLqtyToUnderlyingExchageRate(
+    exchangeRate: BigNumber | string,
+  ) {
+    await mock0x.setExchageRate(lqty.address, underlying.address, exchangeRate);
+    await curveExchange.setExchageRate(
+      lqty.address,
+      underlying.address,
+      exchangeRate,
+    );
   }
 });

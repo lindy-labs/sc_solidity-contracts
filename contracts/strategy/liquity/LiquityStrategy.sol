@@ -13,8 +13,6 @@ import {IStabilityPool} from "../../interfaces/liquity/IStabilityPool.sol";
 import {ERC165Query} from "../../lib/ERC165Query.sol";
 import {ICurveExchange} from "../../interfaces/curve/ICurveExchange.sol";
 
-import "hardhat/console.sol";
-
 /***
  * Liquity Strategy generates yield by investing LUSD assets into Liquity Stability Pool contract.
  * Stability pool gives out LQTY & ETH as rewards for liquidity providers.
@@ -194,41 +192,6 @@ contract LiquityStrategy is
     //
 
     /// @inheritdoc IStrategy
-    function transferYield(address _to, uint256 _amount)
-        external
-        override(IStrategy)
-        onlyManager
-        returns (bool)
-    {
-        uint256 amountInUSDT = curveExchange.get_exchange_amount(
-            LUSD_CURVE_POOL,
-            address(underlying),
-            USDT,
-            _amount
-        );
-
-        uint256 amountInETH = curveExchange.get_exchange_amount(
-            WETH_CURVE_POOL,
-            USDT,
-            WETH,
-            amountInUSDT
-        );
-
-        uint256 ethBalance = address(this).balance;
-
-        console.log("amountInETH", amountInETH);
-        console.log("ethBalance", ethBalance);
-
-        console.log("amountInETH > ethBalance", amountInETH > ethBalance);
-
-        if (amountInETH > ethBalance) return false;
-
-        (bool sent, ) = _to.call{value: amountInETH}("");
-
-        return sent;
-    }
-
-    /// @inheritdoc IStrategy
     function isSync() external pure override(IStrategy) returns (bool) {
         return true;
     }
@@ -397,6 +360,36 @@ contract LiquityStrategy is
         stabilityPool.provideToSP(balance, address(0));
     }
 
+    /// @inheritdoc IStrategy
+    function transferYield(address _to, uint256 _amount)
+        external
+        override(IStrategy)
+        onlyManager
+        returns (bool)
+    {
+        uint256 amountInUSDT = curveExchange.get_exchange_amount(
+            LUSD_CURVE_POOL,
+            address(underlying),
+            USDT,
+            _amount
+        );
+
+        uint256 amountInETH = curveExchange.get_exchange_amount(
+            WETH_CURVE_POOL,
+            USDT,
+            WETH,
+            amountInUSDT
+        );
+
+        uint256 ethBalance = address(this).balance;
+
+        if (amountInETH > ethBalance) return false;
+
+        (bool sent, ) = _to.call{value: amountInETH}("");
+
+        return sent;
+    }
+
     /**
      * Checks if the provided swap target is 0 address and reverts if true.
      */
@@ -449,17 +442,13 @@ contract LiquityStrategy is
         address _swapTarget,
         bytes calldata _ethSwapData
     ) internal {
-        console.log(_amount == 0, _ethSwapData.length == 0);
         // don't do cross-contract call if nothing to swap
         if (_amount == 0 || _ethSwapData.length == 0) return;
 
-        console.log("asd");
         uint256 ethBalance = address(this).balance;
-        console.log(ethBalance);
         if (_amount > ethBalance) revert StrategyNotEnoughETH();
 
         (bool success, ) = _swapTarget.call{value: _amount}(_ethSwapData);
-        console.log("success", success);
 
         if (!success) revert StrategyETHSwapFailed();
     }

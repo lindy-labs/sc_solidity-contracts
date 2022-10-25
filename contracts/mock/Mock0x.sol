@@ -4,8 +4,6 @@ pragma solidity =0.8.10;
 import "./MockExchange.sol";
 
 contract Mock0x is MockExchange {
-    constructor(address[] memory _tokens) MockExchange(_tokens) {}
-
     fallback() external payable {
         (address from, address to, uint256 amount) = abi.decode(
             msg.data,
