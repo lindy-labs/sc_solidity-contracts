@@ -13,7 +13,6 @@ import {
   Mock0x,
   LiquityStrategy,
   MockStabilityPool,
-  MockLQTY,
 } from '../typechain';
 
 import { setBalance } from '../test/shared/forkHelpers';
@@ -110,9 +109,9 @@ describe('VaultWithLiquity', () => {
     underlying.connect(bob).approve(vault.address, MaxUint256);
     underlying.connect(keeper).approve(vault.address, MaxUint256);
 
-    const CurveEchange = await ethers.getContractFactory('MockCurveExchange');
+    const CurveExchange = await ethers.getContractFactory('MockCurveExchange');
 
-    const curveEchange = await CurveEchange.deploy([underlying.address]);
+    const curveExchange = await CurveExchange.deploy([underlying.address]);
 
     const LiquityStrategyFactory = await ethers.getContractFactory(
       'LiquityStrategy',
@@ -128,7 +127,7 @@ describe('VaultWithLiquity', () => {
         underlying.address,
         keeper.address,
         0,
-        curveEchange.address,
+        curveExchange.address,
       ],
       {
         kind: 'uups',
@@ -154,7 +153,7 @@ describe('VaultWithLiquity', () => {
       }));
   });
 
-  describe('#transferYield', () => {
+  describe('#claimYield', () => {
     it('transfers yield in ETH from the strategy to the user', async () => {
       await addUnderlyingBalance(alice, '100');
       const alicesInitialEthBalace = await getETHBalance(alice.address);
@@ -207,7 +206,6 @@ describe('VaultWithLiquity', () => {
 
     it('transfers yield in LUSD from the strategy to the user when ETH balance < yield amount', async () => {
       await addUnderlyingBalance(alice, '100');
-      const alicesInitialEthBalace = await getETHBalance(alice.address);
 
       const params = depositParams.build({
         amount: parseUnits('100'),
@@ -248,10 +246,6 @@ describe('VaultWithLiquity', () => {
       expect(await strategy.investedAssets()).to.eq(parseUnits('100'));
     });
   });
-
-  async function yieldBalanceOf(account: SignerWithAddress | LiquityStrategy) {
-    return yieldUnderlying.balanceOf(account.address);
-  }
 
   function getETHBalance(account: string) {
     return ethers.provider.getBalance(account);

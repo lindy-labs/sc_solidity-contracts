@@ -41,7 +41,8 @@ contract LiquityStrategy is
     error StrategyNotEnoughETH();
     error StrategyNotEnoughLQTY();
     error StrategyNothingToReinvest();
-    error StrategyStabilityPoolCannotBeAddressZero();
+    error StrategyStabilityPoolCannotBe0Address();
+    error StrategyCurveExchangeCannotBe0Address();
     error StrategySwapTargetCannotBe0Address();
     error StrategySwapTargetNotAllowed();
     error StrategyTokenApprovalFailed(address token);
@@ -56,7 +57,6 @@ contract LiquityStrategy is
         0xD51a44d3FaE010294C616388b506AcdA1bfAAE46;
     address public constant LUSD_CURVE_POOL =
         0xEd279fDD11cA84bEef15AF5D39BB4d4bEE23F0cA;
-    address public CURVE_ROUTER;
     // address public constant CURVE_ROUTER =
     //     0x81C46fECa27B31F3ADC2b91eE4be9717d1cd3DD7;
     address public constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
@@ -73,6 +73,7 @@ contract LiquityStrategy is
     /// @inheritdoc IStrategy
     address public override(IStrategy) vault;
     IStabilityPool public stabilityPool;
+    ICurveExchange public curveExchange;
     IERC20 public lqty; // reward token
     mapping(address => bool) public allowedSwapTargets; // whitelist of swap targets
 
@@ -126,7 +127,7 @@ contract LiquityStrategy is
         address _underlying,
         address _keeper,
         uint16 _principalProtectionPct,
-        address _curveRouter
+        address _curveExchange
     ) public initializer {
         __AccessControl_init();
         __UUPSUpgradeable_init();
@@ -134,12 +135,14 @@ contract LiquityStrategy is
         if (_admin == address(0)) revert StrategyAdminCannotBe0Address();
         if (_lqty == address(0)) revert StrategyYieldTokenCannotBe0Address();
         if (_stabilityPool == address(0))
-            revert StrategyStabilityPoolCannotBeAddressZero();
+            revert StrategyStabilityPoolCannotBe0Address();
         if (_underlying == address(0))
             revert StrategyUnderlyingCannotBe0Address();
         if (!_vault.doesContractImplementInterface(type(IVault).interfaceId))
             revert StrategyNotIVault();
         if (_keeper == address(0)) revert StrategyKeeperCannotBe0Address();
+        if (_curveExchange == address(0))
+            revert StrategyCurveExchangeCannotBe0Address();
 
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
         _grantRole(KEEPER_ROLE, _admin);
@@ -147,11 +150,10 @@ contract LiquityStrategy is
         _grantRole(MANAGER_ROLE, _vault);
         _grantRole(KEEPER_ROLE, _keeper);
 
-        CURVE_ROUTER = _curveRouter;
-
         vault = _vault;
         underlying = IERC20(_underlying);
         stabilityPool = IStabilityPool(_stabilityPool);
+        curveExchange = ICurveExchange(_curveExchange);
         lqty = IERC20(_lqty);
         minPrincipalProtectionPct = _principalProtectionPct;
 
@@ -197,14 +199,14 @@ contract LiquityStrategy is
         override(IStrategy)
         returns (bool)
     {
-        uint256 amountInUSDT = ICurveExchange(CURVE_ROUTER).get_exchange_amount(
+        uint256 amountInUSDT = curveExchange.get_exchange_amount(
             LUSD_CURVE_POOL,
             address(underlying),
             USDT,
             _amount
         );
 
-        uint256 amountInETH = ICurveExchange(CURVE_ROUTER).get_exchange_amount(
+        uint256 amountInETH = curveExchange.get_exchange_amount(
             WETH_CURVE_POOL,
             USDT,
             WETH,
@@ -215,6 +217,8 @@ contract LiquityStrategy is
 
         console.log("amountInETH", amountInETH);
         console.log("ethBalance", ethBalance);
+
+        console.log("amountInETH > ethBalance", amountInETH > ethBalance);
 
         if (amountInETH > ethBalance) return false;
 
@@ -257,16 +261,19 @@ contract LiquityStrategy is
             return stabilityPool.getCompoundedLUSDDeposit(address(this));
         }
 
-        uint256 ethBalanceInUSDT = ICurveExchange(CURVE_ROUTER)
-            .get_exchange_amount(WETH_CURVE_POOL, WETH, USDT, ethBalance);
+        uint256 ethBalanceInUSDT = curveExchange.get_exchange_amount(
+            WETH_CURVE_POOL,
+            WETH,
+            USDT,
+            ethBalance
+        );
 
-        uint256 ethBalanceInLusd = ICurveExchange(CURVE_ROUTER)
-            .get_exchange_amount(
-                LUSD_CURVE_POOL,
-                USDT,
-                address(underlying),
-                ethBalanceInUSDT
-            );
+        uint256 ethBalanceInLusd = curveExchange.get_exchange_amount(
+            LUSD_CURVE_POOL,
+            USDT,
+            address(underlying),
+            ethBalanceInUSDT
+        );
 
         return
             stabilityPool.getCompoundedLUSDDeposit(address(this)) +

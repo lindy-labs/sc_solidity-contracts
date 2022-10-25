@@ -42,9 +42,9 @@ describe('Vault', () => {
   let addUnderlyingBalance: (
     account: SignerWithAddress,
     amount: string,
-  ) => Promise<BigNumber>;
+  ) => Promise<void>;
   let addYieldToVault: (amount: string) => Promise<BigNumber>;
-  let removeUnderlyingFromVault: (amount: string) => Promise<BigNumber>;
+  let removeUnderlyingFromVault: (amount: string) => Promise<void>;
 
   const MOCK_STRATEGY = 'MockStrategySync';
   const TWO_WEEKS = BigNumber.from(time.duration.weeks(2).toNumber());

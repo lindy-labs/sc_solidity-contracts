@@ -45,6 +45,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
 
   // mainnet addresses
   const STABILITY_POOL = '0x66017d22b0f8556afdd19fc67041899eb65a21bb';
+  const CURVE_EXCHANGE = '0x81c46feca27b31f3adc2b91ee4be9717d1cd3dd7';
   const LUSD = '0x5f98805A4E8be255a32880FDeC7F6728C6568bA0';
   const LQTY = '0x6DEA81C8171D0bA574754EF6F8b412F2Ed88c54D';
 
@@ -105,6 +106,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
         lusd.address,
         admin.address, // keeper
         0,
+        CURVE_EXCHANGE,
       ],
       {
         kind: 'uups',
@@ -727,7 +729,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
 
   async function lusdToETH(amount: BigNumber) {
     const curveRouter = ICurveExchange__factory.connect(
-      await strategy.CURVE_ROUTER(),
+      await strategy.curveExchange(),
       admin,
     );
 

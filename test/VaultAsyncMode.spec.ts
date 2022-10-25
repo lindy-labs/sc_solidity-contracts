@@ -31,7 +31,7 @@ describe('Vault in async mode', () => {
   let addUnderlyingBalance: (
     account: SignerWithAddress,
     amount: string,
-  ) => Promise<BigNumber>;
+  ) => Promise<void>;
   let addYieldToVault: (amount: string) => Promise<BigNumber>;
 
   const TWO_WEEKS = BigNumber.from(time.duration.weeks(2).toNumber());

@@ -10,6 +10,7 @@ import {
   LiquityStrategy,
   MockERC20,
   LiquityStrategy__factory,
+  MockCurveExchange,
 } from '../../../typechain';
 
 import { generateNewAddress } from '../../shared/';
@@ -25,6 +26,7 @@ describe('LiquityStrategy', () => {
   let vault: Vault;
   let stabilityPool: MockStabilityPool;
   let strategy: LiquityStrategy;
+  let curveExchange: MockCurveExchange;
   let underlying: MockERC20;
   let lqty: MockERC20;
 
@@ -79,6 +81,13 @@ describe('LiquityStrategy', () => {
       [],
     );
 
+    const CurveExchange = await ethers.getContractFactory('MockCurveExchange');
+
+    curveExchange = await CurveExchange.deploy([
+      underlying.address,
+      lqty.address,
+    ]);
+
     LiquityStrategyFactory = await ethers.getContractFactory('LiquityStrategy');
 
     const strategyProxy = await upgrades.deployProxy(
@@ -91,6 +100,7 @@ describe('LiquityStrategy', () => {
         underlying.address,
         keeper.address,
         0,
+        curveExchange.address,
       ],
       {
         kind: 'uups',
@@ -128,6 +138,7 @@ describe('LiquityStrategy', () => {
             underlying.address,
             keeper.address,
             0,
+            curveExchange.address,
           ],
           {
             kind: 'uups',
@@ -148,12 +159,13 @@ describe('LiquityStrategy', () => {
             underlying.address,
             keeper.address,
             0,
+            curveExchange.address,
           ],
           {
             kind: 'uups',
           },
         ),
-      ).to.be.revertedWith('StrategyStabilityPoolCannotBeAddressZero');
+      ).to.be.revertedWith('StrategyStabilityPoolCannotBe0Address');
     });
 
     it('reverts if lqty is address(0)', async () => {
@@ -168,6 +180,7 @@ describe('LiquityStrategy', () => {
             underlying.address,
             keeper.address,
             0,
+            curveExchange.address,
           ],
           {
             kind: 'uups',
@@ -188,6 +201,7 @@ describe('LiquityStrategy', () => {
             constants.AddressZero,
             keeper.address,
             0,
+            curveExchange.address,
           ],
           {
             kind: 'uups',
@@ -208,12 +222,34 @@ describe('LiquityStrategy', () => {
             underlying.address,
             constants.AddressZero,
             0,
+            curveExchange.address,
           ],
           {
             kind: 'uups',
           },
         ),
       ).to.be.revertedWith('StrategyKeeperCannotBe0Address');
+    });
+
+    it('reverts if curveExchange is address(0)', async () => {
+      await expect(
+        upgrades.deployProxy(
+          LiquityStrategyFactory,
+          [
+            vault.address,
+            admin.address,
+            stabilityPool.address,
+            lqty.address,
+            underlying.address,
+            keeper.address,
+            0,
+            constants.AddressZero,
+          ],
+          {
+            kind: 'uups',
+          },
+        ),
+      ).to.be.revertedWith('StrategyCurveExchangeCannotBe0Address');
     });
 
     it('reverts if vault does not have IVault interface', async () => {
@@ -228,6 +264,7 @@ describe('LiquityStrategy', () => {
             underlying.address,
             keeper.address,
             0,
+            curveExchange.address,
           ],
           {
             kind: 'uups',
@@ -250,6 +287,7 @@ describe('LiquityStrategy', () => {
       expect(await strategy.vault()).to.eq(vault.address);
       expect(await strategy.stabilityPool()).to.eq(stabilityPool.address);
       expect(await strategy.underlying()).to.eq(underlying.address);
+      expect(await strategy.curveExchange()).to.eq(curveExchange.address);
 
       // functions
       expect(await strategy.hasAssets()).to.be.false;
