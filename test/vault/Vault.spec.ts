@@ -10,10 +10,10 @@ import {
   Vault__factory,
   MockLUSD__factory,
   MockLUSD,
-} from '../typechain';
+} from '../../typechain';
 
-import createVaultHelpers from './shared/vault';
-import { depositParams, claimParams } from './shared/factories';
+import createVaultHelpers from '../shared/vault';
+import { depositParams, claimParams } from '../shared/factories';
 import {
   getLastBlockTimestamp,
   moveForwardTwoWeeks,
@@ -22,7 +22,7 @@ import {
   getRoleErrorMsg,
   arrayFromTo,
   CURVE_SLIPPAGE,
-} from './shared';
+} from '../shared';
 
 const { parseUnits } = ethers.utils;
 const { MaxUint256 } = ethers.constants;

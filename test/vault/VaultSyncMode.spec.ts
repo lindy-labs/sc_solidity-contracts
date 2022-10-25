@@ -9,12 +9,12 @@ import {
   MockStrategySync,
   MockLUSD,
   MockLUSD__factory,
-} from '../typechain';
+} from '../../typechain';
 
-import { depositParams, claimParams } from './shared/factories';
-import createVaultHelpers from './shared/vault';
+import { depositParams, claimParams } from '../shared/factories';
+import createVaultHelpers from '../shared/vault';
 
-import { moveForwardTwoWeeks, generateNewAddress } from './shared';
+import { moveForwardTwoWeeks, generateNewAddress } from '../shared';
 
 const { parseUnits } = ethers.utils;
 const { MaxUint256 } = ethers.constants;

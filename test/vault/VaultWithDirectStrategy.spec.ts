@@ -11,11 +11,11 @@ import {
   MockLUSD__factory,
   MockLUSD,
   MockERC20,
-} from '../typechain';
+} from '../../typechain';
 
-import createVaultHelpers from './shared/vault';
-import { depositParams, claimParams } from './shared/factories';
-import { generateNewAddress } from './shared';
+import createVaultHelpers from '../shared/vault';
+import { depositParams, claimParams } from '../shared/factories';
+import { generateNewAddress } from '../shared';
 
 const { parseUnits } = ethers.utils;
 const { MaxUint256 } = ethers.constants;
