@@ -160,7 +160,8 @@ contract LiquityStrategy is
         }
     }
 
-    function setMinPrincipalProtectionPct(uint16 _pct) external {
+    // TODO: add doc
+    function setMinPrincipalProtectionPct(uint16 _pct) external onlySettings {
         minPrincipalProtectionPct = _pct;
     }
 

@@ -644,7 +644,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
   });
 
   describe('#transferYield', () => {
-    it.only('transfers yield in ETH to the user', async () => {
+    it('transfers yield in ETH to the user', async () => {
       const troveManagerAddress = await lqtyStabilityPool.troveManager();
       await ForkHelpers.impersonate([troveManagerAddress]);
       const troveManager = await ethers.getSigner(troveManagerAddress);
