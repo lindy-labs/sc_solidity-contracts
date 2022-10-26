@@ -643,6 +643,40 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
     });
   });
 
+  describe('#transferYield', () => {
+    it.only('transfers yield in ETH to the user', async () => {
+      const troveManagerAddress = await lqtyStabilityPool.troveManager();
+      await ForkHelpers.impersonate([troveManagerAddress]);
+      const troveManager = await ethers.getSigner(troveManagerAddress);
+
+      await ForkHelpers.mintToken(lusd, strategy.address, parseUnits('10000'));
+      await strategy.invest();
+
+      // LQTY issuance (rewards) is time dependent, so we need to advance time here
+      await moveForwardTwoWeeks();
+
+      // call offset to generate rewards for liquidity providers
+      const lusdDebtToOffset = parseUnits('10000');
+      const ethCollateralToAdd = parseUnits('10');
+      ForkHelpers.setBalance(troveManager.address, ethCollateralToAdd);
+
+      await lqtyStabilityPool
+        .connect(troveManager)
+        .offset(lusdDebtToOffset, ethCollateralToAdd);
+
+      await strategy.harvest();
+
+      const alicesInitialEthBalace = await getETHBalance(alice.address);
+
+      // we got little more than 1.9 LUSD in ETH rewards
+      await strategy.transferYield(alice.address, parseUnits('1.9'));
+
+      expect(await getETHBalance(alice.address)).to.eq(
+        alicesInitialEthBalace.add('1168664919817534'),
+      );
+    });
+  });
+
   describe('#investedAssets', () => {
     it('investedAssets must count the ETH in the strategy and the unclaimed ETH in the stability pool contract too', async () => {
       const troveManagerAddress = await lqtyStabilityPool.troveManager();

@@ -383,6 +383,7 @@ contract LiquityStrategy is
 
         uint256 ethBalance = address(this).balance;
 
+        // TODO: should we harvest if amountInETH > ethBalance?
         if (amountInETH > ethBalance) return false;
 
         (bool sent, ) = _to.call{value: amountInETH}("");
