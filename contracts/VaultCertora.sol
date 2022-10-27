@@ -14,7 +14,7 @@ import {Counters} from "@openzeppelin/contracts/utils/Counters.sol";
 import {IVault} from "./vault/IVault.sol";
 import {IVaultSponsoring} from "./vault/IVaultSponsoring.sol";
 import {IVaultSettings} from "./vault/IVaultSettings.sol";
-import {CurveSwapper} from "./vault/CurveSwapper.sol";
+import {CurveSwapper} from "./vault/CurveSwapperCertora.sol";
 import {PercentMath} from "./lib/PercentMath.sol";
 import {ExitPausable} from "./lib/ExitPausable.sol";
 import {IStrategy} from "./strategy/IStrategy.sol";

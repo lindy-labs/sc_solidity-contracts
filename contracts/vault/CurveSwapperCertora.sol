@@ -4,7 +4,6 @@ pragma solidity =0.8.10;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-
 import {ICurve} from "../interfaces/curve/ICurve.sol";
 
 /// Helper abstract contract to manage curve swaps
@@ -14,7 +13,7 @@ abstract contract CurveSwapper {
     //
     // Structs
     //
-
+    ICurve bridgeCS;
     struct Swapper {
         /// Curve pool instance
         ICurve pool;
@@ -61,7 +60,6 @@ abstract contract CurveSwapper {
     //
     // State
     //
-
     /// token => curve pool (for trading token/underlying)
     mapping(address => Swapper) public swappers;
 
@@ -85,6 +83,7 @@ abstract contract CurveSwapper {
         }
 
         Swapper storage swapper = swappers[_token];
+        
         require(
             address(swapper.pool) != address(0x0),
             "non-existing swap pool"
@@ -96,13 +95,14 @@ abstract contract CurveSwapper {
             swapper.underlyingDecimals,
             _slippage
         );
-
-        amount = swapper.pool.exchange_underlying(
+        bridgeCS = swapper.pool;
+        amount = bridgeCS/*swapper.pool*/.exchange_underlying(
             swapper.tokenI,
             swapper.underlyingI,
             _amount,
             minAmount
         );
+        swapper.pool = bridgeCS;
 
         emit Swap(_token, underlyingToken, _amount, amount);
     }
