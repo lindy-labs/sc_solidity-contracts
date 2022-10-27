@@ -15,7 +15,7 @@ import {
   ERC20,
 } from '../../../typechain';
 
-import { generateNewAddress } from '../../shared/';
+import { generateNewAddress, getTransactionGasCost } from '../../shared/';
 import { depositParams, claimParams } from '../../shared/factories';
 import { setBalance } from '../../shared/forkHelpers';
 import createVaultHelpers from '../../shared/vault';
@@ -763,6 +763,65 @@ describe('LiquityStrategy', () => {
       expect(
         (await getETHBalance(alice.address)).sub(alicesInitialEthBalace),
       ).to.eq(parseUnits('1'));
+    });
+
+    it('works with pricipal protection set', async () => {
+      await addUnderlyingBalance(alice, '100');
+      await strategy.setMinPrincipalProtectionPct('11000');
+
+      const params = depositParams.build({
+        amount: parseUnits('100'),
+        inputToken: underlying.address,
+        claims: [
+          claimParams.percent(50).to(alice.address).build(),
+          claimParams.percent(50).to(bob.address).build(),
+        ],
+      });
+
+      await vault.connect(alice).deposit(params);
+
+      await vault.updateInvested();
+
+      // add 100 ETH to the strategy
+      setBalance(strategy.address, parseUnits('100'));
+
+      // swap 10 ETH for LUSD and reinvest
+      const ethToReinvest = parseUnits('10');
+      const swapData = getSwapData(
+        constants.AddressZero,
+        underlying,
+        ethToReinvest,
+      );
+
+      await strategy.reinvest(
+        mock0x.address,
+        0,
+        [],
+        ethToReinvest,
+        swapData,
+        ethToReinvest,
+      );
+
+      const alicesInitialEthBalace = await getETHBalance(alice.address);
+
+      const tx = await vault.connect(alice).claimYield(alice.address);
+      console.log('gasCostForTxn', await getTransactionGasCost(tx));
+
+      expect(await underlying.balanceOf(alice.address)).to.eq(parseUnits('0'));
+      expect(await getETHBalance(strategy.address)).to.eq(parseUnits('40'));
+      expect(
+        (await getETHBalance(alice.address))
+          .sub(alicesInitialEthBalace)
+          .add(await getTransactionGasCost(tx)), // ignore the gas cost
+      ).to.gte(parseUnits('50'));
+      expect(await strategy.investedAssets()).to.eq(parseUnits('150'));
+
+      // because of the min principal protection, bob receives yield in underlying
+      await vault.connect(bob).claimYield(bob.address);
+
+      expect(await underlying.balanceOf(bob.address)).to.eq(parseUnits('50'));
+      expect(await getETHBalance(strategy.address)).to.eq(parseUnits('40'));
+      expect(await strategy.investedAssets()).to.eq(parseUnits('100'));
     });
   });
 
