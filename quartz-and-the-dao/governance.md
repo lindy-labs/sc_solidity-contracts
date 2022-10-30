@@ -4,11 +4,11 @@ Sandclock is a community owned project, governed by QUARTZ token holders.
 
 ## Road to Decentralization
 
-As with every good protocol, Sandclock has had a plan to decentralize from day 1. However, the path to decentralization must be a gradual process in order to ensure the long term success and resilience of the protocol. Our plan features three stages: **Snapshot → SafeSnap → DAO.**
+As with every reputable protocol, Sandclock has had a plan to decentralize from day 1. However, the path to decentralization must be a gradual process in order to ensure the long term success and resilience of the protocol. Our plan features three stages: **Snapshot → SafeSnap → DAO.**
 
 ### **Snapshot**
 
-Initially Snapshot will be used in order to take temperature checks. Snapshot does not allow for trustless on-chain execution of off-chain votes and, as such, is not binding.
+Initially Snapshot will be used. Snapshot does not allow for trustless on-chain execution of off-chain votes.
 
 ### SafeSnap
 
@@ -47,6 +47,6 @@ The contracts functions can be paused for a certain amount of time per function 
 
 * **Non-technical Proposals**
 
-A non-technical proposal is any proposal without a specification. An example of such a proposal would be to add a `rageQuit()` function to QUARTZ in order to modify its value accrual mechanisms. Another example would be a marketing proposal, or deploying to another chain.
+A non-technical proposal is any proposal without a low level specification. An example of such a proposal would be to add a `rageQuit()` function to QUARTZ in order to modify its value accrual mechanisms. Another example would be a marketing proposal, or deploying to another chain.
 
 ##
