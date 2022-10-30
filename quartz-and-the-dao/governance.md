@@ -4,7 +4,7 @@ Sandclock is a community owned project, governed by QUARTZ token holders.
 
 ## Road to Decentralization
 
-As with every reputable protocol, Sandclock has had a plan to decentralize from day 1. However, the path to decentralization must be a gradual process in order to ensure the long term success and resilience of the protocol. Our plan features three stages: **Snapshot → SafeSnap → DAO.**
+As with every reputable protocol, Sandclock has had a plan to decentralize from day 1. However, the path to decentralization must be a gradual process in order to ensure the long term success and resilience of the protocol. Our plan features three stages: **Snapshot → SafeSnap → On-chain DAO.**
 
 ### **Snapshot**
 
