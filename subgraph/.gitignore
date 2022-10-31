@@ -4,3 +4,5 @@ ethereum/src/types/
 polygon/src/types/
 ethereum/subgraph.yaml
 polygon/subgraph.yaml
+subgraph/ethereum/tests/.bin
+subgraph/polygon/tests/.bin
