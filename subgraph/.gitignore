@@ -1,2 +1,4 @@
 build/
-src/types/
+src/types
+ethereum/src/types/
+polygon/src/types/
