@@ -58,10 +58,11 @@ const func = async function (env: HardhatRuntimeEnvironment) {
       args: [],
     });
 
-    await deploy('LiquityStabilityPool', {
+    const liquityStabilityPoolArgs = [LUSDDeployment.address, mockLiquityPriceFeedDeployment.address];
+    const mockLiquityStabilityPool = await deploy('LiquityStabilityPool', {
       contract: 'MockStabilityPool',
       from: deployer,
-      args: [LUSDDeployment.address, mockLiquityPriceFeedDeployment.address],
+      args: liquityStabilityPoolArgs,
       log: true,
     });
 
@@ -73,6 +74,35 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     });
 
     address0x = mock0x.address;
+
+    if (getNetworkName() !== 'hardhat' && getNetworkName() !== 'docker') {
+      try {
+        await env.run('verify:verify', {
+          address: mockLiquityPriceFeedDeployment.address,
+          constructorArguments: [],
+        });
+      } catch (e) {
+        console.error((e as Error).message);
+      }
+
+      try {
+        await env.run('verify:verify', {
+          address: mockLiquityStabilityPool.address,
+          constructorArguments: liquityStabilityPoolArgs,
+        });
+      } catch (e) {
+        console.error((e as Error).message);
+      }
+
+      try {
+        await env.run('verify:verify', {
+          address: mock0x.address,
+          constructorArguments: [],
+        });
+      } catch (e) {
+        console.error((e as Error).message);
+      }
+    }
   }
 
   const stabilityPool = await get('LiquityStabilityPool');
