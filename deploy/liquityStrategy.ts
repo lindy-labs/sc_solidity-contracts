@@ -16,6 +16,8 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
   const LUSDDeployment = await get('LUSD');
 
+  let address0x;
+
   let liquityStrategyContract = 'LiquityStrategy';
   if (getNetworkName() === 'hardhat' || getNetworkName() === 'docker') {
     liquityStrategyContract = 'MockLiquityStrategyV3';
@@ -62,6 +64,15 @@ const func = async function (env: HardhatRuntimeEnvironment) {
       args: [LUSDDeployment.address, mockLiquityPriceFeedDeployment.address],
       log: true,
     });
+
+    const mock0x = await deploy('Mock0x', {
+      contract: 'Mock0x',
+      from: deployer,
+      args: [],
+      log: true,
+    });
+
+    address0x = mock0x.address;
   }
 
   const stabilityPool = await get('LiquityStabilityPool');
@@ -96,7 +107,9 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
   // get 0x contract
 
-  // await liquityStrategy.connect(owner).allowSwapTarget(_swapTarget);
+  if (!address0x) address0x = '0xdef1c0ded9bec7f1a1670819833240f027b25eff';
+
+  await liquityStrategy.connect(owner).allowSwapTarget(address0x);
 
   if (owner.address !== multisig) {
     await (await vault.connect(owner).transferAdminRights(multisig)).wait();
@@ -117,7 +130,5 @@ func.skip = async (env: HardhatRuntimeEnvironment) =>
     ['ropsten', 'docker', 'mainnet', 'hardhat'],
     env.deployments.getNetworkName(),
   );
-
-export default func;
 
 export default func;
