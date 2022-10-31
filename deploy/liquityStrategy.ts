@@ -94,6 +94,10 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   await vault.connect(owner).setStrategy(liquityStrategy.address);
   console.log('strategy set to vault');
 
+  // get 0x contract
+
+  // await liquityStrategy.connect(owner).allowSwapTarget(_swapTarget);
+
   if (owner.address !== multisig) {
     await (await vault.connect(owner).transferAdminRights(multisig)).wait();
     console.log('vault ownership transfered to multisig');
@@ -113,5 +117,7 @@ func.skip = async (env: HardhatRuntimeEnvironment) =>
     ['ropsten', 'docker', 'mainnet', 'hardhat'],
     env.deployments.getNetworkName(),
   );
+
+export default func;
 
 export default func;
