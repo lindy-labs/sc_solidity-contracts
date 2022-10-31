@@ -157,7 +157,7 @@ func.dependencies = ['vault'];
 
 func.skip = async (env: HardhatRuntimeEnvironment) =>
   !includes(
-    ['ropsten', 'docker', 'mainnet', 'hardhat'],
+    ['ropsten', 'docker', 'mainnet', 'hardhat', 'goerli'],
     env.deployments.getNetworkName(),
   );
 
