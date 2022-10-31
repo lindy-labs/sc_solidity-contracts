@@ -389,7 +389,7 @@ describe('LiquityStrategy', () => {
 
     it('deposits underlying to the stabilityPool', async () => {
       let underlyingAmount = utils.parseUnits('100');
-      await depositToVault(underlyingAmount);
+      await depositToVault(admin, underlyingAmount);
 
       expect(await vault.totalUnderlying()).to.eq(underlyingAmount);
       expect(await strategy.investedAssets()).to.eq(0);
@@ -408,7 +408,7 @@ describe('LiquityStrategy', () => {
 
     it('emits a StrategyInvested event', async () => {
       let underlyingAmount = utils.parseUnits('100');
-      await depositToVault(underlyingAmount);
+      await depositToVault(admin, underlyingAmount);
       const tx = await vault.connect(admin).updateInvested();
       await expect(tx)
         .to.emit(strategy, 'StrategyInvested')
@@ -430,7 +430,7 @@ describe('LiquityStrategy', () => {
     });
 
     it('reverts if amount is greater than invested assets', async () => {
-      await depositToVault(parseUnits('100'));
+      await depositToVault(admin, parseUnits('100'));
       await vault.connect(admin).updateInvested();
 
       const amountToWithdraw = parseUnits('101');
@@ -441,7 +441,7 @@ describe('LiquityStrategy', () => {
     });
 
     it('works when amount is less than invested assets', async () => {
-      await depositToVault(parseUnits('100'));
+      await depositToVault(admin, parseUnits('100'));
       await vault.connect(admin).updateInvested();
 
       const amountToWithdraw = parseUnits('30');
@@ -457,7 +457,7 @@ describe('LiquityStrategy', () => {
 
     it('works when amount is equal to invested assets', async () => {
       const depositAmount = parseUnits('100');
-      await depositToVault(depositAmount);
+      await depositToVault(admin, depositAmount);
       await vault.connect(admin).updateInvested();
 
       await strategy.connect(manager).withdrawToVault(depositAmount);
@@ -468,7 +468,7 @@ describe('LiquityStrategy', () => {
     });
 
     it('emits StrategyWithdrawn event', async () => {
-      await depositToVault(parseUnits('100'));
+      await depositToVault(admin, parseUnits('100'));
       await vault.connect(admin).updateInvested();
 
       const amountToWithdraw = parseUnits('30');
@@ -557,15 +557,58 @@ describe('LiquityStrategy', () => {
       ).to.be.revertedWith('StrategyNothingToReinvest');
     });
 
-    it('fails if the minimum principal protection is not guaranteed', async () => {
-      await depositToVault(parseUnits('100'));
-      await strategy.setMinPrincipalProtectionPct(12000);
+    it('protects pricipal by reverting when total underlying assets are greater than min protected principal', async () => {
+      await strategy.setMinPrincipalProtectionPct('11000'); // 110%
+      await addUnderlyingBalance(alice, '10000');
+      await depositToVault(alice, '10000');
+      await vault.updateInvested();
 
-      await strategy.connect(admin).allowSwapTarget(SWAP_TARGET);
+      const ethAmount = parseUnits('2000');
+      await setBalance(strategy.address, ethAmount);
+
+      expect(await vault.totalUnderlying()).to.gt(parseUnits('11000'));
+
+      // amount out min + principal < min protected principal
+      const amountOutMin = parseUnits('500').sub(1);
 
       await expect(
-        strategy.connect(keeper).reinvest(SWAP_TARGET, 0, [], 0, [], 0),
+        strategy
+          .connect(keeper)
+          .reinvest(mock0x.address, 0, [], ethAmount, [], amountOutMin),
       ).to.be.revertedWith('StrategyMinimumPrincipalProtection');
+    });
+
+    it('bypasses principal protection when total underlying assets are less than min protected principal', async () => {
+      await strategy.setMinPrincipalProtectionPct('12000'); // 120%
+      await addUnderlyingBalance(alice, '10000');
+      await depositToVault(alice, '10000');
+      await vault.updateInvested();
+
+      const ethAmount = parseUnits('1000');
+      await setBalance(strategy.address, ethAmount);
+      const ethSwapData = getSwapData(
+        constants.AddressZero,
+        underlying,
+        ethAmount,
+      );
+
+      expect(await vault.totalUnderlying()).to.lt(parseUnits('12000'));
+
+      // amount out min + principal < min protected principal
+      const amountOutMin = parseUnits('10000');
+
+      await strategy.connect(keeper).reinvest(
+        mock0x.address,
+        0,
+        [],
+        ethAmount,
+        ethSwapData,
+        parseUnits('1000'), // 500LQTY * 2 + 1ETH * 1000
+      );
+
+      // assert no funds remain held by the strategy
+      expect(await underlying.balanceOf(strategy.address)).to.eq('0');
+      expect(await getETHBalance(strategy.address)).to.eq('0');
     });
 
     it('works when selling and reinvesting all of LQTY and ETH', async () => {
@@ -672,7 +715,7 @@ describe('LiquityStrategy', () => {
       await lqty.mint(strategy.address, lqtyAmount);
       const lqtySwapData = getSwapData(lqty, underlying, lqtyAmount);
 
-      const ethAmount = parseUnits('1000');
+      const ethAmount = parseUnits('2000');
       await setBalance(strategy.address, ethAmount);
       const ethSwapData = getSwapData(
         constants.AddressZero,
@@ -684,10 +727,10 @@ describe('LiquityStrategy', () => {
       await expect(
         strategy.connect(keeper).reinvest(
           mock0x.address,
-          ethAmount,
-          ethSwapData,
           lqtyAmount,
           lqtySwapData,
+          ethAmount,
+          ethSwapData,
           parseUnits('1999'), // amountOutMin
         ),
       ).to.be.revertedWith('StrategyMinimumPrincipalProtection');
@@ -805,7 +848,6 @@ describe('LiquityStrategy', () => {
       const alicesInitialEthBalace = await getETHBalance(alice.address);
 
       const tx = await vault.connect(alice).claimYield(alice.address);
-      console.log('gasCostForTxn', await getTransactionGasCost(tx));
 
       expect(await underlying.balanceOf(alice.address)).to.eq(parseUnits('0'));
       expect(await getETHBalance(strategy.address)).to.eq(parseUnits('40'));
@@ -813,7 +855,7 @@ describe('LiquityStrategy', () => {
         (await getETHBalance(alice.address))
           .sub(alicesInitialEthBalace)
           .add(await getTransactionGasCost(tx)), // ignore the gas cost
-      ).to.gte(parseUnits('50'));
+      ).to.eq(parseUnits('50'));
       expect(await strategy.investedAssets()).to.eq(parseUnits('150'));
 
       // because of the min principal protection, bob receives yield in underlying
@@ -825,12 +867,15 @@ describe('LiquityStrategy', () => {
     });
   });
 
-  async function depositToVault(amount: BigNumber) {
-    await vault.connect(admin).deposit(
+  async function depositToVault(
+    user: SignerWithAddress,
+    amount: BigNumber | string,
+  ) {
+    await vault.connect(user).deposit(
       depositParams.build({
-        amount,
+        amount: amount instanceof BigNumber ? amount : parseUnits(amount),
         inputToken: underlying.address,
-        claims: [claimParams.percent(100).to(admin.address).build()],
+        claims: [claimParams.percent(100).to(user.address).build()],
       }),
     );
   }

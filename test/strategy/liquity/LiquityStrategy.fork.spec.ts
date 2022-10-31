@@ -558,10 +558,9 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
     });
 
     it('fails if the minimum principal protection is not ensured', async () => {
-      // the minimum principal protection to 200%
+      // set the minimum principal protection to 200%
       await strategy.setMinPrincipalProtectionPct(20000);
 
-      // make a deposit of 100 LUSD
       const initialDeposit = LQTY_REWARD_IN_LUSD.add(ETH_REWARD_IN_LUSD).mul(2);
       await ForkHelpers.mintToken(lusd, alice, parseUnits('10000000000'));
 
@@ -574,11 +573,15 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       );
 
       await vault.updateInvested();
+      // add 100% of the initial deposit as yield to the vault to reach the minimum principal protection threshold
+      await ForkHelpers.mintToken(lusd, vault.address, initialDeposit);
 
-      // generated yield
+      // generated yield as 50% of the initial deposit
       await ForkHelpers.mintToken(lqty, strategy.address, EXPECTED_LQTY_REWARD);
       ForkHelpers.setBalance(strategy.address, EXPECTED_ETH_REWARD);
 
+      // trying to reinvest yield in amount equal to 50% of the initial deposit should fail
+      // because to cover the principal we need to reinvest amount of at least 100% of the initial deposit
       await expect(
         strategy.reinvest(
           SWAP_TARGET,

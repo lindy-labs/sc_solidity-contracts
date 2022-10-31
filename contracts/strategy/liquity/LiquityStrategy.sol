@@ -77,6 +77,7 @@ contract LiquityStrategy is
 
     /**
      * A percentage that specifies the minimum amount of principal to protect.
+     * This value acts as a threshold and is applied only when the total underlying assets are grater tha the minimum amount of principal to protect.
      * The protected principal is kept in LUSD.
      *
      * For instance, if the minimum protected principal is 150%, the total
@@ -160,7 +161,11 @@ contract LiquityStrategy is
         }
     }
 
-    // TODO: add doc
+    /**
+     * Set the minimum principal protection percentage.
+     *
+     * @param _pct The new minimum principal protection percentage.
+     */
     function setMinPrincipalProtectionPct(uint16 _pct) external onlySettings {
         minPrincipalProtectionPct = _pct;
     }
@@ -333,18 +338,11 @@ contract LiquityStrategy is
         bytes calldata _ethSwapData,
         uint256 _amountOutMin
     ) external virtual onlyKeeper {
-        if (
-            IVault(vault).totalPrincipal() + _amountOutMin <
-            IVault(vault).totalPrincipal().pctOf(minPrincipalProtectionPct)
-        ) revert StrategyMinimumPrincipalProtection();
+        _checkSwapTarget(_swapTarget);
+        _checkMinPrincpalProtectionRequirement(_amountOutMin);
 
-        _checkSwapTargetForZeroAddress(_swapTarget);
-
-        if (!allowedSwapTargets[_swapTarget])
-            revert StrategySwapTargetNotAllowed();
-
-        swapLQTYtoLUSD(_lqtyAmount, _swapTarget, _lqtySwapData);
-        swapETHtoLUSD(_ethAmount, _swapTarget, _ethSwapData);
+        _swapLQTYtoLUSD(_swapTarget, _lqtyAmount, _lqtySwapData);
+        _swapETHtoLUSD(_swapTarget, _ethAmount, _ethSwapData);
 
         // reinvest LUSD gains into the stability pool
         uint256 balance = underlying.balanceOf(address(this));
@@ -384,12 +382,45 @@ contract LiquityStrategy is
 
         uint256 ethBalance = address(this).balance;
 
-        // TODO: should we harvest if amountInETH > ethBalance?
         if (amountInETH > ethBalance) return false;
 
         (bool sent, ) = _to.call{value: amountInETH}("");
 
         return sent;
+    }
+
+    /**
+     * Checks if the minimum principal protection requirement is met.
+     *
+     * @param _amountOutMin the minimum amount of LUSD to be received after the ETH & LQTY -> LUSD swap.
+     */
+    function _checkMinPrincpalProtectionRequirement(uint256 _amountOutMin)
+        internal
+        view
+    {
+        // check if the amountOutMin is enough to protect the principal
+        if (
+            IVault(vault).totalPrincipal().pctOf(minPrincipalProtectionPct) <=
+            IVault(vault).totalPrincipal() + _amountOutMin
+        ) return;
+
+        // minimum principal protection does not apply when total underlying value is less than min protected principal
+        if (
+            IVault(vault).totalUnderlying() <
+            IVault(vault).totalPrincipal().pctOf(minPrincipalProtectionPct)
+        ) return;
+
+        revert StrategyMinimumPrincipalProtection();
+    }
+
+    /**
+     * Checks if the provided swap target is 0 address or is not allowed and reverts if any of these conditions is true.
+     */
+    function _checkSwapTarget(address _swapTarget) internal view {
+        _checkSwapTargetForZeroAddress(_swapTarget);
+
+        if (!allowedSwapTargets[_swapTarget])
+            revert StrategySwapTargetNotAllowed();
     }
 
     /**
@@ -405,13 +436,13 @@ contract LiquityStrategy is
      *
      * @notice Swap data is real-time data obtained from '0x' api.
      *
-     * @param _amount the amount of LQTY tokens to swap. Has to match with the amount used to obtain @param _lqtySwapData from '0x' api.
      * @param _swapTarget the address of the '0x' contract performing the swap.
+     * @param _amount the amount of LQTY tokens to swap. Has to match with the amount used to obtain @param _lqtySwapData from '0x' api.
      * @param _lqtySwapData data from '0x' api used to perform LQTY -> LUSD swap.
      */
-    function swapLQTYtoLUSD(
-        uint256 _amount,
+    function _swapLQTYtoLUSD(
         address _swapTarget,
+        uint256 _amount,
         bytes calldata _lqtySwapData
     ) internal {
         // don't do cross-contract call if nothing to swap
@@ -435,13 +466,13 @@ contract LiquityStrategy is
      *
      * @notice Swap data is real-time data obtained from '0x' api.
      *
-     * @param _amount the amount of ETH to swap. Has to match with the amount used to obtain @param _ethSwapData from '0x' api.
      * @param _swapTarget the address of the '0x' contract performing the swap.
+     * @param _amount the amount of ETH to swap. Has to match with the amount used to obtain @param _ethSwapData from '0x' api.
      * @param _ethSwapData data from '0x' api to perform ETH -> LUSD swap.
      */
-    function swapETHtoLUSD(
-        uint256 _amount,
+    function _swapETHtoLUSD(
         address _swapTarget,
+        uint256 _amount,
         bytes calldata _ethSwapData
     ) internal {
         // don't do cross-contract call if nothing to swap
