@@ -42,14 +42,10 @@ const func = async function (env: HardhatRuntimeEnvironment) {
       console.error((e as Error).message);
     }
 
-    console.log('verified liquity strategy');
-
     await env.tenderly.persistArtifacts({
       name: 'LiquityStrategy',
       address: liquityStrategy.address,
     });
-
-    console.log('liquity strategy persistArtifacts');
   }
 
   if (getNetworkName() !== 'mainnet') {
@@ -100,7 +96,12 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
   if (owner.address !== multisig) {
     await (await vault.connect(owner).transferAdminRights(multisig)).wait();
-    console.log('ownership transfered to multisig');
+    console.log('vault ownership transfered to multisig');
+
+    await (
+      await liquityStrategy.connect(owner).transferAdminRights(multisig)
+    ).wait();
+    console.log('strategy ownership transfered to multisig');
   }
 };
 
