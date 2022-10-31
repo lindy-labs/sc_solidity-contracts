@@ -2,3 +2,5 @@ build/
 src/types
 ethereum/src/types/
 polygon/src/types/
+ethereum/subgraph.yaml
+polygon/subgraph.yaml
