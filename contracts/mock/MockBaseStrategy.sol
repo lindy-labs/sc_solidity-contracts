@@ -23,9 +23,9 @@ contract MockBaseStrategy is BaseStrategy {
         external
         virtual
         override(IStrategy)
-        returns (bool)
+        returns (uint256)
     {
-        return false;
+        return 0;
     }
 
     /// @inheritdoc IStrategy

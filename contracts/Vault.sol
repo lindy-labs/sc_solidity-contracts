@@ -375,11 +375,13 @@ contract Vault is
             _totalShares
         );
 
-        if (
-            address(strategy) != address(0) &&
-            strategy.transferYield(_to, yield)
-        ) {
-            return;
+        if (address(strategy) != address(0)) {
+            uint256 yieldTransferred = strategy.transferYield(_to, yield);
+            if (yieldTransferred == yield) {
+                return;
+            }
+
+            yield = yield - yieldTransferred;
         }
 
         _rebalanceBeforeWithdrawing(yield);

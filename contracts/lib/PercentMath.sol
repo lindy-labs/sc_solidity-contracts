@@ -27,6 +27,19 @@ library PercentMath {
     }
 
     /**
+     * @dev Compute percentage that a value represents relative to the principal
+     * @param _amount Amount to calculate the percentage of in principal
+     * @param _principal Amount to calculate the percentage relative to
+     */
+    function inPctOf(uint256 _amount, uint256 _principal)
+        internal
+        pure
+        returns (uint16)
+    {
+        return uint16((_amount * PCT_DIVISOR) / _principal);
+    }
+
+    /**
      * @dev Checks if a given number corresponds to 100%
      * @param _perc Percentage value to check, with PCT_DIVISOR
      */

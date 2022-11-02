@@ -111,7 +111,7 @@ describe('VaultWithDirectStrategy', () => {
   });
 
   describe('#claimYield', () => {
-    it('transfer yield in the yield underlying from the strategy to the user', async () => {
+    it('transfers yield in the yield underlying from the strategy to the user', async () => {
       await addUnderlyingBalance(alice, '100');
 
       const params = depositParams.build({
@@ -122,7 +122,6 @@ describe('VaultWithDirectStrategy', () => {
 
       await vault.connect(alice).deposit(params);
 
-      await addYieldToVault('100');
       await yieldUnderlying.mint(strategy.address, parseUnits('100'));
 
       await vault.updateInvested();
@@ -133,7 +132,33 @@ describe('VaultWithDirectStrategy', () => {
       expect(await yieldBalanceOf(alice)).to.eq(parseUnits('100'));
     });
 
-    it("uses the default mechanism when the yield underlying doen't have enough balance", async () => {
+    it("transfers yield in both assets when the strategy yield underlying balance doesn't cover the whole yield", async () => {
+      await addUnderlyingBalance(alice, '100');
+
+      const params = depositParams.build({
+        amount: parseUnits('100'),
+        inputToken: underlying.address,
+        claims: [claimParams.percent(100).to(alice.address).build()],
+      });
+
+      await vault.connect(alice).deposit(params);
+
+      await addYieldToVault('10');
+      await yieldUnderlying.mint(strategy.address, parseUnits('90'));
+
+      await vault.updateInvested();
+
+      expect(await underlyingBalanceOf(vault)).to.eq(parseUnits('0'));
+      expect(await yieldBalanceOf(strategy)).to.eq(parseUnits('90'));
+
+      await vault.connect(alice).claimYield(alice.address);
+
+      expect(await underlyingBalanceOf(alice)).to.eq(parseUnits('10'));
+      expect(await yieldBalanceOf(alice)).to.eq(parseUnits('90'));
+      expect(await underlyingBalanceOf(vault)).to.eq(parseUnits('0'));
+    });
+
+    it('transfers yield in underlying only if the strategy yield underlying balance is 0', async () => {
       await addUnderlyingBalance(alice, '100');
 
       const params = depositParams.build({
@@ -145,12 +170,11 @@ describe('VaultWithDirectStrategy', () => {
       await vault.connect(alice).deposit(params);
 
       await addYieldToVault('100');
-      await yieldUnderlying.mint(strategy.address, parseUnits('90'));
 
       await vault.updateInvested();
 
       expect(await underlyingBalanceOf(vault)).to.eq(parseUnits('0'));
-      expect(await yieldBalanceOf(strategy)).to.eq(parseUnits('90'));
+      expect(await yieldBalanceOf(strategy)).to.eq(parseUnits('0'));
 
       await vault.connect(alice).claimYield(alice.address);
 

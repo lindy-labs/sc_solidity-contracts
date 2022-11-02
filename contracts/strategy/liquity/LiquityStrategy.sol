@@ -34,6 +34,7 @@ contract LiquityStrategy is
 
     error StrategyCallerNotKeeper();
     error StrategyETHSwapFailed();
+    error StrategyETHTransferFailed(address to);
     error StrategyKeeperCannotBe0Address();
     error StrategyLQTYSwapFailed();
     error StrategyNotEnoughETH();
@@ -50,6 +51,7 @@ contract LiquityStrategy is
     error StrategyMinimumPrincipalProtection();
 
     event StrategyReinvested(uint256 amountInLUSD);
+    event StrategyYieldTransferred(address to, uint256 amount);
 
     address public constant WETH_CURVE_POOL =
         0xD51a44d3FaE010294C616388b506AcdA1bfAAE46;
@@ -364,13 +366,39 @@ contract LiquityStrategy is
         external
         override(IStrategy)
         onlyManager
-        returns (bool)
+        returns (uint256)
+    {
+        uint256 ethBalance = address(this).balance;
+
+        if (ethBalance == 0) return 0;
+
+        uint256 amountInETH = _getExchangeAmountInEth(_amount);
+
+        uint256 ethToTransfer = amountInETH > ethBalance
+            ? ethBalance
+            : amountInETH;
+
+        _sendEth(_to, ethToTransfer);
+
+        uint256 equivalentAmountInUnderlying = amountInETH > ethBalance
+            ? _amount.pctOf(ethBalance.inPctOf(amountInETH))
+            : _amount;
+
+        emit StrategyYieldTransferred(_to, equivalentAmountInUnderlying);
+
+        return equivalentAmountInUnderlying;
+    }
+
+    function _getExchangeAmountInEth(uint256 _underlyingAmount)
+        internal
+        view
+        returns (uint256)
     {
         uint256 amountInUSDT = curveExchange.get_exchange_amount(
             LUSD_CURVE_POOL,
             address(underlying),
             USDT,
-            _amount
+            _underlyingAmount
         );
 
         uint256 amountInETH = curveExchange.get_exchange_amount(
@@ -380,13 +408,13 @@ contract LiquityStrategy is
             amountInUSDT
         );
 
-        uint256 ethBalance = address(this).balance;
+        return amountInETH;
+    }
 
-        if (amountInETH > ethBalance) return false;
+    function _sendEth(address _to, uint256 _amount) internal {
+        (bool sent, ) = _to.call{value: _amount}("");
 
-        (bool sent, ) = _to.call{value: amountInETH}("");
-
-        return sent;
+        if (!sent) revert StrategyETHTransferFailed(_to);
     }
 
     /**

@@ -3,13 +3,9 @@ pragma solidity =0.8.10;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 
 import {IStrategy} from "../strategy/IStrategy.sol";
-import {IVault} from "../vault/IVault.sol";
-import {IVaultSponsoring} from "../vault/IVaultSponsoring.sol";
-import {MockStrategySync} from "./MockStrategySync.sol";
-import {CustomErrors} from "../interfaces/CustomErrors.sol";
+import {BaseStrategy} from "../strategy/BaseStrategy.sol";
 import {MockERC20} from "./MockERC20.sol";
 import {PercentMath} from "../lib/PercentMath.sol";
 
@@ -20,7 +16,7 @@ import {PercentMath} from "../lib/PercentMath.sol";
  * of this strategy is to write tests for the vault that use the `transferYield`
  * function.
  */
-contract MockStrategyDirect is MockStrategySync {
+contract MockStrategyDirect is BaseStrategy {
     using PercentMath for uint256;
     using PercentMath for uint16;
     using SafeERC20 for IERC20;
@@ -32,21 +28,60 @@ contract MockStrategyDirect is MockStrategySync {
         IERC20 _underlying,
         address _admin,
         MockERC20 _yieldUnderlying
-    ) MockStrategySync(_vault, _underlying, _admin) {
+    ) BaseStrategy(_vault, _underlying, _admin) {
         yieldUnderlying = _yieldUnderlying;
     }
 
     /// @inheritdoc IStrategy
-    function transferYield(address to, uint256 amount)
+    function isSync() external pure virtual override(IStrategy) returns (bool) {
+        return true;
+    }
+
+    /// @inheritdoc IStrategy
+    function invest() external virtual override(IStrategy) {}
+
+    /// @inheritdoc IStrategy
+    function withdrawToVault(uint256 amount) external override(IStrategy) {
+        underlying.transfer(vault, amount);
+    }
+
+    /// @inheritdoc IStrategy
+    function investedAssets()
+        public
+        view
+        override(IStrategy)
+        returns (uint256)
+    {
+        return
+            underlying.balanceOf(address(this)) +
+            yieldUnderlying.balanceOf(address(this));
+    }
+
+    /// @inheritdoc IStrategy
+    function hasAssets() external view override(IStrategy) returns (bool) {
+        return investedAssets() > 0;
+    }
+
+    /// @inheritdoc IStrategy
+    function transferYield(address _to, uint256 _amount)
         external
         virtual
-        override(MockStrategySync)
-        returns (bool)
+        override(IStrategy)
+        returns (uint256)
     {
         uint256 balance = yieldUnderlying.balanceOf(address(this));
 
-        if (balance < amount) return false;
+        uint256 amountToTransfer = _amount > balance ? balance : _amount;
 
-        return yieldUnderlying.transfer(to, amount);
+        yieldUnderlying.transfer(_to, amountToTransfer);
+
+        return amountToTransfer;
     }
+
+    /// @inheritdoc BaseStrategy
+    function transferAdminRights(address newAdmin)
+        external
+        override(BaseStrategy)
+        onlyAdmin
+    {}
 }

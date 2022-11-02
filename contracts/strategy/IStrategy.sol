@@ -57,11 +57,11 @@ interface IStrategy {
      * @param _to address that will receive the funds.
      * @param _amount amount to transfer.
      *
-     * @return true if it succeeds or false otherwise.
+     * @return amountTransferred amount in underlying equivalent to amount transferred in other currency.
      */
     function transferYield(address _to, uint256 _amount)
         external
-        returns (bool);
+        returns (uint256 amountTransferred);
 
     /**
      * Amount of the underlying currency currently invested by the strategy.
