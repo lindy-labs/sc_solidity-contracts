@@ -58,12 +58,26 @@ const func = async function (env: HardhatRuntimeEnvironment) {
       args: [],
     });
 
-    const liquityStabilityPoolArgs = [LUSDDeployment.address, mockLiquityPriceFeedDeployment.address];
+    const liquityStabilityPoolArgs = [
+      LUSDDeployment.address,
+      mockLiquityPriceFeedDeployment.address,
+    ];
     const mockLiquityStabilityPool = await deploy('LiquityStabilityPool', {
       contract: 'MockStabilityPool',
       from: deployer,
       args: liquityStabilityPoolArgs,
       log: true,
+    });
+
+    const troveManagerDeploymentArgs = [
+      mockLiquityStabilityPool.address,
+      mockLiquityPriceFeedDeployment.address,
+    ];
+    const troveManagerDeployment = await deploy('TroveManager', {
+      contract: 'MockTroveManager',
+      from: deployer,
+      log: true,
+      args: troveManagerDeploymentArgs,
     });
 
     const mock0x = await deploy('Mock0x', {
@@ -80,6 +94,15 @@ const func = async function (env: HardhatRuntimeEnvironment) {
         await env.run('verify:verify', {
           address: mockLiquityPriceFeedDeployment.address,
           constructorArguments: [],
+        });
+      } catch (e) {
+        console.error((e as Error).message);
+      }
+
+      try {
+        await env.run('verify:verify', {
+          address: troveManagerDeployment.address,
+          constructorArguments: troveManagerDeploymentArgs,
         });
       } catch (e) {
         console.error((e as Error).message);

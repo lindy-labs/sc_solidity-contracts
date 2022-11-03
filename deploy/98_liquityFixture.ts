@@ -7,8 +7,7 @@ import { parseEther, parseUnits } from 'ethers/lib/utils';
 
 const func = async function (env: HardhatRuntimeEnvironment) {
   const [owner, _alice, _bob] = await ethers.getSigners();
-  const { deployer } = await env.getNamedAccounts();
-  const { deploy, get } = env.deployments;
+  const { get } = env.deployments;
 
   // Deploy and gather needed mock contracts
 
@@ -26,12 +25,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     stabilityPoolDeployment.address,
   );
 
-  const troveManagerDeployment = await deploy('TroveManager', {
-    contract: 'MockTroveManager',
-    from: deployer,
-    log: true,
-    args: [stabilityPoolDeployment.address, liquityPriceFeed.address],
-  });
+  const troveManagerDeployment = await get('TroveManager');
   const troveManager = await ethers.getContractAt(
     'MockTroveManager',
     troveManagerDeployment.address,

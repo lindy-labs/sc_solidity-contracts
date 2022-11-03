@@ -1,0 +1,181 @@
+{
+  "address": "0xF5978049bD4a1E7EFf533ada1ED4357123b26BA6",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_stabilityPool",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_priceFeed",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "_liquidatedDebt",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "_liquidatedColl",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "_collGasCompensation",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "_LUSDGasCompensation",
+          "type": "uint256"
+        }
+      ],
+      "name": "Liquidation",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "NAME",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_liquidatedDebt",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_liquidatedColl",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_collGasCompensation",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_LUSDGasCompensation",
+          "type": "uint256"
+        }
+      ],
+      "name": "liquidation",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "priceFeed",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "stabilityPool",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ],
+  "transactionHash": "0xb4456fd621466ad18d370adbe6e5bee3ac6065b315f989d96fa4071e6f2006c1",
+  "receipt": {
+    "to": null,
+    "from": "0xCfF577D4072BF126Cdd73CDC7353637A1Fa5f4CE",
+    "contractAddress": "0xF5978049bD4a1E7EFf533ada1ED4357123b26BA6",
+    "transactionIndex": 133,
+    "gasUsed": "219163",
+    "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "blockHash": "0x7445870f1545c84476c7f1744a42c32dd73cf160dddb169a92d84c90e32c71e4",
+    "transactionHash": "0xb4456fd621466ad18d370adbe6e5bee3ac6065b315f989d96fa4071e6f2006c1",
+    "logs": [],
+    "blockNumber": 7878063,
+    "cumulativeGasUsed": "19697070",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": [
+    "0x6eD03198246d05C7aF575ABfB201ce0b872dc64c",
+    "0x040841b82d60Da4e4FAbF7Ec6AdE8b0023B2fE85"
+  ],
+  "numDeployments": 1,
+  "solcInputHash": "761088b029eb8febb7161803b747ecb8",
+  "metadata": "{\"compiler\":{\"version\":\"0.8.10+commit.fc410830\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_stabilityPool\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_priceFeed\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_liquidatedDebt\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_liquidatedColl\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_collGasCompensation\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_LUSDGasCompensation\",\"type\":\"uint256\"}],\"name\":\"Liquidation\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"NAME\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_liquidatedDebt\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_liquidatedColl\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_collGasCompensation\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_LUSDGasCompensation\",\"type\":\"uint256\"}],\"name\":\"liquidation\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"priceFeed\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"stabilityPool\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/mock/liquity/MockTroveManager.sol\":\"MockTroveManager\"},\"evmVersion\":\"london\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":1000},\"remappings\":[]},\"sources\":{\"contracts/mock/liquity/MockTroveManager.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity =0.8.10;\\n\\n/* \\n * Mock contract does not coincide with interface of production contract.\\n * Used to emit event as found in production contract to simply simulate events that\\n * rarely happen, for development.\\n */\\ncontract MockTroveManager {\\n    string public constant NAME = \\\"TroveManager\\\";\\n\\n    address public stabilityPool;\\n    address public priceFeed;\\n\\n    constructor(address _stabilityPool, address _priceFeed) {\\n        stabilityPool = _stabilityPool;\\n        priceFeed = _priceFeed;\\n    }\\n\\n    event Liquidation(\\n        uint256 _liquidatedDebt,\\n        uint256 _liquidatedColl,\\n        uint256 _collGasCompensation,\\n        uint256 _LUSDGasCompensation\\n    );\\n\\n    function liquidation(\\n        uint256 _liquidatedDebt,\\n        uint256 _liquidatedColl,\\n        uint256 _collGasCompensation,\\n        uint256 _LUSDGasCompensation\\n    ) public {\\n        emit Liquidation(\\n            _liquidatedDebt,\\n            _liquidatedColl,\\n            _collGasCompensation,\\n            _LUSDGasCompensation\\n        );\\n    }\\n}\\n\",\"keccak256\":\"0xdc55d5db6101ac43611db4433ae28b7f7c412b63678c05f52195b9c1272a4fc6\",\"license\":\"MIT\"}},\"version\":1}",
+  "bytecode": "0x608060405234801561001057600080fd5b506040516102e23803806102e283398101604081905261002f9161007c565b600080546001600160a01b039384166001600160a01b031991821617909155600180549290931691161790556100af565b80516001600160a01b038116811461007757600080fd5b919050565b6000806040838503121561008f57600080fd5b61009883610060565b91506100a660208401610060565b90509250929050565b610224806100be6000396000f3fe608060405234801561001057600080fd5b506004361061004c5760003560e01c8063048c661d14610051578063375443101461009b578063741bef1a146100b0578063a3f4df7e146100d0575b600080fd5b6000546100719073ffffffffffffffffffffffffffffffffffffffff1681565b60405173ffffffffffffffffffffffffffffffffffffffff90911681526020015b60405180910390f35b6100ae6100a9366004610167565b610119565b005b6001546100719073ffffffffffffffffffffffffffffffffffffffff1681565b61010c6040518060400160405280600c81526020017f54726f76654d616e61676572000000000000000000000000000000000000000081525081565b6040516100929190610199565b6040805185815260208101859052908101839052606081018290527f4152c73dd2614c4f9fc35e8c9cf16013cd588c75b49a4c1673ecffdcbcda94039060800160405180910390a150505050565b6000806000806080858703121561017d57600080fd5b5050823594602084013594506040840135936060013592509050565b600060208083528351808285015260005b818110156101c6578581018301518582016040015282016101aa565b818111156101d8576000604083870101525b50601f01601f191692909201604001939250505056fea2646970667358221220299055e04330afef66bdad138350a9c7e7035353e6205859148b7588247762ba64736f6c634300080a0033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b506004361061004c5760003560e01c8063048c661d14610051578063375443101461009b578063741bef1a146100b0578063a3f4df7e146100d0575b600080fd5b6000546100719073ffffffffffffffffffffffffffffffffffffffff1681565b60405173ffffffffffffffffffffffffffffffffffffffff90911681526020015b60405180910390f35b6100ae6100a9366004610167565b610119565b005b6001546100719073ffffffffffffffffffffffffffffffffffffffff1681565b61010c6040518060400160405280600c81526020017f54726f76654d616e61676572000000000000000000000000000000000000000081525081565b6040516100929190610199565b6040805185815260208101859052908101839052606081018290527f4152c73dd2614c4f9fc35e8c9cf16013cd588c75b49a4c1673ecffdcbcda94039060800160405180910390a150505050565b6000806000806080858703121561017d57600080fd5b5050823594602084013594506040840135936060013592509050565b600060208083528351808285015260005b818110156101c6578581018301518582016040015282016101aa565b818111156101d8576000604083870101525b50601f01601f191692909201604001939250505056fea2646970667358221220299055e04330afef66bdad138350a9c7e7035353e6205859148b7588247762ba64736f6c634300080a0033",
+  "devdoc": {
+    "kind": "dev",
+    "methods": {},
+    "version": 1
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {},
+    "version": 1
+  },
+  "storageLayout": {
+    "storage": [
+      {
+        "astId": 6,
+        "contract": "contracts/mock/liquity/MockTroveManager.sol:MockTroveManager",
+        "label": "stabilityPool",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_address"
+      },
+      {
+        "astId": 8,
+        "contract": "contracts/mock/liquity/MockTroveManager.sol:MockTroveManager",
+        "label": "priceFeed",
+        "offset": 0,
+        "slot": "1",
+        "type": "t_address"
+      }
+    ],
+    "types": {
+      "t_address": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      }
+    }
+  }
+}
