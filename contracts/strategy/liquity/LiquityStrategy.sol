@@ -380,9 +380,9 @@ contract LiquityStrategy is
 
         _sendEth(_to, ethToTransfer);
 
-        uint256 equivalentAmountInUnderlying = amountInETH > ethBalance
-            ? _amount.pctOf(ethBalance.inPctOf(amountInETH))
-            : _amount;
+        uint256 equivalentAmountInUnderlying = _amount.pctOf(
+            ethToTransfer.inPctOf(amountInETH)
+        );
 
         emit StrategyYieldTransferred(_to, equivalentAmountInUnderlying);
 

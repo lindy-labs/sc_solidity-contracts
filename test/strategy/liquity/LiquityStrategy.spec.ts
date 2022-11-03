@@ -557,7 +557,7 @@ describe('LiquityStrategy', () => {
       ).to.be.revertedWith('StrategyNothingToReinvest');
     });
 
-    it('protects pricipal by reverting when total underlying assets are greater than min protected principal', async () => {
+    it('protects the principal by reverting when the reinvested amount is not enough to cover the principal', async () => {
       await strategy.setMinPrincipalProtectionPct('11000'); // 110%
       await addUnderlyingBalance(alice, '10000');
       await depositToVault(alice, '10000');
@@ -566,7 +566,8 @@ describe('LiquityStrategy', () => {
       const ethAmount = parseUnits('2000');
       await setBalance(strategy.address, ethAmount);
 
-      expect(await vault.totalUnderlying()).to.gt(parseUnits('11000'));
+      // total underlying > min protected principal
+      expect(await vault.totalUnderlying()).to.eq(parseUnits('12000'));
 
       // amount out min + principal < min protected principal
       const amountOutMin = parseUnits('500').sub(1);
@@ -592,7 +593,8 @@ describe('LiquityStrategy', () => {
         ethAmount,
       );
 
-      expect(await vault.totalUnderlying()).to.lt(parseUnits('12000'));
+      // total underlying < min protected principal
+      expect(await vault.totalUnderlying()).to.eq(parseUnits('11000'));
 
       // amount out min + principal < min protected principal
       const amountOutMin = parseUnits('10000');
