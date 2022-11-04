@@ -27,3 +27,11 @@ subgraph/generated
 subgraph/subgraph.yaml
 subgraph/src/types/*
 subgraph/tests/.bin/*
+
+# Certora generated files
+.certora*
+.certora*.json
+.zip-output-url.txt
+**.last_conf*
+certora-logs
+resource_errors.json
