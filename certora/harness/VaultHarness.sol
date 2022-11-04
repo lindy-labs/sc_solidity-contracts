@@ -7,10 +7,6 @@ import {ICurve} from "../../contracts/interfaces/curve/ICurve.sol";
 
 contract VaultHarness is Vault {
 
-    function getCurvePool(address _token) public view returns (ICurve) {
-        return swappers[_token].pool;
-    }
-
     constructor(
         IERC20Metadata _underlying,
         uint64 _minLockPeriod,
@@ -30,4 +26,9 @@ contract VaultHarness is Vault {
         _lossTolerancePct, 
         _swapPools
     ) {}
+
+    // helper function which will be used in some rules
+    function getCurvePool(address _token) public view returns (ICurve) {
+        return swappers[_token].pool;
+    }
 }
