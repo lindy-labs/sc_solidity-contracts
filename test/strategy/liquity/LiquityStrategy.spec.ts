@@ -740,179 +740,20 @@ describe('LiquityStrategy', () => {
   });
 
   describe('#transferYield', () => {
-    it('fails if caller is not manager', async () => {
+    it('has no effect on ETH and underlying balances', async () => {
       setBalance(strategy.address, parseUnits('100'));
-
-      await expect(
-        strategy.transferYield(admin.address, parseUnits('100')),
-      ).to.be.revertedWith('StrategyCallerNotManager');
-    });
-
-    it('works when ETH balance is 0', async () => {
-      expect(await getETHBalance(strategy.address)).to.eq('0');
+      await underlying.mint(strategy.address, parseUnits('200'));
 
       await expect(
         strategy
           .connect(manager)
-          .transferYield(admin.address, parseUnits('100')),
+          .transferYield(alice.address, parseUnits('100')),
       ).not.to.be.reverted;
-    });
 
-    it('transfers yield in ETH from the strategy to the user', async () => {
-      // add 100 ETH to the strategy
-      setBalance(strategy.address, parseUnits('100'));
-
-      const alicesInitialEthBalace = await getETHBalance(alice.address);
-      // transfer 100 ETH to alice (1 eth = 1 underlying)
-      await strategy
-        .connect(manager)
-        .transferYield(alice.address, parseUnits('100'));
-
-      expect(await underlying.balanceOf(alice.address)).to.eq(parseUnits('0'));
-      expect(await getETHBalance(strategy.address)).to.eq(parseUnits('0'));
-      expect(
-        (await getETHBalance(alice.address)).sub(alicesInitialEthBalace),
-      ).to.eq(parseUnits('100'));
-    });
-
-    it('transfers all available ETH to the user when ETH balance < yield amount', async () => {
-      // add 90 ETH to the strategy
-      setBalance(strategy.address, parseUnits('90'));
-
-      const alicesInitialEthBalace = await getETHBalance(alice.address);
-      // try to transfer 100 ETH to alice (1 eth = 1 underlying)
-      await strategy
-        .connect(manager)
-        .transferYield(alice.address, parseUnits('100'));
-
-      expect(await getETHBalance(strategy.address)).to.eq(parseUnits('0'));
-      expect(await strategy.investedAssets()).to.eq(parseUnits('0'));
-      expect(
-        (await getETHBalance(alice.address)).sub(alicesInitialEthBalace),
-      ).to.eq(parseUnits('90'));
-    });
-
-    it('uses curve exchange LUSD -> USDT && USDT -> WETH to obtain ETH price', async () => {
-      // add 1 ETH to the strategy
-      setBalance(strategy.address, parseUnits('1'));
-
-      const weth = await strategy.WETH();
-      const usdt = await strategy.USDT();
-      await curveExchange.setExchageRate(
-        underlying.address,
-        usdt,
-        parseUnits('0.8'), // 1 LUSD = 1.25 USDT
+      expect(await getETHBalance(strategy.address)).to.eq(parseUnits('100'));
+      expect(await underlying.balanceOf(strategy.address)).to.eq(
+        parseUnits('200'),
       );
-      await curveExchange.setExchageRate(usdt, weth, parseUnits('0.0005')); // 1 WETH = 2000 USDT
-
-      const alicesInitialEthBalace = await getETHBalance(alice.address);
-      const amountInUnderlying = parseUnits('2500');
-      await strategy
-        .connect(manager)
-        .transferYield(alice.address, amountInUnderlying);
-
-      expect(await underlying.balanceOf(alice.address)).to.eq(parseUnits('0'));
-      expect(await getETHBalance(strategy.address)).to.eq(parseUnits('0'));
-      expect(
-        (await getETHBalance(alice.address)).sub(alicesInitialEthBalace),
-      ).to.eq(parseUnits('1'));
-    });
-
-    it('emits StrategyYieldTransferred event with transferred amount in underlying', async () => {
-      setBalance(strategy.address, parseUnits('1'));
-
-      const weth = await strategy.WETH();
-      const usdt = await strategy.USDT();
-      await curveExchange.setExchageRate(
-        underlying.address,
-        usdt,
-        parseUnits('0.8'), // 1 LUSD = 1.25 USDT
-      );
-      await curveExchange.setExchageRate(usdt, weth, parseUnits('0.0005')); // 1 WETH = 2000 USDT
-
-      const amountInUnderlying = parseUnits('2000');
-      const tx = await strategy
-        .connect(manager)
-        .transferYield(alice.address, amountInUnderlying);
-
-      await expect(tx)
-        .to.emit(strategy, 'StrategyYieldTransferred')
-        .withArgs(alice.address, amountInUnderlying);
-    });
-
-    it('fails if the claimer cannot receive ETH', async () => {
-      setBalance(strategy.address, parseUnits('100'));
-
-      await expect(
-        strategy
-          .connect(manager)
-          .transferYield(vault.address, parseUnits('100')),
-      ).to.be.revertedWith(`StrategyETHTransferFailed`);
-    });
-
-    it('works with pricipal protection set', async () => {
-      await addUnderlyingBalance(alice, '100');
-      await strategy.setMinPrincipalProtectionPct('11000');
-
-      const params = depositParams.build({
-        amount: parseUnits('100'),
-        inputToken: underlying.address,
-        claims: [
-          claimParams.percent(50).to(alice.address).build(),
-          claimParams.percent(50).to(bob.address).build(),
-        ],
-      });
-
-      await vault.connect(alice).deposit(params);
-
-      await vault.updateInvested();
-
-      // add 100 ETH to the strategy
-      setBalance(strategy.address, parseUnits('100'));
-
-      // swap 10 ETH for LUSD and reinvest
-      const ethToReinvest = parseUnits('10');
-      const swapData = getSwapData(
-        constants.AddressZero,
-        underlying,
-        ethToReinvest,
-      );
-
-      await strategy.reinvest(
-        mock0x.address,
-        0,
-        [],
-        ethToReinvest,
-        swapData,
-        ethToReinvest,
-      );
-
-      const alicesInitialEthBalace = await getETHBalance(alice.address);
-
-      let tx = await vault.connect(alice).claimYield(alice.address);
-
-      expect(await underlying.balanceOf(alice.address)).to.eq(parseUnits('0'));
-      expect(await getETHBalance(strategy.address)).to.eq(parseUnits('40'));
-      expect(
-        (await getETHBalance(alice.address))
-          .sub(alicesInitialEthBalace)
-          .add(await getTransactionGasCost(tx)), // ignore the gas cost
-      ).to.eq(parseUnits('50'));
-      expect(await strategy.investedAssets()).to.eq(parseUnits('150'));
-
-      const bobsInitialEthBalace = await getETHBalance(bob.address);
-
-      // bob receives 10 in underlying and 40 in ETH
-      tx = await vault.connect(bob).claimYield(bob.address);
-
-      expect(await underlying.balanceOf(bob.address)).to.eq(parseUnits('10'));
-      expect(await getETHBalance(strategy.address)).to.eq(parseUnits('0'));
-      expect(
-        (await getETHBalance(bob.address))
-          .sub(bobsInitialEthBalace)
-          .add(await getTransactionGasCost(tx)), // ignore the gas cost
-      ).to.eq(parseUnits('40'));
-      expect(await strategy.investedAssets()).to.eq(parseUnits('100'));
     });
   });
 

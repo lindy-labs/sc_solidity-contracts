@@ -21,8 +21,6 @@ import {
   IStabilityPool,
   IStabilityPool__factory,
   LiquityStrategy,
-  ICurveExchange,
-  ICurveExchange__factory,
 } from '../../../typechain';
 
 const { parseUnits } = ethers.utils;
@@ -127,26 +125,6 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
     await strategy.connect(admin).allowSwapTarget(SWAP_TARGET);
 
     await lusd.connect(alice).approve(vault.address, constants.MaxUint256);
-  });
-
-  describe('#transferYield', () => {
-    it('sends ETH', async () => {
-      const yieldInLUSD = parseUnits('1');
-
-      const balance = await getETHBalance(alice.address);
-
-      ForkHelpers.setBalance(strategy.address, parseUnits('1000'));
-
-      await strategy
-        .connect(admin)
-        .transferYield(alice.address, parseUnits('1'));
-
-      const newBalance = await getETHBalance(alice.address);
-
-      const yieldInETH = await lusdToETH(yieldInLUSD);
-
-      expect(balance.add(yieldInETH).eq(newBalance)).to.be.true;
-    });
   });
 
   describe('#invest', () => {
@@ -647,93 +625,6 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
     });
   });
 
-  describe('#transferYield', () => {
-    it('transfers yield in ETH to the user', async () => {
-      const troveManagerAddress = await lqtyStabilityPool.troveManager();
-      await ForkHelpers.impersonate([troveManagerAddress]);
-      const troveManager = await ethers.getSigner(troveManagerAddress);
-
-      await ForkHelpers.mintToken(lusd, strategy.address, parseUnits('10000'));
-      await strategy.invest();
-
-      // LQTY issuance (rewards) is time dependent, so we need to advance time here
-      await moveForwardTwoWeeks();
-
-      // call offset to generate rewards for liquidity providers
-      const lusdDebtToOffset = parseUnits('10000');
-      const ethCollateralToAdd = parseUnits('10');
-      ForkHelpers.setBalance(troveManager.address, ethCollateralToAdd);
-
-      await lqtyStabilityPool
-        .connect(troveManager)
-        .offset(lusdDebtToOffset, ethCollateralToAdd);
-
-      await strategy.harvest();
-
-      const alicesInitialEthBalace = await getETHBalance(alice.address);
-
-      // we got little more than 1.9 LUSD in ETH rewards
-      await strategy.transferYield(alice.address, parseUnits('1.9'));
-
-      expect(await getETHBalance(alice.address)).to.eq(
-        alicesInitialEthBalace.add('1168664919817534'),
-      );
-    });
-
-    it('transfers the whole yield in LUSD and ETH to the user when the ETH balance < yield', async () => {
-      const depositAmount = parseUnits('1000');
-      await ForkHelpers.mintToken(lusd, alice, depositAmount);
-
-      await vault.connect(alice).deposit(
-        depositParams.build({
-          amount: depositAmount,
-          inputToken: lusd.address,
-          claims: [claimParams.percent(100).to(alice.address).build()],
-        }),
-      );
-
-      await vault.updateInvested();
-
-      await ForkHelpers.mintToken(lqty, strategy.address, EXPECTED_LQTY_REWARD);
-      ForkHelpers.setBalance(strategy.address, EXPECTED_ETH_REWARD);
-
-      await strategy.reinvest(
-        SWAP_TARGET,
-        EXPECTED_LQTY_REWARD,
-        SWAP_LQTY_DATA,
-        0,
-        [],
-        LQTY_REWARD_IN_LUSD,
-      );
-
-      expect(await lqty.balanceOf(strategy.address)).to.eq('0');
-      expect(await getETHBalance(strategy.address)).to.eq(EXPECTED_ETH_REWARD);
-      expect(await lusd.balanceOf(alice.address)).to.eq('0');
-
-      const alicesInitialEthBalace = await getETHBalance(alice.address);
-
-      const tx = await vault.connect(alice).claimYield(alice.address);
-
-      expect(await getETHBalance(alice.address)).to.eq(
-        alicesInitialEthBalace
-          .sub(await getTransactionGasCost(tx))
-          .add(EXPECTED_ETH_REWARD),
-      );
-      // the difference in alice's end LUSD balance and LQTY_REWARD_IN_LUSD comes from the differece in LUSD to ETH and ETH to LUSD exchange rates
-      // LQTY_REWARD_IN_LUSD - alice's end LUSD balance = 35086994728790148965 LUSD - 35083162034198358098 LUSD = 3832694591790867 LUSD
-      // this means that some small amount yield for alice (3832694591790866) is left in the vault ater the #claimYield call
-      expect(await lusd.balanceOf(alice.address)).to.eq('35083162034198358098');
-      expect((await vault.yieldFor(alice.address)).claimableYield).to.eq(
-        '3832694591790866', // includes rounding error
-      );
-
-      expect(await vault.totalPrincipal()).to.eq(depositAmount);
-      expect(await vault.totalUnderlying()).to.eq(
-        (await vault.totalPrincipal()).add('3832694591790867'),
-      );
-    });
-  });
-
   describe('#investedAssets', () => {
     it('investedAssets must count the ETH in the strategy and the unclaimed ETH in the stability pool contract too', async () => {
       const troveManagerAddress = await lqtyStabilityPool.troveManager();
@@ -816,26 +707,5 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
 
   function getETHBalance(account: string) {
     return ethers.provider.getBalance(account);
-  }
-
-  async function lusdToETH(amount: BigNumber) {
-    const curveRouter = ICurveExchange__factory.connect(
-      await strategy.curveExchange(),
-      admin,
-    );
-
-    const yieldInUSDT = await curveRouter.get_exchange_amount(
-      await strategy.LUSD_CURVE_POOL(),
-      lusd.address,
-      await strategy.USDT(),
-      amount,
-    );
-
-    return await curveRouter.get_exchange_amount(
-      await strategy.WETH_CURVE_POOL(),
-      await strategy.USDT(),
-      await strategy.WETH(),
-      yieldInUSDT,
-    );
   }
 });

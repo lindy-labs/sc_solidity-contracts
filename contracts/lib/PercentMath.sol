@@ -27,16 +27,16 @@ library PercentMath {
     }
 
     /**
-     * @dev Compute percentage that a value represents relative to the principal
-     * @param _amount Amount to calculate the percentage of in principal
-     * @param _principal Amount to calculate the percentage relative to
+     * @dev Compute percentage that a value represents in relation to the total value
+     * @param _amount Amount to calculate the percentage of in relation to the total
+     * @param _total Amount to calculate the percentage relative to
      */
-    function inPctOf(uint256 _amount, uint256 _principal)
+    function inPctOf(uint256 _amount, uint256 _total)
         internal
         pure
         returns (uint16)
     {
-        return uint16((_amount * PCT_DIVISOR) / _principal);
+        return uint16((_amount * PCT_DIVISOR) / _total);
     }
 
     /**
