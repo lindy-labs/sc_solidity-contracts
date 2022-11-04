@@ -15,5 +15,5 @@ then
     --rule "$1" \
     --msg "verifying rule $1 for Vault"
 else
-  echo "You can only only one argument to specify which rule to verify"
+  echo "You can have only one argument to specify which rule to verify"
 fi
