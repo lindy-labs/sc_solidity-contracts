@@ -4,7 +4,7 @@
 
 The Vault contract is the core of the SandClock system. It allows user to deposit funds to invest and withdraw funds to divest while delegating investing activity to a contract that implements [`IStrategy`](https://github.com/lindy-labs/sc_solidity-contracts/blob/main/contracts/strategy/IStrategy.sol) interface. 
 
-The main value added by Vault is that it allows user to specify multiple beneficiaries in a very flexible way, which opens a lot of possibilities. It also allows sponsors to contribute yield to the all the users while guaranteeing sponsors to be the last ones to bear investment loss.
+The main value added by Vault is that it allows user to specify multiple beneficiaries in a very flexible way, which opens a lot of possibilities. It also allows sponsors to contribute yield to all the users while guaranteeing sponsors to be the last ones to bear investment loss.
 
 It uses `shares` to keep track of users' entitlements to underlying assets. Whenever user deposits accepted assets into the vault, the Vault will add a certain amount of shares against the user account. When user withdraws underlying assets, their shares are reduced.
 
