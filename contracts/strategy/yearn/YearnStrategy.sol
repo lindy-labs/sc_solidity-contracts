@@ -84,11 +84,17 @@ contract YearnStrategy is BaseStrategy {
         _revokeRole(SETTINGS_ROLE, msg.sender);
     }
 
-    /**
-     * Yearn strategy is synchronous meaning it supports immediate withdrawals.
-     *
-     * @return true always
-     */
+    /// @inheritdoc IStrategy
+    function transferYield(address, uint256)
+        external
+        virtual
+        override(IStrategy)
+        returns (uint256)
+    {
+        return 0;
+    }
+
+    /// @inheritdoc IStrategy
     function isSync() external pure override(IStrategy) returns (bool) {
         return true;
     }

@@ -10,10 +10,10 @@ import {
   Vault__factory,
   MockLUSD__factory,
   MockLUSD,
-} from '../typechain';
+} from '../../typechain';
 
-import createVaultHelpers from './shared/vault';
-import { depositParams, claimParams } from './shared/factories';
+import createVaultHelpers from '../shared/vault';
+import { depositParams, claimParams } from '../shared/factories';
 import {
   getLastBlockTimestamp,
   moveForwardTwoWeeks,
@@ -22,7 +22,7 @@ import {
   getRoleErrorMsg,
   arrayFromTo,
   CURVE_SLIPPAGE,
-} from './shared';
+} from '../shared';
 
 const { parseUnits } = ethers.utils;
 const { MaxUint256 } = ethers.constants;
@@ -42,9 +42,9 @@ describe('Vault', () => {
   let addUnderlyingBalance: (
     account: SignerWithAddress,
     amount: string,
-  ) => Promise<BigNumber>;
+  ) => Promise<void>;
   let addYieldToVault: (amount: string) => Promise<BigNumber>;
-  let removeUnderlyingFromVault: (amount: string) => Promise<BigNumber>;
+  let removeUnderlyingFromVault: (amount: string) => Promise<void>;
 
   const MOCK_STRATEGY = 'MockStrategySync';
   const TWO_WEEKS = BigNumber.from(time.duration.weeks(2).toNumber());
