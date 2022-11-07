@@ -2,6 +2,12 @@
 if [ "$#" -eq 0 ]
 then 
   certoraRun certora/harness/VaultHarness.sol \
+  	        contracts/mock/MockStrategySync.sol \
+			contracts/mock/MockERC20.sol \
+			contracts/mock/MockERC20.sol:MockLUSD \
+			contracts/mock/MockCurvePool.sol:MockCurve \
+	--link  VaultHarness:strategy=MockLUSD \
+			MockStrategySync:underlying=MockLUSD \
     --verify VaultHarness:certora/specs/Vault.spec \
     --optimistic_loop \
     --packages @openzeppelin=node_modules/@openzeppelin \
@@ -9,6 +15,12 @@ then
 elif [ "$#" -eq 1 ]
 then
   certoraRun certora/harness/VaultHarness.sol \
+  	        contracts/mock/MockStrategySync.sol \
+			contracts/mock/MockERC20.sol \
+			contracts/mock/MockERC20.sol:MockLUSD \
+			contracts/mock/MockCurvePool.sol:MockCurve \
+	--link  VaultHarness:strategy=MockLUSD \
+			MockStrategySync:underlying=MockLUSD \
     --verify VaultHarness:certora/specs/Vault.spec \
     --optimistic_loop \
     --packages @openzeppelin=node_modules/@openzeppelin \
