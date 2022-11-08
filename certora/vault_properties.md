@@ -67,9 +67,31 @@ It has the following external/public functions that are view only and change not
 * `function sharesOf(address claimerId) external view returns (uint256)`
 * `function principalOf(address claimerId) external view returns (uint256)`
 * `function supportsInterface(bytes4 interfaceId) public view virtual override(ERC165, AccessControl) returns (bool)`
+* `function paused() public view virtual returns (bool)` (inherited from `Pausable.sol`)
+* `function exitPaused() public view virtual returns (bool)` (inherited from `ExitPausable.sol`)
 ## Properties
 
 | Property  | Category | Priority | Specified | Verified|
 | --------  | -------- | -------- | -------- | -------- |
-|   |  |  |  |  |  
+| `totalShares > 0 <=> totalPrincipal > 0 && totalShares == 0 <=> totalPrincipal == 0` | high-level | high | N | N |
+| `totalShares == sum(Claimer.totalShares)` | high-level | high | N | N |
+| `totalPrincipal == sum(Claimer.totalPrincipal)` | high-level | high | N | N |
+| `totalPrincipal == sum(Deposit.amount)` | high-level | high | N | N |
+| `paused() => deposit(...), depositForGroupId(...) and sponsor(...) always revert` | high-level | high | N | N |
+| `exitPaused() => withdraw(...), partialWithdraw(...), forceWithdraw(...), claimYield(...) and unsponsor(...) always revert` | high-level | high | N | N |
+| `investState().maxInvestableAmount >= investState().alreadyInvested` | high-level | medium | N | N |
+| `totalUnderlying().pctOf(investPct) == investState().maxInvestableAmount` | high-level | medium | N | N |
+| `yieldFor(someone).claimableYield > 0 => yieldFor(someone).shares > 0 && yieldFor(someone).perfFee == yieldFor(someone).claimableYield.pctOf(perfFeePct)` | high-level | medium | N | N |
+| `yieldFor(someone).perfFee > 0 => yieldFor(someone).shares > 0 && yieldFor(someone).perfFee == yieldFor(someone).claimableYield.pctOf(perfFeePct)` | high-level | medium | N | N |
+| `yieldFor(someone).shares == 0 => yieldFor(someone).claimableYield == 0 && yieldFor(someone).perfFee == 0` | high-level | medium | N | N |
+| `perfFeePct == 0 => yieldFor(anyone).perfFee == 0` | high-level | medium | N | N |
+| `address(underlying()) == getUnderlying()` | high-level | medium | N | N |
+| Without any strategy or with a strategy doing nothing, `totalUnderlying() == totalPrincipal + totalSponsored` | high-level | high | N | N |
+| Without any strategy or with a strategy doing nothing, `totalUnderlyingMinusSponsored() == totalPrincipal` | high-level | high | N | N |
+| Without any strategy or with a strategy doing nothing, `accumulatedPerfFee == 0` | high-level | medium | N | N |
+| Without any strategy or with a strategy doing nothing, `yieldFor(anyone) == (0, 0, 0)` | high-level | medium | N | N |
+| With a money making strategy, `totalUnderlying() == totalPrincipal + totalSponsored + sum(yieldFor(user).claimableYield + yieldFor(user).perfFee)` | high-level | high | N | N |
+| With a money making strategy, `totalUnderlyingMinusSponsored() == sum(yieldFor(user).claimableYield + yieldFor(user).perfFee)` | high-level | high | N | N |
+| `deposit(...)` the underlying token should reduce the user's balance by the specified amount while increasing Vault's balance by the same amount. It should also increase claimer's `totalShares` and the Vault's `totalShares` by the same amount | variable transition | high | N | N |
+
 
