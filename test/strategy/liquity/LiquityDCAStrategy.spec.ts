@@ -13,9 +13,14 @@ import {
   MockCurveExchange,
   Mock0x,
   ERC20,
+  MockLQTY,
 } from '../../../typechain';
 
-import { generateNewAddress, getTransactionGasCost } from '../../shared/';
+import {
+  generateNewAddress,
+  getTransactionGasCost,
+  getETHBalance,
+} from '../../shared/';
 import { depositParams, claimParams } from '../../shared/factories';
 import { setBalance } from '../../shared/forkHelpers';
 import createVaultHelpers from '../../shared/vault';
@@ -34,7 +39,7 @@ describe('LiquityDCAStrategy', () => {
   let curveExchange: MockCurveExchange;
   let mock0x: Mock0x;
   let underlying: MockERC20;
-  let lqty: MockERC20;
+  let lqty: MockLQTY;
 
   let LiquityDCAStrategyFactory: LiquityDCAStrategy__factory;
 
@@ -62,7 +67,8 @@ describe('LiquityDCAStrategy', () => {
       parseUnits('1000000000'),
     );
 
-    lqty = await MockERC20.deploy('LQTY', 'LQTY', 18, parseUnits('1000000000'));
+    const MockLQTY = await ethers.getContractFactory('MockLQTY');
+    lqty = await MockLQTY.deploy(parseUnits('1000000000'));
 
     const StabilityPoolFactory = await ethers.getContractFactory(
       'MockStabilityPool',
@@ -311,9 +317,137 @@ describe('LiquityDCAStrategy', () => {
     });
   });
 
-  function getETHBalance(account: string) {
-    return ethers.provider.getBalance(account);
-  }
+  describe('#swapLQTYtoETH', () => {
+    it('fails if caller is not keeper', async () => {
+      await expect(
+        strategy.connect(manager).swapLQTYtoETH(mock0x.address, 0, [], 0),
+      ).to.be.revertedWith('StrategyCallerNotKeeper');
+    });
+
+    it('fails if amount is 0', async () => {
+      await expect(
+        strategy.connect(keeper).swapLQTYtoETH(mock0x.address, 0, [], 0),
+      ).to.be.revertedWith('StrategyAmountZero');
+    });
+
+    it('fails if lqtySwapData is empty', async () => {
+      await expect(
+        strategy.connect(keeper).swapLQTYtoETH(mock0x.address, 1, [], 0),
+      ).to.be.revertedWith('StrategySwapDataEmpty');
+    });
+
+    it('fails if LQTY balance is 0', async () => {
+      await expect(
+        strategy.connect(keeper).swapLQTYtoETH(mock0x.address, 1, [1], 0),
+      ).to.be.revertedWith('StrategyNotEnoughLQTY');
+    });
+
+    it('fails if amount is greater than LQTY balance', async () => {
+      const balance = parseUnits('100');
+      await lqty.mint(strategy.address, balance);
+
+      await expect(
+        strategy
+          .connect(keeper)
+          .swapLQTYtoETH(mock0x.address, balance.add('1'), [1], 0),
+      ).to.be.revertedWith('StrategyNotEnoughLQTY');
+    });
+
+    it('fails if amount is greater than LQTY balance', async () => {
+      const balance = parseUnits('100');
+      await lqty.mint(strategy.address, balance);
+
+      await expect(
+        strategy
+          .connect(keeper)
+          .swapLQTYtoETH(mock0x.address, balance.add('1'), [1], 0),
+      ).to.be.revertedWith('StrategyNotEnoughLQTY');
+    });
+
+    it('fails if LQTY approve fails', async () => {
+      const balance = parseUnits('100');
+      await lqty.mint(strategy.address, balance);
+
+      await lqty.setShouldFailOnApprove(true);
+
+      await expect(
+        strategy.connect(keeper).swapLQTYtoETH(mock0x.address, balance, [1], 0),
+      ).to.be.revertedWith('StrategyTokenApprovalFailed');
+    });
+
+    it('fails if swap fails', async () => {
+      const balance = parseUnits('100');
+      await lqty.mint(strategy.address, balance);
+      await setBalance(mock0x.address, parseUnits('100'));
+
+      const swapData = getSwapData(
+        lqty.address,
+        constants.AddressZero,
+        balance,
+      );
+
+      await mock0x.setShouldFailOnSwap(true);
+      await expect(
+        strategy
+          .connect(keeper)
+          .swapLQTYtoETH(mock0x.address, balance, swapData, 0),
+      ).to.be.revertedWith('StrategyLQTYtoETHSwapFailed');
+    });
+
+    it('fails if ETH received is less than minimum expected', async () => {
+      const balance = parseUnits('100');
+      await lqty.mint(strategy.address, balance);
+      await setBalance(mock0x.address, parseUnits('100'));
+
+      const swapData = getSwapData(
+        lqty.address,
+        constants.AddressZero,
+        balance,
+      );
+
+      // 1 ETH = 1 LQTY
+      const minExpectedETH = balance.add('1');
+
+      await expect(
+        strategy
+          .connect(keeper)
+          .swapLQTYtoETH(mock0x.address, balance, swapData, minExpectedETH),
+      ).to.be.revertedWith('StrategyInsufficientOutputAmount');
+    });
+
+    it('swaps LQTY tokens for ETH', async () => {
+      const balance = parseUnits('2000');
+
+      await lqty.mint(strategy.address, balance);
+      await setBalance(mock0x.address, parseUnits('100'));
+
+      // 1 ETH = 500 LQTY
+      await mock0x.setExchageRate(
+        lqty.address,
+        constants.AddressZero,
+        parseUnits('0.002'),
+      );
+
+      const amountToSwap = parseUnits('1000');
+      const swapData = getSwapData(
+        lqty.address,
+        constants.AddressZero,
+        amountToSwap,
+      );
+
+      const expectedEthReceived = parseUnits('2');
+      await strategy
+        .connect(keeper)
+        .swapLQTYtoETH(
+          mock0x.address,
+          amountToSwap,
+          swapData,
+          expectedEthReceived,
+        );
+
+      expect(await getETHBalance(strategy.address)).to.eq(expectedEthReceived);
+    });
+  });
 
   function getSwapData(
     from: ERC20 | string,

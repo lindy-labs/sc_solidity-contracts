@@ -73,7 +73,40 @@ contract MockLUSD is MockERC20 {
 }
 
 contract MockLQTY is MockERC20 {
+    bool shouldFailOnApprove;
+    bool shouldFailOnTransfer;
+
     constructor(uint256 supply)
         MockERC20("Mock LQTY", "mockLQTY", 18, supply)
     {}
+
+    function setShouldFailOnApprove(bool _shouldFail) public {
+        shouldFailOnApprove = _shouldFail;
+    }
+
+    function setShouldFailOnTransfer(bool _shouldFail) public {
+        shouldFailOnTransfer = _shouldFail;
+    }
+
+    function approve(address spender, uint256 amount)
+        public
+        virtual
+        override
+        returns (bool)
+    {
+        _approve(_msgSender(), spender, amount);
+
+        return !shouldFailOnApprove;
+    }
+
+    function transfer(address recipient, uint256 amount)
+        public
+        virtual
+        override
+        returns (bool)
+    {
+        _transfer(_msgSender(), recipient, amount);
+
+        return !shouldFailOnTransfer;
+    }
 }

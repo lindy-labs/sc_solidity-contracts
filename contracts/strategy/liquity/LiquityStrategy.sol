@@ -433,9 +433,8 @@ contract LiquityStrategy is
         if (_amount > lqtyBalance) revert StrategyNotEnoughLQTY();
 
         // give approval to the swapTarget
-        if (!lqty.approve(_swapTarget, _amount)) {
+        if (!lqty.approve(_swapTarget, _amount))
             revert StrategyTokenApprovalFailed(address(lqty));
-        }
 
         // perform the swap
         (bool success, ) = _swapTarget.call{value: 0}(_lqtySwapData);

@@ -10,6 +10,7 @@ import {
   ForkHelpers,
   generateNewAddress,
   getTransactionGasCost,
+  getETHBalance,
   moveForwardTwoWeeks,
 } from '../../shared';
 
@@ -205,8 +206,4 @@ describe('Liquity DCA Strategy (mainnet fork tests)', () => {
       );
     });
   });
-
-  function getETHBalance(account: string) {
-    return ethers.provider.getBalance(account);
-  }
 });
