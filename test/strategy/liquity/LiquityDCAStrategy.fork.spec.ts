@@ -157,20 +157,23 @@ describe('Liquity DCA Strategy (mainnet fork tests)', () => {
       // add 1 ETH in yield (1258.882537168268713168 in LUSD)
       await ForkHelpers.setBalance(strategy.address, parseUnits('1'));
 
-      expect(await (await vault.yieldFor(alice.address)).claimableYield).to.eq(
+      expect((await vault.yieldFor(alice.address)).claimableYield).to.eq(
         '1258882537168268713168', // in LUSD
       );
 
       const alicesInitialEthBalace = await getETHBalance(alice.address);
 
-      await vault.connect(alice).claimYield(alice.address);
+      const tx = await vault.connect(alice).claimYield(alice.address);
 
-      // the difference between expected 1 ETH and the received amount as yield of 0.997102428861882886 ETH
+      // the difference between expected 1 ETH and the received amount as yield of 0.997710013861882886 ETH
       // comes from gas costs and estimating current ETH price in LUSD, because yield is denominated in the vault in LUSD
       // this also means that some small amount of yield for alice is left uncalimed
       expect(await getETHBalance(alice.address)).to.eq(
-        alicesInitialEthBalace.add('997102428861882886'),
+        alicesInitialEthBalace
+          .sub(await getTransactionGasCost(tx))
+          .add('997710013861882886'),
       );
+
       expect(await lusd.balanceOf(vault.address)).to.eq('0');
       expect((await vault.yieldFor(alice.address)).claimableYield).to.eq(
         '2882873236925869777', // in LUSD
