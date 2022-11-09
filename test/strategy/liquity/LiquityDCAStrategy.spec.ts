@@ -353,17 +353,6 @@ describe('LiquityDCAStrategy', () => {
       ).to.be.revertedWith('StrategyNotEnoughLQTY');
     });
 
-    it('fails if amount is greater than LQTY balance', async () => {
-      const balance = parseUnits('100');
-      await lqty.mint(strategy.address, balance);
-
-      await expect(
-        strategy
-          .connect(keeper)
-          .swapLQTYtoETH(mock0x.address, balance.add('1'), [1], 0),
-      ).to.be.revertedWith('StrategyNotEnoughLQTY');
-    });
-
     it('fails if LQTY approve fails', async () => {
       const balance = parseUnits('100');
       await lqty.mint(strategy.address, balance);
@@ -446,6 +435,9 @@ describe('LiquityDCAStrategy', () => {
         );
 
       expect(await getETHBalance(strategy.address)).to.eq(expectedEthReceived);
+      expect(await lqty.balanceOf(strategy.address)).to.eq(
+        balance.sub(amountToSwap),
+      );
     });
   });
 
