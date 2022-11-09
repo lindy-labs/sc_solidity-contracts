@@ -114,4 +114,4 @@ It has the following external/public functions that are view only and change not
 | 36 | `unpause() => paused() == false` | state transition | medium | N | N |
 | 37 | `exitPause() => exitPaused() == true` | state transition | medium | N | N |
 | 38 | `exitUnpause() => exitPaused() == false` | state transition | medium | N | N |
-| 39 | privileged settings functions work as expected  | unit test | medium | N | N |
+| 39 | privileged settings functions work as expected  | variable transition | medium | N | N |
