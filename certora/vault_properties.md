@@ -54,6 +54,9 @@ It has the following external/public functions that are privileged and change se
 * `function setPerfFeePct(uint16 _perfFeePct) external override(IVaultSettings) onlySettings`
 * `function setStrategy(address _strategy) external override(IVaultSettings) onlySettings`
 * `function setLossTolerancePct(uint16 pct) external override(IVaultSettings) onlySettings`
+
+It has the following external/public functions that are privileged and move underlying assets:
+
 * `function updateInvested() external override(IVault) onlyKeeper`
 * `function withdrawPerformanceFee() external override(IVault) onlyKeeper`
 
@@ -91,7 +94,24 @@ It has the following external/public functions that are view only and change not
 | 16 | Without any strategy or with a strategy doing nothing, `accumulatedPerfFee == 0` | high-level | medium | N | N |
 | 17 | Without any strategy or with a strategy doing nothing, `yieldFor(anyone) == (0, 0, 0)` | high-level | medium | N | N |
 | 18 | With a money making strategy, `totalUnderlying() == totalPrincipal + totalSponsored + sum(yieldFor(user).claimableYield + yieldFor(user).perfFee)` | high-level | high | N | N |
-| 19 | With a money making strategy, `totalUnderlyingMinusSponsored() == totalPrincipal + sum(yieldFor(user).claimableYield + yieldFor(user).perfFee)` | high-level | high | N | N |
-| 20 | `deposit(...)` the underlying token should reduce the user's balance by the specified amount while increasing Vault's balance by the same amount. It should also increase claimer's `totalShares` and the Vault's `totalShares` by the same amount | variable transition | high | N | N |
-
-
+| 19 | `(deposits[id].amount == 0 <=> deposits[id].owner == 0 <=> deposits[id].claimerId == 0 <=> deposits[id].lockUntil == 0) && (deposits[id].amount != 0 <=> deposits[id].owner != 0 <=> deposits[id].claimerId != 0 <=> deposits[id].lockUntil != 0)` | high-level | low | N | N |
+| 20 | `deposit(param)` and `depositForGroupId(groupId, param)` are equivalent in changing `totalShares`, `totalPrincipal`, `claimer` and `deposits` state variables | variable transition | high | N | N |
+| 21 | With a money making strategy, `totalUnderlyingMinusSponsored() == totalPrincipal + sum(yieldFor(user).claimableYield + yieldFor(user).perfFee)` | high-level | high | N | N |
+| 22 | `deposit(...)` the underlying token should reduce the user's balance by the specified amount while increasing Vault's balance by the same amount. It should also increase claimer's `totalShares` and the Vault's `totalShares` by the same amount. `depositGroupIdOwner[groupId]` should be updated from 0 address to the `msg.sender` | variable transition | high | N | N |
+| 23 | Without any strategy or with a strategy not losing money, `!paused() => deposit(...) with valid params never reverts` | unit-test | high | N | N |
+| 24 | `anyGroupId > currentGroupId => depositGroupIdOwner[anyGroupId] == 0 && anyGroupId < currentGroupId => depositGroupIdOwner[anyGroupId] != 0`  | high-level | low | N | N |
+| 25 | `withdraw(...)` should decrease `totalShares`, `totalPrincipal`, `claimer's totalShares`, `claimer's totalPrincipal`. The `totalPrincipal` decreased  should be the same as the `totalUnderlying()` decreased, and the `underlying.balanceOf(user)` increased.| variable transition | high | N | N |
+| 26 | `forceWithdraw(...)` should decrease `totalShares`, `totalPrincipal`, `claimer's totalShares`, `claimer's totalPrincipal`. The `totalPrincipal` decreased  should be the same as the `totalUnderlying()` decreased, and the `underlying.balanceOf(user)` increased. | variable transition | high | N | N |
+| 27 | `partialWithdraw(...)` should decrease `totalShares`, `totalPrincipal`, `claimer's totalShares`, `claimer's totalPrincipal` by specified `amounts`. The `totalPrincipal` decreased  should be the same as the `totalUnderlying()` decreased, and the `underlying.balanceOf(user)` increased. | variable transition | high | N | N |
+| 28 | `totalUnderlyingMinusSponsored() < totalPrincipal => withdraw(...) reverts` | unit-test | high | N | N |
+| 29 | `totalUnderlyingMinusSponsored() >= totalPrincipal => withdraw(...) never reverts` | unit-test | high | N | N |
+| 30 | `sponsor(...)` should not affect `totalShares` or `totalPrincipal` but only `totalUnderlying()`. It should reduce `underlying.balanceOf(sponsor)` by the specified `amount` and increase `totalUnderlying()` by the same `amount` | variable transition | high | N | N |
+| 31 | `unsponsor(...)` should not affect `totalShares` or `totalPrincipal` but only `totalUnderlying()`. It should increase `underlying.balanceOf(sponsor)` and decrease `totalUnderlying()` by the same `amount` | variable transition | high | N | N |
+| 32 | `partialUnsponsor(...)` should not affect `totalShares` or `totalPrincipal` but only `totalUnderlying()`. It should increase `underlying.balanceOf(sponsor)` by the specified `amounts` and decrease `totalUnderlying()` by the same `amounts` | variable transition | high | N | N |
+| 33 | `updateInvested()` should function according to `investState()` | unit test | medium | N | N |
+| 34 | `withdrawPerformanceFee() => underlying.balanceOf(treasury) increases by accumulatedPerfFee && accumulatedPerfFee becomes 0` | variable transition | medium | N | N |
+| 35 | `pause() => paused() == true` | state transition | medium | N | N |
+| 36 | `unpause() => paused() == false` | state transition | medium | N | N |
+| 37 | `exitPause() => exitPaused() == true` | state transition | medium | N | N |
+| 38 | `exitUnpause() => exitPaused() == false` | state transition | medium | N | N |
+| 39 | privileged settings functions work as expected  | unit test | medium | N | N |
