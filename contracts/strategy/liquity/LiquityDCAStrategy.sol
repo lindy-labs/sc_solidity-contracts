@@ -11,6 +11,8 @@ contract LiquityDCAStrategy is LiquityStrategy {
     using PercentMath for uint256;
 
     error StrategyETHTransferFailed(address to);
+    error StrategySwapDataEmpty();
+    error StrategyLQTYtoETHSwapFailed();
 
     event StrategyYieldTransferred(address to, uint256 amount);
 
@@ -40,6 +42,41 @@ contract LiquityDCAStrategy is LiquityStrategy {
         emit StrategyYieldTransferred(_to, equivalentAmountInUnderlying);
 
         return equivalentAmountInUnderlying;
+    }
+
+    /**
+     * Swaps LQTY tokens held by the strategy to ETH.
+     *
+     * @notice Swap data is real-time data obtained from '0x' api.
+     *
+     * @param _swapTarget the address of the '0x' contract performing the swap.
+     * @param _amount the amount of LQTY tokens to swap. Has to match with the amount used to obtain @param _lqtySwapData from '0x' api.
+     * @param _lqtySwapData data from '0x' api used to perform LQTY -> ETH swap.
+     * @param _ethAmountOutMin minimum amount of ETH to receive for the swap.
+     */
+    function swapLQTYtoETH(
+        address _swapTarget,
+        uint256 _amount,
+        bytes calldata _lqtySwapData,
+        uint256 _ethAmountOutMin
+    ) external onlyKeeper {
+        _checkSwapTarget(_swapTarget);
+        if (_amount == 0) revert StrategyAmountZero();
+        if (_lqtySwapData.length == 0) revert StrategySwapDataEmpty();
+
+        uint256 lqtyBalance = lqty.balanceOf(address(this));
+        if (_amount > lqtyBalance) revert StrategyNotEnoughLQTY();
+
+        if (!lqty.approve(_swapTarget, _amount))
+            revert StrategyTokenApprovalFailed(address(lqty));
+
+        uint256 ethBalance = address(this).balance;
+
+        (bool success, ) = _swapTarget.call{value: 0}(_lqtySwapData);
+        if (!success) revert StrategyLQTYtoETHSwapFailed();
+
+        if (address(this).balance < ethBalance + _ethAmountOutMin)
+            revert StrategyInsufficientOutputAmount();
     }
 
     /**

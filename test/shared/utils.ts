@@ -1,5 +1,6 @@
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { Wallet, BigNumber, utils, ContractTransaction } from 'ethers';
+import { ethers } from 'hardhat';
 
 export const generateNewAddress = (): string => {
   return Wallet.createRandom().address;
@@ -28,6 +29,10 @@ export const removeDecimals = (
 ): BigNumber => {
   const one_unit = utils.parseUnits('1', decimals);
   return from.div(one_unit);
+};
+
+export const getETHBalance = async (account: string) => {
+  return ethers.provider.getBalance(account);
 };
 
 export const getTransactionGasCost = async (tx: ContractTransaction) => {

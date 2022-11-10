@@ -9,7 +9,7 @@ import {
   depositParams,
   ForkHelpers,
   generateNewAddress,
-  getTransactionGasCost,
+  getETHBalance,
   moveForwardTwoWeeks,
   removeDecimals,
 } from '../../shared';
@@ -704,8 +704,4 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       );
     });
   });
-
-  function getETHBalance(account: string) {
-    return ethers.provider.getBalance(account);
-  }
 });
