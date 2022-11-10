@@ -10,7 +10,7 @@ import {
   ForkHelpers,
   generateNewAddress,
   getTransactionGasCost,
-  moveForwardTwoWeeks,
+  getETHBalance,
 } from '../../shared';
 
 import {
@@ -47,18 +47,13 @@ describe('Liquity DCA Strategy (mainnet fork tests)', () => {
   const LUSD = '0x5f98805A4E8be255a32880FDeC7F6728C6568bA0';
   const LQTY = '0x6DEA81C8171D0bA574754EF6F8b412F2Ed88c54D';
 
-  const FORK_BLOCK = 15269696;
-  // reward from stability pool received in LQTY tokens
-  const EXPECTED_LQTY_REWARD = BigNumber.from('39553740600841980000');
-  // reward from stability pool received in ETH
-  const EXPECTED_ETH_REWARD = BigNumber.from('1183860347390000');
-  // amount of LUSD received for swapping LQTY reward
-  const LQTY_REWARD_IN_LUSD = BigNumber.from('35086994728790148965');
-  // address of the '0x' contract performing the token swap
+  const FORK_BLOCK = 15927938;
   const SWAP_TARGET = '0xdef1c0ded9bec7f1a1670819833240f027b25eff';
-  // cached response data for swapping LQTY->LUSD from `https://api.0x.org/swap/v1/quote?buyToken=${LUSD}&sellToken=${lqty.address}&sellAmount=${39553740600841980000}` at FORK_BLOCK
-  const SWAP_LQTY_DATA =
-    '0xd9627aa4000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000000224eb1d830321c860000000000000000000000000000000000000000000000001d9fa402217f685ac000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000030000000000000000000000006dea81c8171d0ba574754ef6f8b412f2ed88c54d000000000000000000000000c02aaa39b223fe8d0a0e5c4f27ead9083c756cc20000000000000000000000005f98805a4e8be255a32880fdec7f6728c6568ba0869584cd00000000000000000000000010000000000000000000000000000000000000110000000000000000000000000000000000000000000000a644841b4262ea7823';
+  const LQTY_SWAP_AMOUNT = parseUnits('1000');
+  // cached response data for swapping LQTY->ETH from `https://api.0x.org/swap/v1/quote?buyToken=ETH&sellToken=${LQTY}&sellAmount=${LQTY_SWAP_AMOUNT}` at FORK_BLOCK
+  const LQTY_TO_ETH_SWAP_DATA =
+    '0x803ba26d000000000000000000000000000000000000000000000000000000000000008000000000000000000000000000000000000000000000003635c9adc5dea00000000000000000000000000000000000000000000000000000070b6eb221134e080000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000002b6dea81c8171d0ba574754ef6f8b412f2ed88c54d000bb8c02aaa39b223fe8d0a0e5c4f27ead9083c756cc2000000000000000000000000000000000000000000869584cd0000000000000000000000001000000000000000000000000000000000000011000000000000000000000000000000000000000000000085e2bac849636ac6e7';
+  const EXPECTED_ETH_FOR_SWAP = BigNumber.from('512748580148949632');
 
   beforeEach(async () => {
     await ForkHelpers.forkToMainnet(FORK_BLOCK);
@@ -119,36 +114,69 @@ describe('Liquity DCA Strategy (mainnet fork tests)', () => {
     await lusd.connect(alice).approve(vault.address, constants.MaxUint256);
   });
 
+  describe('#swapLQTYtoETH', () => {
+    it('should swap LQTY to ETH', async () => {
+      const initialLqtyBalance = parseUnits('2000');
+      await ForkHelpers.mintToken(lqty, strategy.address, initialLqtyBalance);
+
+      expect(await getETHBalance(strategy.address)).to.eq(0);
+
+      await strategy.swapLQTYtoETH(
+        SWAP_TARGET,
+        LQTY_SWAP_AMOUNT,
+        LQTY_TO_ETH_SWAP_DATA,
+        EXPECTED_ETH_FOR_SWAP,
+      );
+
+      expect(await getETHBalance(strategy.address)).to.eq(
+        EXPECTED_ETH_FOR_SWAP,
+      );
+      expect(await lqty.balanceOf(strategy.address)).to.eq(
+        initialLqtyBalance.sub(LQTY_SWAP_AMOUNT),
+      );
+    });
+  });
+
   describe('#transferYield', () => {
     it('transfers yield in ETH to the user', async () => {
-      const troveManagerAddress = await lqtyStabilityPool.troveManager();
-      await ForkHelpers.impersonate([troveManagerAddress]);
-      const troveManager = await ethers.getSigner(troveManagerAddress);
+      const depositAmount = parseUnits('1000');
+      await ForkHelpers.mintToken(lusd, alice, depositAmount);
 
-      await ForkHelpers.mintToken(lusd, strategy.address, parseUnits('10000'));
-      await strategy.invest();
+      await vault.connect(alice).deposit(
+        depositParams.build({
+          amount: depositAmount,
+          inputToken: lusd.address,
+          claims: [claimParams.percent(100).to(alice.address).build()],
+        }),
+      );
 
-      // LQTY issuance (rewards) is time dependent, so we need to advance time here
-      await moveForwardTwoWeeks();
+      await vault.updateInvested();
 
-      // call offset to generate rewards for liquidity providers
-      const lusdDebtToOffset = parseUnits('10000');
-      const ethCollateralToAdd = parseUnits('10');
-      ForkHelpers.setBalance(troveManager.address, ethCollateralToAdd);
+      expect(await lusd.balanceOf(vault.address)).to.eq('0');
 
-      await lqtyStabilityPool
-        .connect(troveManager)
-        .offset(lusdDebtToOffset, ethCollateralToAdd);
+      // add 1 ETH in yield (1258.882537168268713168 in LUSD)
+      await ForkHelpers.setBalance(strategy.address, parseUnits('1'));
 
-      await strategy.harvest();
+      expect((await vault.yieldFor(alice.address)).claimableYield).to.eq(
+        '1258882537168268713168', // in LUSD
+      );
 
       const alicesInitialEthBalace = await getETHBalance(alice.address);
 
-      // we got little more than 1.9 LUSD in ETH rewards
-      await strategy.transferYield(alice.address, parseUnits('1.9'));
+      const tx = await vault.connect(alice).claimYield(alice.address);
 
+      // the difference between expected 1 ETH and the received amount as yield of 0.997710013861882886 ETH
+      // comes from gas costs and estimating current ETH price in LUSD, because yield is denominated in the vault in LUSD
+      // this also means that some small amount of yield for alice is left uncalimed
       expect(await getETHBalance(alice.address)).to.eq(
-        alicesInitialEthBalace.add('1168664919817534'),
+        alicesInitialEthBalace
+          .sub(await getTransactionGasCost(tx))
+          .add('997710013861882886'),
+      );
+
+      expect(await lusd.balanceOf(vault.address)).to.eq('0');
+      expect((await vault.yieldFor(alice.address)).claimableYield).to.eq(
+        '2882873236925869777', // in LUSD
       );
     });
 
@@ -166,21 +194,14 @@ describe('Liquity DCA Strategy (mainnet fork tests)', () => {
 
       await vault.updateInvested();
 
-      await ForkHelpers.mintToken(lqty, strategy.address, EXPECTED_LQTY_REWARD);
-      ForkHelpers.setBalance(strategy.address, EXPECTED_ETH_REWARD);
+      // add 1 ETH + 100 LUSD in yield (1358.882537168268713168 in LUSD)
+      ForkHelpers.setBalance(strategy.address, parseUnits('1'));
+      await ForkHelpers.mintToken(lusd, strategy.address, parseUnits('100'));
+      await strategy.invest();
 
-      await strategy.reinvest(
-        SWAP_TARGET,
-        EXPECTED_LQTY_REWARD,
-        SWAP_LQTY_DATA,
-        0,
-        [],
-        LQTY_REWARD_IN_LUSD,
+      expect((await vault.yieldFor(alice.address)).claimableYield).to.eq(
+        '1358882537168268713168', // in LUSD
       );
-
-      expect(await lqty.balanceOf(strategy.address)).to.eq('0');
-      expect(await getETHBalance(strategy.address)).to.eq(EXPECTED_ETH_REWARD);
-      expect(await lusd.balanceOf(alice.address)).to.eq('0');
 
       const alicesInitialEthBalace = await getETHBalance(alice.address);
 
@@ -189,24 +210,14 @@ describe('Liquity DCA Strategy (mainnet fork tests)', () => {
       expect(await getETHBalance(alice.address)).to.eq(
         alicesInitialEthBalace
           .sub(await getTransactionGasCost(tx))
-          .add(EXPECTED_ETH_REWARD),
+          .add(parseUnits('1')),
       );
-      // the difference in alice's end LUSD balance and LQTY_REWARD_IN_LUSD comes from the differece in LUSD to ETH and ETH to LUSD exchange rates
-      // LQTY_REWARD_IN_LUSD - alice's end LUSD balance = 35086994728790148965 LUSD - 35083162034198358098 LUSD = 3832694591790867 LUSD
-      // this means that some small amount yield for alice (3832694591790866) is left in the vault ater the #claimYield call
-      expect(await lusd.balanceOf(alice.address)).to.eq('35083162034198358098');
+      // the difference in alice's end LUSD balance of ~97.16 and expected 100 LUSD comes from the differece in LUSD to ETH and ETH to LUSD exchange rates
+      // this means that some small amount yield for alice (~2.84 LUSD) is left in the vault after the yield was claimed
+      expect(await lusd.balanceOf(alice.address)).to.eq('97160101407531212992');
       expect((await vault.yieldFor(alice.address)).claimableYield).to.eq(
-        '3832694591790866', // includes rounding error
-      );
-
-      expect(await vault.totalPrincipal()).to.eq(depositAmount);
-      expect(await vault.totalUnderlying()).to.eq(
-        (await vault.totalPrincipal()).add('3832694591790867'),
+        '2839898592468787007', // in LUSD
       );
     });
   });
-
-  function getETHBalance(account: string) {
-    return ethers.provider.getBalance(account);
-  }
 });

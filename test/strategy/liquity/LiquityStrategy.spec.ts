@@ -15,7 +15,7 @@ import {
   ERC20,
 } from '../../../typechain';
 
-import { generateNewAddress, getTransactionGasCost } from '../../shared/';
+import { generateNewAddress, getETHBalance } from '../../shared/';
 import { depositParams, claimParams } from '../../shared/factories';
 import { setBalance } from '../../shared/forkHelpers';
 import createVaultHelpers from '../../shared/vault';
@@ -768,10 +768,6 @@ describe('LiquityStrategy', () => {
         claims: [claimParams.percent(100).to(user.address).build()],
       }),
     );
-  }
-
-  function getETHBalance(account: string) {
-    return ethers.provider.getBalance(account);
   }
 
   function getSwapData(

@@ -66,7 +66,7 @@ contract MockStrategyDirect is BaseStrategy {
     function transferYield(address _to, uint256 _amount)
         external
         virtual
-        override(IStrategy)
+        override(BaseStrategy)
         returns (uint256)
     {
         uint256 balance = yieldUnderlying.balanceOf(address(this));
