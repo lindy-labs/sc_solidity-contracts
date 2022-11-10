@@ -18,6 +18,8 @@ The Vault has the following state variables:
 * `claimer` (type `mapping(address => Claimer)`), a map from claimer address to claimer data
 * `totalPrincipal` (type `uint256`), the total principal deposited by users only (i.e., sponsor's deposit is not counted)
 * `accumulatedPerfFee` (type `uint256`), accumulated performance fee
+* `paused` (type `bool`), whether or not the Vault is paused, i.e., deposit or sponsor is disabled or not
+* `exitPaused` (type `bool`), whether or not exit of the Vault is paused, i.e., withdraw is disabled or not
 
 Below are quite static global settings, even though they are also state variables:
 * `lossTolerancePct` (type `uint16`), loss tolerance percentage. It's specified in the constructor but can be updated by a *settings* account.
@@ -56,12 +58,10 @@ It has the following external/public functions that are privileged and change se
 * `function setLossTolerancePct(uint16 pct) external override(IVaultSettings) onlySettings`
 
 It has the following external/public functions that are privileged and move underlying assets:
-
 * `function updateInvested() external override(IVault) onlyKeeper`
 * `function withdrawPerformanceFee() external override(IVault) onlyKeeper`
 
 It has the following external/public functions that are view only and change nothing:
-
 * `function investState() public view override(IVault) returns (uint256 maxInvestableAmount, uint256 alreadyInvested)`
 * `function getUnderlying() public view override(CurveSwapper) returns (address)`
 * `function totalUnderlying() public view override(IVault) returns (uint256)`
@@ -80,38 +80,47 @@ It has the following external/public functions that are view only and change not
 | 2 | `totalShares == sum(Claimer.totalShares)` | high-level | high | N | N |
 | 3 | `totalPrincipal == sum(Claimer.totalPrincipal)` | high-level | high | N | N |
 | 4 | `totalPrincipal == sum(Deposit.amount)` | high-level | high | N | N |
-| 5 | `paused() => deposit(...), depositForGroupId(...) and sponsor(...) always revert` | high-level | high | N | N |
-| 6 | `exitPaused() => withdraw(...), partialWithdraw(...), forceWithdraw(...), claimYield(...) and unsponsor(...) always revert` | high-level | high | N | N |
-| 7 | `investState().maxInvestableAmount >= investState().alreadyInvested` | high-level | medium | N | N |
-| 8 | `totalUnderlying().pctOf(investPct) == investState().maxInvestableAmount` | high-level | medium | N | N |
-| 9 | `yieldFor(someone).claimableYield > 0 => yieldFor(someone).shares > 0 && yieldFor(someone).perfFee == yieldFor(someone).claimableYield.pctOf(perfFeePct)` | high-level | medium | N | N |
-| 10 | `yieldFor(someone).perfFee > 0 => yieldFor(someone).shares > 0 && yieldFor(someone).perfFee == yieldFor(someone).claimableYield.pctOf(perfFeePct)` | high-level | medium | N | N |
-| 11 | `yieldFor(someone).shares == 0 => yieldFor(someone).claimableYield == 0 && yieldFor(someone).perfFee == 0` | high-level | medium | N | N |
-| 12 | `perfFeePct == 0 => yieldFor(anyone).perfFee == 0` | high-level | medium | N | N |
-| 13 | `address(underlying()) == getUnderlying()` | high-level | medium | N | N |
-| 14 | Without any strategy or with a strategy doing nothing, `totalUnderlying() == totalPrincipal + totalSponsored` | high-level | high | N | N |
-| 15 | Without any strategy or with a strategy doing nothing, `totalUnderlyingMinusSponsored() == totalPrincipal` | high-level | high | N | N |
-| 16 | Without any strategy or with a strategy doing nothing, `accumulatedPerfFee == 0` | high-level | medium | N | N |
-| 17 | Without any strategy or with a strategy doing nothing, `yieldFor(anyone) == (0, 0, 0)` | high-level | medium | N | N |
-| 18 | With a money making strategy, `totalUnderlying() == totalPrincipal + totalSponsored + sum(yieldFor(user).claimableYield + yieldFor(user).perfFee)` | high-level | high | N | N |
-| 19 | `(deposits[id].amount == 0 <=> deposits[id].owner == 0 <=> deposits[id].claimerId == 0 <=> deposits[id].lockUntil == 0) && (deposits[id].amount != 0 <=> deposits[id].owner != 0 <=> deposits[id].claimerId != 0 <=> deposits[id].lockUntil != 0)` | high-level | low | N | N |
-| 20 | `deposit(param)` and `depositForGroupId(groupId, param)` are equivalent in changing `totalShares`, `totalPrincipal`, `claimer` and `deposits` state variables | variable transition | high | N | N |
-| 21 | With a money making strategy, `totalUnderlyingMinusSponsored() == totalPrincipal + sum(yieldFor(user).claimableYield + yieldFor(user).perfFee)` | high-level | high | N | N |
-| 22 | `deposit(...)` the underlying token should reduce the user's balance by the specified amount while increasing Vault's balance by the same amount. It should also increase claimer's `totalShares` and the Vault's `totalShares` by the same amount. `depositGroupIdOwner[groupId]` should be updated from 0 address to the `msg.sender` | variable transition | high | N | N |
-| 23 | Without any strategy or with a strategy not losing money, `!paused() => deposit(...) with valid params never reverts` | unit-test | high | N | N |
-| 24 | `anyGroupId > currentGroupId => depositGroupIdOwner[anyGroupId] == 0 && anyGroupId < currentGroupId => depositGroupIdOwner[anyGroupId] != 0`  | high-level | low | N | N |
-| 25 | `withdraw(...)` should decrease `totalShares`, `totalPrincipal`, `claimer's totalShares`, `claimer's totalPrincipal`. The `totalPrincipal` decreased  should be the same as the `totalUnderlying()` decreased, and the `underlying.balanceOf(user)` increased.| variable transition | high | N | N |
-| 26 | `forceWithdraw(...)` should decrease `totalShares`, `totalPrincipal`, `claimer's totalShares`, `claimer's totalPrincipal`. The `totalPrincipal` decreased  should be the same as the `totalUnderlying()` decreased, and the `underlying.balanceOf(user)` increased. | variable transition | high | N | N |
-| 27 | `partialWithdraw(...)` should decrease `totalShares`, `totalPrincipal`, `claimer's totalShares`, `claimer's totalPrincipal` by specified `amounts`. The `totalPrincipal` decreased  should be the same as the `totalUnderlying()` decreased, and the `underlying.balanceOf(user)` increased. | variable transition | high | N | N |
-| 28 | `totalUnderlyingMinusSponsored() < totalPrincipal => withdraw(...) reverts` | unit-test | high | N | N |
-| 29 | `totalUnderlyingMinusSponsored() >= totalPrincipal => withdraw(...) never reverts` | unit-test | high | N | N |
-| 30 | `sponsor(...)` should not affect `totalShares` or `totalPrincipal` but only `totalUnderlying()`. It should reduce `underlying.balanceOf(sponsor)` by the specified `amount` and increase `totalUnderlying()` by the same `amount` | variable transition | high | N | N |
-| 31 | `unsponsor(...)` should not affect `totalShares` or `totalPrincipal` but only `totalUnderlying()`. It should increase `underlying.balanceOf(sponsor)` and decrease `totalUnderlying()` by the same `amount` | variable transition | high | N | N |
-| 32 | `partialUnsponsor(...)` should not affect `totalShares` or `totalPrincipal` but only `totalUnderlying()`. It should increase `underlying.balanceOf(sponsor)` by the specified `amounts` and decrease `totalUnderlying()` by the same `amounts` | variable transition | high | N | N |
-| 33 | `updateInvested()` should function according to `investState()` | unit test | medium | N | N |
-| 34 | `withdrawPerformanceFee() => underlying.balanceOf(treasury) increases by accumulatedPerfFee && accumulatedPerfFee becomes 0` | variable transition | medium | N | N |
-| 35 | `pause() => paused() == true` | state transition | medium | N | N |
-| 36 | `unpause() => paused() == false` | state transition | medium | N | N |
-| 37 | `exitPause() => exitPaused() == true` | state transition | medium | N | N |
-| 38 | `exitUnpause() => exitPaused() == false` | state transition | medium | N | N |
-| 39 | privileged settings functions work as expected  | variable transition | medium | N | N |
+| 5 | Without a strategy or a strategy doing nothing, price per share preserves | high-level | high | N | N |
+| 6 | With a strategy making money, price per share should increase | high-level | high | N | N |
+| 7 | With a strategy losing money, price per share should decrease | high-level | high | N | N |
+| 8 | user's `totalShares` should never change unless `deposit(...)`, `depositForGroupId(...)`, `withdraw(...)`, `forceWithdraw(...)` or `partialWithdraw(...)` is called | high-level | high | N | N |
+| 9 | Without a strategy or a strategy not making money, `investState().maxInvestableAmount >= investState().alreadyInvested` | high-level | medium | N | N |
+| 10 | `totalUnderlying().pctOf(investPct) == investState().maxInvestableAmount` | high-level | medium | N | N |
+| 11 | `yieldFor(someone).claimableYield > 0 => yieldFor(someone).shares > 0 && yieldFor(someone).perfFee == yieldFor(someone).claimableYield.pctOf(perfFeePct)` | high-level | medium | N | N |
+| 12 | `yieldFor(someone).perfFee > 0 => yieldFor(someone).shares > 0 && yieldFor(someone).perfFee == yieldFor(someone).claimableYield.pctOf(perfFeePct)` | high-level | medium | N | N |
+| 13 | `anyGroupId > currentGroupId => depositGroupIdOwner[anyGroupId] == 0 && anyGroupId < currentGroupId => depositGroupIdOwner[anyGroupId] != 0`  | high-level | low | N | N |
+| 14 | `yieldFor(someone).shares == 0 => yieldFor(someone).claimableYield == 0 && yieldFor(someone).perfFee == 0` | high-level | medium | N | N |
+| 15 | `perfFeePct == 0 => yieldFor(anyone).perfFee == 0` | high-level | medium | N | N |
+| 16 | `address(underlying()) == getUnderlying()` | high-level | medium | N | N |
+| 17 | Without any strategy or with a strategy doing nothing, `totalUnderlying() == totalPrincipal + totalSponsored` | high-level | high | N | N |
+| 18 | Without any strategy or with a strategy doing nothing, `totalUnderlyingMinusSponsored() == totalPrincipal` | high-level | high | N | N |
+| 19 | Without any strategy or with a strategy not making money, `accumulatedPerfFee == 0` | high-level | medium | N | N |
+| 20 | Without any strategy or with a strategy not making money, `yieldFor(anyone) == (0, 0, 0)` | high-level | medium | N | N |
+| 21 | With a strategy making money, `totalUnderlying() == totalPrincipal + totalSponsored + sum(yieldFor(user).claimableYield + yieldFor(user).perfFee)` | high-level | high | N | N |
+| 22 | With a strategy making money, `totalUnderlyingMinusSponsored() == totalPrincipal + sum(yieldFor(user).claimableYield + yieldFor(user).perfFee)` | high-level | high | N | N |
+| 23 | `(deposits[id].amount == 0 <=> deposits[id].owner == 0 <=> deposits[id].claimerId == 0 <=> deposits[id].lockUntil == 0) && (deposits[id].amount != 0 <=> deposits[id].owner != 0 <=> deposits[id].claimerId != 0 <=> deposits[id].lockUntil != 0)` | high-level | low | N | N |
+| 24 | `deposit(param)` and `depositForGroupId(groupId, param)` are equivalent in changing `totalShares`, `totalPrincipal`, `claimer` and `deposits` state variables | variable transition | high | N | N |
+| 25 | `deposit(...)` the underlying token should reduce the user's balance by the specified amount while increasing Vault's balance by the same amount. It should also increase claimer's `totalShares` and the Vault's `totalShares` by the same amount. `depositGroupIdOwner[groupId]` should be updated from 0 address to the `msg.sender` | variable transition | high | N | N |
+| 26 | `withdraw(...)` should decrease `totalShares`, `totalPrincipal`, `claimer's totalShares`, `claimer's totalPrincipal`. The `totalPrincipal` decreased  should be the same as the `totalUnderlying()` decreased, and the `underlying.balanceOf(user)` increased.| variable transition | high | N | N |
+| 27 | `forceWithdraw(...)` should decrease `totalShares`, `totalPrincipal`, `claimer's totalShares`, `claimer's totalPrincipal`. The `totalPrincipal` decreased  should be the same as the `totalUnderlying()` decreased, and the `underlying.balanceOf(user)` increased. | variable transition | high | N | N |
+| 28 | `partialWithdraw(...)` should decrease `totalShares`, `totalPrincipal`, `claimer's totalShares`, `claimer's totalPrincipal` by specified `amounts`. The `totalPrincipal` decreased  should be the same as the `totalUnderlying()` decreased, and the `underlying.balanceOf(user)` increased. | variable transition | high | N | N |
+| 29 | `sponsor(...)` should reduce `underlying.balanceOf(sponsor)` by the specified `amount` and increase `totalUnderlying()` by the same `amount` | variable transition | high | N | N |
+| 30 | `unsponsor(...)` should increase `underlying.balanceOf(sponsor)` and decrease `totalUnderlying()` by the same `amount` | variable transition | high | N | N |
+| 31 | `partialUnsponsor(...)` should increase `underlying.balanceOf(sponsor)` by the specified `amounts` and decrease `totalUnderlying()` by the same `amounts` | variable transition | high | N | N |
+| 32 | privileged settings functions work as expected  | variable transition | medium | N | N |
+| 33 | `withdrawPerformanceFee() => underlying.balanceOf(treasury) increases by accumulatedPerfFee && accumulatedPerfFee becomes 0` | variable transition | medium | N | N |
+| 34 | `pause() => paused() == true` | state transition | medium | N | N |
+| 35 | `unpause() => paused() == false` | state transition | medium | N | N |
+| 36 | `exitPause() => exitPaused() == true` | state transition | medium | N | N |
+| 37 | `exitUnpause() => exitPaused() == false` | state transition | medium | N | N |
+| 38 | Without any strategy or with a strategy not losing money, `!paused() => deposit(...) with valid params never reverts` | unit test | high | N | N |
+| 39 | `totalUnderlyingMinusSponsored() < totalPrincipal => withdraw(param) reverts` | unit test | high | N | N |
+| 40 | `totalUnderlyingMinusSponsored() >= totalPrincipal => withdraw(validParam) never reverts` | unit test | high | N | N |
+| 41 | `totalUnderlyingMinusSponsored() >= totalPrincipal => partialWithdraw(validParam) never reverts` | unit test | high | N | N |
+| 42 | `updateInvested()` should function according to `investState()` | unit test | medium | N | N |
+| 43 | depositor can never withdraw more than deposited | unit test | high | N | N |
+| 44 | sponsor can never unsponsor more than sponsored | unit test | high | N | N |
+| 45 | `paused() => deposit(...), depositForGroupId(...) and sponsor(...) always revert` | unit test | high | N | N |
+| 46 | `deposit(invalidParam) always reverts`, where `invalidParam` could be `amount==0`, or `claim.pct == 0`, or `sum(claim.pct) != 100`, or `lockDuration` is out of range, or `inputToken` is invalid | unit test | high | N | N |
+| 47 | `sponsor(invalidParam) always reverts`, where `invalidParam` could be `amount==0`, or `lockDuration` is out of range, or `inputToken` is invalid | unit test | high | N | N |
+| 48 | `exitPaused() => withdraw(...), partialWithdraw(...), forceWithdraw(...), claimYield(...) and unsponsor(...) always revert` | unit test | high | N | N |
