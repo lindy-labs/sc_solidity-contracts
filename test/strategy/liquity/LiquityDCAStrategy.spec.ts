@@ -353,17 +353,6 @@ describe('LiquityDCAStrategy', () => {
       ).to.be.revertedWith('StrategyNotEnoughLQTY');
     });
 
-    it('fails if LQTY approve fails', async () => {
-      const balance = parseUnits('100');
-      await lqty.mint(strategy.address, balance);
-
-      await lqty.setShouldFailOnApprove(true);
-
-      await expect(
-        strategy.connect(keeper).swapLQTYtoETH(mock0x.address, balance, [1], 0),
-      ).to.be.revertedWith('StrategyTokenApprovalFailed');
-    });
-
     it('fails if swap fails', async () => {
       const balance = parseUnits('100');
       await lqty.mint(strategy.address, balance);
