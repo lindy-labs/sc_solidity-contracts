@@ -324,6 +324,12 @@ describe('LiquityDCAStrategy', () => {
       ).to.be.revertedWith('StrategyCallerNotKeeper');
     });
 
+    it('fails if swap target is not allowed', async () => {
+      await expect(
+        strategy.connect(keeper).swapLQTYtoETH(vault.address, 1, [1], 0),
+      ).to.be.revertedWith('StrategySwapTargetNotAllowed');
+    });
+
     it('fails if amount is 0', async () => {
       await expect(
         strategy.connect(keeper).swapLQTYtoETH(mock0x.address, 0, [], 0),

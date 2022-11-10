@@ -60,6 +60,7 @@ contract LiquityDCAStrategy is LiquityStrategy {
         bytes calldata _lqtySwapData,
         uint256 _ethAmountOutMin
     ) external onlyKeeper {
+        _checkSwapTarget(_swapTarget);
         if (_amount == 0) revert StrategyAmountZero();
         if (_lqtySwapData.length == 0) revert StrategySwapDataEmpty();
 
