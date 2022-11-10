@@ -22,16 +22,6 @@ contract MockStrategySync is BaseStrategy {
     }
 
     /// @inheritdoc IStrategy
-    function transferYield(address, uint256)
-        external
-        virtual
-        override(IStrategy)
-        returns (uint256)
-    {
-        return 0;
-    }
-
-    /// @inheritdoc IStrategy
     function invest() external virtual override(IStrategy) {}
 
     /// @inheritdoc IStrategy

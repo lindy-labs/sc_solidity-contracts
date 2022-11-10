@@ -100,4 +100,14 @@ abstract contract BaseStrategy is IStrategy, AccessControl, CustomErrors {
 
         _revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
     }
+
+    /// @inheritdoc IStrategy
+    function transferYield(address, uint256)
+        external
+        virtual
+        override(IStrategy)
+        returns (uint256)
+    {
+        return 0;
+    }
 }
