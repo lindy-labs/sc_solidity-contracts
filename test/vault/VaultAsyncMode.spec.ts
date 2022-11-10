@@ -9,12 +9,12 @@ import {
   MockStrategyAsync,
   MockLUSD,
   MockLUSD__factory,
-} from '../typechain';
+} from '../../typechain';
 
-import { depositParams, claimParams } from './shared/factories';
-import createVaultHelpers from './shared/vault';
+import { depositParams, claimParams } from '../shared/factories';
+import createVaultHelpers from '../shared/vault';
 
-import { moveForwardTwoWeeks, generateNewAddress } from './shared';
+import { moveForwardTwoWeeks, generateNewAddress } from '../shared';
 
 const { parseUnits } = ethers.utils;
 const { MaxUint256 } = ethers.constants;
@@ -31,7 +31,7 @@ describe('Vault in async mode', () => {
   let addUnderlyingBalance: (
     account: SignerWithAddress,
     amount: string,
-  ) => Promise<BigNumber>;
+  ) => Promise<void>;
   let addYieldToVault: (amount: string) => Promise<BigNumber>;
 
   const TWO_WEEKS = BigNumber.from(time.duration.weeks(2).toNumber());

@@ -6,7 +6,6 @@ import {
   clearStore,
   describe,
   beforeEach,
-  createMockedFunction,
 } from 'matchstick-as/assembly/index';
 
 import {
@@ -21,13 +20,11 @@ import {
   MOCK_ADDRESS_1,
   MOCK_ADDRESS_2,
   TREASURY_ADDRESS,
-  newValueI32FromBigInt,
-  PRICE_FEED_ADDRESS,
   STRATEGY_ADDRESS,
   mockGetDepositorETHGain,
   setupLiquityMocks,
   mockLastGoodPrice,
-} from '../../tests/helpers';
+} from '../tests/helpers';
 
 import {
   handleDepositMinted,

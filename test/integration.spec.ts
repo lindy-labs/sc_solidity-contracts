@@ -39,9 +39,9 @@ describe('Integration', () => {
   let addUnderlyingBalance: (
     account: SignerWithAddress,
     amount: string,
-  ) => Promise<BigNumber>;
+  ) => Promise<void>;
   let addYieldToVault: (amount: string) => Promise<BigNumber>;
-  let removeUnderlyingFromVault: (amount: string) => Promise<BigNumber>;
+  let removeUnderlyingFromVault: (amount: string) => Promise<void>;
 
   const TWO_WEEKS = BigNumber.from(time.duration.weeks(2).toNumber());
   const TREASURY = generateNewAddress();
@@ -92,14 +92,11 @@ describe('Integration', () => {
       owner.address,
     );
 
-    ({
-      addUnderlyingBalance,
-      addYieldToVault,
-      removeUnderlyingFromVault,
-    } = createVaultHelpers({
-      vault,
-      underlying,
-    }));
+    ({ addUnderlyingBalance, addYieldToVault, removeUnderlyingFromVault } =
+      createVaultHelpers({
+        vault,
+        underlying,
+      }));
   });
 
   describe('single deposit, single sponsor and single claimer', () => {

@@ -13,14 +13,28 @@ contract MockBaseStrategy is BaseStrategy {
         address _admin
     ) BaseStrategy(_vault, _underlying, _admin) {}
 
+    /// @inheritdoc IStrategy
     function isSync() external pure virtual override(IStrategy) returns (bool) {
         return true;
     }
 
+    /// @inheritdoc IStrategy
+    function transferYield(address, uint256)
+        external
+        virtual
+        override(IStrategy)
+        returns (uint256)
+    {
+        return 0;
+    }
+
+    /// @inheritdoc IStrategy
     function invest() external virtual override(IStrategy) {}
 
+    /// @inheritdoc IStrategy
     function withdrawToVault(uint256 amount) external override(IStrategy) {}
 
+    /// @inheritdoc IStrategy
     function investedAssets()
         external
         pure
@@ -30,6 +44,7 @@ contract MockBaseStrategy is BaseStrategy {
         return 0;
     }
 
+    /// @inheritdoc IStrategy
     function hasAssets() external pure override(IStrategy) returns (bool) {
         return false;
     }

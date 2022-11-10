@@ -14,6 +14,9 @@ contract Echidna_Valid_Deposit is Helper {
         _params.amount = Helper.one_to_max_uint64(_params.amount); 
         emit Log("amount", _params.amount);
 
+        // avoid VaultDepositNameTooShort
+        require(bytes(_params.name).length > 3);
+
         _params.inputToken = address(underlying);
 
         Helper.mint_helper(address(this), _params.amount);

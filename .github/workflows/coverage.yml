@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      ALCHEMY_RPC: ${{ secrets.ALCHEMY_RPC }}
+      ALCHEMY_MAINNET_RPC: ${{ secrets.ALCHEMY_MAINNET_RPC }}
       NODE_ENV: test
 
     steps:
