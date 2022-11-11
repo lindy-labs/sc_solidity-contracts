@@ -1,15 +1,14 @@
 methods {
     // state changing functions
-    // TODO - add helper functions to VaultHarness, as certora does not support the following
-    // deposit(DepositParams calldata _params) returns (uint256[] memory depositIds) 
-    // depositForGroupId(uint256 _groupId, DepositParams calldata _params) returns (uint256[] memory depositIds)
-    // withdraw(address _to, uint256[] calldata _ids)
-    // forceWithdraw(address _to, uint256[] calldata _ids)
-    // partialWithdraw(address _to, uint256[] calldata _ids, uint256[] calldata _amounts)
-    // unsponsor(address _to, uint256[] calldata _ids)
-    // partialUnsponsor(address _to, uint256[] calldata _ids, uint256[] calldata _amounts)
+    deposit(address, uint64, uint256, uint16[], address[], bytes[], uint256)
+    depositForGroupId(uint256, address, uint64, uint256, uint16[], address[], bytes[], uint256)
+    withdraw(address, uint256[])
+    forceWithdraw(address, uint256[])
+    partialWithdraw(address, uint256[], uint256[])
     claimYield(address)
     sponsor(address, uint256, uint256, uint256)
+    unsponsor(address, uint256[])
+    partialUnsponsor(address, uint256[], uint256[])
 
     // admin/settings/keeper functions
     transferAdminRights(address)
@@ -17,8 +16,7 @@ methods {
     unpause()
     exitPause()
     exitUnpause()
-    // TODO - add helper function to VaultHarness, as certora does not support the following
-    // addPool(SwapPoolParam memory _param)
+    addPool(address, address, int128, int128)
     removePool(address)
     setInvestPct(uint16)
     setTreasury(address)
@@ -29,14 +27,21 @@ methods {
     withdrawPerformanceFee()
 
     // view functions
-    // TODO - add helper functions to VaultHarness, as certora does not support the following
-    // investState() returns (uint256 maxInvestableAmount, uint256 alreadyInvested)
-    // yieldFor(address _to) returns (uint256 claimableYield, uint256 shares, uint256 perfFee)
+    maxInvestableAmount() returns (uint256) envfree
+    alreadyInvested() returns (uint256) envfree
+    claimableYield(address) returns (uint256) envfree
+    claimableShares(address) returns (uint256) envfree
+    perfFee(address) returns (uint256) envfree
     getUnderlying() returns (address) envfree
     totalUnderlying() returns (uint256) envfree
     totalUnderlyingMinusSponsored() returns (uint256) envfree
-    sharesOf(address claimerId) returns (uint256) envfree
-    principalOf(address claimerId) returns (uint256) envfree
+    sharesOf(address) returns (uint256) envfree
+    principalOf(address) returns (uint256) envfree
+    depositGroupOwner(uint256) returns (address) envfree
+    depositAmount(uint256) returns (uint256) envfree
+    depositOwner(uint256) returns (address) envfree
+    depositClaimer(uint256) returns (address) envfree
+    depositLockedUntil(uint256) returns (uint256) envfree
 
     // public variables
     totalSponsored() returns (uint256) envfree
@@ -45,8 +50,8 @@ methods {
     accumulatedPerfFee() returns (uint256) envfree
     paused() returns (bool) envfree
     exitPaused() returns (bool) envfree
-    // TODO - add helper functions to VaultHarness, as certora does not support the following
-    // depositGroupIdOwner mapping(uint256 => address)
-    // deposits mapping(uint256 => Deposit)
-    // claimer mapping(address => Claimer)
 }
+
+// TODO fix me - need to preserve that sum(claimer.totalShares) == totalShares() && sum(claimer.totalPrincipal) == totalPrincipal()
+invariant shares_principal_consistency()
+    totalPrincipal() == 0 <=> totalShares() == 0 && totalPrincipal() > 0 <=> totalShares() > 0
