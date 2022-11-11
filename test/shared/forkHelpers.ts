@@ -6,6 +6,7 @@ import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import 'dotenv/config';
 
 assert(process.env.ALCHEMY_MAINNET_RPC);
+assert(process.env.ALCHEMY_ARBITRUM_RPC);
 
 export async function forkToMainnet(block?: number) {
   await network.provider.request({
@@ -27,7 +28,7 @@ export async function forkToArbitrumMainnet(block?: number) {
     params: [
       {
         forking: {
-          jsonRpcUrl: process.env.ARBITRUM_RPC!,
+          jsonRpcUrl: process.env.ALCHEMY_ARBITRUM_RPC!,
           blockNumber: block,
           ignoreUnknownTxType: true,
         },

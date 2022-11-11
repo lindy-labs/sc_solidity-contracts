@@ -170,16 +170,6 @@ contract RyskStrategy is BaseStrategy {
         ryskLqPool.initiateWithdraw(sharesToWithdraw);
     }
 
-    /// @inheritdoc IStrategy
-    function transferYield(address, uint256)
-        external
-        virtual
-        override(IStrategy)
-        returns (uint256)
-    {
-        return 0;
-    }
-
     /**
      * Completes the pending withdrawal initiated in an earlier epoch.
      *
