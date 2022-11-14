@@ -1,12 +1,15 @@
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
-import { BigNumber, utils } from 'ethers';
+import { BigNumber, constants, utils } from 'ethers';
 import { ethers, upgrades } from 'hardhat';
 import { expect } from 'chai';
 import { time } from '@openzeppelin/test-helpers';
 
 import {
+  claimParams,
+  depositParams,
   ForkHelpers,
   generateNewAddress,
+  getETHBalance,
   moveForwardTwoWeeks,
   removeDecimals,
 } from '../../shared';
@@ -24,6 +27,7 @@ const { parseUnits } = ethers.utils;
 
 describe('Liquity Strategy (mainnet fork tests)', () => {
   let admin: SignerWithAddress;
+  let alice: SignerWithAddress;
 
   let vault: Vault;
   let lqtyStabilityPool: IStabilityPool;
@@ -40,6 +44,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
 
   // mainnet addresses
   const STABILITY_POOL = '0x66017d22b0f8556afdd19fc67041899eb65a21bb';
+  const CURVE_EXCHANGE = '0x81c46feca27b31f3adc2b91ee4be9717d1cd3dd7';
   const LUSD = '0x5f98805A4E8be255a32880FDeC7F6728C6568bA0';
   const LQTY = '0x6DEA81C8171D0bA574754EF6F8b412F2Ed88c54D';
 
@@ -66,7 +71,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
   beforeEach(async () => {
     await ForkHelpers.forkToMainnet(FORK_BLOCK);
 
-    [admin] = await ethers.getSigners();
+    [admin, alice] = await ethers.getSigners();
 
     lqtyStabilityPool = IStabilityPool__factory.connect(STABILITY_POOL, admin);
 
@@ -99,6 +104,8 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
         lqty.address,
         lusd.address,
         admin.address, // keeper
+        0,
+        CURVE_EXCHANGE,
       ],
       {
         kind: 'uups',
@@ -116,6 +123,8 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       .connect(admin)
       .approve(vault.address, ethers.constants.MaxUint256);
     await strategy.connect(admin).allowSwapTarget(SWAP_TARGET);
+
+    await lusd.connect(alice).approve(vault.address, constants.MaxUint256);
   });
 
   describe('#invest', () => {
@@ -166,7 +175,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       // assert initial balances for the strategy
       expect(await lusd.balanceOf(strategy.address)).to.eq('0');
       expect(await lqty.balanceOf(strategy.address)).to.eq('0');
-      expect(await ethers.provider.getBalance(strategy.address)).to.eq('0');
+      expect(await getETHBalance(strategy.address)).to.eq('0');
 
       await ForkHelpers.mintToken(lusd, strategy.address, initialInvestment);
       await strategy.invest();
@@ -175,9 +184,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       expect(await lqty.balanceOf(strategy.address)).to.eq(
         EXPECTED_LQTY_REWARD,
       );
-      expect(await ethers.provider.getBalance(strategy.address)).to.eq(
-        EXPECTED_ETH_REWARD,
-      );
+      expect(await getETHBalance(strategy.address)).to.eq(EXPECTED_ETH_REWARD);
     });
   });
 
@@ -212,7 +219,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       // assert initial balances for the strategy
       expect(await lusd.balanceOf(strategy.address)).to.eq('0');
       expect(await lqty.balanceOf(strategy.address)).to.eq('0');
-      expect(await ethers.provider.getBalance(strategy.address)).to.eq('0');
+      expect(await getETHBalance(strategy.address)).to.eq('0');
 
       await strategy.harvest();
 
@@ -220,14 +227,12 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       expect(await lqty.balanceOf(strategy.address)).to.eq(
         EXPECTED_LQTY_REWARD,
       );
-      expect(await ethers.provider.getBalance(strategy.address)).to.eq(
-        EXPECTED_ETH_REWARD,
-      );
+      expect(await getETHBalance(strategy.address)).to.eq(EXPECTED_ETH_REWARD);
     });
   });
 
   describe('#reinvest', () => {
-    it('swaps LQTY and ETH already held by the strategy and reinvests all ', async () => {
+    it('swaps LQTY and ETH already held by the strategy and reinvests everything', async () => {
       const initialInvestment = parseUnits('10000');
       await ForkHelpers.mintToken(lusd, strategy.address, initialInvestment);
       await strategy.invest();
@@ -247,7 +252,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       // assert no funds remain held by the strategy
       expect(await lusd.balanceOf(strategy.address)).to.eq('0');
       expect(await lqty.balanceOf(strategy.address)).to.eq('0');
-      expect(await ethers.provider.getBalance(strategy.address)).to.eq('0');
+      expect(await getETHBalance(strategy.address)).to.eq('0');
 
       expect(await strategy.investedAssets()).to.eq(
         initialInvestment.add(LQTY_REWARD_IN_LUSD).add(ETH_REWARD_IN_LUSD),
@@ -295,9 +300,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
 
       expect(await lusd.balanceOf(strategy.address)).to.eq('0');
       expect(await lqty.balanceOf(strategy.address)).to.eq('0');
-      expect(await ethers.provider.getBalance(strategy.address)).to.eq(
-        EXPECTED_ETH_REWARD,
-      );
+      expect(await getETHBalance(strategy.address)).to.eq(EXPECTED_ETH_REWARD);
 
       const expectedInvestedAssets = initialInvestment
         .add(LQTY_REWARD_IN_LUSD)
@@ -331,7 +334,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       expect(await lqty.balanceOf(strategy.address)).to.eq(
         EXPECTED_LQTY_REWARD,
       );
-      expect(await ethers.provider.getBalance(strategy.address)).to.eq('0');
+      expect(await getETHBalance(strategy.address)).to.eq('0');
       expect(await strategy.investedAssets()).to.eq(
         initialInvestment.add(ETH_REWARD_IN_LUSD),
       );
@@ -354,9 +357,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
         ETH_REWARD_IN_LUSD,
       );
 
-      expect(await ethers.provider.getBalance(strategy.address)).to.eq(
-        EXPECTED_ETH_REWARD,
-      );
+      expect(await getETHBalance(strategy.address)).to.eq(EXPECTED_ETH_REWARD);
       expect(removeDecimals(await strategy.investedAssets())).to.eq(
         removeDecimals(initialInvestment.add(ETH_REWARD_IN_LUSD.mul(2))),
       );
@@ -381,7 +382,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
 
       // assert no funds remain held by the strategy
       expect(await lusd.balanceOf(strategy.address)).to.eq('0');
-      expect(await ethers.provider.getBalance(strategy.address)).to.eq('0');
+      expect(await getETHBalance(strategy.address)).to.eq('0');
 
       expect(await strategy.investedAssets()).to.eq(
         initialInvestment.add(ETH_REWARD_IN_LUSD),
@@ -534,6 +535,43 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
         ),
       ).to.be.revertedWith('StrategyInsufficientOutputAmount');
     });
+
+    it('fails if the minimum principal protection is not ensured', async () => {
+      // set the minimum principal protection to 200%
+      await strategy.setMinPrincipalProtectionPct(20000);
+
+      const initialDeposit = LQTY_REWARD_IN_LUSD.add(ETH_REWARD_IN_LUSD).mul(2);
+      await ForkHelpers.mintToken(lusd, alice, parseUnits('10000000000'));
+
+      await vault.connect(alice).deposit(
+        depositParams.build({
+          amount: initialDeposit,
+          inputToken: lusd.address,
+          claims: [claimParams.percent(100).to(alice.address).build()],
+        }),
+      );
+
+      await vault.updateInvested();
+      // add 100% of the initial deposit as yield to the vault to reach the minimum principal protection threshold
+      await ForkHelpers.mintToken(lusd, vault.address, initialDeposit);
+
+      // generated yield as 50% of the initial deposit
+      await ForkHelpers.mintToken(lqty, strategy.address, EXPECTED_LQTY_REWARD);
+      ForkHelpers.setBalance(strategy.address, EXPECTED_ETH_REWARD);
+
+      // trying to reinvest yield in amount equal to 50% of the initial deposit should fail
+      // because to cover the principal we need to reinvest amount of at least 100% of the initial deposit
+      await expect(
+        strategy.reinvest(
+          SWAP_TARGET,
+          EXPECTED_LQTY_REWARD,
+          SWAP_LQTY_DATA,
+          EXPECTED_ETH_REWARD,
+          SWAP_ETH_DATA,
+          LQTY_REWARD_IN_LUSD.add(ETH_REWARD_IN_LUSD),
+        ),
+      ).to.be.revertedWith('StrategyMinimumPrincipalProtection');
+    });
   });
 
   describe('#withdrawToVault', () => {
@@ -566,7 +604,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
 
       expect(await lusd.balanceOf(strategy.address)).to.eq('0');
       expect(await lqty.balanceOf(strategy.address)).to.eq('0');
-      expect(await ethers.provider.getBalance(strategy.address)).to.eq('0');
+      expect(await getETHBalance(strategy.address)).to.eq('0');
 
       // this will also claim the rewards from the stability pool
       const amountToWithdraw = parseUnits('5000');
@@ -578,9 +616,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       expect(await lqty.balanceOf(strategy.address)).to.eq(
         EXPECTED_LQTY_REWARD,
       );
-      expect(await ethers.provider.getBalance(strategy.address)).to.eq(
-        EXPECTED_ETH_REWARD,
-      );
+      expect(await getETHBalance(strategy.address)).to.eq(EXPECTED_ETH_REWARD);
 
       const expectedInvestedAssets = BigNumber.from('5000736699812217881367');
 
@@ -619,7 +655,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
 
       expect(await lusd.balanceOf(strategy.address)).to.eq('0');
       expect(await lqty.balanceOf(strategy.address)).to.eq('0');
-      expect(await ethers.provider.getBalance(strategy.address)).to.eq('0');
+      expect(await getETHBalance(strategy.address)).to.eq('0');
 
       let expectedInvestedAssets = BigNumber.from('10000736699812217881367');
 
@@ -636,9 +672,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       expect(await lqty.balanceOf(strategy.address)).to.eq(
         EXPECTED_LQTY_REWARD,
       );
-      expect(await ethers.provider.getBalance(strategy.address)).to.eq(
-        EXPECTED_ETH_REWARD,
-      );
+      expect(await getETHBalance(strategy.address)).to.eq(EXPECTED_ETH_REWARD);
 
       expect(await strategy.investedAssets()).to.eq(expectedInvestedAssets);
       expect(await lusd.balanceOf(vault.address)).to.eq(amountToWithdraw);
@@ -661,7 +695,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       expect(
         await lqtyStabilityPool.getDepositorETHGain(strategy.address),
       ).to.eq('0');
-      expect(await ethers.provider.getBalance(strategy.address)).to.eq('0');
+      expect(await getETHBalance(strategy.address)).to.eq('0');
 
       const actualInvestedAssets = await strategy.investedAssets();
 

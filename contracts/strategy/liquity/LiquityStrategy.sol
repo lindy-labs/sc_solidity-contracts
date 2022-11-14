@@ -39,13 +39,15 @@ contract LiquityStrategy is
     error StrategyNotEnoughETH();
     error StrategyNotEnoughLQTY();
     error StrategyNothingToReinvest();
-    error StrategyStabilityPoolCannotBeAddressZero();
+    error StrategyStabilityPoolCannotBe0Address();
+    error StrategyCurveExchangeCannotBe0Address();
     error StrategySwapTargetCannotBe0Address();
     error StrategySwapTargetNotAllowed();
     error StrategyTokenApprovalFailed(address token);
     error StrategyTokenTransferFailed(address token);
     error StrategyInsufficientOutputAmount();
     error StrategyYieldTokenCannotBe0Address();
+    error StrategyMinimumPrincipalProtection();
 
     event StrategyReinvested(uint256 amountInLUSD);
 
@@ -53,8 +55,8 @@ contract LiquityStrategy is
         0xD51a44d3FaE010294C616388b506AcdA1bfAAE46;
     address public constant LUSD_CURVE_POOL =
         0xEd279fDD11cA84bEef15AF5D39BB4d4bEE23F0cA;
-    address public constant CURVE_ROUTER =
-        0x81C46fECa27B31F3ADC2b91eE4be9717d1cd3DD7;
+    // address public constant CURVE_ROUTER =
+    //     0x81C46fECa27B31F3ADC2b91eE4be9717d1cd3DD7;
     address public constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address public constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
 
@@ -69,8 +71,21 @@ contract LiquityStrategy is
     /// @inheritdoc IStrategy
     address public override(IStrategy) vault;
     IStabilityPool public stabilityPool;
+    ICurveExchange public curveExchange;
     IERC20 public lqty; // reward token
     mapping(address => bool) public allowedSwapTargets; // whitelist of swap targets
+
+    /**
+     * A percentage that specifies the minimum amount of principal to protect.
+     * This value acts as a threshold and is applied only when the total underlying assets are grater tha the minimum amount of principal to protect.
+     * The protected principal is kept in LUSD.
+     *
+     * For instance, if the minimum protected principal is 150%, the total
+     * principal is 100 LUSD, and the total yield is 100 LUSD. When the backend
+     * rebalances the strategy, it has to ensure that at least 50 ETH+LQTY is
+     * converted to LUSD to maintain a 150% minimum protected principal.
+     */
+    uint16 public minPrincipalProtectionPct;
 
     //
     // Modifiers
@@ -109,7 +124,9 @@ contract LiquityStrategy is
         address _stabilityPool,
         address _lqty,
         address _underlying,
-        address _keeper
+        address _keeper,
+        uint16 _principalProtectionPct,
+        address _curveExchange
     ) public initializer {
         __AccessControl_init();
         __UUPSUpgradeable_init();
@@ -117,12 +134,14 @@ contract LiquityStrategy is
         if (_admin == address(0)) revert StrategyAdminCannotBe0Address();
         if (_lqty == address(0)) revert StrategyYieldTokenCannotBe0Address();
         if (_stabilityPool == address(0))
-            revert StrategyStabilityPoolCannotBeAddressZero();
+            revert StrategyStabilityPoolCannotBe0Address();
         if (_underlying == address(0))
             revert StrategyUnderlyingCannotBe0Address();
         if (!_vault.doesContractImplementInterface(type(IVault).interfaceId))
             revert StrategyNotIVault();
         if (_keeper == address(0)) revert StrategyKeeperCannotBe0Address();
+        if (_curveExchange == address(0))
+            revert StrategyCurveExchangeCannotBe0Address();
 
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
         _grantRole(KEEPER_ROLE, _admin);
@@ -133,11 +152,22 @@ contract LiquityStrategy is
         vault = _vault;
         underlying = IERC20(_underlying);
         stabilityPool = IStabilityPool(_stabilityPool);
+        curveExchange = ICurveExchange(_curveExchange);
         lqty = IERC20(_lqty);
+        minPrincipalProtectionPct = _principalProtectionPct;
 
         if (!underlying.approve(_stabilityPool, type(uint256).max)) {
             revert StrategyTokenApprovalFailed(_underlying);
         }
+    }
+
+    /**
+     * Set the minimum principal protection percentage.
+     *
+     * @param _pct The new minimum principal protection percentage.
+     */
+    function setMinPrincipalProtectionPct(uint16 _pct) external onlySettings {
+        minPrincipalProtectionPct = _pct;
     }
 
     /**
@@ -167,9 +197,7 @@ contract LiquityStrategy is
     // IStrategy
     //
 
-    /**
-     * Returns true since strategy is synchronous.
-     */
+    /// @inheritdoc IStrategy
     function isSync() external pure override(IStrategy) returns (bool) {
         return true;
     }
@@ -203,16 +231,19 @@ contract LiquityStrategy is
             return stabilityPool.getCompoundedLUSDDeposit(address(this));
         }
 
-        uint256 ethBalanceInUSDT = ICurveExchange(CURVE_ROUTER)
-            .get_exchange_amount(WETH_CURVE_POOL, WETH, USDT, ethBalance);
+        uint256 ethBalanceInUSDT = curveExchange.get_exchange_amount(
+            WETH_CURVE_POOL,
+            WETH,
+            USDT,
+            ethBalance
+        );
 
-        uint256 ethBalanceInLusd = ICurveExchange(CURVE_ROUTER)
-            .get_exchange_amount(
-                LUSD_CURVE_POOL,
-                USDT,
-                address(underlying),
-                ethBalanceInUSDT
-            );
+        uint256 ethBalanceInLusd = curveExchange.get_exchange_amount(
+            LUSD_CURVE_POOL,
+            USDT,
+            address(underlying),
+            ethBalanceInUSDT
+        );
 
         return
             stabilityPool.getCompoundedLUSDDeposit(address(this)) +
@@ -307,13 +338,11 @@ contract LiquityStrategy is
         bytes calldata _ethSwapData,
         uint256 _amountOutMin
     ) external virtual onlyKeeper {
-        _checkSwapTargetForZeroAddress(_swapTarget);
+        _checkSwapTarget(_swapTarget);
+        _checkMinPrincpalProtectionRequirement(_amountOutMin);
 
-        if (!allowedSwapTargets[_swapTarget])
-            revert StrategySwapTargetNotAllowed();
-
-        swapLQTYtoLUSD(_lqtyAmount, _swapTarget, _lqtySwapData);
-        swapETHtoLUSD(_ethAmount, _swapTarget, _ethSwapData);
+        _swapLQTYtoLUSD(_swapTarget, _lqtyAmount, _lqtySwapData);
+        _swapETHtoLUSD(_swapTarget, _ethAmount, _ethSwapData);
 
         // reinvest LUSD gains into the stability pool
         uint256 balance = underlying.balanceOf(address(this));
@@ -330,6 +359,51 @@ contract LiquityStrategy is
         stabilityPool.provideToSP(balance, address(0));
     }
 
+    /// @inheritdoc IStrategy
+    function transferYield(address, uint256)
+        external
+        virtual
+        override(IStrategy)
+        onlyManager
+        returns (uint256)
+    {
+        return 0;
+    }
+
+    /**
+     * Checks if the minimum principal protection requirement is met.
+     *
+     * @param _amountOutMin the minimum amount of LUSD to be received after the ETH & LQTY -> LUSD swap.
+     */
+    function _checkMinPrincpalProtectionRequirement(uint256 _amountOutMin)
+        internal
+        view
+    {
+        // check if the amountOutMin is enough to protect the principal
+        if (
+            IVault(vault).totalPrincipal().pctOf(minPrincipalProtectionPct) <=
+            IVault(vault).totalPrincipal() + _amountOutMin
+        ) return;
+
+        // minimum principal protection does not apply when total underlying value is less than min protected principal
+        if (
+            IVault(vault).totalUnderlying() <
+            IVault(vault).totalPrincipal().pctOf(minPrincipalProtectionPct)
+        ) return;
+
+        revert StrategyMinimumPrincipalProtection();
+    }
+
+    /**
+     * Checks if the provided swap target is 0 address or is not allowed and reverts if any of these conditions is true.
+     */
+    function _checkSwapTarget(address _swapTarget) internal view {
+        _checkSwapTargetForZeroAddress(_swapTarget);
+
+        if (!allowedSwapTargets[_swapTarget])
+            revert StrategySwapTargetNotAllowed();
+    }
+
     /**
      * Checks if the provided swap target is 0 address and reverts if true.
      */
@@ -343,13 +417,13 @@ contract LiquityStrategy is
      *
      * @notice Swap data is real-time data obtained from '0x' api.
      *
-     * @param _amount the amount of LQTY tokens to swap. Has to match with the amount used to obtain @param _lqtySwapData from '0x' api.
      * @param _swapTarget the address of the '0x' contract performing the swap.
+     * @param _amount the amount of LQTY tokens to swap. Has to match with the amount used to obtain @param _lqtySwapData from '0x' api.
      * @param _lqtySwapData data from '0x' api used to perform LQTY -> LUSD swap.
      */
-    function swapLQTYtoLUSD(
-        uint256 _amount,
+    function _swapLQTYtoLUSD(
         address _swapTarget,
+        uint256 _amount,
         bytes calldata _lqtySwapData
     ) internal {
         // don't do cross-contract call if nothing to swap
@@ -359,9 +433,8 @@ contract LiquityStrategy is
         if (_amount > lqtyBalance) revert StrategyNotEnoughLQTY();
 
         // give approval to the swapTarget
-        if (!lqty.approve(_swapTarget, _amount)) {
+        if (!lqty.approve(_swapTarget, _amount))
             revert StrategyTokenApprovalFailed(address(lqty));
-        }
 
         // perform the swap
         (bool success, ) = _swapTarget.call{value: 0}(_lqtySwapData);
@@ -373,13 +446,13 @@ contract LiquityStrategy is
      *
      * @notice Swap data is real-time data obtained from '0x' api.
      *
-     * @param _amount the amount of ETH to swap. Has to match with the amount used to obtain @param _ethSwapData from '0x' api.
      * @param _swapTarget the address of the '0x' contract performing the swap.
+     * @param _amount the amount of ETH to swap. Has to match with the amount used to obtain @param _ethSwapData from '0x' api.
      * @param _ethSwapData data from '0x' api to perform ETH -> LUSD swap.
      */
-    function swapETHtoLUSD(
-        uint256 _amount,
+    function _swapETHtoLUSD(
         address _swapTarget,
+        uint256 _amount,
         bytes calldata _ethSwapData
     ) internal {
         // don't do cross-contract call if nothing to swap
@@ -389,6 +462,7 @@ contract LiquityStrategy is
         if (_amount > ethBalance) revert StrategyNotEnoughETH();
 
         (bool success, ) = _swapTarget.call{value: _amount}(_ethSwapData);
+
         if (!success) revert StrategyETHSwapFailed();
     }
 
