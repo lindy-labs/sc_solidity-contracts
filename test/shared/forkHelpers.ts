@@ -6,6 +6,7 @@ import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import 'dotenv/config';
 
 assert(process.env.ALCHEMY_MAINNET_RPC);
+assert(process.env.ALCHEMY_ARBITRUM_RPC);
 
 export async function forkToMainnet(block?: number) {
   await network.provider.request({
@@ -15,6 +16,21 @@ export async function forkToMainnet(block?: number) {
         forking: {
           jsonRpcUrl: process.env.ALCHEMY_MAINNET_RPC!,
           blockNumber: block,
+        },
+      },
+    ],
+  });
+}
+
+export async function forkToArbitrumMainnet(block?: number) {
+  await network.provider.request({
+    method: 'hardhat_reset',
+    params: [
+      {
+        forking: {
+          jsonRpcUrl: process.env.ALCHEMY_ARBITRUM_RPC!,
+          blockNumber: block,
+          ignoreUnknownTxType: true,
         },
       },
     ],
@@ -112,13 +128,15 @@ async function bruteForceTokenBalanceSlotIndex(
 
   for (let i = 0; i < 100; i++) {
     let probedSlot = keccak256(encodeSlot(['address', 'uint'], [account, i])); // remove padding for JSON RPC
-    while (probedSlot.startsWith('0x0'))
-      probedSlot = '0x' + probedSlot.slice(3);
+
     const prev = await network.provider.send('eth_getStorageAt', [
       tokenAddress,
       probedSlot,
       'latest',
     ]);
+
+    while (probedSlot.startsWith('0x0'))
+      probedSlot = '0x' + probedSlot.slice(3);
 
     // make sure the probe will change the slot value
     const probe = prev === probeA ? probeB : probeA;

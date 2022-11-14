@@ -32,9 +32,7 @@ contract LiquityStrategy is
     using PercentMath for uint256;
     using ERC165Query for address;
 
-    error StrategyCallerNotKeeper();
     error StrategyETHSwapFailed();
-    error StrategyKeeperCannotBe0Address();
     error StrategyLQTYSwapFailed();
     error StrategyNotEnoughETH();
     error StrategyNotEnoughLQTY();

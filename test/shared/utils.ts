@@ -39,3 +39,7 @@ export const getTransactionGasCost = async (tx: ContractTransaction) => {
   const receipt = await tx.wait();
   return receipt.gasUsed.mul(receipt.effectiveGasPrice);
 };
+
+export const parseUSDC = (from: BigNumber | string): BigNumber => {
+  return utils.parseUnits(from.toString(), 6);
+};
