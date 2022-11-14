@@ -118,7 +118,7 @@ It has the following external/public functions that are view only and change not
 | 40 | `totalUnderlyingMinusSponsored() >= totalPrincipal => withdraw(validParam) never reverts` | unit test | high | N | N |
 | 41 | `totalUnderlyingMinusSponsored() >= totalPrincipal => partialWithdraw(validParam) never reverts` | unit test | high | N | N |
 | 42 | `updateInvested()` should function according to `investState()` | unit test | medium | N | N |
-| 43 | depositor can never withdraw more than deposited | unit test | high | N | N |
+| 43 | depositor can never withdraw more than deposited by calling `withdraw(...)`, `forceWithdraw(...)` and `partialWithdraw(...)` functions | unit test | high | N | N |
 | 44 | sponsor can never unsponsor more than sponsored | unit test | high | N | N |
 | 45 | `paused() => deposit(...), depositForGroupId(...) and sponsor(...) always revert` | unit test | high | N | N |
 | 46 | `deposit(invalidParam) always reverts`, where `invalidParam` could be `amount==0`, or `claim.pct == 0`, or `sum(claim.pct) != 100`, or `lockDuration` is out of range, or `inputToken` is invalid | unit test | high | N | N |
