@@ -1,3 +1,7 @@
+import "erc20.spec"
+
+using MockStrategySync as strategy
+
 methods {
     // state changing functions
     deposit(address, uint64, uint256, uint16[], address[], bytes[], uint256)
@@ -60,7 +64,9 @@ definition excludeSponsor(method f) returns bool =
     f.selector != partialUnsponsor(address, uint256[], uint256[]).selector;
 
 
-ghost sumOfDeposits() returns uint256;
+ghost sumOfDeposits() returns uint256 {
+    init_state axiom sumOfDeposits() == 0;
+}
 
 hook Sstore deposits[KEY uint256 k].(offset 0) uint256 amount (uint256 oldAmount) STORAGE {
     havoc sumOfDeposits assuming sumOfDeposits@new() == sumOfDeposits@old() + (amount - oldAmount);
@@ -78,7 +84,9 @@ invariant tatalPrincipal_equals_sum_of_deposits()
     filtered{f -> excludeSponsor(f)}
 
 
-ghost sumOfClaimerPrincipal() returns uint256;
+ghost sumOfClaimerPrincipal() returns uint256  {
+    init_state axiom sumOfClaimerPrincipal() == 0;
+}
 
 hook Sstore claimer[KEY address k].(offset 0) uint256 amount (uint256 oldAmount) STORAGE {
     havoc sumOfClaimerPrincipal assuming sumOfClaimerPrincipal@new() == sumOfClaimerPrincipal@old() + (amount - oldAmount);
@@ -95,7 +103,9 @@ invariant tatalPrincipal_equals_sum_of_claimer_principal()
     totalPrincipal() == sumOfClaimerPrincipal()
 
 
-ghost sumOfClaimerShares() returns uint256;
+ghost sumOfClaimerShares() returns uint256   {
+    init_state axiom sumOfClaimerShares() == 0;
+}
 
 hook Sstore claimer[KEY uint256 k].(offset 32) uint256 amount (uint256 oldAmount) STORAGE {
     havoc sumOfClaimerShares assuming sumOfClaimerShares@new() == sumOfClaimerShares@old() + (amount - oldAmount);
@@ -127,3 +137,91 @@ invariant shares_principal_consistency()
             requireInvariant tatalShares_equals_sum_of_claimer_shares();
         }
     }
+
+
+/*
+    @Rule
+
+    @Description:
+        price per share, i.e., totalUnderlyingMinusSponsored() / totalShares should be preserved, or
+        both totalUnderlyingMinusSponsored() and totalShares become 0 after any function calls.
+
+    TODO - investigate counter examples 
+    https://prover.certora.com/output/15154/6f4601e838ab9a26adb0?anonymousKey=e1374529223eb7bf10fff0423b590617ec901648
+*/
+rule price_per_share_preserved(method f) {
+    require totalUnderlyingMinusSponsored() != 0 && totalShares() != 0;
+    uint256 pricePerShare = totalUnderlyingMinusSponsored() / totalShares();
+    env e;
+    require e.msg.sender != strategy; // safe to assume stragety will never call any function in Vault
+    calldataarg args;
+    f(e, args);
+    assert 
+        totalShares() == 0 && totalUnderlyingMinusSponsored() == 0 
+        || 
+        pricePerShare == totalUnderlyingMinusSponsored() / totalShares();
+}
+
+
+/*
+    @Rule
+
+    @Description:
+        only claimYield, deposit and withdraw functions can change claimer's shares
+*/
+rule only_claim_deposits_withdraw_change_claimer_shares(address claimer, method f) {
+    uint256 _shares = sharesOf(claimer);
+    env e;
+    calldataarg args;
+    f(e, args);
+    uint256 shares_ = sharesOf(claimer);
+    assert _shares != shares_ =>
+        (
+            f.selector == claimYield(address).selector
+            ||
+            f.selector == deposit(address, uint64, uint256, uint16[], address[], bytes[], uint256).selector
+            ||
+            f.selector == deposit((address,uint64,uint256,(uint16,address,bytes)[],string,uint256)).selector
+            ||
+            f.selector == depositForGroupId(uint256, address, uint64, uint256, uint16[], address[], bytes[], uint256).selector
+            ||
+            f.selector == depositForGroupId(uint256, (address,uint64,uint256,(uint16,address,bytes)[],string,uint256)).selector
+            ||
+            f.selector == withdraw(address, uint256[]).selector
+            ||
+            f.selector == forceWithdraw(address, uint256[]).selector
+            ||
+            f.selector == partialWithdraw(address, uint256[], uint256[]).selector
+        );
+}
+
+
+/*
+    @Rule
+
+    @Description:
+        only deposit and withdraw functions can change claimer's principal
+*/
+rule only_deposits_withdraw_change_claimer_principal(address claimer, method f) {
+    uint256 _principal = principalOf(claimer);
+    env e;
+    calldataarg args;
+    f(e, args);
+    uint256 principal_ = principalOf(claimer);
+    assert _principal != principal_ =>
+        (
+            f.selector == deposit(address, uint64, uint256, uint16[], address[], bytes[], uint256).selector
+            ||
+            f.selector == deposit((address,uint64,uint256,(uint16,address,bytes)[],string,uint256)).selector
+            ||
+            f.selector == depositForGroupId(uint256, address, uint64, uint256, uint16[], address[], bytes[], uint256).selector
+            ||
+            f.selector == depositForGroupId(uint256, (address,uint64,uint256,(uint16,address,bytes)[],string,uint256)).selector
+            ||
+            f.selector == withdraw(address, uint256[]).selector
+            ||
+            f.selector == forceWithdraw(address, uint256[]).selector
+            ||
+            f.selector == partialWithdraw(address, uint256[], uint256[]).selector
+        );
+}
