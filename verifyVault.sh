@@ -2,10 +2,10 @@
 if [ "$#" -eq 0 ]
 then 
   certoraRun certora/harness/VaultHarness.sol \
-  	        contracts/mock/MockStrategySync.sol \
+  	  contracts/mock/MockStrategySync.sol \
 			contracts/mock/MockERC20.sol:MockLUSD \
 			contracts/mock/MockCurvePool.sol:MockCurve \
-	--link  VaultHarness:strategy=MockStrategySync \
+	  --link VaultHarness:strategy=MockStrategySync \
       VaultHarness:underlying=MockLUSD \
 			MockStrategySync:underlying=MockLUSD \
     --verify VaultHarness:certora/specs/Vault.spec \
@@ -15,10 +15,10 @@ then
 elif [ "$#" -eq 1 ]
 then
   certoraRun certora/harness/VaultHarness.sol \
-  	        contracts/mock/MockStrategySync.sol \
+  	  contracts/mock/MockStrategySync.sol \
 			contracts/mock/MockERC20.sol:MockLUSD \
 			contracts/mock/MockCurvePool.sol:MockCurve \
-	--link  VaultHarness:strategy=MockStrategySync \
+	  --link VaultHarness:strategy=MockStrategySync \
       VaultHarness:underlying=MockLUSD \
 			MockStrategySync:underlying=MockLUSD \
     --verify VaultHarness:certora/specs/Vault.spec \
