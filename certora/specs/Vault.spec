@@ -1,6 +1,7 @@
 import "erc20.spec"
 
 using MockStrategySync as strategy
+using MockLUSD as underlying
 
 methods {
     // state changing functions
@@ -48,6 +49,7 @@ methods {
     depositLockedUntil(uint256) returns (uint256) envfree
 
     // public variables
+    underlying() returns (address) envfree
     treasury() returns (address) envfree
     investPct() returns (uint16) envfree
     perfFeePct() returns (uint16) envfree
@@ -57,6 +59,9 @@ methods {
     accumulatedPerfFee() returns (uint256) envfree
     paused() returns (bool) envfree
     exitPaused() returns (bool) envfree
+
+    // erc20
+    underlying.balanceOf(address) returns (uint256) envfree
 }
 
 definition excludeSponsor(method f) returns bool =
@@ -301,7 +306,78 @@ rule only_deposits_withdraw_change_claimer_principal(address claimer, method f) 
 invariant maxInvestableAmount_ge_alreadyInvested()
     maxInvestableAmount() >= alreadyInvested()
     filtered{f -> excludeSetInvestPct(f) && excludeWithdrawals(f)}
+
+
+/*
+    @Invariant
+
+    @Description:
+        the underlying public variable should always be the same with the return value of getUnderlying() function
+*/
+invariant same_underlying()
+    underlying() == getUnderlying()
+
+
+/*
+    @Invariant
+
+    @Description:
+        With the basic strategy that does nothing, totalUnderlying() value should always equal 
+        sum of the vault and strategy's balances of the underlying token
+*/
+invariant totalUnderlying_correct()
+    totalUnderlying() == underlying.balanceOf(currentContract) + underlying.balanceOf(strategy)
     
+
+/*
+    @Invariant
+
+    @Description:
+        With the basic strategy that does nothing, 
+        the totalUnderlyingMinusSponsored() value should always equal totalPrincipal
+
+    TODO - investigate violations in
+           https://prover.certora.com/output/15154/03ef82f0c00d42ecca77?anonymousKey=88fbc6398fa94b31d7dac352bffe21e86f968566
+*/
+invariant totalUnderlyingMinusSponsored_eq_totalPrincipal(method f)
+    totalUnderlyingMinusSponsored() == totalPrincipal()
+    {
+        preserved with (env e) {
+            require accumulatedPerfFee() == 0; // no performance fee
+            require claimableYield(e.msg.sender) == 0; // no yield
+            if (
+                f.selector == deposit((address, uint64, uint256,(uint16, address, bytes)[],string,uint256)).selector
+                ||
+                f.selector == depositForGroupId(uint256,(address,uint64,uint256,(uint16,address,bytes)[],string,uint256)).selector
+                ||
+                f.selector == sponsor(address,uint256,uint256,uint256).selector
+            ) {
+                require e.msg.sender != strategy;
+            }
+
+        }
+        preserved withdraw(address to, uint256[] ids) with (env e1) {
+            require to != currentContract && to != strategy;
+            require e1.msg.sender != strategy;
+        }
+        preserved forceWithdraw(address to, uint256[] ids) with (env e2) {
+            require to != currentContract && to != strategy;
+            require e2.msg.sender != strategy;
+        }
+        preserved partialWithdraw(address to, uint256[] ids, uint256[] amounts) with (env e3) {
+            require to != currentContract && to != strategy;
+            require e3.msg.sender != strategy;
+        }
+        preserved unsponsor(address to, uint256[] ids) with (env e4) {
+            require to != currentContract && to != strategy;
+            require e4.msg.sender != strategy;
+        }
+        preserved partialUnsponsor(address to, uint256[] ids, uint256[] amounts) with (env e5) {
+            require to != currentContract && to != strategy;
+            require e5.msg.sender != strategy;
+        }
+    }
+
 
 /*
     @Rule
@@ -340,4 +416,18 @@ rule yield_calculations_correct(address user) {
     assert yield > 0 <=> claimableShares > 0;
     assert yield == 0 <=> claimableShares == 0;
     assert perfFee == pctOf(yield, perfFeePct());
+}
+
+
+/*
+    @Rule
+
+    @Category: unit test
+
+    @Description:
+        the totalUnderlyingMinusSponsored() value should equal totalUnderlying() minus totalSponsored and accumulatedPerfFee  
+*/
+rule totalUnderlyingMinusSponsored_correct() {
+    require totalSponsored() + accumulatedPerfFee() <= totalUnderlying();
+    assert totalUnderlyingMinusSponsored() == totalUnderlying() - totalSponsored() - accumulatedPerfFee();
 }

@@ -8,6 +8,7 @@ then
 	  --link VaultHarness:strategy=MockStrategySync \
       VaultHarness:underlying=MockLUSD \
 			MockStrategySync:underlying=MockLUSD \
+      MockStrategySync:vault=VaultHarness \
     --verify VaultHarness:certora/specs/Vault.spec \
     --optimistic_loop \
     --packages @openzeppelin=node_modules/@openzeppelin \
@@ -21,6 +22,7 @@ then
 	  --link VaultHarness:strategy=MockStrategySync \
       VaultHarness:underlying=MockLUSD \
 			MockStrategySync:underlying=MockLUSD \
+      MockStrategySync:vault=VaultHarness \
     --verify VaultHarness:certora/specs/Vault.spec \
     --optimistic_loop \
     --packages @openzeppelin=node_modules/@openzeppelin \

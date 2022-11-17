@@ -84,10 +84,10 @@ It has the following external/public functions that are view only and change not
 | 6 | Without a strategy or a strategy doing nothing, price per share are preserved or both `totalShares` and `totalUnderlyingMinusSponsored()` become `0`| high-level | high | Y | N |
 | 7 | `sharesOf(claimer)` changes only if `claimYield(...)`, `deposit(...)`, `depositForGroupId(...)`, `withdraw(...)`, `forceWithdraw(...)` or `partialWithdraw(...)` is called | high-level | high | Y | Y | [Link](https://prover.certora.com/output/15154/6077e741f7b60ccb25bf?anonymousKey=493be4dceda848e5cb6193eb7aa1c4e761edf4eb) |
 | 8 | `principal(claimer)` changes only if `deposit(...)`, `depositForGroupId(...)`, `withdraw(...)`, `forceWithdraw(...)`, or `partialWithdraw(...)`is called | high-level | high | Y | Y | [Link](https://prover.certora.com/output/15154/574d79e5f159811ef58b/?anonymousKey=07a6ee9f21abf4543dfda70d1b92fc7883cea848) |
-| 9 | Without a strategy or a strategy not making money, `investState().maxInvestableAmount >= investState().alreadyInvested` | high-level | medium | Y | [Link](https://prover.certora.com/output/15154/6d0dfd60b24a7a3f309f?anonymousKey=dc4be13adbfec86b1a7b350680b5801ddeba56be) |
-| 10 | `address(underlying()) == getUnderlying()` | high-level | medium | N | N |
-| 11 | Without any strategy or with a strategy doing nothing, `totalUnderlying() == totalPrincipal + totalSponsored` | high-level | high | N | N |
-| 12 | Without any strategy or with a strategy doing nothing, `totalUnderlyingMinusSponsored() == totalPrincipal` | high-level | high | N | N |
+| 9 | Without a strategy or a strategy not making money, `investState().maxInvestableAmount >= investState().alreadyInvested` | high-level | medium | Y | Y | [Link](https://prover.certora.com/output/15154/6d0dfd60b24a7a3f309f?anonymousKey=dc4be13adbfec86b1a7b350680b5801ddeba56be) |
+| 10 | `address(underlying()) == getUnderlying()` | high-level | medium | Y | Y | [Link](https://prover.certora.com/output/15154/38696977af74c5831d7c?anonymousKey=cee29438d21eba0fe2f0f973a0b2b8e518848828) |
+| 11 | Without any strategy or with a strategy doing nothing, `totalUnderlying() == underlying.balanceOf(vault) + underlying.balanceOf(strategy)` | high-level | high | Y | Y | [Link](https://prover.certora.com/output/15154/a18606b1923487c653b1?anonymousKey=a22101b45deb02cae33d04cbddfd6a2b9c14f7c0) |
+| 12 | Without any strategy or with a strategy doing nothing, `totalUnderlyingMinusSponsored() == totalPrincipal` | high-level | high | Y | N |
 | 13 | Without any strategy or with a strategy not making money, `accumulatedPerfFee == 0` | high-level | medium | N | N |
 | 14 | Without any strategy or with a strategy not making money, `yieldFor(anyone) == (0, 0, 0)` | high-level | medium | N | N |
 | 15 | With a strategy making money, `totalUnderlying() == totalPrincipal + totalSponsored + sum(yieldFor(user).claimableYield + yieldFor(user).perfFee)` | high-level | high | N | N |
@@ -122,4 +122,5 @@ It has the following external/public functions that are view only and change not
 | 44 | `deposit(invalidParam) always reverts`, where `invalidParam` could be `amount==0`, or `claim.pct == 0`, or `sum(claim.pct) != 100`, or `lockDuration` is out of range, or `inputToken` is invalid | unit test | high | N | N |
 | 45 | `sponsor(invalidParam) always reverts`, where `invalidParam` could be `amount==0`, or `lockDuration` is out of range, or `inputToken` is invalid | unit test | high | N | N |
 | 46 | `exitPaused() => withdraw(...), partialWithdraw(...), forceWithdraw(...), claimYield(...) and unsponsor(...) always revert` | unit test | high | N | N |
+| 47 | `totalUnderlyingMinusSponsored() == totalUnderlying() - totalSponsored - accumulatedPerfFee` | unit test | medium | Y | Y | [Link](https://prover.certora.com/output/15154/4b2c0be038cb5ab3d1cc?anonymousKey=3fb7818a868990500c964aded0a5842770bab570) |
 
