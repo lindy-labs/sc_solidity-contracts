@@ -99,9 +99,7 @@ contract AnchorStrategy is IAnchorStrategy, BaseStrategy {
     // IStrategy
     //
 
-    /**
-     * Returns false since strategy is asynchronous.
-     */
+    /// @inheritdoc IStrategy
     function isSync() external pure override(IStrategy) returns (bool) {
         return false;
     }

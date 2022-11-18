@@ -49,6 +49,21 @@ interface IStrategy {
     function withdrawToVault(uint256 amount) external;
 
     /**
+     * Transfers the @param _amount to @param _to in the more appropriate currency.
+     *
+     * For instance, for Liquity Yield DCA, the most appropriate currency may
+     * be ETH since yield will be kept in ETH.
+     *
+     * @param _to address that will receive the funds.
+     * @param _amount amount to transfer.
+     *
+     * @return amountTransferred amount in underlying equivalent to amount transferred in other currency.
+     */
+    function transferYield(address _to, uint256 _amount)
+        external
+        returns (uint256 amountTransferred);
+
+    /**
      * Amount of the underlying currency currently invested by the strategy.
      *
      * @notice both held and invested amounts are included here, using the

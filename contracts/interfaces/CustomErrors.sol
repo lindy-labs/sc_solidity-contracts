@@ -139,6 +139,9 @@ interface CustomErrors {
     // Strategy: admin is 0x
     error StrategyAdminCannotBe0Address();
 
+    // Strategy: keeper is 0x
+    error StrategyKeeperCannotBe0Address();
+
     // Strategy: cannot transfer admin rights to self
     error StrategyCannotTransferAdminRightsToSelf();
 
@@ -153,6 +156,9 @@ interface CustomErrors {
 
     // Strategy: caller has no settings role
     error StrategyCallerNotSettings();
+
+    // Strategy: caller has no keeper role
+    error StrategyCallerNotKeeper();
 
     // Strategy: caller is not admin
     error StrategyCallerNotAdmin();

@@ -18,10 +18,12 @@ import {IVault} from "../vault/IVault.sol";
 abstract contract BaseStrategy is IStrategy, AccessControl, CustomErrors {
     using ERC165Query for address;
 
-    /// role allowed to invest/withdraw from yearn vault
+    /// role allowed to call invest and withdrawToVault
     bytes32 public constant MANAGER_ROLE = keccak256("MANAGER_ROLE");
-    /// role allowed to change settings such as max loss on withdraw from yearn vault
+    /// role allowed to change settings of the strategy
     bytes32 public constant SETTINGS_ROLE = keccak256("SETTINGS_ROLE");
+    // role allowed to call maintenance functions
+    bytes32 public constant KEEPER_ROLE = keccak256("KEEPER_ROLE");
     // underlying ERC20 token
     IERC20 public underlying;
     // the vault linked to this strategy
@@ -66,6 +68,11 @@ abstract contract BaseStrategy is IStrategy, AccessControl, CustomErrors {
         _;
     }
 
+    modifier onlyKeeper() {
+        if (!hasRole(KEEPER_ROLE, msg.sender)) revert StrategyCallerNotKeeper();
+        _;
+    }
+
     modifier onlyAdmin() {
         if (!hasRole(DEFAULT_ADMIN_ROLE, msg.sender))
             revert StrategyCallerNotAdmin();
@@ -99,5 +106,15 @@ abstract contract BaseStrategy is IStrategy, AccessControl, CustomErrors {
         _grantRole(DEFAULT_ADMIN_ROLE, _newAdmin);
 
         _revokeRole(DEFAULT_ADMIN_ROLE, msg.sender);
+    }
+
+    /// @inheritdoc IStrategy
+    function transferYield(address, uint256)
+        external
+        virtual
+        override(IStrategy)
+        returns (uint256)
+    {
+        return 0;
     }
 }

@@ -22,6 +22,8 @@ jobs:
 
     env:
       ALCHEMY_MAINNET_RPC: ${{ secrets.ALCHEMY_MAINNET_RPC }}
+      ALCHEMY_ARBITRUM_RPC: ${{ secrets.ALCHEMY_ARBITRUM_RPC }}
+      TESTNET_MNEMONIC: ${{ secrets.TESTNET_MNEMONIC }}
       CC_SECRET: ${{ secrets.CC_SECRET }}
       NODE_ENV: test
 
