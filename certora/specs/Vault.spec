@@ -47,9 +47,15 @@ methods {
     depositOwner(uint256) returns (address) envfree
     depositClaimer(uint256) returns (address) envfree
     depositLockedUntil(uint256) returns (uint256) envfree
+    totalSharesOf(address[]) returns (uint256) envfree
+    totalPrincipalOf(address[]) returns (uint256) envfree
+    totalDeposits(uint256[]) returns (uint256) envfree
+    totalSharesOf(uint256[]) returns (uint256) envfree
+    totalPrincipalOf(uint256[]) returns (uint256) envfree
 
     // public variables
     underlying() returns (address) envfree
+    minLockPeriod() returns (uint64) envfree
     treasury() returns (address) envfree
     investPct() returns (uint16) envfree
     perfFeePct() returns (uint16) envfree
@@ -377,6 +383,189 @@ invariant totalUnderlyingMinusSponsored_eq_totalPrincipal(method f)
             require e5.msg.sender != strategy;
         }
     }
+
+
+/*
+    @Invariant
+
+    @Description:
+        accumulatedPerfFee should remain 0 if the strategy never makes profit
+*/
+invariant zero_accumulatedPerfFee_if_not_making_profit()
+    accumulatedPerfFee() == 0
+    {
+        preserved {
+            require totalUnderlyingMinusSponsored() <= totalPrincipal();
+        }
+    }
+
+
+/*
+    @Invariant
+
+    @Description:
+        if the strategy never makes profit, any user's claimable yield, claimable shares and perfFee should be 0
+*/
+invariant zero_yield_if_not_making_profit(address user)
+    claimableYield(user) == 0 && claimableShares(user) == 0 && perfFee(user) == 0
+    {
+        preserved {
+            require totalUnderlyingMinusSponsored() <= totalPrincipal();
+        }
+    }
+
+
+/*
+    @Invariant
+
+    @Description:
+        deposit data should be 
+*/
+invariant integrity_of_deposit_data(uint256 depositId)
+    depositAmount(depositId) == 0 && 
+    depositOwner(depositId) == 0 && 
+    depositClaimer(depositId) == 0 && 
+    depositLockedUntil(depositId) == 0
+    ||
+    depositAmount(depositId) != 0 && 
+    depositOwner(depositId) != 0 && 
+    depositClaimer(depositId) != 0 && 
+    depositLockedUntil(depositId) != 0
+    {
+        preserved {
+            require minLockPeriod() > 0;
+        }
+    }
+
+
+/*
+    @Rule
+
+    @Category: variable transition
+
+    @Description:
+        deposit function should update state variables correctly and consistently
+*/
+rule integrity_of_deposit() {
+    address inputToken; 
+    uint64 lockDuration;
+    uint256 amount; 
+    uint16[] pcts;
+    address[] claimers;
+    bytes[] datas;
+    uint256 slippage;
+    env e;
+
+    uint256 _userBalance = underlying.balanceOf(e.msg.sender);
+    uint256 _vaultBalance = underlying.balanceOf(currentContract);
+    uint256 _totalShares = totalShares();
+    uint256 _totalPrincipal = totalPrincipal();
+    uint256 _totalSharesOfClaimers = totalSharesOf(claimers);
+    uint256 _totalPrincipalOfClaimers = totalPrincipalOf(claimers);
+
+    deposit(e, inputToken, lockDuration, amount, pcts, claimers, datas, slippage);
+
+    uint256 userBalance_ = underlying.balanceOf(e.msg.sender);
+    uint256 vaultBalance_ = underlying.balanceOf(currentContract);
+    uint256 totalShares_ = totalShares();
+    uint256 totalPrincipal_ = totalPrincipal();
+    uint256 totalSharesOfClaimers_ = totalSharesOf(claimers);
+    uint256 totalPrincipalOfClaimers_ = totalPrincipalOf(claimers);
+
+    assert _userBalance - userBalance_ == amount;
+    assert vaultBalance_ - _vaultBalance == amount;
+    assert totalPrincipal_ - _totalPrincipal == amount;
+    assert totalPrincipalOfClaimers_ - _totalPrincipalOfClaimers == amount;
+    assert totalShares_ - _totalShares == totalSharesOfClaimers_ - _totalPrincipalOfClaimers;
+}
+
+
+/*
+    @Rule
+
+    @Category: variable transition
+
+    @Description:
+        deposit and depositForGroupId should have the same effect on balances, shares and principal
+*/
+rule equivalence_of_deposit_and_depositForGroupId() {
+    address inputToken; 
+    uint64 lockDuration;
+    uint256 amount; 
+    uint16[] pcts;
+    address[] claimers;
+    bytes[] datas;
+    uint256 slippage;
+    env e1;
+
+    storage init = lastStorage;
+    deposit(e1, inputToken, lockDuration, amount, pcts, claimers, datas, slippage);
+    uint256 userBalance_deposit = underlying.balanceOf(e1.msg.sender);
+    uint256 vaultBalance_deposit = underlying.balanceOf(currentContract);
+    uint256 totalShares_deposit = totalShares();
+    uint256 totalPrincipal_deposit = totalPrincipal();
+    uint256 totalSharesOfClaimers_deposit = totalSharesOf(claimers);
+    uint256 totalPrincipalOfClaimers_deposit = totalPrincipalOf(claimers);
+
+    uint256 groupId;
+    env e2;
+    require e2.msg.sender == e1.msg.sender;
+    depositForGroupId(e2, groupId, inputToken, lockDuration, amount, pcts, claimers, datas, slippage) at init;
+    uint256 userBalance_depositForGroupId = underlying.balanceOf(e2.msg.sender);
+    uint256 vaultBalance_depositForGroupId = underlying.balanceOf(currentContract);
+    uint256 totalShares_depositForGroupId = totalShares();
+    uint256 totalPrincipal_depositForGroupId = totalPrincipal();
+    uint256 totalSharesOfClaimers_depositForGroupId = totalSharesOf(claimers);
+    uint256 totalPrincipalOfClaimers_depositForGroupId = totalPrincipalOf(claimers);
+
+    assert userBalance_deposit == userBalance_depositForGroupId;
+    assert vaultBalance_deposit == vaultBalance_depositForGroupId;
+    assert totalShares_deposit == totalShares_depositForGroupId;
+    assert totalPrincipal_deposit == totalPrincipal_depositForGroupId;
+    assert totalSharesOfClaimers_deposit == totalSharesOfClaimers_depositForGroupId;
+    assert totalPrincipalOfClaimers_deposit == totalPrincipalOfClaimers_depositForGroupId;
+}
+
+
+/*
+    @Rule
+
+    @Category: variable transition
+
+    @Description:
+        deposit function should update state variables correctly and consistently
+*/
+rule integrity_of_withdraw() {
+    address to;
+    uint256[] depositIds;
+    env e;
+
+    uint256 _userBalance = underlying.balanceOf(to);
+    uint256 _vaultBalance = underlying.balanceOf(currentContract);
+    uint256 _totalShares = totalShares();
+    uint256 _totalPrincipal = totalPrincipal();
+    uint256 _totalDeposits = totalDeposits(depositIds);
+    uint256 _totalSharesOfClaimers = totalSharesOf(depositIds);
+    uint256 _totalPrincipalOfClaimers = totalPrincipalOf(depositIds);
+
+    withdraw(e, to, depositIds);
+
+    uint256 userBalance_ = underlying.balanceOf(to);
+    uint256 vaultBalance_ = underlying.balanceOf(currentContract);
+    uint256 totalShares_ = totalShares();
+    uint256 totalPrincipal_ = totalPrincipal();
+    uint256 totalDeposits_ = totalDeposits(depositIds);
+    uint256 totalSharesOfClaimers_ = totalSharesOf(depositIds);
+    uint256 totalPrincipalOfClaimers_ = totalPrincipalOf(depositIds);
+
+    assert userBalance_ - _userBalance == _totalDeposits;
+    assert _vaultBalance - vaultBalance_ == _totalDeposits;
+    assert _totalPrincipal - totalPrincipal_ == _totalDeposits;
+    assert _totalShares - totalShares_ == _totalSharesOfClaimers - totalSharesOfClaimers_;
+    assert _totalPrincipalOfClaimers == _totalDeposits;
+    assert totalPrincipalOfClaimers_ == totalDeposits_;
+    assert totalDeposits_ == 0;
+}
 
 
 /*

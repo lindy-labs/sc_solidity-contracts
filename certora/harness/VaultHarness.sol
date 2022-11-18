@@ -173,4 +173,46 @@ contract VaultHarness is Vault {
             slippage: slippage
         });
     }
+
+    function totalSharesOf(address[] calldata claimers) external view returns (uint256) {
+        uint256 total = 0;
+        for(uint256 i = 0; i < claimers.length; i++) {
+            total += claimer[claimers[i]].totalShares;
+        }
+        return total;
+    }
+
+    function totalDeposits(uint256[] calldata depositIds) external view returns (uint256) {
+        uint256 total = 0;
+        for(uint256 i = 0; i < depositIds.length; i++) {
+            total += deposits[depositIds[i]].amount;
+        }
+        return total;
+    }
+
+    function totalPrincipalOf(address[] calldata claimers) external view returns (uint256) {
+        uint256 total = 0;
+        for(uint256 i = 0; i < claimers.length; i++) {
+            total += claimer[claimers[i]].totalPrincipal;
+        }
+        return total;
+    }
+
+    function totalSharesOf(uint256[] calldata depositIds) external view returns (uint256) {
+        uint256 total = 0;
+        for(uint256 i = 0; i < depositIds.length; i++) {
+            address claimerId = deposits[depositIds[i]].claimerId;
+            total += claimer[claimerId].totalShares;
+        }
+        return total;
+    }
+
+    function totalPrincipalOf(uint256[] calldata depositIds) external view returns (uint256) {
+        uint256 total = 0;
+        for(uint256 i = 0; i < depositIds.length; i++) {
+            address claimerId = deposits[depositIds[i]].claimerId;
+            total += claimer[claimerId].totalPrincipal;
+        }
+        return total;
+    }
 }
