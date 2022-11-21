@@ -15,6 +15,7 @@ type Foundation @entity {
   vault: Vault!
   deposits: [Deposit!]! @derivedFrom(field: "foundation")
   amountDeposited: BigInt!
+  initialAmountDeposited: BigInt!
   shares: BigInt!
   amountClaimed: BigInt!
   lockedUntil: BigInt!
@@ -25,13 +26,15 @@ type Deposit @entity {
   id: ID!
   vault: Vault!
   amount: BigInt!
+  initialAmount: BigInt!
   claimer: Claimer!
   depositor: Bytes!
   foundation: Foundation!
   lockedUntil: BigInt!
   shares: BigInt!
-  burned: Boolean!
   data: Bytes!
+  burned: Boolean!
+  burnedAt: BigInt!
 }
 
 type Claimer @entity {

@@ -65,9 +65,8 @@ export function handleYieldClaimed(event: YieldClaimed): void {
     deposit.save();
 
     foundation.shares = foundation.shares.minus(depositClaimedShares);
-    foundation.amountClaimed = foundation.amountClaimed.plus(
-      depositClaimedAmount,
-    );
+    foundation.amountClaimed =
+      foundation.amountClaimed.plus(depositClaimedAmount);
     foundation.save();
 
     // If the claim is to the treasury, create a Donation
@@ -132,6 +131,7 @@ export function handleDepositMinted(event: DepositMinted): void {
     foundation.owner = event.params.depositor;
     foundation.createdAt = event.block.timestamp;
     foundation.amountDeposited = BigInt.fromString('0');
+    foundation.initialAmountDeposited = BigInt.fromString('0');
     foundation.shares = BigInt.fromString('0');
     foundation.amountClaimed = BigInt.fromString('0');
   }
@@ -139,12 +139,16 @@ export function handleDepositMinted(event: DepositMinted): void {
   foundation.lockedUntil = event.params.lockedUntil;
   foundation.shares = foundation.shares.plus(event.params.shares);
   foundation.name = event.params.name;
+  foundation.initialAmountDeposited = foundation.initialAmountDeposited.plus(
+    event.params.amount,
+  );
   foundation.amountDeposited = foundation.amountDeposited.plus(
     event.params.amount,
   );
 
   const deposit = new Deposit(depositId);
 
+  deposit.initialAmount = event.params.amount;
   deposit.amount = event.params.amount;
   deposit.claimer = claimerId;
   deposit.depositor = event.params.depositor;
@@ -190,6 +194,7 @@ export function handleDepositWithdrawn(event: DepositWithdrawn): void {
     );
 
     deposit.burned = true;
+    deposit.burnedAt = event.block.timestamp;
   }
 
   deposit.amount = deposit.amount.minus(event.params.amount);
