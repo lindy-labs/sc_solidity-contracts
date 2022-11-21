@@ -222,6 +222,7 @@ test('handleDepositMinted creates a Deposit', () => {
   handleDepositMinted(event);
 
   assert.fieldEquals('Deposit', '1', 'amount', '1');
+  assert.fieldEquals('Deposit', '1', 'initialAmount', '1');
   assert.fieldEquals('Deposit', '1', 'depositor', MOCK_ADDRESS_1);
   assert.fieldEquals('Deposit', '1', 'claimer', MOCK_ADDRESS_1);
   assert.fieldEquals('Claimer', MOCK_ADDRESS_1, 'principal', '1');
@@ -232,6 +233,7 @@ test('handleDepositMinted creates a Deposit', () => {
   assert.fieldEquals('Foundation', foundationId, 'owner', MOCK_ADDRESS_1);
   assert.fieldEquals('Foundation', foundationId, 'vault', vault.id);
   assert.fieldEquals('Foundation', foundationId, 'amountDeposited', '1');
+  assert.fieldEquals('Foundation', foundationId, 'initialAmountDeposited', '1');
   assert.fieldEquals('Foundation', foundationId, 'lockedUntil', '1');
   assert.fieldEquals(
     'Foundation',
@@ -336,6 +338,7 @@ test("handleDepositWithdrawn doesn't remove a Deposit for partial withdraws", ()
   const deposit = new Deposit('1');
   deposit.burned = false;
   deposit.amount = BigInt.fromI32(10);
+  deposit.initialAmount = BigInt.fromI32(10);
   deposit.lockedUntil = BigInt.fromI32(1);
   deposit.shares = BigInt.fromI32(10);
   deposit.claimer = '1';
@@ -348,6 +351,7 @@ test("handleDepositWithdrawn doesn't remove a Deposit for partial withdraws", ()
   const foundation = new Foundation('1');
   foundation.vault = vault.id;
   foundation.amountDeposited = BigInt.fromI32(10);
+  foundation.initialAmountDeposited = BigInt.fromI32(10);
   foundation.shares = BigInt.fromI32(10);
   foundation.save();
 
@@ -373,8 +377,10 @@ test("handleDepositWithdrawn doesn't remove a Deposit for partial withdraws", ()
 
   assert.fieldEquals('Deposit', '1', 'burned', 'false');
   assert.fieldEquals('Deposit', '1', 'shares', '5');
+  assert.fieldEquals('Deposit', '1', 'initialAmount', '10');
   assert.fieldEquals('Deposit', '1', 'amount', '5');
   assert.fieldEquals('Foundation', '1', 'amountDeposited', '5');
+  assert.fieldEquals('Foundation', '1', 'initialAmountDeposited', '10');
   assert.fieldEquals('Foundation', '1', 'shares', '5');
 });
 
@@ -427,6 +433,12 @@ test('handleDepositWithdrawn removes a Deposit by marking as burned', () => {
   assert.fieldEquals('Deposit', '1', 'burned', 'true');
   assert.fieldEquals('Deposit', '1', 'shares', '0');
   assert.fieldEquals('Deposit', '1', 'amount', '0');
+  assert.fieldEquals(
+    'Deposit',
+    '1',
+    'burnedAt',
+    event.block.timestamp.toString(),
+  );
   assert.fieldEquals('Foundation', '1', 'amountDeposited', '0');
   assert.fieldEquals('Foundation', '1', 'shares', '0');
 });
