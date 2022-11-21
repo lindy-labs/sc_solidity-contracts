@@ -215,4 +215,12 @@ contract VaultHarness is Vault {
         }
         return total;
     }
+
+    function sum(uint256[] calldata amounts) external view returns (uint256) {
+        uint256 total = 0;
+        for(uint256 i = 0; i < amounts.length; i++) {
+            total += amounts[i];
+        }
+        return total;
+    }
 }

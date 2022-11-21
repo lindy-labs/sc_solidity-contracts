@@ -52,19 +52,25 @@ methods {
     totalDeposits(uint256[]) returns (uint256) envfree
     totalSharesOf(uint256[]) returns (uint256) envfree
     totalPrincipalOf(uint256[]) returns (uint256) envfree
+    sum(uint256[]) returns (uint256) envfree
+    hasRole(bytes32, address) returns (bool) envfree
+    getCurvePool(address) returns (address) envfree
 
     // public variables
     underlying() returns (address) envfree
+    strategy() returns (address) envfree
     minLockPeriod() returns (uint64) envfree
     treasury() returns (address) envfree
     investPct() returns (uint16) envfree
     perfFeePct() returns (uint16) envfree
+    lossTolerancePct() returns (uint16) envfree
     totalSponsored() returns (uint256) envfree
     totalShares() returns (uint256) envfree
     totalPrincipal() returns (uint256) envfree
     accumulatedPerfFee() returns (uint256) envfree
     paused() returns (bool) envfree
     exitPaused() returns (bool) envfree
+    DEFAULT_ADMIN_ROLE() returns (bytes32) envfree
 
     // erc20
     underlying.balanceOf(address) returns (uint256) envfree
@@ -533,9 +539,9 @@ rule equivalence_of_deposit_and_depositForGroupId() {
     @Category: variable transition
 
     @Description:
-        deposit function should update state variables correctly and consistently
+        forceWithdraw function should update state variables correctly and consistently
 */
-rule integrity_of_withdraw() {
+rule integrity_of_forceWithdraw() {
     address to;
     uint256[] depositIds;
     env e;
@@ -548,7 +554,7 @@ rule integrity_of_withdraw() {
     uint256 _totalSharesOfClaimers = totalSharesOf(depositIds);
     uint256 _totalPrincipalOfClaimers = totalPrincipalOf(depositIds);
 
-    withdraw(e, to, depositIds);
+    forceWithdraw(e, to, depositIds);
 
     uint256 userBalance_ = underlying.balanceOf(to);
     uint256 vaultBalance_ = underlying.balanceOf(currentContract);
@@ -565,6 +571,287 @@ rule integrity_of_withdraw() {
     assert _totalPrincipalOfClaimers == _totalDeposits;
     assert totalPrincipalOfClaimers_ == totalDeposits_;
     assert totalDeposits_ == 0;
+}
+
+
+
+/*
+    @Rule
+
+    @Category: variable transition
+
+    @Description:
+        partialWithdraw function should update state variables correctly and consistently
+*/
+rule integrity_of_partialWithdraw() {
+    address to;
+    uint256[] depositIds;
+    uint256[] amounts;
+    uint256 i;
+    require i >= 0 && i < depositIds.length;
+    env e;
+
+    uint256 _userBalance = underlying.balanceOf(to);
+    uint256 _vaultBalance = underlying.balanceOf(currentContract);
+    uint256 _totalShares = totalShares();
+    uint256 _totalPrincipal = totalPrincipal();
+    uint256 _totalDeposits = totalDeposits(depositIds);
+    uint256 _totalSharesOfClaimers = totalSharesOf(depositIds);
+    uint256 _totalPrincipalOfClaimers = totalPrincipalOf(depositIds);
+    uint256 _amount = depositAmount(depositIds[i]);
+
+    partialWithdraw(e, to, depositIds, amounts);
+
+    uint256 userBalance_ = underlying.balanceOf(to);
+    uint256 vaultBalance_ = underlying.balanceOf(currentContract);
+    uint256 totalShares_ = totalShares();
+    uint256 totalPrincipal_ = totalPrincipal();
+    uint256 totalDeposits_ = totalDeposits(depositIds);
+    uint256 totalSharesOfClaimers_ = totalSharesOf(depositIds);
+    uint256 totalPrincipalOfClaimers_ = totalPrincipalOf(depositIds);
+    uint256 amount_ = depositAmount(depositIds[i]);
+
+    assert userBalance_ - _userBalance == _totalDeposits;
+    assert _vaultBalance - vaultBalance_ == _totalDeposits - totalDeposits_;
+    assert _totalPrincipal - totalPrincipal_ == _totalDeposits - totalDeposits_;
+    assert _totalShares - totalShares_ == _totalSharesOfClaimers - totalSharesOfClaimers_;
+    assert _totalPrincipalOfClaimers == _totalDeposits;
+    assert totalPrincipalOfClaimers_ == totalDeposits_;
+    assert _totalDeposits - totalDeposits_ == sum(amounts);
+    assert _amount - amount_ == amounts[i];
+}
+
+
+/*
+    @Rule
+
+    @Category: variable transition
+
+    @Description:
+        sponsor function should update state variables correctly and consistently
+*/
+rule integrity_of_sponsor() {
+    address inputToken;
+    uint256 amount;
+    uint256 lockDuration;
+    uint256 slippage;
+    env e;
+    require inputToken == underlying;
+
+    uint256 _userBalance = underlying.balanceOf(e.msg.sender);
+    uint256 _vaultBalance = underlying.balanceOf(currentContract);
+    uint256 _totalSponsored = totalSponsored();
+    uint256 _totalShares = totalShares();
+    uint256 _totalPrincipal = totalPrincipal();
+
+    sponsor(e, inputToken, amount, lockDuration, slippage);
+
+    uint256 userBalance_ = underlying.balanceOf(e.msg.sender);
+    uint256 vaultBalance_ = underlying.balanceOf(currentContract);
+    uint256 totalSponsored_ = totalSponsored();
+    uint256 totalShares_ = totalShares();
+    uint256 totalPrincipal_ = totalPrincipal();
+
+    assert _userBalance - userBalance_ == amount;
+    assert vaultBalance_ - _vaultBalance == amount;
+    assert totalSponsored_ - _totalSponsored == amount;
+    assert _totalShares == totalShares_;
+    assert _totalPrincipal == totalPrincipal_;
+}
+
+
+/*
+    @Rule
+
+    @Category: variable transition
+
+    @Description:
+        unsponsor function should update state variables correctly and consistently
+*/
+rule integrity_of_unsponsor() {
+    address to;
+    uint256[] depositIds;
+    env e;
+
+    uint256 _userBalance = underlying.balanceOf(to);
+    uint256 _vaultBalance = underlying.balanceOf(currentContract);
+    uint256 _totalSponsored = totalSponsored();
+    uint256 _totalDeposits = totalDeposits(depositIds);
+    uint256 _totalShares = totalShares();
+    uint256 _totalPrincipal = totalPrincipal();
+
+    unsponsor(e, to, depositIds);
+    
+    uint256 userBalance_ = underlying.balanceOf(to);
+    uint256 vaultBalance_ = underlying.balanceOf(currentContract);
+    uint256 totalSponsored_ = totalSponsored();
+    uint256 totalDeposits_ = totalDeposits(depositIds);
+    uint256 totalShares_ = totalShares();
+    uint256 totalPrincipal_ = totalPrincipal();
+
+    assert userBalance_ - _userBalance == _totalDeposits;
+    assert _vaultBalance - vaultBalance_ == _totalDeposits;
+    assert _totalSponsored - totalSponsored_ == _totalDeposits;
+    assert _totalShares == totalShares_;
+    assert _totalPrincipal == totalPrincipal_;
+    assert totalDeposits_ == 0;    
+}
+
+
+/*
+    @Rule
+
+    @Category: variable transition
+
+    @Description:
+        partialUnsponsor function should update state variables correctly and consistently
+*/
+rule integrity_of_partialUnsponsor() {
+    address to;
+    uint256[] depositIds;
+    uint256[] amounts;
+    uint256 i;
+    require i >= 0 && i < depositIds.length;
+    env e;
+
+    uint256 _userBalance = underlying.balanceOf(to);
+    uint256 _vaultBalance = underlying.balanceOf(currentContract);
+    uint256 _totalSponsored = totalSponsored();
+    uint256 _deposit = depositAmount(depositIds[i]);
+    uint256 _totalShares = totalShares();
+    uint256 _totalPrincipal = totalPrincipal();
+
+    partialUnsponsor(e, to, depositIds, amounts);
+    
+    uint256 userBalance_ = underlying.balanceOf(to);
+    uint256 vaultBalance_ = underlying.balanceOf(currentContract);
+    uint256 totalSponsored_ = totalSponsored();
+    uint256 deposit_ = depositAmount(depositIds[i]);
+    uint256 totalShares_ = totalShares();
+    uint256 totalPrincipal_ = totalPrincipal();
+
+    uint256 s = sum(amounts);
+    assert userBalance_ - _userBalance == s;
+    assert _vaultBalance - vaultBalance_ == s;
+    assert _totalSponsored - totalSponsored_ == s;
+    assert _deposit - deposit_ == amounts[i];
+    assert _totalShares == totalShares_;
+    assert _totalPrincipal == totalPrincipal_;
+}
+
+
+/*
+    @Rule
+
+    @Category: variable transition
+
+    @Description:
+        admin and settings functions should update state variables correctly and consistently
+*/
+rule integrity_of_admin_settings_functions() {
+    env e;
+    address newAdmin;
+    require e.msg.sender != newAdmin;
+    require hasRole(DEFAULT_ADMIN_ROLE(), e.msg.sender);
+    transferAdminRights(e, newAdmin);
+    assert !hasRole(DEFAULT_ADMIN_ROLE(), e.msg.sender);
+    assert hasRole(DEFAULT_ADMIN_ROLE(), newAdmin);
+
+    address token;
+    address pool;
+    int128 tokenI;
+    int128 underlyingI;
+    env e1;
+    require token != pool;
+    addPool(e1, token, pool, tokenI, underlyingI);
+    assert getCurvePool(token) == pool;
+
+    env e2;
+    removePool(e2, token);
+    assert getCurvePool(token) == 0;
+
+    env e3;
+    uint16 investPct;
+    setInvestPct(e3, investPct);
+    assert investPct() == investPct;
+
+    env e4;
+    address treasury;
+    setTreasury(e4, treasury);
+    assert treasury() == treasury;
+
+    env e5;
+    uint16 perfFeePct;
+    setPerfFeePct(e5, perfFeePct);
+    assert perfFeePct() == perfFeePct;
+
+    env e6;
+    address s;
+    setStrategy(e6, s);
+    assert strategy() == s;
+
+    env e7;
+    uint16 lossTolerancePct;
+    setLossTolerancePct(e7, lossTolerancePct);
+    assert lossTolerancePct() == lossTolerancePct;
+}
+
+
+/*
+    @Rule
+
+    @Category: state transition
+
+    @Description:
+        pause and exitPause functions should update states correctly and consistently
+*/
+rule integrity_of_pause_exitPause() {
+    require !paused();
+    env e;
+    pause(e);
+    assert paused();
+
+    env e1;
+    unpause(e1);
+    assert !paused();
+
+    require !exitPaused();
+    env e2;
+    exitPause(e2);
+    assert exitPaused();
+
+    env e3;
+    exitUnpause(e3);
+    assert !exitPaused();
+}
+
+
+/*
+    @Rule
+
+    @Category: variable transition
+
+    @Description:
+        withdrawPerformanceFee function should update state variables correctly and consistently
+*/
+rule integrity_of_withdrawPerformanceFee() {
+    env e;
+    require treasury() != currentContract;
+    require treasury() != strategy();
+
+    uint256 _balanceOfTreasury = underlying.balanceOf(treasury());
+    uint256 _totalUnderlying = totalUnderlying();
+    uint256 _accumulatedPerformanceFee = accumulatedPerfFee();
+
+    withdrawPerformanceFee(e);
+
+    uint256 balanceOfTreasury_ = underlying.balanceOf(treasury());
+    uint256 totalUnderlying_ = totalUnderlying();
+    uint256 accumulatedPerformanceFee_ = accumulatedPerfFee();
+
+    assert balanceOfTreasury_ - _balanceOfTreasury == _accumulatedPerformanceFee;
+    assert _totalUnderlying - totalUnderlying_ == _accumulatedPerformanceFee;
+    assert accumulatedPerformanceFee_ == 0;
 }
 
 
