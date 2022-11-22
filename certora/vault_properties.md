@@ -102,24 +102,20 @@ It has the following external/public functions that are view only and change not
 | 24 | `unsponsor(...)` should increase `underlying.balanceOf(sponsor)` and decrease `totalUnderlying()` by the same `amount` | variable transition | high | Y | N |
 | 25 | `partialUnsponsor(...)` should increase `underlying.balanceOf(sponsor)` by the specified `amounts` and decrease `totalUnderlying()` by the same `amounts` | variable transition | high | Y | N |
 | 26 | privileged settings functions work as expected  | variable transition | medium | Y | N |
-| 27 | `withdrawPerformanceFee() => underlying.balanceOf(treasury) increases by accumulatedPerfFee && accumulatedPerfFee becomes 0` | variable transition | medium | Y | N |
+| 27 | `withdrawPerformanceFee() => underlying.balanceOf(treasury) increases by accumulatedPerfFee && accumulatedPerfFee becomes 0` | variable transition | medium | Y | Y | [Link](https://prover.certora.com/output/52311/a2166eb143821f6ae3b5?anonymousKey=2ee5d017357745a26210c8369b2a69399e5d7230) |
 | 28 | `pause() => paused() == true` | state transition | medium | Y | N |
 | 29 | `unpause() => paused() == false` | state transition | medium | Y | N |
 | 30 | `exitPause() => exitPaused() == true` | state transition | medium | Y | N |
 | 31 | `exitUnpause() => exitPaused() == false` | state transition | medium | Y | N |
 | 32 | Without any strategy or with a strategy not losing money, `!paused() => deposit(...) with valid params never reverts` | unit test | high | N | N |
 | 33 | `yieldFor(someone).claimableYield + yieldFor(someone).perfFee > 0 <=> yieldFor(someone).shares > 0`, `perfFee == (yieldFor(someone).claimableYield + yieldFor(someone).perfFee).pctOf(perfFeePct)` | unit test | medium | Y | N |
-| 34 | `perfFeePct == 0 => yieldFor(anyone).perfFee == 0` | unit test | medium | N | N |
-| 35 | `totalUnderlying().pctOf(investPct) == investState().maxInvestableAmount` | unit test | medium | Y | Y | [Link](https://prover.certora.com/output/15154/608d6f01fdb22c0dfd60?anonymousKey=6fcfc4e4ff3cd49dd84774e9948c4476944d1016) |
-| 36 | `totalUnderlyingMinusSponsored() < totalPrincipal => withdraw(param) reverts` | unit test | high | N | N |
-| 37 | `totalUnderlyingMinusSponsored() >= totalPrincipal => withdraw(validParam) never reverts` | unit test | high | N | N |
-| 38 | `totalUnderlyingMinusSponsored() >= totalPrincipal => partialWithdraw(validParam) never reverts` | unit test | high | N | N |
-| 39 | `updateInvested()` should function according to `investState()` | unit test | medium | N | N |
-| 40 | depositor can never withdraw more than deposited by calling `withdraw(...)`, `forceWithdraw(...)` and `partialWithdraw(...)` functions | unit test | high | N | N |
-| 41 | sponsor can never unsponsor more than sponsored | unit test | high | N | N |
-| 42 | `paused() => deposit(...), depositForGroupId(...) and sponsor(...) always revert` | unit test | high | N | N |
-| 43 | `deposit(invalidParam) always reverts`, where `invalidParam` could be `amount==0`, or `claim.pct == 0`, or `sum(claim.pct) != 100`, or `lockDuration` is out of range, or `inputToken` is invalid | unit test | high | N | N |
-| 44 | `sponsor(invalidParam) always reverts`, where `invalidParam` could be `amount==0`, or `lockDuration` is out of range, or `inputToken` is invalid | unit test | high | N | N |
-| 45 | `exitPaused() => withdraw(...), partialWithdraw(...), forceWithdraw(...), claimYield(...) and unsponsor(...) always revert` | unit test | high | N | N |
-| 46 | `totalUnderlyingMinusSponsored() == totalUnderlying() - totalSponsored - accumulatedPerfFee` | unit test | medium | Y | Y | [Link](https://prover.certora.com/output/15154/4b2c0be038cb5ab3d1cc?anonymousKey=3fb7818a868990500c964aded0a5842770bab570) |
+| 34 | `totalUnderlying().pctOf(investPct) == investState().maxInvestableAmount` | unit test | medium | Y | Y | [Link](https://prover.certora.com/output/15154/608d6f01fdb22c0dfd60?anonymousKey=6fcfc4e4ff3cd49dd84774e9948c4476944d1016) |
+| 35 | `totalUnderlyingMinusSponsored() < totalPrincipal => withdraw(...) reverts` | unit test | high | Y | Y | [Link](https://prover.certora.com/output/52311/b2cdcb0ae3fc1100d49a?anonymousKey=372a59f85fa0b18ff6ac9508520c4255dcb995db) |
+| 36 | `withdraw(...) not reverts only if totalUnderlyingMinusSponsored() >= totalPrincipal` | unit test | high | Y | Y | (https://prover.certora.com/output/52311/4fef42caf5a550e9edde?anonymousKey=a0f9c3fdfde79144608f9e7710ca8fb2c08f7667) |
+| 37 | `updateInvested()` should function according to `investState()` | unit test | medium | Y | Y | [Link](https://prover.certora.com/output/52311/b1ebf9b7b29a437483e0?anonymousKey=0511743c9de49437cfc10eae845a93e2e8169ab7) |
+| 38 | `paused() => deposit(...), depositForGroupId(...) and sponsor(...) always revert` | unit test | high | Y | Y | [Link](https://prover.certora.com/output/52311/1f4deeed03cc915844db?anonymousKey=370acab0e32a2bdfe5c6f0996d28162c3d9cd3a0) |
+| 39 | `deposit(invalidParam) always reverts`, where `invalidParam` could be `amount==0`, or `claim.pct == 0`, or `sum(claim.pct) != 100`, or `lockDuration` is out of range, or `inputToken` is invalid | unit test | high | N | N |
+| 40 | `sponsor(invalidParam) always reverts`, where `invalidParam` could be `amount==0`, or `lockDuration` is out of range, or `inputToken` is invalid | unit test | high | N | N |
+| 41 | `exitPaused() => withdraw(...), partialWithdraw(...), forceWithdraw(...), claimYield(...) and unsponsor(...) always revert` | unit test | high | Y | Y | [Link](https://prover.certora.com/output/52311/8192568bb07e386b3809?anonymousKey=4b1a56752d3664bbafa85997c4eec83a53fba10f) |
+| 42 | `totalUnderlyingMinusSponsored() == totalUnderlying() - totalSponsored - accumulatedPerfFee` | unit test | medium | Y | Y | [Link](https://prover.certora.com/output/15154/4b2c0be038cb5ab3d1cc?anonymousKey=3fb7818a868990500c964aded0a5842770bab570) |
 

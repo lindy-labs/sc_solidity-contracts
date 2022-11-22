@@ -101,6 +101,8 @@ definition excludeWithdrawals(method f) returns bool =
     &&
     f.selector != withdrawPerformanceFee().selector;
 
+definition rebalanceMinimum() returns uint256 = 10 * 10^18;    
+
 // PCT_DIVISOR constant in PercentMath lib
 definition PCT_DIVISOR() returns uint256 = 10000;
 
@@ -839,6 +841,8 @@ rule integrity_of_withdrawPerformanceFee() {
     require treasury() != currentContract;
     require treasury() != strategy();
 
+    underlying.setFee(e, 0);
+
     uint256 _balanceOfTreasury = underlying.balanceOf(treasury());
     uint256 _totalUnderlying = totalUnderlying();
     uint256 _accumulatedPerformanceFee = accumulatedPerfFee();
@@ -852,6 +856,131 @@ rule integrity_of_withdrawPerformanceFee() {
     assert balanceOfTreasury_ - _balanceOfTreasury == _accumulatedPerformanceFee;
     assert _totalUnderlying - totalUnderlying_ == _accumulatedPerformanceFee;
     assert accumulatedPerformanceFee_ == 0;
+}
+
+
+/*
+    @Rule
+
+    @Category: unit test
+
+    @Description:
+        updateInvested function should make maxInvestableAmount equal alreadyInvested
+*/
+rule interity_of_updateInvested() {
+    env e;
+    require strategy() != currentContract;
+
+    underlying.setFee(e, 0);
+    uint256 _maxInvestableAmount = maxInvestableAmount();
+    uint256 _alreadyInvested = alreadyInvested();
+    require 
+        _maxInvestableAmount - _alreadyInvested > rebalanceMinimum() 
+        || 
+        _alreadyInvested - _maxInvestableAmount > rebalanceMinimum();
+
+    updateInvested(e);
+
+    uint256 maxInvestableAmount_ = maxInvestableAmount();
+    uint256 alreadyInvested_ = alreadyInvested();
+    assert maxInvestableAmount_ == alreadyInvested_;
+}
+
+
+/*
+    @Rule
+
+    @Category: unit test
+
+    @Description:
+        when the vault is in a loss, withdraw should revert
+*/
+rule withdraw_reverts_when_in_loss() {
+    require totalUnderlyingMinusSponsored() < totalPrincipal();
+    env e;
+    address to;
+    uint256[] ids;
+    withdraw@withrevert(e, to, ids); // should always revert
+    assert lastReverted;
+}
+
+/*
+    @Rule
+
+    @Category: unit test
+
+    @Description:
+        withdraw succeeds only if the vault is not in a loss
+*/
+rule withdraw_succeeds_only_if_not_in_loss() {
+    env e;
+    address to;
+    uint256[] ids;
+    withdraw@withrevert(e, to, ids);
+    assert !lastReverted => totalUnderlyingMinusSponsored() >= totalPrincipal();
+}
+
+
+/*
+    @Rule
+
+    @Category: unit test
+
+    @Description:
+        if a vault is paused, then deposit and sponsor functions will revert
+*/
+rule paused_vault_rejects_any_deposits() {
+    env e;
+    method f;
+    calldataarg args;
+    require 
+        f.selector == deposit(address, uint64, uint256, uint16[], address[], bytes[], uint256).selector
+        ||
+        f.selector == deposit((address,uint64,uint256,(uint16,address,bytes)[],string,uint256)).selector
+        ||
+        f.selector == depositForGroupId(uint256, address, uint64, uint256, uint16[], address[], bytes[], uint256).selector
+        ||
+        f.selector == depositForGroupId(uint256, (address,uint64,uint256,(uint16,address,bytes)[],string,uint256)).selector
+        ||
+        f.selector == sponsor(address, uint256, uint256, uint256).selector;
+    require paused();
+
+    f@withrevert(e, args);
+
+    assert lastReverted;
+}
+
+
+/*
+    @Rule
+
+    @Category: unit test
+
+    @Description:
+        if a vault is exitPaused, then withdraw, unsponsor and claimYield functions will revert
+*/
+rule exitPaused_vault_rejects_any_withdrawals() {
+    env e;
+    method f;
+    calldataarg args;
+    require 
+        f.selector == withdraw(address, uint256[]).selector
+        ||
+        f.selector == forceWithdraw(address, uint256[]).selector
+        ||
+        f.selector == partialWithdraw(address, uint256[], uint256[]).selector
+        ||
+        f.selector == unsponsor(address, uint256[]).selector
+        ||
+        f.selector == partialUnsponsor(address, uint256[], uint256[]).selector
+        ||
+        f.selector == claimYield(address).selector;
+
+    require exitPaused();
+
+    f@withrevert(e, args);
+
+    assert lastReverted;
 }
 
 
