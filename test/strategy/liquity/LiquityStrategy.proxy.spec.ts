@@ -98,6 +98,8 @@ describe('LiquityStrategy Proxy', () => {
         lqty.address,
         underlying.address,
         admin.address, // keeper
+        0,
+        '0x81C46fECa27B31F3ADC2b91eE4be9717d1cd3DD7', // curve exchange
       ],
       {
         kind: 'uups',

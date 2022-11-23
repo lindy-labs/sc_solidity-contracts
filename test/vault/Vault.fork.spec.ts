@@ -11,9 +11,9 @@ import {
   ICurve,
   ICurve__factory,
   ERC20__factory,
-} from '../typechain';
-import { ForkHelpers, getRoleErrorMsg, arrayFromTo } from './shared';
-import { depositParams, claimParams } from './shared/factories';
+} from '../../typechain';
+import { ForkHelpers, getRoleErrorMsg, arrayFromTo } from '../shared';
+import { depositParams, claimParams } from '../shared/factories';
 
 const { parseUnits, getAddress } = ethers.utils;
 const { MaxUint256, HashZero, AddressZero } = ethers.constants;

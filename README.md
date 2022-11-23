@@ -10,6 +10,8 @@ Got a bug to report? Reach out to us at [engineering@sandclock.org](mailto:engin
 
 ## Build
 
+Install and setup [tenderly-cli](https://github.com/Tenderly/tenderly-cli).
+
 ### The Graph
 
 The deployment setup of subgraph is documented in `bin/reset-docker` (see
@@ -82,3 +84,4 @@ with the tx-hash of the respective transaction you want to debug.
 ### Deployed contracts
 
 Check the [deployments folder](./deployments)
+

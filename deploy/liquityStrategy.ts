@@ -27,6 +27,8 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     log: true,
   });
 
+  let curveRouter = '0x81C46fECa27B31F3ADC2b91eE4be9717d1cd3DD7';
+
   const liquityStrategy = await ethers.getContractAt(
     'LiquityStrategy',
     liquityStrategyDeployment.address,
@@ -80,6 +82,8 @@ const func = async function (env: HardhatRuntimeEnvironment) {
       LQTYDeployment.address,
       LUSDDeployment.address,
       multisig,
+      0,
+      curveRouter,
     )
   ).wait();
 

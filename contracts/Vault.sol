@@ -106,7 +106,7 @@ contract Vault is
     mapping(address => Claimer) public claimer;
 
     /// The total of principal deposited
-    uint256 public totalPrincipal;
+    uint256 public override(IVault) totalPrincipal;
 
     /// Treasury address to collect performance fee
     address public treasury;
@@ -362,10 +362,6 @@ contract Vault is
 
         accumulatedPerfFee += fee;
 
-        _rebalanceBeforeWithdrawing(yield);
-
-        underlying.safeTransfer(_to, yield);
-
         claimer[msg.sender].totalShares -= shares;
         totalShares -= shares;
 
@@ -378,6 +374,19 @@ contract Vault is
             _totalUnderlyingMinusSponsored,
             _totalShares
         );
+
+        if (address(strategy) != address(0)) {
+            uint256 yieldTransferred = strategy.transferYield(_to, yield);
+            if (yieldTransferred == yield) {
+                return;
+            }
+
+            yield = yield - yieldTransferred;
+        }
+
+        _rebalanceBeforeWithdrawing(yield);
+
+        underlying.safeTransfer(_to, yield);
     }
 
     /// @inheritdoc IVault
