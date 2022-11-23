@@ -216,11 +216,37 @@ contract VaultHarness is Vault {
         return total;
     }
 
-    function sum(uint256[] calldata amounts) external view returns (uint256) {
+    function sum(uint256[] calldata amounts) external pure returns (uint256) {
         uint256 total = 0;
         for(uint256 i = 0; i < amounts.length; i++) {
             total += amounts[i];
         }
         return total;
+    }
+
+    function anyZero(uint16[] calldata numbers) external pure returns (bool) {
+        for(uint256 i = 0; i < numbers.length; i++) {
+            if (numbers[i] == 0) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function isTotal100Pct(uint16[] calldata pcts) external pure returns (bool) {
+        uint16 total = 0;
+        for(uint256 i = 0; i < pcts.length; i++) {
+            total += pcts[i];
+        }
+        return total == 10000; 
+    }
+
+    function anyZero(address[] calldata addresses) external pure returns (bool) {
+        for(uint256 i = 0; i < addresses.length; i++) {
+            if (addresses[i] == address(0x0)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

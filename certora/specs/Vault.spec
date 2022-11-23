@@ -55,6 +55,9 @@ methods {
     sum(uint256[]) returns (uint256) envfree
     hasRole(bytes32, address) returns (bool) envfree
     getCurvePool(address) returns (address) envfree
+    anyZero(uint16[]) returns (bool) envfree
+    isTotal100Pct(uint16[]) returns (bool) envfree
+    anyZero(address[]) returns (bool) envfree
 
     // public variables
     underlying() returns (address) envfree
@@ -71,6 +74,9 @@ methods {
     paused() returns (bool) envfree
     exitPaused() returns (bool) envfree
     DEFAULT_ADMIN_ROLE() returns (bytes32) envfree
+    MAX_DEPOSIT_LOCK_DURATION() returns (uint64) envfree
+    MIN_SPONSOR_LOCK_DURATION() returns (uint64) envfree
+    MAX_SPONSOR_LOCK_DURATION() returns (uint64) envfree
 
     // erc20
     underlying.balanceOf(address) returns (uint256) envfree
@@ -205,7 +211,7 @@ invariant individual_shares_principal_le_total(address user)
            It looks due to uint arithmetic rounding
 */
 invariant shares_principal_consistency()
-    totalPrincipal() == 0 <=> totalShares() == 0 && totalPrincipal() > 0 <=> totalShares() > 0
+    totalPrincipal() > 0 => totalShares() > 0 && totalShares() == 0 => totalPrincipal() == 0
     {
         preserved sharesOf(address user) {
             requireInvariant individual_shares_principal_le_total(user);
@@ -979,6 +985,67 @@ rule exitPaused_vault_rejects_any_withdrawals() {
     require exitPaused();
 
     f@withrevert(e, args);
+
+    assert lastReverted;
+}
+
+
+/*
+    @Rule
+
+    @Category: unit test
+
+    @Description:
+        deposit function should revert on any invalid deposit params
+*/
+rule deposit_reverts_on_invalid_params() {
+    env e;
+    address inputToken; 
+    uint64 lockDuration; 
+    uint256 amount;
+    uint16[] pcts;
+    address[] beneficiaries;
+    bytes[] datas;
+    uint256 slippage;
+    
+    require
+        inputToken != getUnderlying() && getCurvePool(inputToken) == 0
+        ||
+        lockDuration < minLockPeriod()
+        || 
+        lockDuration > MAX_DEPOSIT_LOCK_DURATION()
+        ||
+        amount == 0
+        ||
+        anyZero(pcts)
+        ||
+        anyZero(beneficiaries)
+        || 
+        !isTotal100Pct(pcts);
+
+    deposit@withrevert(e, inputToken, lockDuration, amount, pcts, beneficiaries, datas, slippage);
+
+    assert lastReverted;
+}
+
+
+rule sponsor_reverts_on_invalid_params() {
+    env e;
+    address inputToken;
+    uint256 amount;
+    uint256 lockDuration;
+    uint256 slippage;
+
+    require
+        inputToken != getUnderlying() && getCurvePool(inputToken) == 0
+        ||
+        lockDuration < MIN_SPONSOR_LOCK_DURATION()
+        || 
+        lockDuration > MAX_SPONSOR_LOCK_DURATION()
+        ||
+        amount == 0;
+    
+    sponsor@withrevert(e, inputToken, amount, lockDuration, slippage);
 
     assert lastReverted;
 }
