@@ -433,7 +433,7 @@ invariant zero_yield_if_not_making_profit(address user)
     @Invariant
 
     @Description:
-        deposit data should be 
+        deposit data should be either all 0 or none of the fields is 0
 */
 invariant integrity_of_deposit_data(uint256 depositId)
     depositAmount(depositId) == 0 && 
