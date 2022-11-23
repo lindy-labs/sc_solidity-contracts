@@ -16,6 +16,8 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
   const LUSDDeployment = await get('LUSD');
 
+  let address0x;
+
   let liquityStrategyContract = 'LiquityStrategy';
   if (getNetworkName() === 'hardhat' || getNetworkName() === 'docker') {
     liquityStrategyContract = 'MockLiquityStrategyV3';
@@ -44,14 +46,10 @@ const func = async function (env: HardhatRuntimeEnvironment) {
       console.error((e as Error).message);
     }
 
-    console.log('verified liquity strategy');
-
     await env.tenderly.persistArtifacts({
       name: 'LiquityStrategy',
       address: liquityStrategy.address,
     });
-
-    console.log('liquity strategy persistArtifacts');
   }
 
   if (getNetworkName() !== 'mainnet') {
@@ -62,12 +60,74 @@ const func = async function (env: HardhatRuntimeEnvironment) {
       args: [],
     });
 
-    await deploy('LiquityStabilityPool', {
+    const liquityStabilityPoolArgs = [
+      LUSDDeployment.address,
+      mockLiquityPriceFeedDeployment.address,
+    ];
+    const mockLiquityStabilityPool = await deploy('LiquityStabilityPool', {
       contract: 'MockStabilityPool',
       from: deployer,
-      args: [LUSDDeployment.address, mockLiquityPriceFeedDeployment.address],
+      args: liquityStabilityPoolArgs,
       log: true,
     });
+
+    const troveManagerDeploymentArgs = [
+      mockLiquityStabilityPool.address,
+      mockLiquityPriceFeedDeployment.address,
+    ];
+    const troveManagerDeployment = await deploy('TroveManager', {
+      contract: 'MockTroveManager',
+      from: deployer,
+      log: true,
+      args: troveManagerDeploymentArgs,
+    });
+
+    const mock0x = await deploy('Mock0x', {
+      contract: 'Mock0x',
+      from: deployer,
+      args: [],
+      log: true,
+    });
+
+    address0x = mock0x.address;
+
+    if (getNetworkName() !== 'hardhat' && getNetworkName() !== 'docker') {
+      try {
+        await env.run('verify:verify', {
+          address: mockLiquityPriceFeedDeployment.address,
+          constructorArguments: [],
+        });
+      } catch (e) {
+        console.error((e as Error).message);
+      }
+
+      try {
+        await env.run('verify:verify', {
+          address: troveManagerDeployment.address,
+          constructorArguments: troveManagerDeploymentArgs,
+        });
+      } catch (e) {
+        console.error((e as Error).message);
+      }
+
+      try {
+        await env.run('verify:verify', {
+          address: mockLiquityStabilityPool.address,
+          constructorArguments: liquityStabilityPoolArgs,
+        });
+      } catch (e) {
+        console.error((e as Error).message);
+      }
+
+      try {
+        await env.run('verify:verify', {
+          address: mock0x.address,
+          constructorArguments: [],
+        });
+      } catch (e) {
+        console.error((e as Error).message);
+      }
+    }
   }
 
   const stabilityPool = await get('LiquityStabilityPool');
@@ -102,9 +162,20 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   await vault.connect(owner).setStrategy(liquityStrategy.address);
   console.log('strategy set to vault');
 
+  // get 0x contract
+
+  if (!address0x) address0x = '0xdef1c0ded9bec7f1a1670819833240f027b25eff';
+
+  await liquityStrategy.connect(owner).allowSwapTarget(address0x);
+
   if (owner.address !== multisig) {
     await (await vault.connect(owner).transferAdminRights(multisig)).wait();
-    console.log('ownership transfered to multisig');
+    console.log('vault ownership transfered to multisig');
+
+    await (
+      await liquityStrategy.connect(owner).transferAdminRights(multisig)
+    ).wait();
+    console.log('strategy ownership transfered to multisig');
   }
 };
 
@@ -113,7 +184,7 @@ func.dependencies = ['vault'];
 
 func.skip = async (env: HardhatRuntimeEnvironment) =>
   !includes(
-    ['ropsten', 'docker', 'mainnet', 'hardhat'],
+    ['ropsten', 'docker', 'mainnet', 'hardhat', 'goerli'],
     env.deployments.getNetworkName(),
   );
 

@@ -26,8 +26,8 @@ const networkConfigs: Record<number, Config> = {
     investPct: 9000, // 90%
     perfFeePct: 100, // 1%
     lossTolerancePct: 200,
-    multisig: '0x8f592F2594C43eA30879f9fbED4d930248D81D41',
-    deploymentAddress: '0x8f592F2594C43eA30879f9fbED4d930248D81D41',
+    multisig: '0xCfF577D4072BF126Cdd73CDC7353637A1Fa5f4CE',
+    deploymentAddress: '0xCfF577D4072BF126Cdd73CDC7353637A1Fa5f4CE',
     minLockPeriod: 1, // 1 second
   },
 
@@ -36,8 +36,8 @@ const networkConfigs: Record<number, Config> = {
     investPct: 9000, // 90%
     perfFeePct: 100, // 1%
     lossTolerancePct: 200,
-    multisig: '0x8f592F2594C43eA30879f9fbED4d930248D81D41',
-    deploymentAddress: '0x8f592F2594C43eA30879f9fbED4d930248D81D41',
+    multisig: '0xCfF577D4072BF126Cdd73CDC7353637A1Fa5f4CE',
+    deploymentAddress: '0xCfF577D4072BF126Cdd73CDC7353637A1Fa5f4CE',
     minLockPeriod: 1, // 1 second
   },
 
@@ -46,8 +46,8 @@ const networkConfigs: Record<number, Config> = {
     investPct: 9000, // 90%
     perfFeePct: 100, // 1%
     lossTolerancePct: 200,
-    multisig: '0x8f592F2594C43eA30879f9fbED4d930248D81D41',
-    deploymentAddress: '0x8f592F2594C43eA30879f9fbED4d930248D81D41',
+    multisig: '0xCfF577D4072BF126Cdd73CDC7353637A1Fa5f4CE',
+    deploymentAddress: '0xCfF577D4072BF126Cdd73CDC7353637A1Fa5f4CE',
     minLockPeriod: 1, // 1 second
   },
 
