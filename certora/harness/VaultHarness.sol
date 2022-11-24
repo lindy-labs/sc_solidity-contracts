@@ -216,7 +216,7 @@ contract VaultHarness is Vault {
         return total;
     }
 
-    function sum(uint256[] calldata amounts) external pure returns (uint256) {
+    function totalAmount(uint256[] calldata amounts) external pure returns (uint256) {
         uint256 total = 0;
         for(uint256 i = 0; i < amounts.length; i++) {
             total += amounts[i];

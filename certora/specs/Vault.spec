@@ -52,7 +52,7 @@ methods {
     totalDeposits(uint256[]) returns (uint256) envfree
     totalSharesOf(uint256[]) returns (uint256) envfree
     totalPrincipalOf(uint256[]) returns (uint256) envfree
-    sum(uint256[]) returns (uint256) envfree
+    totalAmount(uint256[]) returns (uint256) envfree
     hasRole(bytes32, address) returns (bool) envfree
     getCurvePool(address) returns (address) envfree
     anyZero(uint16[]) returns (bool) envfree
@@ -205,12 +205,8 @@ invariant individual_shares_principal_le_total(address user)
     @Description:
         the state variable totalShares' value should be consistent with the state variable totalPrincipal's value, i.e, 
         they are either both 0 or greater than 0
-    
-    TODO - investigate violations in
-         - https://prover.certora.com/output/15154/e00d2330e3d97a4c0456?anonymousKey=c4d0aec081d477674ce00e68087456622605016c
-           It looks due to uint arithmetic rounding
 */
-invariant shares_principal_consistency()
+invariant consistency_of_shares_and_principal()
     totalPrincipal() > 0 => totalShares() > 0 && totalShares() == 0 => totalPrincipal() == 0
     {
         preserved sharesOf(address user) {
@@ -238,7 +234,7 @@ rule price_per_share_preserved(method f) {
     require totalUnderlyingMinusSponsored() != 0 && totalShares() != 0;
     uint256 pricePerShare = totalUnderlyingMinusSponsored() / totalShares();
     env e;
-    require e.msg.sender != strategy; // safe to assume stragety will never call any function in Vault
+    require e.msg.sender != strategy; // safe to assume strategy will never call any function in Vault
     calldataarg args;
     f(e, args);
     assert 
@@ -507,8 +503,11 @@ rule equivalence_of_deposit_and_depositForGroupId() {
     uint64 lockDuration;
     uint256 amount; 
     uint16[] pcts;
+    require pcts.length == 3;
     address[] claimers;
+    require claimers.length == 3;
     bytes[] datas;
+    require datas.length == 3;
     uint256 slippage;
     env e1;
 
@@ -547,37 +546,83 @@ rule equivalence_of_deposit_and_depositForGroupId() {
     @Category: variable transition
 
     @Description:
+        withdraw function should update state variables correctly and consistently
+
+    TODO - investigate violations in
+        https://prover.certora.com/output/52311/335dffc5b058a738dc8e?anonymousKey=04fe57f2482e3aeba044101a2b5efb049deecf16
+*/
+rule integrity_of_withdraw() {
+    address to;
+    require to != currentContract && to != strategy;
+    requireInvariant individual_shares_principal_le_total(to);
+
+    uint256[] depositIds;
+    require depositIds.length == 3;
+    require depositIds[0] != depositIds[1] && depositIds[0] != depositIds[2] && depositIds[1] != depositIds[2];
+
+    uint256 _userBalance = underlying.balanceOf(to);
+    uint256 _totalUnderlying = totalUnderlying();
+    uint256 _totalShares = totalShares();
+    uint256 _totalPrincipal = totalPrincipal();
+    uint256 _totalDeposits = totalDeposits(depositIds);
+
+    env e;
+    require e.block.coinbase != 0;
+    underlying.setFee(e, 0);
+    forceWithdraw(e, to, depositIds);
+
+    uint256 userBalance_ = underlying.balanceOf(to);
+    uint256 totalUnderlying_ = totalUnderlying();
+    uint256 totalShares_ = totalShares();
+    uint256 totalPrincipal_ = totalPrincipal();
+    uint256 totalDeposits_ = totalDeposits(depositIds);
+
+    assert userBalance_ - _userBalance == _totalDeposits;
+    assert _totalUnderlying - totalUnderlying_ == _totalDeposits;
+    assert _totalPrincipal - _totalPrincipal == _totalDeposits;
+    assert _totalShares >= totalShares_;
+    assert totalDeposits_ == 0;
+}
+
+
+/*
+    @Rule
+
+    @Category: variable transition
+
+    @Description:
         forceWithdraw function should update state variables correctly and consistently
 */
 rule integrity_of_forceWithdraw() {
     address to;
+    require to != currentContract && to != strategy;
+    requireInvariant individual_shares_principal_le_total(to);
+
     uint256[] depositIds;
-    env e;
+    require depositIds.length == 3;
+    require depositIds[0] != depositIds[1] && depositIds[0] != depositIds[2] && depositIds[1] != depositIds[2];
 
     uint256 _userBalance = underlying.balanceOf(to);
-    uint256 _vaultBalance = underlying.balanceOf(currentContract);
+    uint256 _totalUnderlying = totalUnderlying();
     uint256 _totalShares = totalShares();
     uint256 _totalPrincipal = totalPrincipal();
     uint256 _totalDeposits = totalDeposits(depositIds);
-    uint256 _totalSharesOfClaimers = totalSharesOf(depositIds);
-    uint256 _totalPrincipalOfClaimers = totalPrincipalOf(depositIds);
 
+    env e;
+    require e.block.coinbase != 0;
+    underlying.setFee(e, 0);
     forceWithdraw(e, to, depositIds);
 
     uint256 userBalance_ = underlying.balanceOf(to);
-    uint256 vaultBalance_ = underlying.balanceOf(currentContract);
+    uint256 totalUnderlying_ = totalUnderlying();
     uint256 totalShares_ = totalShares();
     uint256 totalPrincipal_ = totalPrincipal();
     uint256 totalDeposits_ = totalDeposits(depositIds);
-    uint256 totalSharesOfClaimers_ = totalSharesOf(depositIds);
-    uint256 totalPrincipalOfClaimers_ = totalPrincipalOf(depositIds);
 
-    assert userBalance_ - _userBalance == _totalDeposits;
-    assert _vaultBalance - vaultBalance_ == _totalDeposits;
-    assert _totalPrincipal - totalPrincipal_ == _totalDeposits;
-    assert _totalShares - totalShares_ == _totalSharesOfClaimers - totalSharesOfClaimers_;
-    assert _totalPrincipalOfClaimers == _totalDeposits;
-    assert totalPrincipalOfClaimers_ == totalDeposits_;
+    assert userBalance_ >= _userBalance;
+    assert _totalUnderlying >= totalUnderlying_;
+    assert _totalPrincipal >= _totalPrincipal;
+    assert _totalShares >= totalShares_;
     assert totalDeposits_ == 0;
 }
 
@@ -590,17 +635,25 @@ rule integrity_of_forceWithdraw() {
 
     @Description:
         partialWithdraw function should update state variables correctly and consistently
+
+    TODO - investigate violations in
+        https://prover.certora.com/output/52311/a9a2f580a40d1fe0dc2d?anonymousKey=db3a2d8adf633c8c8678017d189c21acb6df7b32
+        It looks due to arithmetic rounding
 */
 rule integrity_of_partialWithdraw() {
     address to;
+    require to != currentContract && to != strategy;
+
     uint256[] depositIds;
     uint256[] amounts;
+    require depositIds.length == 3 && amounts.length == 3;
+    require depositIds[0] != depositIds[1] && depositIds[0] != depositIds[2] && depositIds[1] != depositIds[2];
+
     uint256 i;
     require i >= 0 && i < depositIds.length;
-    env e;
 
     uint256 _userBalance = underlying.balanceOf(to);
-    uint256 _vaultBalance = underlying.balanceOf(currentContract);
+    uint256 _totalUnderlying = totalUnderlying();
     uint256 _totalShares = totalShares();
     uint256 _totalPrincipal = totalPrincipal();
     uint256 _totalDeposits = totalDeposits(depositIds);
@@ -608,10 +661,13 @@ rule integrity_of_partialWithdraw() {
     uint256 _totalPrincipalOfClaimers = totalPrincipalOf(depositIds);
     uint256 _amount = depositAmount(depositIds[i]);
 
+    env e;
+    require e.block.coinbase != 0;
+    underlying.setFee(e, 0);
     partialWithdraw(e, to, depositIds, amounts);
 
     uint256 userBalance_ = underlying.balanceOf(to);
-    uint256 vaultBalance_ = underlying.balanceOf(currentContract);
+    uint256 totalUnderlying_ = totalUnderlying();
     uint256 totalShares_ = totalShares();
     uint256 totalPrincipal_ = totalPrincipal();
     uint256 totalDeposits_ = totalDeposits(depositIds);
@@ -619,13 +675,14 @@ rule integrity_of_partialWithdraw() {
     uint256 totalPrincipalOfClaimers_ = totalPrincipalOf(depositIds);
     uint256 amount_ = depositAmount(depositIds[i]);
 
-    assert userBalance_ - _userBalance == _totalDeposits;
-    assert _vaultBalance - vaultBalance_ == _totalDeposits - totalDeposits_;
-    assert _totalPrincipal - totalPrincipal_ == _totalDeposits - totalDeposits_;
+    uint256 totalAmount = totalAmount(amounts);
+    assert userBalance_ - _userBalance == totalAmount;
+    assert _totalDeposits - totalDeposits_ == totalAmount;
+    assert _totalUnderlying - totalUnderlying_ == totalAmount;
+    assert _totalPrincipal - totalPrincipal_ == totalAmount;
     assert _totalShares - totalShares_ == _totalSharesOfClaimers - totalSharesOfClaimers_;
     assert _totalPrincipalOfClaimers == _totalDeposits;
     assert totalPrincipalOfClaimers_ == totalDeposits_;
-    assert _totalDeposits - totalDeposits_ == sum(amounts);
     assert _amount - amount_ == amounts[i];
 }
 
@@ -640,11 +697,14 @@ rule integrity_of_partialWithdraw() {
 */
 rule integrity_of_sponsor() {
     address inputToken;
+    require inputToken == underlying;
+
     uint256 amount;
     uint256 lockDuration;
     uint256 slippage;
+    
     env e;
-    require inputToken == underlying;
+    underlying.setFee(e, 0);
 
     uint256 _userBalance = underlying.balanceOf(e.msg.sender);
     uint256 _vaultBalance = underlying.balanceOf(currentContract);
@@ -678,27 +738,32 @@ rule integrity_of_sponsor() {
 */
 rule integrity_of_unsponsor() {
     address to;
+    require to != currentContract && to != strategy;
+
     uint256[] depositIds;
-    env e;
+    require depositIds.length == 3;
+    require depositIds[0] != depositIds[1] && depositIds[0] != depositIds[2] && depositIds[1] != depositIds[2];
 
     uint256 _userBalance = underlying.balanceOf(to);
-    uint256 _vaultBalance = underlying.balanceOf(currentContract);
+    uint256 _totalUnderlying = totalUnderlying();
     uint256 _totalSponsored = totalSponsored();
     uint256 _totalDeposits = totalDeposits(depositIds);
     uint256 _totalShares = totalShares();
     uint256 _totalPrincipal = totalPrincipal();
 
+    env e;
+    underlying.setFee(e, 0);
     unsponsor(e, to, depositIds);
     
     uint256 userBalance_ = underlying.balanceOf(to);
-    uint256 vaultBalance_ = underlying.balanceOf(currentContract);
+    uint256 totalUnderlying_ = totalUnderlying();
     uint256 totalSponsored_ = totalSponsored();
     uint256 totalDeposits_ = totalDeposits(depositIds);
     uint256 totalShares_ = totalShares();
     uint256 totalPrincipal_ = totalPrincipal();
 
     assert userBalance_ - _userBalance == _totalDeposits;
-    assert _vaultBalance - vaultBalance_ == _totalDeposits;
+    assert _totalUnderlying - totalUnderlying_ == _totalDeposits;
     assert _totalSponsored - totalSponsored_ == _totalDeposits;
     assert _totalShares == totalShares_;
     assert _totalPrincipal == totalPrincipal_;
@@ -716,31 +781,37 @@ rule integrity_of_unsponsor() {
 */
 rule integrity_of_partialUnsponsor() {
     address to;
+    require to != currentContract && to != strategy;
+
     uint256[] depositIds;
     uint256[] amounts;
+    require depositIds.length == 3 && amounts.length == 3;
+    require depositIds[0] != depositIds[1] && depositIds[0] != depositIds[2] && depositIds[1] != depositIds[2];
+
     uint256 i;
     require i >= 0 && i < depositIds.length;
-    env e;
 
     uint256 _userBalance = underlying.balanceOf(to);
-    uint256 _vaultBalance = underlying.balanceOf(currentContract);
+    uint256 _totalUnderlying = totalUnderlying();
     uint256 _totalSponsored = totalSponsored();
     uint256 _deposit = depositAmount(depositIds[i]);
     uint256 _totalShares = totalShares();
     uint256 _totalPrincipal = totalPrincipal();
 
+    env e;
+    underlying.setFee(e, 0);
     partialUnsponsor(e, to, depositIds, amounts);
     
     uint256 userBalance_ = underlying.balanceOf(to);
-    uint256 vaultBalance_ = underlying.balanceOf(currentContract);
+    uint256 totalUnderlying_ = totalUnderlying();
     uint256 totalSponsored_ = totalSponsored();
     uint256 deposit_ = depositAmount(depositIds[i]);
     uint256 totalShares_ = totalShares();
     uint256 totalPrincipal_ = totalPrincipal();
 
-    uint256 s = sum(amounts);
+    uint256 s = totalAmount(amounts);
     assert userBalance_ - _userBalance == s;
-    assert _vaultBalance - vaultBalance_ == s;
+    assert _totalUnderlying - totalUnderlying_ == s;
     assert _totalSponsored - totalSponsored_ == s;
     assert _deposit - deposit_ == amounts[i];
     assert _totalShares == totalShares_;
