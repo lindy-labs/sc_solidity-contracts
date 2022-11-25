@@ -77,6 +77,7 @@ methods {
     MAX_DEPOSIT_LOCK_DURATION() returns (uint64) envfree
     MIN_SPONSOR_LOCK_DURATION() returns (uint64) envfree
     MAX_SPONSOR_LOCK_DURATION() returns (uint64) envfree
+    SHARES_MULTIPLIER() returns (uint256) envfree
 
     // erc20
     underlying.balanceOf(address) returns (uint256) envfree
@@ -353,7 +354,7 @@ invariant totalUnderlying_correct()
         the totalUnderlyingMinusSponsored() value should always equal totalPrincipal
 
     TODO - investigate violations in
-           https://prover.certora.com/output/15154/03ef82f0c00d42ecca77?anonymousKey=88fbc6398fa94b31d7dac352bffe21e86f968566
+           https://prover.certora.com/output/52311/131312cdf469818e5407?anonymousKey=296f0d494677fd86b2bba491fc6b0bbbfed57e47
 */
 invariant totalUnderlyingMinusSponsored_eq_totalPrincipal(method f)
     totalUnderlyingMinusSponsored() == totalPrincipal()
@@ -368,59 +369,34 @@ invariant totalUnderlyingMinusSponsored_eq_totalPrincipal(method f)
                 ||
                 f.selector == sponsor(address,uint256,uint256,uint256).selector
             ) {
-                require e.msg.sender != strategy;
+                require e.msg.sender != currentContract && e.msg.sender != strategy;
             }
 
         }
         preserved withdraw(address to, uint256[] ids) with (env e1) {
+            require ids.length == 3;
             require to != currentContract && to != strategy;
-            require e1.msg.sender != strategy;
+            require e1.msg.sender != currentContract && e1.msg.sender != strategy;
         }
         preserved forceWithdraw(address to, uint256[] ids) with (env e2) {
+            require ids.length == 3;
             require to != currentContract && to != strategy;
-            require e2.msg.sender != strategy;
+            require e2.msg.sender != currentContract && e2.msg.sender != strategy;
         }
         preserved partialWithdraw(address to, uint256[] ids, uint256[] amounts) with (env e3) {
+            require ids.length == 3 && amounts.length == 3;
             require to != currentContract && to != strategy;
-            require e3.msg.sender != strategy;
+            require e3.msg.sender != currentContract && e3.msg.sender != strategy;
         }
         preserved unsponsor(address to, uint256[] ids) with (env e4) {
+            require ids.length == 3;
             require to != currentContract && to != strategy;
-            require e4.msg.sender != strategy;
+            require e4.msg.sender != currentContract && e4.msg.sender != strategy;
         }
         preserved partialUnsponsor(address to, uint256[] ids, uint256[] amounts) with (env e5) {
+            require ids.length == 3 && amounts.length == 3;
             require to != currentContract && to != strategy;
-            require e5.msg.sender != strategy;
-        }
-    }
-
-
-/*
-    @Invariant
-
-    @Description:
-        accumulatedPerfFee should remain 0 if the strategy never makes profit
-*/
-invariant zero_accumulatedPerfFee_if_not_making_profit()
-    accumulatedPerfFee() == 0
-    {
-        preserved {
-            require totalUnderlyingMinusSponsored() <= totalPrincipal();
-        }
-    }
-
-
-/*
-    @Invariant
-
-    @Description:
-        if the strategy never makes profit, any user's claimable yield, claimable shares and perfFee should be 0
-*/
-invariant zero_yield_if_not_making_profit(address user)
-    claimableYield(user) == 0 && claimableShares(user) == 0 && perfFee(user) == 0
-    {
-        preserved {
-            require totalUnderlyingMinusSponsored() <= totalPrincipal();
+            require e5.msg.sender != currentContract && e5.msg.sender != strategy;
         }
     }
 
@@ -430,6 +406,9 @@ invariant zero_yield_if_not_making_profit(address user)
 
     @Description:
         deposit data should be either all 0 or none of the fields is 0
+    
+    TODO - investigate violations in
+        https://prover.certora.com/output/52311/c6420aaa24955cce29ac?anonymousKey=d77e22910d83a8be7d7140099ded21713773c255
 */
 invariant integrity_of_deposit_data(uint256 depositId)
     depositAmount(depositId) == 0 && 
@@ -439,7 +418,6 @@ invariant integrity_of_deposit_data(uint256 depositId)
     ||
     depositAmount(depositId) != 0 && 
     depositOwner(depositId) != 0 && 
-    depositClaimer(depositId) != 0 && 
     depositLockedUntil(depositId) != 0
     {
         preserved {
@@ -461,10 +439,15 @@ rule integrity_of_deposit() {
     uint64 lockDuration;
     uint256 amount; 
     uint16[] pcts;
+    require pcts.length == 3;
     address[] claimers;
+    require claimers.length == 3;
     bytes[] datas;
+    require datas.length == 3;
     uint256 slippage;
     env e;
+    require e.msg.sender != currentContract && e.msg.sender != strategy && strategy != currentContract;
+    underlying.setFee(e, 0);
 
     uint256 _userBalance = underlying.balanceOf(e.msg.sender);
     uint256 _vaultBalance = underlying.balanceOf(currentContract);
