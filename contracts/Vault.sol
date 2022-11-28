@@ -377,11 +377,11 @@ contract Vault is
 
         if (address(strategy) != address(0)) {
             uint256 yieldTransferred = strategy.transferYield(_to, yield);
-            if (yieldTransferred == yield) {
+            if (yieldTransferred >= yield) {
                 return;
             }
 
-            yield = yield - yieldTransferred;
+            yield -= yieldTransferred;
         }
 
         _rebalanceBeforeWithdrawing(yield);
