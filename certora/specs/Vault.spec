@@ -47,6 +47,7 @@ methods {
     depositOwner(uint256) returns (address) envfree
     depositClaimer(uint256) returns (address) envfree
     depositLockedUntil(uint256) returns (uint256) envfree
+    principalOf(uint256) returns (uint256) envfree
     totalSharesOf(address[]) returns (uint256) envfree
     totalPrincipalOf(address[]) returns (uint256) envfree
     totalDeposits(uint256[]) returns (uint256) envfree
@@ -83,13 +84,6 @@ methods {
     underlying.balanceOf(address) returns (uint256) envfree
 }
 
-definition excludeSponsor(method f) returns bool =
-    f.selector != sponsor(address, uint256, uint256, uint256).selector
-    &&
-    f.selector != unsponsor(address, uint256[]).selector
-    &&
-    f.selector != partialUnsponsor(address, uint256[], uint256[]).selector;
-
 definition excludeSetInvestPct(method f) returns bool =
     f.selector != setInvestPct(uint16).selector;
 
@@ -117,26 +111,6 @@ definition PCT_DIVISOR() returns uint256 = 10000;
 function pctOf(uint256 _amount, uint16 _fracNum) returns uint256 {
     return to_uint256(_amount * _fracNum / PCT_DIVISOR());
 }
-
-ghost sumOfDeposits() returns uint256 {
-    init_state axiom sumOfDeposits() == 0;
-}
-
-hook Sstore deposits[KEY uint256 k].(offset 0) uint256 amount (uint256 oldAmount) STORAGE {
-    havoc sumOfDeposits assuming sumOfDeposits@new() == sumOfDeposits@old() + (amount - oldAmount);
-}
-
-/*
-    @Invariant
-
-    @Description:
-        the state variable totalPrincipal's value should be always equal to the sum of 
-        deposits made by depositors (sponsors are not depositors)
-*/
-invariant tatalPrincipal_equals_sum_of_deposits()
-    totalPrincipal() == sumOfDeposits()
-    filtered{f -> excludeSponsor(f)}
-
 
 ghost sumOfClaimerPrincipal() returns uint256  {
     init_state axiom sumOfClaimerPrincipal() == 0;
@@ -174,76 +148,6 @@ hook Sstore claimer[KEY uint256 k].(offset 32) uint256 amount (uint256 oldAmount
 */
 invariant tatalShares_equals_sum_of_claimer_shares()
     totalShares() == sumOfClaimerShares()
-
-/*
-    @Invariant
-
-    @Description:
-        Any individual user's shares and principal should be less than or equal to the totals
-
-    TODO - investigate violations in 
-           https://prover.certora.com/output/15154/bbe90411a32bd6523963?anonymousKey=dff7a4fa037d1dfa4628b8fb4f8282fb6e091af0
-           It looks due to uint arithmetic rounding
-*/
-invariant individual_shares_principal_le_total(address user)
-    sharesOf(user) <= totalShares() 
-    && 
-    principalOf(user) <= totalPrincipal()
-    &&
-    (sharesOf(user) == totalShares() <=> principalOf(user) == totalPrincipal())
-    &&
-    (sharesOf(user) < totalShares() <=> principalOf(user) < totalPrincipal())
-    {
-        preserved {
-            requireInvariant tatalPrincipal_equals_sum_of_claimer_principal();
-            requireInvariant tatalShares_equals_sum_of_claimer_shares();
-        }
-    }
-
-/*
-    @Invariant
-
-    @Description:
-        the state variable totalShares' value should be consistent with the state variable totalPrincipal's value, i.e, 
-        they are either both 0 or greater than 0
-*/
-invariant consistency_of_shares_and_principal()
-    totalPrincipal() > 0 => totalShares() > 0 && totalShares() == 0 => totalPrincipal() == 0
-    {
-        preserved sharesOf(address user) {
-            requireInvariant individual_shares_principal_le_total(user);
-        }
-        preserved principalOf(address user) {
-            requireInvariant individual_shares_principal_le_total(user);
-        }
-    }
-
-
-/*
-    @Rule
-
-    @Category: high level
-
-    @Description:
-        price per share, i.e., totalUnderlyingMinusSponsored() / totalShares should be preserved, or
-        both totalUnderlyingMinusSponsored() and totalShares become 0 after any function calls.
-
-    TODO - investigate violations in 
-           https://prover.certora.com/output/15154/6f4601e838ab9a26adb0?anonymousKey=e1374529223eb7bf10fff0423b590617ec901648
-*/
-rule price_per_share_preserved(method f) {
-    require totalUnderlyingMinusSponsored() != 0 && totalShares() != 0;
-    uint256 pricePerShare = totalUnderlyingMinusSponsored() / totalShares();
-    env e;
-    require e.msg.sender != strategy; // safe to assume strategy will never call any function in Vault
-    calldataarg args;
-    f(e, args);
-    assert 
-        totalShares() == 0 && totalUnderlyingMinusSponsored() == 0 
-        || 
-        pricePerShare == totalUnderlyingMinusSponsored() / totalShares();
-}
-
 
 /*
     @Rule
@@ -347,86 +251,6 @@ invariant totalUnderlying_correct()
     
 
 /*
-    @Invariant
-
-    @Description:
-        With the basic strategy that does nothing, 
-        the totalUnderlyingMinusSponsored() value should always equal totalPrincipal
-
-    TODO - investigate violations in
-           https://prover.certora.com/output/52311/131312cdf469818e5407?anonymousKey=296f0d494677fd86b2bba491fc6b0bbbfed57e47
-*/
-invariant totalUnderlyingMinusSponsored_eq_totalPrincipal(method f)
-    totalUnderlyingMinusSponsored() == totalPrincipal()
-    {
-        preserved with (env e) {
-            require accumulatedPerfFee() == 0; // no performance fee
-            require claimableYield(e.msg.sender) == 0; // no yield
-            if (
-                f.selector == deposit((address, uint64, uint256,(uint16, address, bytes)[],string,uint256)).selector
-                ||
-                f.selector == depositForGroupId(uint256,(address,uint64,uint256,(uint16,address,bytes)[],string,uint256)).selector
-                ||
-                f.selector == sponsor(address,uint256,uint256,uint256).selector
-            ) {
-                require e.msg.sender != currentContract && e.msg.sender != strategy;
-            }
-
-        }
-        preserved withdraw(address to, uint256[] ids) with (env e1) {
-            require ids.length == 3;
-            require to != currentContract && to != strategy;
-            require e1.msg.sender != currentContract && e1.msg.sender != strategy;
-        }
-        preserved forceWithdraw(address to, uint256[] ids) with (env e2) {
-            require ids.length == 3;
-            require to != currentContract && to != strategy;
-            require e2.msg.sender != currentContract && e2.msg.sender != strategy;
-        }
-        preserved partialWithdraw(address to, uint256[] ids, uint256[] amounts) with (env e3) {
-            require ids.length == 3 && amounts.length == 3;
-            require to != currentContract && to != strategy;
-            require e3.msg.sender != currentContract && e3.msg.sender != strategy;
-        }
-        preserved unsponsor(address to, uint256[] ids) with (env e4) {
-            require ids.length == 3;
-            require to != currentContract && to != strategy;
-            require e4.msg.sender != currentContract && e4.msg.sender != strategy;
-        }
-        preserved partialUnsponsor(address to, uint256[] ids, uint256[] amounts) with (env e5) {
-            require ids.length == 3 && amounts.length == 3;
-            require to != currentContract && to != strategy;
-            require e5.msg.sender != currentContract && e5.msg.sender != strategy;
-        }
-    }
-
-
-/*
-    @Invariant
-
-    @Description:
-        deposit data should be either all 0 or none of the fields is 0
-    
-    TODO - investigate violations in
-        https://prover.certora.com/output/52311/c6420aaa24955cce29ac?anonymousKey=d77e22910d83a8be7d7140099ded21713773c255
-*/
-invariant integrity_of_deposit_data(uint256 depositId)
-    depositAmount(depositId) == 0 && 
-    depositOwner(depositId) == 0 && 
-    depositClaimer(depositId) == 0 && 
-    depositLockedUntil(depositId) == 0
-    ||
-    depositAmount(depositId) != 0 && 
-    depositOwner(depositId) != 0 && 
-    depositLockedUntil(depositId) != 0
-    {
-        preserved {
-            require minLockPeriod() > 0;
-        }
-    }
-
-
-/*
     @Rule
 
     @Category: variable transition
@@ -470,6 +294,7 @@ rule integrity_of_deposit() {
     assert totalPrincipal_ - _totalPrincipal == amount;
     assert totalPrincipalOfClaimers_ - _totalPrincipalOfClaimers == amount;
     assert totalShares_ - _totalShares == totalSharesOfClaimers_ - _totalPrincipalOfClaimers;
+    assert totalShares_ * _totalPrincipal == totalPrincipal_ * _totalShares; // price preserved
 }
 
 
@@ -537,7 +362,6 @@ rule equivalence_of_deposit_and_depositForGroupId() {
 rule integrity_of_withdraw() {
     address to;
     require to != currentContract && to != strategy;
-    requireInvariant individual_shares_principal_le_total(to);
 
     uint256[] depositIds;
     require depositIds.length == 3;
@@ -579,7 +403,6 @@ rule integrity_of_withdraw() {
 rule integrity_of_forceWithdraw() {
     address to;
     require to != currentContract && to != strategy;
-    requireInvariant individual_shares_principal_le_total(to);
 
     uint256[] depositIds;
     require depositIds.length == 3;
@@ -1124,24 +947,15 @@ rule maxInvestableAmount_correct() {
 
     @Description:
         yield related calculations are correct
-
-    TODO - investigate violations in
-           https://prover.certora.com/output/15154/a439221a2ccf68065c8a?anonymousKey=e13c312d220aa0b0043efc4bd649ce2e11315c1b
-           It looks due to uint arithmetic rounding
 */
 rule yield_calculations_correct(address user) {
-    // should be replaced with 
-    // requireInvariant individual_shares_principal_le_total(user);
-    // once the invariant is proved
-    require sharesOf(user) <= totalShares() && principalOf(user) <= totalPrincipal();
-
     uint256 claimableYield = claimableYield(user);
     uint256 claimableShares = claimableShares(user);
     uint256 perfFee = perfFee(user);
     uint256 yield = claimableYield + perfFee;
-    assert yield > 0 <=> claimableShares > 0;
-    assert yield == 0 <=> claimableShares == 0;
     assert perfFee == pctOf(yield, perfFeePct());
+    assert yield > 0 => claimableShares > 0;
+    assert claimableShares == 0 => yield == 0;
 }
 
 

@@ -174,6 +174,10 @@ contract VaultHarness is Vault {
         });
     }
 
+    function principalOf(uint256 depositId) external view returns (uint256) {
+        return claimer[deposits[depositId].claimerId].totalPrincipal;
+    }
+
     function totalSharesOf(address[] calldata claimers) external view returns (uint256) {
         uint256 total = 0;
         for(uint256 i = 0; i < claimers.length; i++) {
