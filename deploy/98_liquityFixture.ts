@@ -71,14 +71,14 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     BigNumber.from('200000000000000000000'),
   );
 
+  await liquityPriceFeed.setPrice(parseUnits('1800', 18));
+
+  await liquityStrategy.harvest();
+
   // Move time forward 12 days
   await ethers.provider.send('evm_increaseTime', [1.037e6]);
   // await ethers.provider.send('evm_mine', []);
   await mineNBlocks(75);
-
-  await liquityPriceFeed.setPrice(parseUnits('1800', 18));
-
-  await liquityStrategy.harvest();
 
   await troveManager.liquidation(
     BigNumber.from('2000000000000000000000'),
