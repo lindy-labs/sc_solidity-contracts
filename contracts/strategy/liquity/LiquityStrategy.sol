@@ -41,8 +41,6 @@ contract LiquityStrategy is
     error StrategyCurveExchangeCannotBe0Address();
     error StrategySwapTargetCannotBe0Address();
     error StrategySwapTargetNotAllowed();
-    error StrategyTokenApprovalFailed(address token);
-    error StrategyTokenTransferFailed(address token);
     error StrategyInsufficientOutputAmount();
     error StrategyYieldTokenCannotBe0Address();
     error StrategyMinimumPrincipalProtection();
@@ -154,9 +152,7 @@ contract LiquityStrategy is
         lqty = IERC20(_lqty);
         minPrincipalProtectionPct = _principalProtectionPct;
 
-        if (!underlying.approve(_stabilityPool, type(uint256).max)) {
-            revert StrategyTokenApprovalFailed(_underlying);
-        }
+        underlying.approve(_stabilityPool, type(uint256).max);
     }
 
     /**
@@ -277,9 +273,7 @@ contract LiquityStrategy is
 
         // use balance instead of amount since amount could be greater than what was actually withdrawn
         uint256 balance = underlying.balanceOf(address(this));
-        if (!underlying.transfer(vault, balance)) {
-            revert StrategyTokenTransferFailed(address(underlying));
-        }
+        underlying.transfer(vault, balance);
 
         emit StrategyWithdrawn(balance);
     }
@@ -430,9 +424,7 @@ contract LiquityStrategy is
         uint256 lqtyBalance = lqty.balanceOf(address(this));
         if (_amount > lqtyBalance) revert StrategyNotEnoughLQTY();
 
-        // give approval to the swapTarget
-        if (!lqty.approve(_swapTarget, _amount))
-            revert StrategyTokenApprovalFailed(address(lqty));
+        lqty.approve(_swapTarget, _amount);
 
         // perform the swap
         (bool success, ) = _swapTarget.call{value: 0}(_lqtySwapData);
