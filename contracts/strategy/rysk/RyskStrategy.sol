@@ -43,8 +43,6 @@ contract RyskStrategy is BaseStrategy {
     error RyskNoWithdrawalInitiated();
     // cannot complete withdrawal in the same epoch
     error RyskCannotCompleteWithdrawalInSameEpoch();
-    // cannot initiate a withdrawal before a pending withdrawal is completed
-    error RyskPendingWithdrawalNotCompleted();
 
     /**
      * @param _vault address of the vault that will use this strategy
@@ -154,7 +152,7 @@ contract RyskStrategy is BaseStrategy {
         if (_amount == 0) revert StrategyAmountZero();
 
         uint256 withdrawalEpoch = ryskLqPool.withdrawalEpoch();
-        _checkPendingWithdrawal(withdrawalEpoch);
+        _checkAndCompletePendingWithdrawal(withdrawalEpoch);
 
         // since withdrawal price per share is not updated until the end of the epoch,
         // we need to use the price per share from the previous epoch
@@ -185,10 +183,7 @@ contract RyskStrategy is BaseStrategy {
         if (withdrawalReceipt.epoch == ryskLqPool.withdrawalEpoch())
             revert RyskCannotCompleteWithdrawalInSameEpoch();
 
-        uint256 amountWithdrawn = ryskLqPool.completeWithdraw();
-
-        emit StrategyWithdrawn(amountWithdrawn);
-        underlying.safeTransfer(vault, amountWithdrawn);
+        _completePendingWithdrawal();
     }
 
     /**
@@ -227,16 +222,13 @@ contract RyskStrategy is BaseStrategy {
     }
 
     /**
-     * Checks if there is a pending withdrawal from an earlier epoch.
+     * Checks if there exists a pending withdrawal from an earlier epoch and completes it.
      * Rysk liquidity pool doesn't allow to initiate another withdrawal if a pending withdrawal from older epoch was not completed.
-     *
-     * @notice reverts if there is a pending withdrawal from an earlier epoch
      *
      * @param _currentWithdrawalEpoch withdrawal epoch
      */
-    function _checkPendingWithdrawal(uint256 _currentWithdrawalEpoch)
+    function _checkAndCompletePendingWithdrawal(uint256 _currentWithdrawalEpoch)
         internal
-        view
     {
         IRyskLiquidityPool.WithdrawalReceipt
             memory withdrawalReceipt = _getWithdrawalReceipt();
@@ -245,7 +237,19 @@ contract RyskStrategy is BaseStrategy {
             withdrawalReceipt.epoch != 0 &&
             withdrawalReceipt.epoch != _currentWithdrawalEpoch &&
             withdrawalReceipt.shares > 0
-        ) revert RyskPendingWithdrawalNotCompleted();
+        ) {
+            _completePendingWithdrawal();
+        }
+    }
+
+    /**
+     * Completes the pending withdrawal.
+     */
+    function _completePendingWithdrawal() internal {
+        uint256 amountWithdrawn = ryskLqPool.completeWithdraw();
+
+        emit StrategyWithdrawn(amountWithdrawn);
+        underlying.safeTransfer(vault, amountWithdrawn);
     }
 
     /**
