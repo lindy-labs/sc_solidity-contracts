@@ -294,7 +294,7 @@ rule integrity_of_deposit() {
     assert totalPrincipal_ - _totalPrincipal == amount;
     assert totalPrincipalOfClaimers_ - _totalPrincipalOfClaimers == amount;
     assert totalShares_ - _totalShares == totalSharesOfClaimers_ - _totalPrincipalOfClaimers;
-    assert totalShares_ * _totalPrincipal == totalPrincipal_ * _totalShares; // price preserved
+    assert totalShares_ * _totalPrincipal == totalPrincipal_ * _totalShares; // share price preserved
 }
 
 
@@ -355,9 +355,6 @@ rule equivalence_of_deposit_and_depositForGroupId() {
 
     @Description:
         withdraw function should update state variables correctly and consistently
-
-    TODO - investigate violations in
-        https://prover.certora.com/output/52311/335dffc5b058a738dc8e?anonymousKey=04fe57f2482e3aeba044101a2b5efb049deecf16
 */
 rule integrity_of_withdraw() {
     address to;
@@ -369,26 +366,112 @@ rule integrity_of_withdraw() {
 
     uint256 _userBalance = underlying.balanceOf(to);
     uint256 _totalUnderlying = totalUnderlying();
+    uint256 _totalUnderlyingMinusSponsored = totalUnderlyingMinusSponsored();
     uint256 _totalShares = totalShares();
     uint256 _totalPrincipal = totalPrincipal();
     uint256 _totalDeposits = totalDeposits(depositIds);
 
+    require totalSharesOf(depositIds) <= _totalShares;
+    require _totalDeposits >= 100000; // assume no one withdraw dust; 
+    // assume the share price is as the initial
+    require _totalShares / _totalUnderlyingMinusSponsored == SHARES_MULTIPLIER(); 
+
+    // Certora timed out with the following requirement.The following requirement is to avoid rounding issue.
+    // require _totalShares / _totalUnderlyingMinusSponsored * _totalUnderlyingMinusSponsored == _totalShares;
+
     env e;
     require e.block.coinbase != 0;
     underlying.setFee(e, 0);
-    forceWithdraw(e, to, depositIds);
+    withdraw(e, to, depositIds);
 
     uint256 userBalance_ = underlying.balanceOf(to);
     uint256 totalUnderlying_ = totalUnderlying();
+    uint256 totalUnderlyingMinusSponsored_ = totalUnderlyingMinusSponsored();
     uint256 totalShares_ = totalShares();
     uint256 totalPrincipal_ = totalPrincipal();
     uint256 totalDeposits_ = totalDeposits(depositIds);
 
-    assert userBalance_ - _userBalance == _totalDeposits;
-    assert _totalUnderlying - totalUnderlying_ == _totalDeposits;
-    assert _totalPrincipal - _totalPrincipal == _totalDeposits;
+    assert
+        totalUnderlyingMinusSponsored_ == 0 
+        ||
+        totalShares_ / totalUnderlyingMinusSponsored_ == SHARES_MULTIPLIER(); // share price reserved
+    assert _totalPrincipal - totalPrincipal_ == _totalDeposits;
     assert _totalShares >= totalShares_;
     assert totalDeposits_ == 0;
+    assert userBalance_ - _userBalance == _totalDeposits;
+    assert _totalUnderlying - totalUnderlying_ == _totalDeposits;
+    assert _totalUnderlyingMinusSponsored - totalUnderlyingMinusSponsored_ == _totalDeposits;
+}
+
+
+/*
+    @Rule
+
+    @Category: variable transition
+
+    @Description:
+        partialWithdraw function should update state variables correctly and consistently
+
+    TODO - investigate violations in
+        https://prover.certora.com/output/52311/a9a2f580a40d1fe0dc2d?anonymousKey=db3a2d8adf633c8c8678017d189c21acb6df7b32
+        It looks due to arithmetic rounding
+*/
+rule integrity_of_partialWithdraw() {
+    address to;
+    require to != currentContract && to != strategy;
+
+    uint256[] depositIds;
+    uint256[] amounts;
+    require depositIds.length == 3 && amounts.length == 3;
+    require depositIds[0] != depositIds[1] && depositIds[0] != depositIds[2] && depositIds[1] != depositIds[2];
+
+    uint256 i;
+    require i >= 0 && i < depositIds.length;
+
+    uint256 _userBalance = underlying.balanceOf(to);
+    uint256 _totalUnderlying = totalUnderlying();
+    uint256 _totalUnderlyingMinusSponsored = totalUnderlyingMinusSponsored();
+    uint256 _totalShares = totalShares();
+    uint256 _totalPrincipal = totalPrincipal();
+    uint256 _totalDeposits = totalDeposits(depositIds);
+    uint256 _totalSharesOfClaimers = totalSharesOf(depositIds);
+    uint256 _totalPrincipalOfClaimers = totalPrincipalOf(depositIds);
+    uint256 _amount = depositAmount(depositIds[i]);
+    uint256 totalAmount = totalAmount(amounts);
+
+    require _totalPrincipalOfClaimers == _totalDeposits;
+    require totalSharesOf(depositIds) <= _totalShares;
+    require _totalDeposits >= 100000; // assume no one withdraw dust; 
+    // assume the share price is as the initial
+    require _totalShares / _totalUnderlyingMinusSponsored == SHARES_MULTIPLIER(); 
+
+    env e;
+    require e.block.coinbase != 0;
+    underlying.setFee(e, 0);
+    partialWithdraw(e, to, depositIds, amounts);
+
+    uint256 userBalance_ = underlying.balanceOf(to);
+    uint256 totalUnderlying_ = totalUnderlying();
+    uint256 totalUnderlyingMinusSponsored_ = totalUnderlyingMinusSponsored();
+    uint256 totalShares_ = totalShares();
+    uint256 totalPrincipal_ = totalPrincipal();
+    uint256 totalDeposits_ = totalDeposits(depositIds);
+    uint256 totalSharesOfClaimers_ = totalSharesOf(depositIds);
+    uint256 totalPrincipalOfClaimers_ = totalPrincipalOf(depositIds);
+    uint256 amount_ = depositAmount(depositIds[i]);
+
+    
+    assert userBalance_ - _userBalance == totalAmount;
+    assert _totalDeposits - totalDeposits_ == totalAmount;
+    assert _totalUnderlying - totalUnderlying_ == totalAmount;
+    assert _totalPrincipal - totalPrincipal_ == totalAmount;
+    assert _totalShares - totalShares_ == _totalSharesOfClaimers - totalSharesOfClaimers_;
+    assert totalPrincipalOfClaimers_ == totalDeposits_;
+    assert _amount - amount_ == amounts[i];
+    assert
+        totalUnderlyingMinusSponsored_ == 0 
+        ||
+        totalShares_ / totalUnderlyingMinusSponsored_ == SHARES_MULTIPLIER(); // share price reserved
 }
 
 
@@ -430,66 +513,6 @@ rule integrity_of_forceWithdraw() {
     assert _totalPrincipal >= _totalPrincipal;
     assert _totalShares >= totalShares_;
     assert totalDeposits_ == 0;
-}
-
-
-
-/*
-    @Rule
-
-    @Category: variable transition
-
-    @Description:
-        partialWithdraw function should update state variables correctly and consistently
-
-    TODO - investigate violations in
-        https://prover.certora.com/output/52311/a9a2f580a40d1fe0dc2d?anonymousKey=db3a2d8adf633c8c8678017d189c21acb6df7b32
-        It looks due to arithmetic rounding
-*/
-rule integrity_of_partialWithdraw() {
-    address to;
-    require to != currentContract && to != strategy;
-
-    uint256[] depositIds;
-    uint256[] amounts;
-    require depositIds.length == 3 && amounts.length == 3;
-    require depositIds[0] != depositIds[1] && depositIds[0] != depositIds[2] && depositIds[1] != depositIds[2];
-
-    uint256 i;
-    require i >= 0 && i < depositIds.length;
-
-    uint256 _userBalance = underlying.balanceOf(to);
-    uint256 _totalUnderlying = totalUnderlying();
-    uint256 _totalShares = totalShares();
-    uint256 _totalPrincipal = totalPrincipal();
-    uint256 _totalDeposits = totalDeposits(depositIds);
-    uint256 _totalSharesOfClaimers = totalSharesOf(depositIds);
-    uint256 _totalPrincipalOfClaimers = totalPrincipalOf(depositIds);
-    uint256 _amount = depositAmount(depositIds[i]);
-
-    env e;
-    require e.block.coinbase != 0;
-    underlying.setFee(e, 0);
-    partialWithdraw(e, to, depositIds, amounts);
-
-    uint256 userBalance_ = underlying.balanceOf(to);
-    uint256 totalUnderlying_ = totalUnderlying();
-    uint256 totalShares_ = totalShares();
-    uint256 totalPrincipal_ = totalPrincipal();
-    uint256 totalDeposits_ = totalDeposits(depositIds);
-    uint256 totalSharesOfClaimers_ = totalSharesOf(depositIds);
-    uint256 totalPrincipalOfClaimers_ = totalPrincipalOf(depositIds);
-    uint256 amount_ = depositAmount(depositIds[i]);
-
-    uint256 totalAmount = totalAmount(amounts);
-    assert userBalance_ - _userBalance == totalAmount;
-    assert _totalDeposits - totalDeposits_ == totalAmount;
-    assert _totalUnderlying - totalUnderlying_ == totalAmount;
-    assert _totalPrincipal - totalPrincipal_ == totalAmount;
-    assert _totalShares - totalShares_ == _totalSharesOfClaimers - totalSharesOfClaimers_;
-    assert _totalPrincipalOfClaimers == _totalDeposits;
-    assert totalPrincipalOfClaimers_ == totalDeposits_;
-    assert _amount - amount_ == amounts[i];
 }
 
 

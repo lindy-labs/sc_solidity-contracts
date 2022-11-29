@@ -181,7 +181,10 @@ contract VaultHarness is Vault {
     function totalSharesOf(address[] calldata claimers) external view returns (uint256) {
         uint256 total = 0;
         for(uint256 i = 0; i < claimers.length; i++) {
-            total += claimer[claimers[i]].totalShares;
+            address claimerId = claimers[i];
+            if (claimerId != address(0x0)) {
+                total += claimer[claimerId].totalShares;
+            }
         }
         return total;
     }
@@ -197,7 +200,10 @@ contract VaultHarness is Vault {
     function totalPrincipalOf(address[] calldata claimers) external view returns (uint256) {
         uint256 total = 0;
         for(uint256 i = 0; i < claimers.length; i++) {
-            total += claimer[claimers[i]].totalPrincipal;
+            address claimerId = claimers[i];
+            if (claimerId != address(0x0)) {
+                total += claimer[claimerId].totalPrincipal;
+            }
         }
         return total;
     }
@@ -206,7 +212,9 @@ contract VaultHarness is Vault {
         uint256 total = 0;
         for(uint256 i = 0; i < depositIds.length; i++) {
             address claimerId = deposits[depositIds[i]].claimerId;
-            total += claimer[claimerId].totalShares;
+            if (claimerId != address(0x0)) {
+                total += claimer[claimerId].totalShares;
+            }
         }
         return total;
     }
@@ -215,7 +223,9 @@ contract VaultHarness is Vault {
         uint256 total = 0;
         for(uint256 i = 0; i < depositIds.length; i++) {
             address claimerId = deposits[depositIds[i]].claimerId;
-            total += claimer[claimerId].totalPrincipal;
+            if (claimerId != address(0x0)) {
+                total += claimer[claimerId].totalPrincipal;
+            }
         }
         return total;
     }
