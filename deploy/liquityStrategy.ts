@@ -38,7 +38,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
   if (getNetworkName() !== 'hardhat' && getNetworkName() !== 'docker') {
     try {
-      await env.run('verify:verify', {
+      env.run('verify:verify', {
         address: liquityStrategy.address,
         constructorArguments: [],
       });
@@ -93,7 +93,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
     if (getNetworkName() !== 'hardhat' && getNetworkName() !== 'docker') {
       try {
-        await env.run('verify:verify', {
+        env.run('verify:verify', {
           address: mockLiquityPriceFeedDeployment.address,
           constructorArguments: [],
         });
@@ -102,7 +102,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
       }
 
       try {
-        await env.run('verify:verify', {
+        env.run('verify:verify', {
           address: troveManagerDeployment.address,
           constructorArguments: troveManagerDeploymentArgs,
         });
@@ -111,7 +111,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
       }
 
       try {
-        await env.run('verify:verify', {
+        env.run('verify:verify', {
           address: mockLiquityStabilityPool.address,
           constructorArguments: liquityStabilityPoolArgs,
         });
@@ -120,7 +120,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
       }
 
       try {
-        await env.run('verify:verify', {
+        env.run('verify:verify', {
           address: mock0x.address,
           constructorArguments: [],
         });
