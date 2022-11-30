@@ -510,7 +510,7 @@ rule integrity_of_forceWithdraw() {
 
     assert userBalance_ >= _userBalance;
     assert _totalUnderlying >= totalUnderlying_;
-    assert _totalPrincipal >= _totalPrincipal;
+    assert _totalPrincipal >= totalPrincipal_;
     assert _totalShares >= totalShares_;
     assert totalDeposits_ == 0;
 }
@@ -708,6 +708,38 @@ rule integrity_of_admin_settings_functions() {
 /*
     @Rule
 
+    @Category: variable transition
+
+    @Description:
+        withdrawPerformanceFee function should update state variables correctly and consistently
+*/
+rule integrity_of_withdrawPerformanceFee() {
+    env e;
+    require treasury() != currentContract;
+    require treasury() != strategy();
+
+    underlying.setFee(e, 0);
+
+    uint256 _balanceOfTreasury = underlying.balanceOf(treasury());
+    uint256 _totalUnderlying = totalUnderlying();
+    uint256 _accumulatedPerformanceFee = accumulatedPerfFee();
+
+    withdrawPerformanceFee(e);
+
+    uint256 balanceOfTreasury_ = underlying.balanceOf(treasury());
+    uint256 totalUnderlying_ = totalUnderlying();
+    uint256 accumulatedPerformanceFee_ = accumulatedPerfFee();
+
+    assert balanceOfTreasury_ - _balanceOfTreasury == _accumulatedPerformanceFee;
+    assert _totalUnderlying - totalUnderlying_ == _accumulatedPerformanceFee;
+    assert accumulatedPerformanceFee_ == 0;
+}
+
+
+
+/*
+    @Rule
+
     @Category: state transition
 
     @Description:
@@ -737,31 +769,50 @@ rule integrity_of_pause_exitPause() {
 /*
     @Rule
 
-    @Category: variable transition
+    @Category: unit test
 
     @Description:
-        withdrawPerformanceFee function should update state variables correctly and consistently
+        yield related calculations are correct
 */
-rule integrity_of_withdrawPerformanceFee() {
+rule yield_calculations_correct(address user) {
+    uint256 claimableYield = claimableYield(user);
+    uint256 claimableShares = claimableShares(user);
+    uint256 perfFee = perfFee(user);
+    uint256 yield = claimableYield + perfFee;
+    assert perfFee == pctOf(yield, perfFeePct());
+    assert yield > 0 => claimableShares > 0;
+    assert claimableShares == 0 => yield == 0;
+}
+
+
+/*
+    @Rule
+
+    @Category: unit test
+
+    @Description:
+        maxInvestableAmount equals investPct of totalUnderlying()
+*/
+rule maxInvestableAmount_correct() {
+    assert pctOf(totalUnderlying(), investPct()) == maxInvestableAmount();
+}
+
+
+/*
+    @Rule
+
+    @Category: unit test
+
+    @Description:
+        when the vault is in a loss, withdraw should revert
+*/
+rule withdraw_reverts_when_in_loss() {
+    require totalUnderlyingMinusSponsored() < totalPrincipal();
     env e;
-    require treasury() != currentContract;
-    require treasury() != strategy();
-
-    underlying.setFee(e, 0);
-
-    uint256 _balanceOfTreasury = underlying.balanceOf(treasury());
-    uint256 _totalUnderlying = totalUnderlying();
-    uint256 _accumulatedPerformanceFee = accumulatedPerfFee();
-
-    withdrawPerformanceFee(e);
-
-    uint256 balanceOfTreasury_ = underlying.balanceOf(treasury());
-    uint256 totalUnderlying_ = totalUnderlying();
-    uint256 accumulatedPerformanceFee_ = accumulatedPerfFee();
-
-    assert balanceOfTreasury_ - _balanceOfTreasury == _accumulatedPerformanceFee;
-    assert _totalUnderlying - totalUnderlying_ == _accumulatedPerformanceFee;
-    assert accumulatedPerformanceFee_ == 0;
+    address to;
+    uint256[] ids;
+    withdraw@withrevert(e, to, ids); // should always revert
+    assert lastReverted;
 }
 
 
@@ -799,40 +850,6 @@ rule interity_of_updateInvested() {
     @Category: unit test
 
     @Description:
-        when the vault is in a loss, withdraw should revert
-*/
-rule withdraw_reverts_when_in_loss() {
-    require totalUnderlyingMinusSponsored() < totalPrincipal();
-    env e;
-    address to;
-    uint256[] ids;
-    withdraw@withrevert(e, to, ids); // should always revert
-    assert lastReverted;
-}
-
-/*
-    @Rule
-
-    @Category: unit test
-
-    @Description:
-        withdraw succeeds only if the vault is not in a loss
-*/
-rule withdraw_succeeds_only_if_not_in_loss() {
-    env e;
-    address to;
-    uint256[] ids;
-    withdraw@withrevert(e, to, ids);
-    assert !lastReverted => totalUnderlyingMinusSponsored() >= totalPrincipal();
-}
-
-
-/*
-    @Rule
-
-    @Category: unit test
-
-    @Description:
         if a vault is paused, then deposit and sponsor functions will revert
 */
 rule paused_vault_rejects_any_deposits() {
@@ -850,39 +867,6 @@ rule paused_vault_rejects_any_deposits() {
         ||
         f.selector == sponsor(address, uint256, uint256, uint256).selector;
     require paused();
-
-    f@withrevert(e, args);
-
-    assert lastReverted;
-}
-
-
-/*
-    @Rule
-
-    @Category: unit test
-
-    @Description:
-        if a vault is exitPaused, then withdraw, unsponsor and claimYield functions will revert
-*/
-rule exitPaused_vault_rejects_any_withdrawals() {
-    env e;
-    method f;
-    calldataarg args;
-    require 
-        f.selector == withdraw(address, uint256[]).selector
-        ||
-        f.selector == forceWithdraw(address, uint256[]).selector
-        ||
-        f.selector == partialWithdraw(address, uint256[], uint256[]).selector
-        ||
-        f.selector == unsponsor(address, uint256[]).selector
-        ||
-        f.selector == partialUnsponsor(address, uint256[], uint256[]).selector
-        ||
-        f.selector == claimYield(address).selector;
-
-    require exitPaused();
 
     f@withrevert(e, args);
 
@@ -929,6 +913,14 @@ rule deposit_reverts_on_invalid_params() {
 }
 
 
+/*
+    @Rule
+
+    @Category: unit test
+
+    @Description:
+        sponsor function should revert on any invalid sponsor params
+*/
 rule sponsor_reverts_on_invalid_params() {
     env e;
     address inputToken;
@@ -957,28 +949,30 @@ rule sponsor_reverts_on_invalid_params() {
     @Category: unit test
 
     @Description:
-        maxInvestableAmount equals investPct of totalUnderlying()
+        if a vault is exitPaused, then withdraw, unsponsor and claimYield functions will revert
 */
-rule maxInvestableAmount_correct() {
-    assert pctOf(totalUnderlying(), investPct()) == maxInvestableAmount();
-}
+rule exitPaused_vault_rejects_any_withdrawals() {
+    env e;
+    method f;
+    calldataarg args;
+    require 
+        f.selector == withdraw(address, uint256[]).selector
+        ||
+        f.selector == forceWithdraw(address, uint256[]).selector
+        ||
+        f.selector == partialWithdraw(address, uint256[], uint256[]).selector
+        ||
+        f.selector == unsponsor(address, uint256[]).selector
+        ||
+        f.selector == partialUnsponsor(address, uint256[], uint256[]).selector
+        ||
+        f.selector == claimYield(address).selector;
 
-/*
-    @Rule
+    require exitPaused();
 
-    @Category: unit test
+    f@withrevert(e, args);
 
-    @Description:
-        yield related calculations are correct
-*/
-rule yield_calculations_correct(address user) {
-    uint256 claimableYield = claimableYield(user);
-    uint256 claimableShares = claimableShares(user);
-    uint256 perfFee = perfFee(user);
-    uint256 yield = claimableYield + perfFee;
-    assert perfFee == pctOf(yield, perfFeePct());
-    assert yield > 0 => claimableShares > 0;
-    assert claimableShares == 0 => yield == 0;
+    assert lastReverted;
 }
 
 
