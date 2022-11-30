@@ -58,7 +58,7 @@ dataSources:
       file: ./src/mappings/liquity.ts
       entities:
         - Liquidation
-        - LiquidationCounter
+        - LiquidationState
       abis:
         - name: LiquityTrove
           file: ./external_abis/LiquityTrove.json
@@ -84,7 +84,7 @@ dataSources:
       language: wasm/assemblyscript
       file: ./src/mappings/liquity.ts
       entities:
-        - LiquidationCounter
+        - LiquidationState
       abis:
         - name: StabilityPool
           file: ./abis/contracts/mock/liquity/MockStabilityPool.sol/MockStabilityPool.json
@@ -106,7 +106,7 @@ dataSources:
       language: wasm/assemblyscript
       file: ./src/mappings/liquity.ts
       entities:
-        - LiquidationCounter
+        - LiquidationState
       abis:
         - name: LiquityPriceFeed
           file: ./abis/contracts/mock/liquity/MockLiquityPriceFeed.sol/MockLiquityPriceFeed.json
