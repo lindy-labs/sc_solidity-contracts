@@ -20,6 +20,8 @@ import {ExitPausable} from "./lib/ExitPausable.sol";
 import {IStrategy} from "./strategy/IStrategy.sol";
 import {CustomErrors} from "./interfaces/CustomErrors.sol";
 
+import "hardhat/console.sol";
+
 /**
  * A vault where other accounts can deposit an underlying token
  * currency and set distribution params for their principal and yield
@@ -123,6 +125,8 @@ contract Vault is
     /// Rebalance minimum
     uint256 private immutable rebalanceMinimum;
 
+    uint16 public immediateInvestPct;
+
     /**
      * @param _underlying Underlying ERC20 token to use.
      * @param _minLockPeriod Minimum lock period to deposit
@@ -141,8 +145,10 @@ contract Vault is
         address _admin,
         uint16 _perfFeePct,
         uint16 _lossTolerancePct,
-        SwapPoolParam[] memory _swapPools
+        SwapPoolParam[] memory _swapPools,
+        uint16 _immediateInvestPct
     ) {
+        if (!_immediateInvestPct.validPct()) revert VaultInvalidInvestpct();
         if (!_investPct.validPct()) revert VaultInvalidInvestpct();
         if (!_perfFeePct.validPct()) revert VaultInvalidPerformanceFee();
         if (!_lossTolerancePct.validPct()) revert VaultInvalidLossTolerance();
@@ -164,6 +170,7 @@ contract Vault is
         minLockPeriod = _minLockPeriod;
         perfFeePct = _perfFeePct;
         lossTolerancePct = _lossTolerancePct;
+        immediateInvestPct = _immediateInvestPct;
 
         rebalanceMinimum = 10 * 10**underlying.decimals();
 
@@ -342,6 +349,8 @@ contract Vault is
             _params.name,
             _groupId
         );
+
+        if (immediateInvestPct != 0) _doInvest();
     }
 
     /// @inheritdoc IVault
@@ -586,6 +595,14 @@ contract Vault is
     // Admin functions
     //
 
+    function setImmediateInvestPct(uint16 _pct) external onlySettings {
+        if (!PercentMath.validPct(_pct)) revert VaultInvalidInvestpct();
+
+        emit InvestPctUpdated(_pct);
+
+        immediateInvestPct = _pct;
+    }
+
     /// @inheritdoc IVaultSettings
     function setInvestPct(uint16 _investPct)
         external
@@ -693,6 +710,25 @@ contract Vault is
     //
     // Internal API
     //
+
+    function _doInvest() private {
+        (uint256 maxInvestableAmount, uint256 alreadyInvested) = investState();
+
+        if (maxInvestableAmount <= alreadyInvested) return;
+
+        if (alreadyInvested.inPctOf(maxInvestableAmount) >= immediateInvestPct)
+            return;
+
+        uint256 investAmount = maxInvestableAmount - alreadyInvested;
+
+        if (investAmount < rebalanceMinimum) return;
+
+        underlying.safeTransfer(address(strategy), investAmount);
+
+        strategy.invest();
+
+        emit Invested(investAmount);
+    }
 
     /**
      * Withdraws the principal from the deposits with the ids provided in @param _ids and sends it to @param _to.
