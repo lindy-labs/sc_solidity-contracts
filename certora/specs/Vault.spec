@@ -112,6 +112,26 @@ function pctOf(uint256 _amount, uint16 _fracNum) returns uint256 {
     return to_uint256(_amount * _fracNum / PCT_DIVISOR());
 }
 
+
+ghost sumOfClaimerShares() returns uint256   {
+    init_state axiom sumOfClaimerShares() == 0;
+}
+
+hook Sstore claimer[KEY address k].(offset 32) uint256 amount (uint256 oldAmount) STORAGE {
+    havoc sumOfClaimerShares assuming sumOfClaimerShares@new() == sumOfClaimerShares@old() + (amount - oldAmount);
+}
+
+/*
+    @Invariant
+
+    @Description:
+        the tate variable totalShares' value should be always equal to the sum of 
+        claimer's shares
+*/
+invariant totalShares_equals_sum_of_claimer_shares()
+    totalShares() == sumOfClaimerShares()
+
+
 ghost sumOfClaimerPrincipal() returns uint256  {
     init_state axiom sumOfClaimerPrincipal() == 0;
 }
@@ -127,27 +147,9 @@ hook Sstore claimer[KEY address k].(offset 0) uint256 amount (uint256 oldAmount)
         the state variable totalPrincipal's value should be always equal to the sum of 
         claimer's principal
 */
-invariant tatalPrincipal_equals_sum_of_claimer_principal()
+invariant totalPrincipal_equals_sum_of_claimer_principal()
     totalPrincipal() == sumOfClaimerPrincipal()
 
-
-ghost sumOfClaimerShares() returns uint256   {
-    init_state axiom sumOfClaimerShares() == 0;
-}
-
-hook Sstore claimer[KEY uint256 k].(offset 32) uint256 amount (uint256 oldAmount) STORAGE {
-    havoc sumOfClaimerShares assuming sumOfClaimerShares@new() == sumOfClaimerShares@old() + (amount - oldAmount);
-}
-
-/*
-    @Invariant
-
-    @Description:
-        the tate variable totalShares' value should be always equal to the sum of 
-        claimer's shares
-*/
-invariant tatalShares_equals_sum_of_claimer_shares()
-    totalShares() == sumOfClaimerShares()
 
 /*
     @Rule
@@ -348,6 +350,25 @@ rule equivalence_of_deposit_and_depositForGroupId() {
 }
 
 
+function setupWithdrawPreconidtions(
+    address to, 
+    uint256[] depositIds, 
+    uint256 _totalShares, 
+    uint256 _totalDeposits, 
+    uint256 _totalUnderlyingMinusSponsored
+) {
+    require to != currentContract && to != strategy;
+    require depositIds.length == 3;
+    require depositIds[0] != depositIds[1] && depositIds[0] != depositIds[2] && depositIds[1] != depositIds[2];
+    require depositAmount(depositIds[0]) == 0 => depositOwner(depositIds[0]) == 0 && depositClaimer(depositIds[0]) == 0;
+    require depositAmount(depositIds[1]) == 0 => depositOwner(depositIds[1]) == 0 && depositClaimer(depositIds[1]) == 0;
+    require depositAmount(depositIds[2]) == 0 => depositOwner(depositIds[2]) == 0 && depositClaimer(depositIds[2]) == 0;          
+    require totalSharesOf(depositIds)  <= _totalShares;
+    require _totalDeposits >= 100000; // assume no one withdraw dust; 
+    // assume the share price is as the initial
+    require _totalShares / _totalUnderlyingMinusSponsored == SHARES_MULTIPLIER(); 
+}
+
 /*
     @Rule
 
@@ -358,12 +379,7 @@ rule equivalence_of_deposit_and_depositForGroupId() {
 */
 rule integrity_of_withdraw() {
     address to;
-    require to != currentContract && to != strategy;
-
     uint256[] depositIds;
-    require depositIds.length == 3;
-    require depositIds[0] != depositIds[1] && depositIds[0] != depositIds[2] && depositIds[1] != depositIds[2];
-
     uint256 _userBalance = underlying.balanceOf(to);
     uint256 _totalUnderlying = totalUnderlying();
     uint256 _totalUnderlyingMinusSponsored = totalUnderlyingMinusSponsored();
@@ -371,11 +387,7 @@ rule integrity_of_withdraw() {
     uint256 _totalPrincipal = totalPrincipal();
     uint256 _totalDeposits = totalDeposits(depositIds);
 
-    require totalSharesOf(depositIds) <= _totalShares;
-    require _totalDeposits >= 100000; // assume no one withdraw dust; 
-    // assume the share price is as the initial
-    require _totalShares / _totalUnderlyingMinusSponsored == SHARES_MULTIPLIER(); 
-
+    setupWithdrawPreconidtions(to, depositIds, _totalShares, _totalDeposits, _totalUnderlyingMinusSponsored);
     // Certora timed out with the following requirement.The following requirement is to avoid rounding issue.
     // require _totalShares / _totalUnderlyingMinusSponsored * _totalUnderlyingMinusSponsored == _totalShares;
 
@@ -391,16 +403,16 @@ rule integrity_of_withdraw() {
     uint256 totalPrincipal_ = totalPrincipal();
     uint256 totalDeposits_ = totalDeposits(depositIds);
 
-    assert
-        totalUnderlyingMinusSponsored_ == 0 
-        ||
-        totalShares_ / totalUnderlyingMinusSponsored_ == SHARES_MULTIPLIER(); // share price reserved
     assert _totalPrincipal - totalPrincipal_ == _totalDeposits;
     assert _totalShares >= totalShares_;
     assert totalDeposits_ == 0;
     assert userBalance_ - _userBalance == _totalDeposits;
     assert _totalUnderlying - totalUnderlying_ == _totalDeposits;
     assert _totalUnderlyingMinusSponsored - totalUnderlyingMinusSponsored_ == _totalDeposits;
+    assert
+        totalUnderlyingMinusSponsored_ == 0 
+        ||
+        totalShares_ / totalUnderlyingMinusSponsored_ == SHARES_MULTIPLIER(); // share price reserved
 }
 
 
@@ -411,39 +423,28 @@ rule integrity_of_withdraw() {
 
     @Description:
         partialWithdraw function should update state variables correctly and consistently
-
-    TODO - investigate violations in
-        https://prover.certora.com/output/52311/a9a2f580a40d1fe0dc2d?anonymousKey=db3a2d8adf633c8c8678017d189c21acb6df7b32
-        It looks due to arithmetic rounding
 */
 rule integrity_of_partialWithdraw() {
     address to;
-    require to != currentContract && to != strategy;
-
     uint256[] depositIds;
-    uint256[] amounts;
-    require depositIds.length == 3 && amounts.length == 3;
-    require depositIds[0] != depositIds[1] && depositIds[0] != depositIds[2] && depositIds[1] != depositIds[2];
-
-    uint256 i;
-    require i >= 0 && i < depositIds.length;
-
     uint256 _userBalance = underlying.balanceOf(to);
     uint256 _totalUnderlying = totalUnderlying();
     uint256 _totalUnderlyingMinusSponsored = totalUnderlyingMinusSponsored();
     uint256 _totalShares = totalShares();
     uint256 _totalPrincipal = totalPrincipal();
     uint256 _totalDeposits = totalDeposits(depositIds);
+
+    setupWithdrawPreconidtions(to, depositIds, _totalShares, _totalDeposits, _totalUnderlyingMinusSponsored);
+
     uint256 _totalSharesOfClaimers = totalSharesOf(depositIds);
     uint256 _totalPrincipalOfClaimers = totalPrincipalOf(depositIds);
+    require _totalPrincipalOfClaimers == _totalDeposits;
+
+    uint256[] amounts;
+    uint256 i;
+    require i >= 0 && i < depositIds.length;
     uint256 _amount = depositAmount(depositIds[i]);
     uint256 totalAmount = totalAmount(amounts);
-
-    require _totalPrincipalOfClaimers == _totalDeposits;
-    require totalSharesOf(depositIds) <= _totalShares;
-    require _totalDeposits >= 100000; // assume no one withdraw dust; 
-    // assume the share price is as the initial
-    require _totalShares / _totalUnderlyingMinusSponsored == SHARES_MULTIPLIER(); 
 
     env e;
     require e.block.coinbase != 0;
