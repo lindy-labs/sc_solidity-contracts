@@ -107,6 +107,8 @@ definition rebalanceMinimum() returns uint256 = 10 * 10^18;
 // PCT_DIVISOR constant in PercentMath lib
 definition PCT_DIVISOR() returns uint256 = 10000;
 
+definition EPSILON() returns uint256 = 10;
+
 // pctOf function in PercentMath lib
 function pctOf(uint256 _amount, uint16 _fracNum) returns uint256 {
     return to_uint256(_amount * _fracNum / PCT_DIVISOR());
@@ -409,10 +411,14 @@ rule integrity_of_withdraw() {
     assert userBalance_ - _userBalance == _totalDeposits;
     assert _totalUnderlying - totalUnderlying_ == _totalDeposits;
     assert _totalUnderlyingMinusSponsored - totalUnderlyingMinusSponsored_ == _totalDeposits;
+    // assert that share price reserved, 
+    // but a small change (10 wei) is allowed due to rounding of division on uint256
     assert
         totalUnderlyingMinusSponsored_ == 0 
         ||
-        totalShares_ / totalUnderlyingMinusSponsored_ == SHARES_MULTIPLIER(); // share price reserved
+        totalShares_ / totalUnderlyingMinusSponsored_ - SHARES_MULTIPLIER() < EPSILON()
+        || 
+        SHARES_MULTIPLIER() - totalShares_ / totalUnderlyingMinusSponsored_ < EPSILON(); 
 }
 
 
@@ -469,10 +475,14 @@ rule integrity_of_partialWithdraw() {
     assert _totalShares - totalShares_ == _totalSharesOfClaimers - totalSharesOfClaimers_;
     assert totalPrincipalOfClaimers_ == totalDeposits_;
     assert _amount - amount_ == amounts[i];
+    // assert that share price reserved, 
+    // but a small change (10 wei) is allowed due to rounding of division on uint256
     assert
         totalUnderlyingMinusSponsored_ == 0 
         ||
-        totalShares_ / totalUnderlyingMinusSponsored_ == SHARES_MULTIPLIER(); // share price reserved
+        totalShares_ / totalUnderlyingMinusSponsored_ - SHARES_MULTIPLIER() < EPSILON()
+        || 
+        SHARES_MULTIPLIER() - totalShares_ / totalUnderlyingMinusSponsored_ < EPSILON(); 
 }
 
 
@@ -486,17 +496,15 @@ rule integrity_of_partialWithdraw() {
 */
 rule integrity_of_forceWithdraw() {
     address to;
-    require to != currentContract && to != strategy;
-
     uint256[] depositIds;
-    require depositIds.length == 3;
-    require depositIds[0] != depositIds[1] && depositIds[0] != depositIds[2] && depositIds[1] != depositIds[2];
-
     uint256 _userBalance = underlying.balanceOf(to);
     uint256 _totalUnderlying = totalUnderlying();
+    uint256 _totalUnderlyingMinusSponsored = totalUnderlyingMinusSponsored();
     uint256 _totalShares = totalShares();
     uint256 _totalPrincipal = totalPrincipal();
     uint256 _totalDeposits = totalDeposits(depositIds);
+
+    setupWithdrawPreconidtions(to, depositIds, _totalShares, _totalDeposits, _totalUnderlyingMinusSponsored);
 
     env e;
     require e.block.coinbase != 0;
@@ -505,6 +513,7 @@ rule integrity_of_forceWithdraw() {
 
     uint256 userBalance_ = underlying.balanceOf(to);
     uint256 totalUnderlying_ = totalUnderlying();
+    uint256 totalUnderlyingMinusSponsored_ = totalUnderlyingMinusSponsored();
     uint256 totalShares_ = totalShares();
     uint256 totalPrincipal_ = totalPrincipal();
     uint256 totalDeposits_ = totalDeposits(depositIds);
@@ -514,6 +523,14 @@ rule integrity_of_forceWithdraw() {
     assert _totalPrincipal >= totalPrincipal_;
     assert _totalShares >= totalShares_;
     assert totalDeposits_ == 0;
+    // assert that share price reserved, 
+    // but a small change (10 wei) is allowed due to rounding of division on uint256
+    assert
+        totalUnderlyingMinusSponsored_ == 0 
+        ||
+        totalShares_ / totalUnderlyingMinusSponsored_ - SHARES_MULTIPLIER() < EPSILON()
+        || 
+        SHARES_MULTIPLIER() - totalShares_ / totalUnderlyingMinusSponsored_ < EPSILON(); 
 }
 
 
