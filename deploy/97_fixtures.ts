@@ -26,7 +26,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
     console.log('vaultAddress', vaultAddress);
     const vault = await ethers.getContractAt('Vault', vaultAddress);
 
-    console.log('Configuring vault strategy, treasury and investPct', (await ethers.provider.getBalance(owner.address)).toString());
+    console.log('Configuring vault strategy, treasury and investPct');
     await vault.connect(owner).setTreasury(treasury.address);
     console.log('treasury set');
     await vault.connect(owner).setInvestPct('8000');
