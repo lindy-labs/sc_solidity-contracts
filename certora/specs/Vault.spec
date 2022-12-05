@@ -352,7 +352,7 @@ rule equivalence_of_deposit_and_depositForGroupId() {
 }
 
 
-function setupWithdrawPreconidtions(
+function setupWithdrawPreconditions(
     address to, 
     uint256[] depositIds, 
     uint256 _totalShares, 
@@ -389,7 +389,7 @@ rule integrity_of_withdraw() {
     uint256 _totalPrincipal = totalPrincipal();
     uint256 _totalDeposits = totalDeposits(depositIds);
 
-    setupWithdrawPreconidtions(to, depositIds, _totalShares, _totalDeposits, _totalUnderlyingMinusSponsored);
+    setupWithdrawPreconditions(to, depositIds, _totalShares, _totalDeposits, _totalUnderlyingMinusSponsored);
     // Certora timed out with the following requirement.The following requirement is to avoid rounding issue.
     // require _totalShares / _totalUnderlyingMinusSponsored * _totalUnderlyingMinusSponsored == _totalShares;
 
@@ -447,7 +447,7 @@ rule integrity_of_partialWithdraw() {
     uint256 _totalPrincipal = totalPrincipal();
     uint256 _totalDeposits = totalDeposits(depositIds);
 
-    setupWithdrawPreconidtions(to, depositIds, _totalShares, _totalDeposits, _totalUnderlyingMinusSponsored);
+    setupWithdrawPreconditions(to, depositIds, _totalShares, _totalDeposits, _totalUnderlyingMinusSponsored);
 
     uint256 _totalSharesOfClaimers = totalSharesOf(depositIds);
     uint256 _totalPrincipalOfClaimers = totalPrincipalOf(depositIds);
@@ -512,7 +512,7 @@ rule integrity_of_forceWithdraw() {
     uint256 _totalPrincipal = totalPrincipal();
     uint256 _totalDeposits = totalDeposits(depositIds);
 
-    setupWithdrawPreconidtions(to, depositIds, _totalShares, _totalDeposits, _totalUnderlyingMinusSponsored);
+    setupWithdrawPreconditions(to, depositIds, _totalShares, _totalDeposits, _totalUnderlyingMinusSponsored);
 
     env e;
     require e.block.coinbase != 0;
