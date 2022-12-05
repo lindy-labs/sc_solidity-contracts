@@ -1,6 +1,5 @@
 import "erc20.spec"
 
-using MockStrategySync as strategy
 using MockLUSD as underlying
 
 methods {
@@ -244,14 +243,20 @@ invariant same_underlying()
 
 
 /*
-    @Invariant
+    @Rule
+
+    @Category: unit test
 
     @Description:
         With the basic strategy that does nothing, totalUnderlying() value should always equal 
         sum of the vault and strategy's balances of the underlying token
 */
-invariant totalUnderlying_correct()
-    totalUnderlying() == underlying.balanceOf(currentContract) + underlying.balanceOf(strategy)
+rule totalUnderlying_correct() {
+    // require currentContract != strategy();
+    uint256 vaultBalance = underlying.balanceOf(currentContract);
+    uint256 strategyBalance = underlying.balanceOf(strategy());
+    assert totalUnderlying() == vaultBalance + strategyBalance;
+}
     
 
 /*
@@ -274,7 +279,7 @@ rule integrity_of_deposit() {
     require datas.length == 3;
     uint256 slippage;
     env e;
-    require e.msg.sender != currentContract && e.msg.sender != strategy && strategy != currentContract;
+    require e.msg.sender != currentContract && e.msg.sender != strategy() && strategy() != currentContract;
     underlying.setFee(e, 0);
 
     uint256 _userBalance = underlying.balanceOf(e.msg.sender);
@@ -359,7 +364,7 @@ function setupWithdrawPreconditions(
     uint256 _totalDeposits, 
     uint256 _totalUnderlyingMinusSponsored
 ) {
-    require to != currentContract && to != strategy;
+    require to != currentContract && to != strategy();
     require depositIds.length == 3;
     require depositIds[0] != depositIds[1] && depositIds[0] != depositIds[2] && depositIds[1] != depositIds[2];
     require depositAmount(depositIds[0]) == 0 => depositOwner(depositIds[0]) == 0 && depositClaimer(depositIds[0]) == 0;
@@ -593,7 +598,7 @@ rule integrity_of_sponsor() {
 */
 rule integrity_of_unsponsor() {
     address to;
-    require to != currentContract && to != strategy;
+    require to != currentContract && to != strategy();
 
     uint256[] depositIds;
     require depositIds.length == 3;
@@ -636,7 +641,7 @@ rule integrity_of_unsponsor() {
 */
 rule integrity_of_partialUnsponsor() {
     address to;
-    require to != currentContract && to != strategy;
+    require to != currentContract && to != strategy();
 
     uint256[] depositIds;
     uint256[] amounts;
