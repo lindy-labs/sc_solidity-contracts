@@ -37,10 +37,12 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   );
 
   if (getNetworkName() !== 'hardhat' && getNetworkName() !== 'docker') {
-      env.run('verify:verify', {
+    await env
+      .run('verify:verify', {
         address: liquityStrategy.address,
         constructorArguments: [],
-      }).catch((e) => console.error((e as Error).message));
+      })
+      .catch((e) => console.error((e as Error).message));
 
     await env.tenderly.persistArtifacts({
       name: 'LiquityStrategy',
@@ -88,25 +90,36 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     address0x = mock0x.address;
 
     if (getNetworkName() !== 'hardhat' && getNetworkName() !== 'docker') {
-        env.run('verify:verify', {
-          address: mockLiquityPriceFeedDeployment.address,
-          constructorArguments: [],
-        }).catch((e) => console.error((e as Error).message));
+      const priceFeedVerification = env.run('verify:verify', {
+        address: mockLiquityPriceFeedDeployment.address,
+        constructorArguments: [],
+      });
 
-        env.run('verify:verify', {
-          address: troveManagerDeployment.address,
-          constructorArguments: troveManagerDeploymentArgs,
-        }).catch((e) => console.error((e as Error).message));
+      const troveManagerVerification = env.run('verify:verify', {
+        address: troveManagerDeployment.address,
+        constructorArguments: troveManagerDeploymentArgs,
+      });
 
-        env.run('verify:verify', {
-          address: mockLiquityStabilityPool.address,
-          constructorArguments: liquityStabilityPoolArgs,
-        }).catch((e) => console.error((e as Error).message));
+      const stabilityPoolVerification = env.run('verify:verify', {
+        address: mockLiquityStabilityPool.address,
+        constructorArguments: liquityStabilityPoolArgs,
+      });
 
-        env.run('verify:verify', {
-          address: mock0x.address,
-          constructorArguments: [],
-        }).catch((e) => console.error((e as Error).message));
+      const mock0xVerification = env.run('verify:verify', {
+        address: mock0x.address,
+        constructorArguments: [],
+      });
+
+      const promises = [
+        priceFeedVerification,
+        troveManagerVerification,
+        stabilityPoolVerification,
+        mock0xVerification,
+      ];
+
+      await Promise.allSettled(promises).then((results) =>
+        results.forEach((result) => console.log(result.status)),
+      );
     }
   }
 
