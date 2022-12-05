@@ -137,15 +137,18 @@ totalUnderlying() == underlying.balanceOf(currentContract) + underlying.balanceO
     _totalShares = totalShares();
     _totalPrincipal = totalPrincipal();
     _totalDeposits = totalDeposits(depositIds);
+    _totalSharesOfClaimers = totalSharesOf(depositIds);
+    totalPrincipalOf(depositIds) == _totalDeposits;
 }
     withdraw(to, depositIds);
 { 
-    _totalPrincipal - totalPrincipal() == _totalDeposits;
-    _totalShares >= totalShares();
-    totalDeposits(depositIds) == 0;
     underlying.balanceOf(to) - _userBalance == _totalDeposits;
     _totalUnderlying - totalUnderlying() == _totalDeposits;
     _totalUnderlyingMinusSponsored - totalUnderlyingMinusSponsored() == _totalDeposits;
+    _totalPrincipal - totalPrincipal() == _totalDeposits;
+    totalDeposits(depositIds) == 0;
+    totalPrincipalOf(depositIds) == 0;
+    _totalShares - totalShares() == _totalSharesOfClaimers - totalSharesOf(depositIds);
     totalUnderlyingMinusSponsored() == 0 || totalShares() / totalUnderlyingMinusSponsored() == _totalShares / _totalUnderlyingMinusSponsored; 
 }
 ```
@@ -161,9 +164,9 @@ totalUnderlying() == underlying.balanceOf(currentContract) + underlying.balanceO
     _totalPrincipal = totalPrincipal();
     _totalDeposits = totalDeposits(depositIds);
     _totalSharesOfClaimers = totalSharesOf(depositIds);
-    _totalPrincipalOfClaimers = totalPrincipalOf(depositIds);
     _amount = depositAmount(depositIds[i]);
     totalAmount = totalAmount(amounts);
+    totalPrincipalOf(depositIds) == _totalDeposits;
 }
     partialWithdraw(to, depositIds, amounts);
 { 

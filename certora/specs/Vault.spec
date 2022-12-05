@@ -393,6 +393,10 @@ rule integrity_of_withdraw() {
     // Certora timed out with the following requirement.The following requirement is to avoid rounding issue.
     // require _totalShares / _totalUnderlyingMinusSponsored * _totalUnderlyingMinusSponsored == _totalShares;
 
+    uint256 _totalSharesOfClaimers = totalSharesOf(depositIds);
+    uint256 _totalPrincipalOfClaimers = totalPrincipalOf(depositIds);
+    require _totalPrincipalOfClaimers == _totalDeposits;
+
     env e;
     require e.block.coinbase != 0;
     underlying.setFee(e, 0);
@@ -404,13 +408,16 @@ rule integrity_of_withdraw() {
     uint256 totalShares_ = totalShares();
     uint256 totalPrincipal_ = totalPrincipal();
     uint256 totalDeposits_ = totalDeposits(depositIds);
+    uint256 totalSharesOfClaimers_ = totalSharesOf(depositIds);
+    uint256 totalPrincipalOfClaimers_ = totalPrincipalOf(depositIds);
 
-    assert _totalPrincipal - totalPrincipal_ == _totalDeposits;
-    assert _totalShares >= totalShares_;
-    assert totalDeposits_ == 0;
     assert userBalance_ - _userBalance == _totalDeposits;
     assert _totalUnderlying - totalUnderlying_ == _totalDeposits;
     assert _totalUnderlyingMinusSponsored - totalUnderlyingMinusSponsored_ == _totalDeposits;
+    assert _totalPrincipal - totalPrincipal_ == _totalDeposits;
+    assert totalDeposits_ == 0;
+    assert totalPrincipalOfClaimers_ == 0;
+    assert _totalShares - totalShares_ == _totalSharesOfClaimers - totalSharesOfClaimers_;
     // assert that share price reserved, 
     // but a small change (10 wei) is allowed due to rounding of division on uint256
     assert
@@ -471,6 +478,7 @@ rule integrity_of_partialWithdraw() {
     assert userBalance_ - _userBalance == totalAmount;
     assert _totalDeposits - totalDeposits_ == totalAmount;
     assert _totalUnderlying - totalUnderlying_ == totalAmount;
+    assert _totalUnderlyingMinusSponsored - totalUnderlyingMinusSponsored_ == totalAmount;
     assert _totalPrincipal - totalPrincipal_ == totalAmount;
     assert _totalShares - totalShares_ == _totalSharesOfClaimers - totalSharesOfClaimers_;
     assert totalPrincipalOfClaimers_ == totalDeposits_;
