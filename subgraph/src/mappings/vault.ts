@@ -61,6 +61,7 @@ export function handleYieldClaimed(event: YieldClaimed): void {
 
     totalClaimedShares = totalClaimedShares.plus(depositClaimedShares);
 
+    deposit.amountClaimed = deposit.amountClaimed.plus(depositClaimedAmount);
     deposit.shares = deposit.shares.minus(depositClaimedShares);
     deposit.save();
 
