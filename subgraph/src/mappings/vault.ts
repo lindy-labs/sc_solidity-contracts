@@ -150,6 +150,7 @@ export function handleDepositMinted(event: DepositMinted): void {
 
   deposit.initialAmount = event.params.amount;
   deposit.amount = event.params.amount;
+  deposit.amountClaimed = BigInt.fromString('0');
   deposit.claimer = claimerId;
   deposit.depositor = event.params.depositor;
   deposit.foundation = foundationId;
