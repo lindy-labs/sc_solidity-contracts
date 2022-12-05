@@ -28,7 +28,6 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
 
     console.log('Configuring vault strategy, treasury and investPct');
     await vault.connect(owner).setTreasury(treasury.address);
-    console.log('treasury set');
     await vault.connect(owner).setInvestPct('8000');
 
     await underlying.mint(alice.address, parseUnits('5000', 18));

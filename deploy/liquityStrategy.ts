@@ -118,7 +118,11 @@ const func = async function (env: HardhatRuntimeEnvironment) {
       ];
 
       await Promise.allSettled(promises).then((results) =>
-        results.forEach((result) => console.log(result.status)),
+        results.forEach((result) => {
+          if (result.status === 'rejected') {
+            console.error((result.reason as Error).message);
+          }
+        }),
       );
     }
   }
