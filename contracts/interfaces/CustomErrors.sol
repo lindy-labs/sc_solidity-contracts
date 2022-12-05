@@ -10,7 +10,10 @@ interface CustomErrors {
     error VaultSenderNotOwnerOfGroupId();
 
     // Vault: invalid investPct
-    error VaultInvalidInvestpct();
+    error VaultInvalidInvestPct();
+
+    // Vault: invalid immediateInvestPct
+    error VaultInvalidImmediateInvestPct();
 
     // Vault: invalid performance fee
     error VaultInvalidPerformanceFee();

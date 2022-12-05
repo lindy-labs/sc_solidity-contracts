@@ -6,6 +6,7 @@ interface IVaultSettings {
     // Events
     //
 
+    event ImmediateInvestPctUpdated(uint256 percentage);
     event InvestPctUpdated(uint256 percentage);
     event TreasuryUpdated(address indexed treasury);
     event PerfFeePctUpdated(uint16 pct);
@@ -13,9 +14,18 @@ interface IVaultSettings {
     event LossTolerancePctUpdated(uint16 pct);
 
     /**
+     * Update immediate invest percentage
+     *
+     * Emits {ImmediateInvestPctUpdated} event
+     *
+     * @param _pct the new immediate invest percentage
+     */
+    function setImmediateInvestPct(uint16 _pct) external;
+
+    /**
      * Update invest percentage
      *
-     * Emits {InvestPercentageUpdated} event
+     * Emits {InvestPctUpdated} event
      *
      * @param _investPct the new invest percentage
      */

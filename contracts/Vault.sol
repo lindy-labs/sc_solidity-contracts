@@ -148,8 +148,9 @@ contract Vault is
         SwapPoolParam[] memory _swapPools,
         uint16 _immediateInvestPct
     ) {
-        if (!_immediateInvestPct.validPct()) revert VaultInvalidInvestpct();
-        if (!_investPct.validPct()) revert VaultInvalidInvestpct();
+        if (!_immediateInvestPct.validPct())
+            revert VaultInvalidImmediateInvestPct();
+        if (!_investPct.validPct()) revert VaultInvalidInvestPct();
         if (!_perfFeePct.validPct()) revert VaultInvalidPerformanceFee();
         if (!_lossTolerancePct.validPct()) revert VaultInvalidLossTolerance();
         if (address(_underlying) == address(0x0))
@@ -596,9 +597,10 @@ contract Vault is
     //
 
     function setImmediateInvestPct(uint16 _pct) external onlySettings {
-        if (!PercentMath.validPct(_pct)) revert VaultInvalidInvestpct();
+        if (!PercentMath.validPct(_pct))
+            revert VaultInvalidImmediateInvestPct();
 
-        emit InvestPctUpdated(_pct);
+        emit ImmediateInvestPctUpdated(_pct);
 
         immediateInvestPct = _pct;
     }
@@ -609,7 +611,7 @@ contract Vault is
         override(IVaultSettings)
         onlySettings
     {
-        if (!PercentMath.validPct(_investPct)) revert VaultInvalidInvestpct();
+        if (!PercentMath.validPct(_investPct)) revert VaultInvalidInvestPct();
 
         emit InvestPctUpdated(_investPct);
 
