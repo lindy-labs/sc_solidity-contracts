@@ -2407,6 +2407,32 @@ describe('Vault', () => {
 
         await expect(tx).not.to.emit(vault, 'Invested');
       });
+
+      it(`doesn't invest when the invest amount is less than the minimum for rebalance`, async () => {
+        await vault.setImmediateInvestLimitPct('8000');
+        await vault.connect(admin).setStrategy(strategy.address);
+        await vault.connect(admin).setInvestPct('8000');
+
+        await addUnderlyingBalance(alice, '1000');
+
+        await vault.connect(alice).deposit(
+          depositParams.build({
+            amount: parseUnits('20'),
+            inputToken: underlying.address,
+            claims: [claimParams.percent(100).to(alice.address).build()],
+          }),
+        );
+
+        const tx = vault.connect(alice).deposit(
+          depositParams.build({
+            amount: parseUnits('10'),
+            inputToken: underlying.address,
+            claims: [claimParams.percent(100).to(alice.address).build()],
+          }),
+        );
+
+        await expect(tx).not.to.emit(vault, 'Invested');
+      });
     });
   });
 
