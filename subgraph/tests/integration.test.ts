@@ -501,7 +501,7 @@ describe('integration', () => {
     assert.fieldEquals('Donation', donationId(mockEvent, '1'), 'amount', '48');
   });
 
-  test('yield distribution does not stay the same when there are asynchronous yield claims', () => {
+  test("yield distribution does not stay the same when there's more than one yield recipient", () => {
     let mockEvent = newMockEvent();
 
     createDeposit('1', 50, false, '1', '1', 1, 500);
