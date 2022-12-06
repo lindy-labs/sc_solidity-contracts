@@ -9,6 +9,7 @@ import {PercentMath} from "../../lib/PercentMath.sol";
 import {IStrategy} from "../IStrategy.sol";
 import {CustomErrors} from "../../interfaces/CustomErrors.sol";
 import {IVault} from "../../vault/IVault.sol";
+import {IVaultSponsoring} from "../../vault/IVaultSponsoring.sol";
 import {IStabilityPool} from "../../interfaces/liquity/IStabilityPool.sol";
 import {ERC165Query} from "../../lib/ERC165Query.sol";
 import {ICurveExchange} from "../../interfaces/curve/ICurveExchange.sol";
@@ -72,7 +73,7 @@ contract LiquityStrategy is
     mapping(address => bool) public allowedSwapTargets; // whitelist of swap targets
 
     /**
-     * A percentage that specifies the minimum amount of principal to protect.
+     * A percentage that specifies the minimum amount of principal to protect plus the sponsored amount.
      * This value acts as a threshold and is applied only when the total underlying assets are grater tha the minimum amount of principal to protect.
      * The protected principal is kept in LUSD.
      *
@@ -331,7 +332,7 @@ contract LiquityStrategy is
         uint256 _amountOutMin
     ) external virtual onlyKeeper {
         _checkSwapTarget(_swapTarget);
-        _checkMinPrincpalProtectionRequirement(_amountOutMin);
+        _checkMinPrincipalProtectionRequirement(_amountOutMin);
 
         _swapLQTYtoLUSD(_swapTarget, _lqtyAmount, _lqtySwapData);
         _swapETHtoLUSD(_swapTarget, _ethAmount, _ethSwapData);
@@ -367,20 +368,23 @@ contract LiquityStrategy is
      *
      * @param _amountOutMin the minimum amount of LUSD to be received after the ETH & LQTY -> LUSD swap.
      */
-    function _checkMinPrincpalProtectionRequirement(uint256 _amountOutMin)
+    function _checkMinPrincipalProtectionRequirement(uint256 _amountOutMin)
         internal
         view
     {
-        // check if the amountOutMin is enough to protect the principal
+        uint256 totalDeposited = IVault(vault).totalPrincipal() +
+            IVaultSponsoring(vault).totalSponsored();
+
+        // check if the amountOutMin is enough to protect the principal plus sponsored
         if (
-            IVault(vault).totalPrincipal().pctOf(minPrincipalProtectionPct) <=
-            IVault(vault).totalPrincipal() + _amountOutMin
+            totalDeposited.pctOf(minPrincipalProtectionPct) <=
+            totalDeposited + _amountOutMin
         ) return;
 
-        // minimum principal protection does not apply when total underlying value is less than min protected principal
+        // minimum principal protection does not apply when total underlying value is less than min protected principal plus sponsored amount
         if (
             IVault(vault).totalUnderlying() <
-            IVault(vault).totalPrincipal().pctOf(minPrincipalProtectionPct)
+            totalDeposited.pctOf(minPrincipalProtectionPct)
         ) return;
 
         revert StrategyMinimumPrincipalProtection();
