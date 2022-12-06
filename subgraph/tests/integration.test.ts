@@ -500,6 +500,92 @@ describe('integration', () => {
     assert.fieldEquals('Donation', donationId(mockEvent, '0'), 'amount', '99');
     assert.fieldEquals('Donation', donationId(mockEvent, '1'), 'amount', '48');
   });
+
+  test('yield distribution does not stay the same when there are asynchronous yield claims', () => {
+    let mockEvent = newMockEvent();
+
+    createDeposit('1', 50, false, '1', '1', 1, 500);
+    createDeposit('2', 50, false, '2', '1', 1, 500);
+
+    const vault = new Vault('0');
+    vault.treasury = Address.fromString(TREASURY_ADDRESS);
+    vault.totalShares = BigInt.fromI32(1000);
+    vault.save();
+
+    const claimer1 = new Claimer(MOCK_ADDRESS_1);
+    claimer1.vault = vault.id;
+    claimer1.depositsIds = ['1'];
+    claimer1.save();
+
+    const claimer2 = new Claimer(MOCK_ADDRESS_2);
+    claimer2.vault = vault.id;
+    claimer2.depositsIds = ['2'];
+    claimer2.save();
+
+    const foundation = new Foundation('1');
+    foundation.vault = vault.id;
+    foundation.save();
+
+    // Vault generates 100 units of yield
+
+    // The second claimer claimes the 50 units of yield
+    const event1 = newYieldClaimedEvent(mockEvent);
+    event1.parameters = new Array();
+    event1.parameters.push(newParamAddress('claimerId', MOCK_ADDRESS_2));
+    event1.parameters.push(newParamAddress('to', TREASURY_ADDRESS));
+    event1.parameters.push(newParamI32('amount', 50));
+    event1.parameters.push(newParamI32('burnedShares', 250));
+    event1.parameters.push(newParamI32('perfFee', 0));
+    event1.parameters.push(newParamI32('totalUnderlying', 200));
+    event1.parameters.push(newParamI32('totalShares', 1000));
+
+    handleYieldClaimed(event1);
+
+    assert.fieldEquals('Deposit', '1', 'shares', '500');
+    assert.fieldEquals('Deposit', '2', 'shares', '250');
+    assert.fieldEquals('Vault', '0', 'totalShares', '750');
+
+    // Vault generates more 150 units of yield
+
+    // The second claimer claims the 50 units of yield
+    const event2 = newYieldClaimedEvent(mockEvent);
+    event2.parameters = new Array();
+    event2.parameters.push(newParamAddress('claimerId', MOCK_ADDRESS_2));
+    event2.parameters.push(newParamAddress('to', TREASURY_ADDRESS));
+    event2.parameters.push(newParamI32('amount', 50));
+    event2.parameters.push(newParamI32('burnedShares', 125));
+    event2.parameters.push(newParamI32('perfFee', 0));
+    event2.parameters.push(newParamI32('totalUnderlying', 300));
+    event2.parameters.push(newParamI32('totalShares', 750));
+
+    handleYieldClaimed(event2);
+
+    assert.fieldEquals('Deposit', '1', 'shares', '500');
+    assert.fieldEquals('Deposit', '2', 'shares', '125');
+    assert.fieldEquals('Vault', '0', 'totalShares', '625');
+
+    // Finally the first claimer, claims all its yield
+    const event3 = newYieldClaimedEvent(mockEvent);
+    event3.parameters = new Array();
+    event3.parameters.push(newParamAddress('claimerId', MOCK_ADDRESS_1));
+    event3.parameters.push(newParamAddress('to', TREASURY_ADDRESS));
+    event3.parameters.push(newParamI32('amount', 150));
+    event3.parameters.push(newParamI32('burnedShares', 375));
+    event3.parameters.push(newParamI32('perfFee', 0));
+    event3.parameters.push(newParamI32('totalUnderlying', 250));
+    event3.parameters.push(newParamI32('totalShares', 625));
+
+    handleYieldClaimed(event3);
+
+    assert.fieldEquals('Deposit', '1', 'shares', '125');
+    assert.fieldEquals('Deposit', '2', 'shares', '125');
+    assert.fieldEquals('Vault', '0', 'totalShares', '250');
+    // In the end, there was a total of 250 units of yield generated
+    // The first claimer claimed 150 units of yield
+    // The second claimer only claimed 100 units of yield
+    assert.fieldEquals('Deposit', '1', 'amountClaimed', '150');
+    assert.fieldEquals('Deposit', '2', 'amountClaimed', '100');
+  });
 });
 
 function newYieldClaimedEvent(event: ethereum.Event): YieldClaimed {
