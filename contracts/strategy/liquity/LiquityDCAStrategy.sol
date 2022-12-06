@@ -35,9 +35,8 @@ contract LiquityDCAStrategy is LiquityStrategy {
 
         _sendETH(_to, ethToTransfer);
 
-        uint256 equivalentAmountInUnderlying = _amount.pctOf(
-            ethToTransfer.inPctOf(amountInETH)
-        );
+        uint256 equivalentAmountInUnderlying = (_amount * ethToTransfer) /
+            amountInETH;
 
         emit StrategyYieldTransferred(_to, equivalentAmountInUnderlying);
 
