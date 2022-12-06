@@ -512,15 +512,15 @@ describe('integration', () => {
     vault.totalShares = BigInt.fromI32(1000);
     vault.save();
 
-    const claimer1 = new Claimer(MOCK_ADDRESS_1);
-    claimer1.vault = vault.id;
-    claimer1.depositsIds = ['1'];
-    claimer1.save();
+    const alice = new Claimer(MOCK_ADDRESS_1);
+    alice.vault = vault.id;
+    alice.depositsIds = ['1'];
+    alice.save();
 
-    const claimer2 = new Claimer(MOCK_ADDRESS_2);
-    claimer2.vault = vault.id;
-    claimer2.depositsIds = ['2'];
-    claimer2.save();
+    const bob = new Claimer(MOCK_ADDRESS_2);
+    bob.vault = vault.id;
+    bob.depositsIds = ['2'];
+    bob.save();
 
     const foundation = new Foundation('1');
     foundation.vault = vault.id;
@@ -528,7 +528,7 @@ describe('integration', () => {
 
     // Vault generates 100 units of yield
 
-    // The second claimer claimes the 50 units of yield
+    // Bob claimes 50 units of yield
     const event1 = newYieldClaimedEvent(mockEvent);
     event1.parameters = new Array();
     event1.parameters.push(newParamAddress('claimerId', MOCK_ADDRESS_2));
@@ -549,7 +549,7 @@ describe('integration', () => {
 
     // Vault generates more 150 units of yield
 
-    // The second claimer claims the 50 units of yield
+    // Bob claims 50 units of yield
     const event2 = newYieldClaimedEvent(mockEvent);
     event2.parameters = new Array();
     event2.parameters.push(newParamAddress('claimerId', MOCK_ADDRESS_2));
@@ -568,7 +568,7 @@ describe('integration', () => {
     assert.fieldEquals('Deposit', '1', 'amountClaimed', '0');
     assert.fieldEquals('Deposit', '2', 'amountClaimed', '100');
 
-    // Finally the first claimer, claims all its yield
+    // Finally, Alice claims all her yield
     const event3 = newYieldClaimedEvent(mockEvent);
     event3.parameters = new Array();
     event3.parameters.push(newParamAddress('claimerId', MOCK_ADDRESS_1));
@@ -585,8 +585,8 @@ describe('integration', () => {
     assert.fieldEquals('Deposit', '2', 'shares', '125');
     assert.fieldEquals('Vault', '0', 'totalShares', '250');
     // In the end, there was a total of 250 units of yield generated
-    // The first claimer claimed 150 units of yield
-    // The second claimer only claimed 100 units of yield
+    // Alice claimed 150 units of yield
+    // Bob only claimed 100 units of yield
     assert.fieldEquals('Deposit', '1', 'amountClaimed', '150');
     assert.fieldEquals('Deposit', '2', 'amountClaimed', '100');
   });
