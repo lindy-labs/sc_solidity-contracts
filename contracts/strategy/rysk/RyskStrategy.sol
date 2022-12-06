@@ -273,8 +273,6 @@ contract RyskStrategy is BaseStrategy {
                 revert StrategyNotEnoughShares();
         }
 
-        sharesBalance = _getSharesBalance();
-
         return sharesNeeded;
     }
 
