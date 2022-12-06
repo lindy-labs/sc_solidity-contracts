@@ -68,6 +68,7 @@ describe('Vault in sync mode', () => {
       PERFORMANCE_FEE_PCT,
       INVESTMENT_FEE_PCT,
       [],
+      0,
     );
 
     underlying.connect(owner).approve(vault.address, MaxUint256);
