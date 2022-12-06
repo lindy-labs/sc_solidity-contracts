@@ -321,22 +321,34 @@ describe('RyskStrategy', () => {
       expect(pendingWithdrawal.shares).to.eq(parseUnits('100'));
     });
 
-    it('fails if pending withdrawal from previous withdrawal epoch was not completed', async () => {
+    it('completes the pending withdrawal from previous withdrawal epoch', async () => {
       const underlyingAmount = parseUSDC('100');
       await underlying.mint(strategy.address, underlyingAmount);
       await strategy.connect(manager).invest();
       await ryskLqPool.executeEpochCalculation();
 
       // initiate withdrawal
-      await strategy.connect(manager).withdrawToVault(parseUSDC('50'));
+      const initialWithdrawalAmount = parseUSDC('50');
+      await strategy.connect(manager).withdrawToVault(initialWithdrawalAmount);
 
       await ryskLqPool.executeEpochCalculation();
 
       // initiate another withdrawal in new epoch without completing the previous one
-      const endAmountToWithdraw = parseUSDC('30');
-      await expect(
-        strategy.connect(manager).withdrawToVault(endAmountToWithdraw),
-      ).to.be.revertedWith('RyskPendingWithdrawalNotCompleted');
+      const subsequentWithdrawalAmount = parseUSDC('30');
+
+      await strategy
+        .connect(manager)
+        .withdrawToVault(subsequentWithdrawalAmount);
+
+      expect(await underlying.balanceOf(vault.address)).to.eq(
+        initialWithdrawalAmount,
+      );
+      const pendingWithdrawal = await ryskLqPool.withdrawalReceipts(
+        strategy.address,
+      );
+      expect(pendingWithdrawal.epoch).to.eq(await ryskLqPool.withdrawalEpoch());
+      // 1e18 mocked share = 1e6 underlying
+      expect(pendingWithdrawal.shares).to.eq(parseUnits('30'));
     });
 
     it('works when called after completing previous withdrawal in the same epoch', async () => {
