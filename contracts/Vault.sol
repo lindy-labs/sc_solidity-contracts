@@ -91,6 +91,9 @@ contract Vault is
     /// @inheritdoc IVault
     uint256 public override(IVault) totalShares;
 
+    /// @inheritdoc IVault
+    uint16 public override(IVault) immediateInvestLimitPct;
+
     /// The investment strategy
     IStrategy public strategy;
 
@@ -124,8 +127,6 @@ contract Vault is
 
     /// Rebalance minimum
     uint256 private immutable rebalanceMinimum;
-
-    uint16 public override(IVault) immediateInvestLimitPct;
 
     /**
      * @param _underlying Underlying ERC20 token to use.
@@ -351,7 +352,7 @@ contract Vault is
             _groupId
         );
 
-        if (immediateInvestLimitPct != 0) _doInvest();
+        if (immediateInvestLimitPct != 0) _immediateInvestment();
     }
 
     /// @inheritdoc IVault
@@ -596,6 +597,7 @@ contract Vault is
     // Admin functions
     //
 
+    /// @inheritdoc IVaultSettings
     function setImmediateInvestLimitPct(uint16 _pct) external onlySettings {
         if (!PercentMath.validPct(_pct))
             revert VaultInvalidImmediateInvestLimitPct();
@@ -713,7 +715,7 @@ contract Vault is
     // Internal API
     //
 
-    function _doInvest() private {
+    function _immediateInvestment() private {
         (uint256 maxInvestableAmount, uint256 alreadyInvested) = investState();
 
         if (maxInvestableAmount <= alreadyInvested) return;

@@ -14,11 +14,11 @@ interface IVaultSettings {
     event LossTolerancePctUpdated(uint16 pct);
 
     /**
-     * Update immediate invest percentage
+     * Update immediate invest limit percentage
      *
      * Emits {ImmediateInvestLimitPctUpdated} event
      *
-     * @param _pct the new immediate invest percentage
+     * @param _pct the new immediate invest limit percentage
      */
     function setImmediateInvestLimitPct(uint16 _pct) external;
 
