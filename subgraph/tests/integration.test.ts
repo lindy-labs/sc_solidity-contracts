@@ -532,7 +532,7 @@ describe('integration', () => {
     const event1 = newYieldClaimedEvent(mockEvent);
     event1.parameters = new Array();
     event1.parameters.push(newParamAddress('claimerId', MOCK_ADDRESS_2));
-    event1.parameters.push(newParamAddress('to', TREASURY_ADDRESS));
+    event1.parameters.push(newParamAddress('to', MOCK_ADDRESS_2));
     event1.parameters.push(newParamI32('amount', 50));
     event1.parameters.push(newParamI32('burnedShares', 250));
     event1.parameters.push(newParamI32('perfFee', 0));
@@ -544,6 +544,8 @@ describe('integration', () => {
     assert.fieldEquals('Deposit', '1', 'shares', '500');
     assert.fieldEquals('Deposit', '2', 'shares', '250');
     assert.fieldEquals('Vault', '0', 'totalShares', '750');
+    assert.fieldEquals('Deposit', '1', 'amountClaimed', '0');
+    assert.fieldEquals('Deposit', '2', 'amountClaimed', '50');
 
     // Vault generates more 150 units of yield
 
@@ -551,7 +553,7 @@ describe('integration', () => {
     const event2 = newYieldClaimedEvent(mockEvent);
     event2.parameters = new Array();
     event2.parameters.push(newParamAddress('claimerId', MOCK_ADDRESS_2));
-    event2.parameters.push(newParamAddress('to', TREASURY_ADDRESS));
+    event2.parameters.push(newParamAddress('to', MOCK_ADDRESS_2));
     event2.parameters.push(newParamI32('amount', 50));
     event2.parameters.push(newParamI32('burnedShares', 125));
     event2.parameters.push(newParamI32('perfFee', 0));
@@ -563,12 +565,14 @@ describe('integration', () => {
     assert.fieldEquals('Deposit', '1', 'shares', '500');
     assert.fieldEquals('Deposit', '2', 'shares', '125');
     assert.fieldEquals('Vault', '0', 'totalShares', '625');
+    assert.fieldEquals('Deposit', '1', 'amountClaimed', '0');
+    assert.fieldEquals('Deposit', '2', 'amountClaimed', '100');
 
     // Finally the first claimer, claims all its yield
     const event3 = newYieldClaimedEvent(mockEvent);
     event3.parameters = new Array();
     event3.parameters.push(newParamAddress('claimerId', MOCK_ADDRESS_1));
-    event3.parameters.push(newParamAddress('to', TREASURY_ADDRESS));
+    event3.parameters.push(newParamAddress('to', MOCK_ADDRESS_1));
     event3.parameters.push(newParamI32('amount', 150));
     event3.parameters.push(newParamI32('burnedShares', 375));
     event3.parameters.push(newParamI32('perfFee', 0));
