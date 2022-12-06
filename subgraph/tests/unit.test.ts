@@ -478,7 +478,9 @@ test('handleYieldClaimed reduces shares from Deposits and creates Donations', ()
   handleYieldClaimed(event);
 
   assert.fieldEquals('Deposit', '1', 'shares', '25');
+  assert.fieldEquals('Deposit', '1', 'amountClaimed', '50');
   assert.fieldEquals('Deposit', '2', 'shares', '50');
+  assert.fieldEquals('Deposit', '2', 'amountClaimed', '100');
 
   assert.fieldEquals('Donation', donationId(mockEvent, '0'), 'amount', '50');
   assert.fieldEquals('Donation', donationId(mockEvent, '1'), 'amount', '100');
@@ -532,7 +534,9 @@ test('handleYieldClaimed takes the performance fee into account', () => {
   assert.fieldEquals('Claimer', MOCK_ADDRESS_1, 'claimed', '120');
 
   assert.fieldEquals('Deposit', '1', 'shares', '25');
+  assert.fieldEquals('Deposit', '1', 'amountClaimed', '50');
   assert.fieldEquals('Deposit', '2', 'shares', '50');
+  assert.fieldEquals('Deposit', '2', 'amountClaimed', '100');
 
   assert.fieldEquals('Donation', donationId(mockEvent, '0'), 'amount', '40');
   assert.fieldEquals('Donation', donationId(mockEvent, '1'), 'amount', '80');
