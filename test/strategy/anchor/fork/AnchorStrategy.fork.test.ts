@@ -73,6 +73,7 @@ describe('AnchorStrategy Mainnet fork', () => {
         PERFORMANCE_FEE_PCT,
         INVESTMENT_FEE_PCT,
         [],
+        0,
       );
 
       const AnchorStrategyFactory = await ethers.getContractFactory(
@@ -204,6 +205,7 @@ describe('AnchorStrategy Mainnet fork', () => {
         PERFORMANCE_FEE_PCT,
         INVESTMENT_FEE_PCT,
         [],
+        0,
       );
 
       const AnchorStrategyFactory = await ethers.getContractFactory(

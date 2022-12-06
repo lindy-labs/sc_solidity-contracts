@@ -81,6 +81,7 @@ describe('Rysk Strategy (mainnet fork tests)', () => {
       PERFORMANCE_FEE_PCT,
       INVESTMENT_FEE_PCT,
       [],
+      0,
     );
 
     const RyskStrategyFactory = await ethers.getContractFactory('RyskStrategy');

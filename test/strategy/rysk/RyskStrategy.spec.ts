@@ -56,6 +56,7 @@ describe('RyskStrategy', () => {
       BigNumber.from('0'), // PERFORMANCE_FEE_PCT
       BigNumber.from('0'), // INVESTMENT_FEE_PCT,
       [],
+      0,
     );
 
     RyskStrategyFactory = await ethers.getContractFactory('RyskStrategy');

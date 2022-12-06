@@ -82,6 +82,7 @@ describe('LiquityStrategy Proxy', () => {
       PERFORMANCE_FEE_PCT,
       INVESTMENT_FEE_PCT,
       [],
+      0,
     );
 
     LiquityStrategyFactory = await ethers.getContractFactory('LiquityStrategy');

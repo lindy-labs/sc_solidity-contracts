@@ -76,6 +76,7 @@ describe('Liquity DCA Strategy (mainnet fork tests)', () => {
       PERFORMANCE_FEE_PCT,
       INVESTMENT_FEE_PCT,
       [],
+      0,
     );
 
     const LiquityDCAStrategyFactory = await ethers.getContractFactory(
