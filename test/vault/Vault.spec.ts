@@ -236,7 +236,7 @@ describe('Vault', () => {
       ).to.be.revertedWith('VaultInvalidMinLockPeriod');
     });
 
-    it('reverts if immediate invest percentage is greater than 100%', async () => {
+    it('reverts if immediate invest limit percentage is greater than 100%', async () => {
       await expect(
         VaultFactory.deploy(
           underlying.address,
@@ -459,9 +459,11 @@ describe('Vault', () => {
       ).to.be.revertedWith('VaultInvalidImmediateInvestLimitPct');
     });
 
-    it('change investPct and emit ImmediateInvestLimitPctUpdated event', async () => {
+    it('changes immediateInvestLimitPct and emits ImmediateInvestLimitPctUpdated', async () => {
       const newInvestPct = 8000;
-      const tx = await vault.connect(admin).setImmediateInvestLimitPct(newInvestPct);
+      const tx = await vault
+        .connect(admin)
+        .setImmediateInvestLimitPct(newInvestPct);
 
       await expect(tx)
         .emit(vault, 'ImmediateInvestLimitPctUpdated')
