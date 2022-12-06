@@ -4,6 +4,7 @@ import {
   assert,
   newMockEvent,
   clearStore,
+  beforeEach,
 } from 'matchstick-as/assembly/index';
 
 import {
@@ -46,9 +47,11 @@ const MOCK_ADDRESS_2 =
   '0xE80B3caAd6d2DE80Ac76a41d5F0072E36D2519Ce'.toLowerCase();
 const TREASURY_ADDRESS = '0x4940c6e628da11ac0bdcf7f82be8579b4696fa33';
 
-test('handleTreasuryUpdated updates the treasury', () => {
+beforeEach(() => {
   clearStore();
+});
 
+test('handleTreasuryUpdated updates the treasury', () => {
   let mockEvent = newMockEvent();
   const event = new TreasuryUpdated(
     mockEvent.address,
@@ -75,8 +78,6 @@ test('handleTreasuryUpdated updates the treasury', () => {
 });
 
 test('handleSponsored creates a Sponsor', () => {
-  clearStore();
-
   let mockEvent = newMockEvent();
   const event = new Sponsored(
     mockEvent.address,
@@ -110,8 +111,6 @@ test('handleSponsored creates a Sponsor', () => {
 });
 
 test('handleUnsponsored updates the amount sponsored', () => {
-  clearStore();
-
   const sponsor = new Sponsor('1');
   sponsor.burned = false;
   sponsor.amount = BigInt.fromI32(2);
@@ -146,8 +145,6 @@ test('handleUnsponsored updates the amount sponsored', () => {
 });
 
 test('handleUnsponsored removes a Sponsor by marking as burned', () => {
-  clearStore();
-
   const sponsor = new Sponsor('1');
   sponsor.burned = false;
   sponsor.save();
@@ -180,8 +177,6 @@ test('handleUnsponsored removes a Sponsor by marking as burned', () => {
 });
 
 test('handleDepositMinted creates a Deposit', () => {
-  clearStore();
-
   let mockEvent = newMockEvent();
   const event = new DepositMinted(
     mockEvent.address,
@@ -244,8 +239,6 @@ test('handleDepositMinted creates a Deposit', () => {
 });
 
 test("handleDepositMinted uses the last event's name as the Foundation's name", () => {
-  clearStore();
-
   let mockEvent = newMockEvent();
   let event = new DepositMinted(
     mockEvent.address,
@@ -328,8 +321,6 @@ test("handleDepositMinted uses the last event's name as the Foundation's name", 
 });
 
 test("handleDepositWithdrawn doesn't remove a Deposit for partial withdraws", () => {
-  clearStore();
-
   let mockEvent = newMockEvent();
 
   const claimer = new Claimer('1');
@@ -385,8 +376,6 @@ test("handleDepositWithdrawn doesn't remove a Deposit for partial withdraws", ()
 });
 
 test('handleDepositWithdrawn removes a Deposit by marking as burned', () => {
-  clearStore();
-
   let mockEvent = newMockEvent();
 
   const claimer = new Claimer('1');
@@ -444,8 +433,6 @@ test('handleDepositWithdrawn removes a Deposit by marking as burned', () => {
 });
 
 test('handleYieldClaimed reduces shares from Deposits and creates Donations', () => {
-  clearStore();
-
   let mockEvent = newMockEvent();
 
   // Create deposits
@@ -491,17 +478,15 @@ test('handleYieldClaimed reduces shares from Deposits and creates Donations', ()
   handleYieldClaimed(event);
 
   assert.fieldEquals('Deposit', '1', 'shares', '25');
+  assert.fieldEquals('Deposit', '1', 'amountClaimed', '50');
   assert.fieldEquals('Deposit', '2', 'shares', '50');
+  assert.fieldEquals('Deposit', '2', 'amountClaimed', '100');
 
   assert.fieldEquals('Donation', donationId(mockEvent, '0'), 'amount', '50');
   assert.fieldEquals('Donation', donationId(mockEvent, '1'), 'amount', '100');
-
-  clearStore();
 });
 
 test('handleYieldClaimed takes the performance fee into account', () => {
-  clearStore();
-
   let mockEvent = newMockEvent();
 
   // Create deposits
@@ -549,17 +534,15 @@ test('handleYieldClaimed takes the performance fee into account', () => {
   assert.fieldEquals('Claimer', MOCK_ADDRESS_1, 'claimed', '120');
 
   assert.fieldEquals('Deposit', '1', 'shares', '25');
+  assert.fieldEquals('Deposit', '1', 'amountClaimed', '50');
   assert.fieldEquals('Deposit', '2', 'shares', '50');
+  assert.fieldEquals('Deposit', '2', 'amountClaimed', '100');
 
   assert.fieldEquals('Donation', donationId(mockEvent, '0'), 'amount', '40');
   assert.fieldEquals('Donation', donationId(mockEvent, '1'), 'amount', '80');
-
-  clearStore();
 });
 
 test("handleYieldClaimed doesn't create donations if the deposits are not to the treasury", () => {
-  clearStore();
-
   let mockEvent = newMockEvent();
 
   // Create deposits
@@ -606,6 +589,4 @@ test("handleYieldClaimed doesn't create donations if the deposits are not to the
 
   assert.notInStore('Donation', donationId(mockEvent, '0'));
   assert.notInStore('Donation', donationId(mockEvent, '1'));
-
-  clearStore();
 });
