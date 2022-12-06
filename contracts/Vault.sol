@@ -125,7 +125,7 @@ contract Vault is
     /// Rebalance minimum
     uint256 private immutable rebalanceMinimum;
 
-    uint16 public immediateInvestPct;
+    uint16 public override(IVault) immediateInvestLimitPct;
 
     /**
      * @param _underlying Underlying ERC20 token to use.
@@ -146,10 +146,10 @@ contract Vault is
         uint16 _perfFeePct,
         uint16 _lossTolerancePct,
         SwapPoolParam[] memory _swapPools,
-        uint16 _immediateInvestPct
+        uint16 _immediateInvestLimitPct
     ) {
-        if (!_immediateInvestPct.validPct())
-            revert VaultInvalidImmediateInvestPct();
+        if (!_immediateInvestLimitPct.validPct())
+            revert VaultInvalidImmediateInvestLimitPct();
         if (!_investPct.validPct()) revert VaultInvalidInvestPct();
         if (!_perfFeePct.validPct()) revert VaultInvalidPerformanceFee();
         if (!_lossTolerancePct.validPct()) revert VaultInvalidLossTolerance();
@@ -171,7 +171,7 @@ contract Vault is
         minLockPeriod = _minLockPeriod;
         perfFeePct = _perfFeePct;
         lossTolerancePct = _lossTolerancePct;
-        immediateInvestPct = _immediateInvestPct;
+        immediateInvestLimitPct = _immediateInvestLimitPct;
 
         rebalanceMinimum = 10 * 10**underlying.decimals();
 
@@ -351,7 +351,7 @@ contract Vault is
             _groupId
         );
 
-        if (immediateInvestPct != 0) _doInvest();
+        if (immediateInvestLimitPct != 0) _doInvest();
     }
 
     /// @inheritdoc IVault
@@ -596,13 +596,13 @@ contract Vault is
     // Admin functions
     //
 
-    function setImmediateInvestPct(uint16 _pct) external onlySettings {
+    function setImmediateInvestLimitPct(uint16 _pct) external onlySettings {
         if (!PercentMath.validPct(_pct))
-            revert VaultInvalidImmediateInvestPct();
+            revert VaultInvalidImmediateInvestLimitPct();
 
-        emit ImmediateInvestPctUpdated(_pct);
+        emit ImmediateInvestLimitPctUpdated(_pct);
 
-        immediateInvestPct = _pct;
+        immediateInvestLimitPct = _pct;
     }
 
     /// @inheritdoc IVaultSettings
@@ -718,8 +718,10 @@ contract Vault is
 
         if (maxInvestableAmount <= alreadyInvested) return;
 
-        if (alreadyInvested.inPctOf(maxInvestableAmount) >= immediateInvestPct)
-            return;
+        if (
+            alreadyInvested.inPctOf(maxInvestableAmount) >=
+            immediateInvestLimitPct
+        ) return;
 
         uint256 investAmount = maxInvestableAmount - alreadyInvested;
 

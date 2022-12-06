@@ -842,7 +842,7 @@ describe('Integration', () => {
 
   describe('when immediate investments are enabled', () => {
     beforeEach(async () => {
-      await vault.setImmediateInvestPct('8000');
+      await vault.setImmediateInvestLimitPct('8000');
       await vault.setStrategy(strategy.address);
       await vault.setInvestPct('8000');
     });

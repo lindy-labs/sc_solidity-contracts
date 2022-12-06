@@ -12,8 +12,8 @@ interface CustomErrors {
     // Vault: invalid investPct
     error VaultInvalidInvestPct();
 
-    // Vault: invalid immediateInvestPct
-    error VaultInvalidImmediateInvestPct();
+    // Vault: invalid immediateInvestLimitPct
+    error VaultInvalidImmediateInvestLimitPct();
 
     // Vault: invalid performance fee
     error VaultInvalidPerformanceFee();

@@ -106,6 +106,12 @@ interface IVault {
         returns (uint256 maxInvestableAmount, uint256 alreadyInvested);
 
     /**
+     * Percentage of the max investable amount until which a deposit is
+     * immediately invested into the strategy.
+     */
+    function immediateInvestLimitPct() external view returns (uint16);
+
+    /**
      * Percentage of the total underlying to invest in the strategy
      */
     function investPct() external view returns (uint16);

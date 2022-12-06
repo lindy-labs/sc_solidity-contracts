@@ -249,7 +249,7 @@ describe('Vault', () => {
           [],
           10100,
         ),
-      ).to.be.revertedWith('VaultInvalidImmediateInvestPct');
+      ).to.be.revertedWith('VaultInvalidImmediateInvestLimitPct');
     });
 
     it('reverts if invest percentage is greater than 100%', async () => {
@@ -444,10 +444,10 @@ describe('Vault', () => {
     });
   });
 
-  describe('setImmediateInvestPct', () => {
+  describe('setImmediateInvestLimitPct', () => {
     it('reverts if the caller does not have settings role', async () => {
       await expect(
-        vault.connect(alice).setImmediateInvestPct(100),
+        vault.connect(alice).setImmediateInvestLimitPct(100),
       ).to.be.revertedWith('VaultCallerNotSettings');
     });
 
@@ -455,18 +455,18 @@ describe('Vault', () => {
       await expect(
         vault
           .connect(admin)
-          .setImmediateInvestPct(DENOMINATOR.add(BigNumber.from('1'))),
-      ).to.be.revertedWith('VaultInvalidImmediateInvestPct');
+          .setImmediateInvestLimitPct(DENOMINATOR.add(BigNumber.from('1'))),
+      ).to.be.revertedWith('VaultInvalidImmediateInvestLimitPct');
     });
 
-    it('change investPct and emit ImmediateInvestPctUpdated event', async () => {
+    it('change investPct and emit ImmediateInvestLimitPctUpdated event', async () => {
       const newInvestPct = 8000;
-      const tx = await vault.connect(admin).setImmediateInvestPct(newInvestPct);
+      const tx = await vault.connect(admin).setImmediateInvestLimitPct(newInvestPct);
 
       await expect(tx)
-        .emit(vault, 'ImmediateInvestPctUpdated')
+        .emit(vault, 'ImmediateInvestLimitPctUpdated')
         .withArgs(newInvestPct);
-      expect(await vault.immediateInvestPct()).to.be.equal(newInvestPct);
+      expect(await vault.immediateInvestLimitPct()).to.be.equal(newInvestPct);
     });
   });
 
@@ -2337,7 +2337,7 @@ describe('Vault', () => {
 
     describe('immediate investments', () => {
       it('invests when the current invested amount is 0', async () => {
-        await vault.setImmediateInvestPct('8000');
+        await vault.setImmediateInvestLimitPct('8000');
         await vault.connect(admin).setStrategy(strategy.address);
         await vault.connect(admin).setInvestPct('8000');
 
@@ -2355,7 +2355,7 @@ describe('Vault', () => {
       });
 
       it('invests when the current invested amount is less than 80% of the max investable amount', async () => {
-        await vault.setImmediateInvestPct('8000');
+        await vault.setImmediateInvestLimitPct('8000');
         await vault.connect(admin).setStrategy(strategy.address);
         await vault.connect(admin).setInvestPct('8000');
 
@@ -2381,7 +2381,7 @@ describe('Vault', () => {
       });
 
       it("doesn't invest when the current invested amount is more than 80% of the max investable amount", async () => {
-        await vault.setImmediateInvestPct('8000');
+        await vault.setImmediateInvestLimitPct('8000');
         await vault.connect(admin).setStrategy(strategy.address);
         await vault.connect(admin).setInvestPct('8000');
 
