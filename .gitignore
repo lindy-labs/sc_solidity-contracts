@@ -35,3 +35,6 @@ subgraph/tests/.bin/*
 **.last_conf*
 certora-logs
 resource_errors.json
+
+# Mac system files
+.DS_Store
