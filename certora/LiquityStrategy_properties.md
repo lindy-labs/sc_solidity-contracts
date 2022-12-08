@@ -13,6 +13,9 @@ The LiquidityStrategy has the following state variables, which are all quite sta
 * `allowedSwapTargets` (type `mapping(address => bool)`), whitelist of swap targets
 * `minPrincipalProtectionPct` (type `uint16`), a percentage that specifies the minimum amount of principal to protect. This value acts as a threshold and is applied only when the total underlying assets are grater tha the minimum amount of principal to protect. The protected principal is kept in LUSD. For instance, if the minimum protected principal is 150%, the total principal is 100 LUSD, and the total yield (ETH+LQTY) is worth 100 LUSD. When the backend rebalances the strategy, it has to ensure that at least 50 LUSD is converted from ETH+LQTY to maintain a 150% minimum protected principal.
 
+It has the following initializer:
+* `function initialize(address _vault, address _admin, address _stabilityPool, address _lqty, address _underlying, address _keeper, uint16 _principalProtectionPct, address _curveExchange)` 
+
 It has the following external/public functions that are privileged and change settings:
 * `function setMinPrincipalProtectionPct(uint16 _pct) external onlySettings`
 * `function transferAdminRights(address _newAdmin) external onlyAdmin`
@@ -37,17 +40,18 @@ It has the following external/public functions that are view only and change not
 
 | No. | Property  | Category | Priority | Specified | Verified | Report |
 | ---- | --------  | -------- | -------- | -------- | -------- | -------- |
-| | privileged functions should revert if the `msg.sender` does not have the privilege | high level | high | N | N | |
-| |`invest()` should move all the LUSD from the strategy to stability pool | variable transition | high | N | N | |
-| |`reinvest(...)` should move all the LUSD from the strategy to stability pool | variable transition | high | N | N | |
-| |`withdrawToVault(uint256 amount)` should withdraw amount of LUSD from the stability pool and transfer them to the Vault | variable transition | high | N | N | |
-| |`withdrawToVault(uint256 amount)` should fail if the `amount` exceeds the strategy's LUSD in the stability pool | unit test | high | N | N | |
-| |`harvest()` should claim ETH and LQTY rewards only and not change LUSD balance of any account | variable transition | high | N | N | |
-| |`transferYield(address, uint256)` does nothing | variable transition | medium | N | N | |
-| |`investedAssets()` should return the amount of LUSD in the stability pool | unit test | medium | N | N | |
-| |`hasAssets()` should return `true` if and only if `investedAssets() > 0` | unit test | medium | N | N | |
-| |`isSync()` should return `true` | unit test | medium | N | N | |
-| |`allowSwapTarget(address _swapTarget)` should whitelist the `_swapTarget` | variable transition | medium | N | N | |
-| |`denySwapTarget(address _swapTarget)` should remove `_swapTarget` from the whitelist | variable transition | medium | N | N | |
-| |`setMinPrincipalProtectionPct(uint16 _pct)` should set the `minPrincipalProtectionPct` to `_pct` | variable transition | medium | N | N | |
-| |`transferAdminRights(address _newAdmin)` should transfer the admin rights from `msg.sender` to the `_newAdmin` | variable transition | medium | N | N | |
+| 1 | privileged functions should revert if the `msg.sender` does not have the privilege | high level | high | Y | Y | [Link](https://prover.certora.com/output/52311/99e98a0e6c88e4acc7f3?anonymousKey=9e80b8f1015d06e2a2eb7a57ffb866cb6ea78e31)  |
+| 2 | `initialize(...)` can be called once only | unit test | high | Y | Y | [Link](https://prover.certora.com/output/52311/b3fe8eee8fcc87eeb4f5?anonymousKey=d5b3e409f841b1c0fbba2de25eb4dbe82836a441) |
+| 3 |`invest()` should move all the LUSD from the strategy to stability pool | variable transition | high | N | N | |
+| 4 |`reinvest(...)` should move all the LUSD from the strategy to stability pool | variable transition | high | N | N | |
+| 5 |`withdrawToVault(uint256 amount)` should withdraw amount of LUSD from the stability pool and transfer them to the Vault | variable transition | high | N | N | |
+| 6 |`withdrawToVault(uint256 amount)` should fail if the `amount` exceeds the strategy's LUSD in the stability pool | unit test | high | N | N | |
+| 7 |`harvest()` should claim ETH and LQTY rewards only and not change LUSD balance of any account | variable transition | high | N | N | |
+| 8 |`transferYield(address, uint256)` does nothing | variable transition | medium | N | N | |
+| 9 |`investedAssets()` should return the amount of LUSD in the stability pool | unit test | medium | N | N | |
+| 10 |`hasAssets()` should return `true` if and only if `investedAssets() > 0` | unit test | medium | N | N | |
+| 11 |`isSync()` should return `true` | unit test | medium | N | N | |
+| 12 |`allowSwapTarget(address _swapTarget)` should whitelist the `_swapTarget` | variable transition | medium | N | N | |
+| 13 |`denySwapTarget(address _swapTarget)` should remove `_swapTarget` from the whitelist | variable transition | medium | N | N | |
+| 14 |`setMinPrincipalProtectionPct(uint16 _pct)` should set the `minPrincipalProtectionPct` to `_pct` | variable transition | medium | N | N | |
+| 15 |`transferAdminRights(address _newAdmin)` should transfer the admin rights from `msg.sender` to the `_newAdmin` | variable transition | medium | N | N | |

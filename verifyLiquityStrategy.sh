@@ -6,8 +6,8 @@ then
 			contracts/mock/MockERC20.sol:MockLUSD \
       contracts/mock/MockERC20.sol:MockLQTY \
 			contracts/mock/MockCurveExchange.sol \
-      contracts/mock/MockStabilityPool.sol \
-      contracts/mock/MockLiquityPriceFeed.sol \
+      contracts/mock/liquity/MockStabilityPool.sol \
+      contracts/mock/liquity/MockLiquityPriceFeed.sol \
 	  --link LiquityStrategy:vault=Vault \
       LiquityStrategy:underlying=MockLUSD \
       LiquityStrategy:curveExchange=MockCurveExchange \
@@ -28,8 +28,8 @@ then
 			contracts/mock/MockERC20.sol:MockLUSD \
       contracts/mock/MockERC20.sol:MockLQTY \
 			contracts/mock/MockCurveExchange.sol \
-      contracts/mock/MockStabilityPool.sol \
-      contracts/mock/MockLiquityPriceFeed.sol \
+      contracts/mock/liquity/MockStabilityPool.sol \
+      contracts/mock/liquity/MockLiquityPriceFeed.sol \
 	  --link LiquityStrategy:vault=Vault \
       LiquityStrategy:underlying=MockLUSD \
       LiquityStrategy:curveExchange=MockCurveExchange \
