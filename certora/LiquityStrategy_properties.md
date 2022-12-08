@@ -39,13 +39,14 @@ It has the following external/public functions that are view only and change not
 | ---- | --------  | -------- | -------- | -------- | -------- | -------- |
 | | privileged functions should revert if the `msg.sender` does not have the privilege | high level | high | N | N | |
 | |`invest()` should move all the LUSD from the strategy to stability pool | variable transition | high | N | N | |
+| |`reinvest(...)` should move all the LUSD from the strategy to stability pool | variable transition | high | N | N | |
 | |`withdrawToVault(uint256 amount)` should withdraw amount of LUSD from the stability pool and transfer them to the Vault | variable transition | high | N | N | |
 | |`withdrawToVault(uint256 amount)` should fail if the `amount` exceeds the strategy's LUSD in the stability pool | unit test | high | N | N | |
 | |`harvest()` should claim ETH and LQTY rewards only and not change LUSD balance of any account | variable transition | high | N | N | |
 | |`transferYield(address, uint256)` does nothing | variable transition | medium | N | N | |
 | |`investedAssets()` should return the amount of LUSD in the stability pool | unit test | medium | N | N | |
 | |`hasAssets()` should return `true` if and only if `investedAssets() > 0` | unit test | medium | N | N | |
-| |`isSync()` should return `true` | medium | N | N | |
+| |`isSync()` should return `true` | unit test | medium | N | N | |
 | |`allowSwapTarget(address _swapTarget)` should whitelist the `_swapTarget` | variable transition | medium | N | N | |
 | |`denySwapTarget(address _swapTarget)` should remove `_swapTarget` from the whitelist | variable transition | medium | N | N | |
 | |`setMinPrincipalProtectionPct(uint16 _pct)` should set the `minPrincipalProtectionPct` to `_pct` | variable transition | medium | N | N | |
