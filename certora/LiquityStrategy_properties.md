@@ -13,9 +13,12 @@ The LiquidityStrategy has the following state variables, which are all quite sta
 * `allowedSwapTargets` (type `mapping(address => bool)`), whitelist of swap targets
 * `minPrincipalProtectionPct` (type `uint16`), a percentage that specifies the minimum amount of principal to protect. This value acts as a threshold and is applied only when the total underlying assets are grater tha the minimum amount of principal to protect. The protected principal is kept in LUSD. For instance, if the minimum protected principal is 150%, the total principal is 100 LUSD, and the total yield (ETH+LQTY) is worth 100 LUSD. When the backend rebalances the strategy, it has to ensure that at least 50 LUSD is converted from ETH+LQTY to maintain a 150% minimum protected principal.
 
+<<<<<<< HEAD
 It has the following initializer:
 * `function initialize(address _vault, address _admin, address _stabilityPool, address _lqty, address _underlying, address _keeper, uint16 _principalProtectionPct, address _curveExchange)` 
 
+=======
+>>>>>>> 66dda09a8cf82a786e6dcc815d1a5ad16bf6f04a
 It has the following external/public functions that are privileged and change settings:
 * `function setMinPrincipalProtectionPct(uint16 _pct) external onlySettings`
 * `function transferAdminRights(address _newAdmin) external onlyAdmin`
