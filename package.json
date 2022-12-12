@@ -51,7 +51,9 @@
     "@codechecks/client": "^0.1.12",
     "@openzeppelin/contracts-upgradeable": "^4.7.2",
     "@openzeppelin/hardhat-upgrades": "^1.19.1",
-    "@uniswap/v3-periphery": "^1.4.1",
+    "@uniswap/v3-core": "1.0.2-solc-0.8-simulate",
+    "@uniswap/v3-periphery": "^1.4.3",
+    "@uniswap/v3-sdk": "^3.9.0",
     "axios": "^0.27.2"
   }
 }
