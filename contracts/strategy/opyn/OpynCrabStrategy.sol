@@ -288,7 +288,8 @@ contract OpynCrabStrategy is BaseStrategy {
         uint256 crabBalance = crabStrategy.balanceOf(address(this));
 
         // get amount of crab needed to cover withdrawal amount
-        uint256 crabNeeded = (crabBalance * amount) / invested;
+        uint256 crabNeeded = (crabBalance * amountInUsdcToWithdrawFromCrab) /
+            invested;
         crabNeeded = crabNeeded > crabBalance ? crabBalance : crabNeeded;
 
         // get amount in squeeth needed to cover withdrawal amount
@@ -315,7 +316,7 @@ contract OpynCrabStrategy is BaseStrategy {
         console.log("crabBalance\t\t", crabBalance);
         console.log("crabNeeded\t\t", crabNeeded);
         console.log("squeethNeeded\t\t", squeethNeeded);
-        console.log("ethNeeded\t", ethNeeded);
+        console.log("ethNeeded\t\t", ethNeeded);
         console.log("maxEthUsedInFlashSwap\t", maxEthUsedInFlashSwap);
 
         crabStrategy.flashWithdraw(

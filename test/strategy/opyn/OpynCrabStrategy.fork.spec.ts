@@ -164,9 +164,25 @@ describe('Opyn Crab Strategy (mainnet fork tests)', () => {
 
       await strategy.invest();
 
-      await strategy.investedAssets();
+      const invested = await strategy.investedAssets();
+      expect(invested).to.gt(parseUSDC('9600')); // with fees & slippage taken from 10000
 
       await strategy.withdrawToVault(depositAmount);
+
+      expect(await usdc.balanceOf(strategy.address)).to.gt(parseUSDC('9300')); // fees & slippage included
+    });
+
+    it.only('#invest -> #withdrawToVault for half amount deposited', async () => {
+      const depositAmount = parseUSDC('10000');
+      await ForkHelpers.mintToken(usdc, strategy.address, depositAmount);
+
+      await strategy.invest();
+
+      await strategy.withdrawToVault(depositAmount.div(2));
+
+      expect(await usdc.balanceOf(strategy.address)).to.gt(
+        parseUSDC('4980'), // fees & slippage included
+      );
     });
   });
 });
