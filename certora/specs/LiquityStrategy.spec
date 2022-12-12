@@ -44,6 +44,9 @@ methods {
     // erc20
     underlying.balanceOf(address) returns (uint256) envfree
     lqty.balanceOf(address) returns (uint256) envfree
+
+    // stability pool
+    stabilityPool.getCompoundedLUSDDeposit(address) returns (uint256) envfree
 }
 
 definition adminFunctions(method f) returns bool =
@@ -141,7 +144,29 @@ rule integrity_of_invest() {
 }
 
 
-// TODO reinvest
+/*
+    @Rule
+
+    @Category: variable transition
+
+    @Description:
+        reinvest function converts LQTY and ETH rewards to LUSD and 
+        moves all the LUSD balance from strategy to the stability pool
+*/
+rule integrity_of_reinvest() {
+    require stabilityPool != currentContract;
+
+    mathint _balanceOfStrategy = underlying.balanceOf(currentContract);
+    mathint _balanceOfPool = underlying.balanceOf(stabilityPool);
+
+    env e;
+    calldataarg args;
+    reinvest(e, args);
+
+    assert underlying.balanceOf(currentContract) == 0;
+    assert underlying.balanceOf(stabilityPool) - _balanceOfPool >= _balanceOfStrategy;
+}
+
 
 /*
     @Rule
@@ -157,6 +182,7 @@ rule integrity_of_withdrawToVault() {
     mathint _balanceOfPool = underlying.balanceOf(stabilityPool);
     mathint _balanceOfStrategy = underlying.balanceOf(currentContract);
     mathint _balanceOfVault = underlying.balanceOf(vault);
+    require stabilityPool.getCompoundedLUSDDeposit(currentContract) == _balanceOfPool;
 
     env e;
     uint256 amount;
@@ -167,8 +193,8 @@ rule integrity_of_withdrawToVault() {
     mathint balanceOfVault_ = underlying.balanceOf(vault);
 
     assert _balanceOfPool - amount == balanceOfPool_;
-    assert _balanceOfStrategy == balanceOfStrategy_;
-    assert _balanceOfVault + amount == balanceOfVault_;
+    assert balanceOfStrategy_ == 0;
+    assert _balanceOfVault + amount + _balanceOfStrategy == balanceOfVault_;
 }
 
 
@@ -206,7 +232,17 @@ rule integrity_of_harvest() {
 }
 
 
-// TODO investedAssets
+/*
+    @Rule
+
+    @Category: unit test
+
+    @Description:
+        investedAssets is greater than or equal to the LUSD deposit in the stability pool
+*/
+rule investedAssets_ge_lusdInSP() {
+    assert investedAssets() >= stabilityPool.getCompoundedLUSDDeposit(currentContract);
+}
 
 
 /*

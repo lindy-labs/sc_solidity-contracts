@@ -17,6 +17,7 @@ then
 			Vault:underlying=MockLUSD \
       Vault:strategy=LiquityStrategyHarness \
     --verify LiquityStrategyHarness:certora/specs/LiquityStrategy.spec \
+    --settings -optimisticFallback=true \
     --optimistic_loop \
     --loop_iter 3 \
     --packages @openzeppelin=node_modules/@openzeppelin \
@@ -39,6 +40,7 @@ then
 			Vault:underlying=MockLUSD \
       Vault:strategy=LiquityStrategyHarness \
     --verify LiquityStrategyHarness:certora/specs/LiquityStrategy.spec \
+    --settings -optimisticFallback=true \
     --optimistic_loop \
     --loop_iter 3 \
     --packages @openzeppelin=node_modules/@openzeppelin \
