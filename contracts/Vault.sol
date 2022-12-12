@@ -716,8 +716,6 @@ contract Vault is
     function _immediateInvestment() private {
         (uint256 maxInvestableAmount, uint256 alreadyInvested) = investState();
 
-        if (maxInvestableAmount <= alreadyInvested) return;
-
         if (
             alreadyInvested.inPctOf(maxInvestableAmount) >=
             immediateInvestLimitPct
