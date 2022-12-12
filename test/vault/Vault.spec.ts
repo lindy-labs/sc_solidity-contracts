@@ -19,7 +19,6 @@ import {
   moveForwardTwoWeeks,
   SHARES_MULTIPLIER,
   generateNewAddress,
-  getRoleErrorMsg,
   arrayFromTo,
   CURVE_SLIPPAGE,
 } from '../shared';
@@ -92,6 +91,7 @@ describe('Vault', () => {
       PERFORMANCE_FEE_PCT,
       INVESTMENT_FEE_PCT,
       [],
+      0,
     );
 
     underlying.connect(admin).approve(vault.address, MaxUint256);
@@ -199,6 +199,7 @@ describe('Vault', () => {
           PERFORMANCE_FEE_PCT,
           INVESTMENT_FEE_PCT,
           [],
+          0,
         ),
       ).to.be.revertedWith('VaultUnderlyingCannotBe0Address');
     });
@@ -214,6 +215,7 @@ describe('Vault', () => {
           PERFORMANCE_FEE_PCT,
           INVESTMENT_FEE_PCT,
           [],
+          0,
         ),
       ).to.be.revertedWith('VaultInvalidMinLockPeriod');
     });
@@ -229,8 +231,25 @@ describe('Vault', () => {
           PERFORMANCE_FEE_PCT,
           INVESTMENT_FEE_PCT,
           [],
+          0,
         ),
       ).to.be.revertedWith('VaultInvalidMinLockPeriod');
+    });
+
+    it('reverts if immediate invest limit percentage is greater than 100%', async () => {
+      await expect(
+        VaultFactory.deploy(
+          underlying.address,
+          TWO_WEEKS,
+          DENOMINATOR.add(BigNumber.from('1')),
+          TREASURY,
+          admin.address,
+          PERFORMANCE_FEE_PCT,
+          INVESTMENT_FEE_PCT,
+          [],
+          10100,
+        ),
+      ).to.be.revertedWith('VaultInvalidImmediateInvestLimitPct');
     });
 
     it('reverts if invest percentage is greater than 100%', async () => {
@@ -244,8 +263,9 @@ describe('Vault', () => {
           PERFORMANCE_FEE_PCT,
           INVESTMENT_FEE_PCT,
           [],
+          0,
         ),
-      ).to.be.revertedWith('VaultInvalidInvestpct');
+      ).to.be.revertedWith('VaultInvalidInvestPct');
     });
 
     it('reverts if performance fee percentage is greater than 100%', async () => {
@@ -259,6 +279,7 @@ describe('Vault', () => {
           DENOMINATOR.add(BigNumber.from('1')),
           INVESTMENT_FEE_PCT,
           [],
+          0,
         ),
       ).to.be.revertedWith('VaultInvalidPerformanceFee');
     });
@@ -274,6 +295,7 @@ describe('Vault', () => {
           PERFORMANCE_FEE_PCT,
           INVESTMENT_FEE_PCT,
           [],
+          0,
         ),
       ).to.be.revertedWith('VaultTreasuryCannotBe0Address');
     });
@@ -289,6 +311,7 @@ describe('Vault', () => {
           PERFORMANCE_FEE_PCT,
           INVESTMENT_FEE_PCT,
           [],
+          0,
         ),
       ).to.be.revertedWith('VaultAdminCannotBe0Address');
     });
@@ -304,6 +327,7 @@ describe('Vault', () => {
           PERFORMANCE_FEE_PCT,
           BigNumber.from('10001'),
           [],
+          0,
         ),
       ).to.be.revertedWith('VaultInvalidLossTolerance');
     });
@@ -420,6 +444,34 @@ describe('Vault', () => {
     });
   });
 
+  describe('setImmediateInvestLimitPct', () => {
+    it('reverts if the caller does not have settings role', async () => {
+      await expect(
+        vault.connect(alice).setImmediateInvestLimitPct(100),
+      ).to.be.revertedWith('VaultCallerNotSettings');
+    });
+
+    it('reverts if invest percentage is greater than 100%', async () => {
+      await expect(
+        vault
+          .connect(admin)
+          .setImmediateInvestLimitPct(DENOMINATOR.add(BigNumber.from('1'))),
+      ).to.be.revertedWith('VaultInvalidImmediateInvestLimitPct');
+    });
+
+    it('changes immediateInvestLimitPct and emits ImmediateInvestLimitPctUpdated', async () => {
+      const newInvestPct = 8000;
+      const tx = await vault
+        .connect(admin)
+        .setImmediateInvestLimitPct(newInvestPct);
+
+      await expect(tx)
+        .emit(vault, 'ImmediateInvestLimitPctUpdated')
+        .withArgs(newInvestPct);
+      expect(await vault.immediateInvestLimitPct()).to.be.equal(newInvestPct);
+    });
+  });
+
   describe('setInvestPct', () => {
     it('reverts if the caller does not have settings role', async () => {
       await expect(vault.connect(alice).setInvestPct(100)).to.be.revertedWith(
@@ -430,10 +482,10 @@ describe('Vault', () => {
     it('reverts if invest percentage is greater than 100%', async () => {
       await expect(
         vault.connect(admin).setInvestPct(DENOMINATOR.add(BigNumber.from('1'))),
-      ).to.be.revertedWith('VaultInvalidInvestpct');
+      ).to.be.revertedWith('VaultInvalidInvestPct');
     });
 
-    it('change investPct and emit InvestPercentageUpdated event', async () => {
+    it('change investPct and emit InvestPctUpdated event', async () => {
       const newInvestPct = 8000;
       const tx = await vault.connect(admin).setInvestPct(newInvestPct);
 
@@ -728,6 +780,7 @@ describe('Vault', () => {
         PERFORMANCE_FEE_PCT,
         INVESTMENT_FEE_PCT,
         [],
+        0,
       );
 
       await expect(
@@ -2039,6 +2092,348 @@ describe('Vault', () => {
 
       await expect(action).to.be.revertedWith('VaultCannotDeposit0');
     });
+
+    it('fails if lock duration is longer than maximum', async () => {
+      const params = depositParams.build({
+        lockDuration: MAX_DEPOSIT_LOCK_DURATION.add(BigNumber.from('1')),
+        inputToken: underlying.address,
+      });
+
+      await expect(vault.connect(alice).deposit(params)).to.be.revertedWith(
+        'VaultInvalidLockPeriod',
+      );
+    });
+
+    it('fails if the yield is negative', async () => {
+      const params = depositParams.build({
+        amount: parseUnits('1000'),
+        inputToken: underlying.address,
+      });
+
+      await vault.connect(alice).deposit(params);
+
+      await removeUnderlyingFromVault('21');
+
+      await expect(vault.connect(alice).deposit(params)).to.be.revertedWith(
+        'VaultCannotDepositWhenYieldNegative',
+      );
+    });
+
+    it("works if the negative yield is less than the strategy's estimated fees", async () => {
+      await vault.setStrategy(strategy.address);
+
+      const params = depositParams.build({
+        amount: parseUnits('500'),
+        inputToken: underlying.address,
+      });
+
+      await vault.connect(alice).deposit(params);
+
+      await removeUnderlyingFromVault('1');
+
+      await vault.connect(alice).deposit(params);
+    });
+
+    it('works with valid parameters', async () => {
+      const params = depositParams.build({
+        inputToken: underlying.address,
+      });
+
+      await vault.connect(alice).deposit(params);
+    });
+
+    it('works with multiple claims', async () => {
+      const params = depositParams.build({
+        inputToken: underlying.address,
+        claims: [
+          claimParams.percent(50).build(),
+          claimParams.percent(50).build(),
+        ],
+      });
+
+      await vault.connect(alice).deposit(params);
+    });
+
+    it('calculates correct number of shares for first deposit', async () => {
+      const amount = parseUnits('1');
+      const params = depositParams.build({
+        amount,
+        inputToken: underlying.address,
+      });
+
+      await vault.connect(alice).deposit(params);
+
+      expect(await vault.totalShares()).to.equal(amount.mul(SHARES_MULTIPLIER));
+    });
+
+    it('calculates correct number of shares for second deposit of equal size', async () => {
+      const amount = parseUnits('1');
+      const params = depositParams.build({
+        amount,
+        inputToken: underlying.address,
+      });
+
+      // deposit 1 unit
+      await vault.connect(alice).deposit(params);
+
+      // deposit 1 unit
+      await vault.connect(bob).deposit(params);
+
+      expect(await vault.totalShares()).to.equal(
+        amount.mul(2).mul(SHARES_MULTIPLIER),
+      );
+    });
+
+    it('calculates correct number of shares for second deposit of different size', async () => {
+      const amount = parseUnits('1');
+
+      // deposit 1 unit
+      const params1 = depositParams.build({
+        amount,
+        inputToken: underlying.address,
+      });
+      await vault.connect(alice).deposit(params1);
+
+      // deposit 2 unit
+      const params2 = depositParams.build({
+        amount: amount.mul(2),
+        inputToken: underlying.address,
+      });
+      await vault.connect(bob).deposit(params2);
+
+      // total shares must be 3 units
+      expect(await vault.totalShares()).to.equal(
+        amount.mul(3).mul(SHARES_MULTIPLIER),
+      );
+    });
+
+    it('fails if pct does not add up to 100%', async () => {
+      const params = depositParams.build({
+        inputToken: underlying.address,
+        claims: [
+          claimParams.percent(49).build(),
+          claimParams.percent(50).build(),
+        ],
+      });
+
+      const action = vault.connect(alice).deposit(params);
+
+      await expect(action).to.be.revertedWith('VaultClaimsDontAddUp');
+    });
+
+    it('transfers underlying from user at deposit', async () => {
+      const balanceBefore = await underlying.balanceOf(alice.address);
+
+      const params = depositParams.build({
+        inputToken: underlying.address,
+      });
+
+      await vault.connect(alice).deposit(params);
+
+      expect(await vault.totalUnderlying()).to.equal(params.amount);
+      expect(await underlying.balanceOf(vault.address)).to.equal(params.amount);
+      expect(await underlying.balanceOf(alice.address)).to.equal(
+        balanceBefore.sub(params.amount),
+      );
+    });
+
+    it('updates claimers info for first deposit', async () => {
+      const params = depositParams.build({
+        inputToken: underlying.address,
+        claims: [
+          claimParams.percent(40).build({
+            beneficiary: bob.address,
+          }),
+          claimParams.percent(60).build({
+            beneficiary: carol.address,
+          }),
+        ],
+      });
+
+      await vault.connect(alice).deposit(params);
+
+      const claimer1 = await vault.claimer(bob.address);
+      expect(claimer1.totalShares).to.be.equal(
+        parseUnits('0.4').mul(SHARES_MULTIPLIER),
+      );
+      expect(claimer1.totalPrincipal).to.be.equal(parseUnits('0.4'));
+
+      const claimer2 = await vault.claimer(carol.address);
+      expect(claimer2.totalShares).to.be.equal(
+        parseUnits('0.6').mul(SHARES_MULTIPLIER),
+      );
+      expect(claimer2.totalPrincipal).to.be.equal(parseUnits('0.6'));
+    });
+
+    it('updates claimers info for second deposit', async () => {
+      const params1 = depositParams.build({
+        inputToken: underlying.address,
+        claims: [
+          claimParams.percent(40).build({
+            beneficiary: bob.address,
+          }),
+          claimParams.percent(60).build({
+            beneficiary: carol.address,
+          }),
+        ],
+      });
+
+      const params2 = depositParams.build({
+        inputToken: underlying.address,
+        amount: parseUnits('10'),
+        claims: [
+          claimParams.build({
+            beneficiary: bob.address,
+          }),
+        ],
+      });
+
+      await vault.connect(alice).deposit(params1);
+
+      await vault.connect(alice).deposit(params2);
+
+      const claimer1 = await vault.claimer(bob.address);
+      expect(claimer1.totalShares).to.be.equal(
+        parseUnits('10.4').mul(SHARES_MULTIPLIER),
+      );
+      expect(claimer1.totalPrincipal).to.be.equal(parseUnits('10.4'));
+
+      const claimer2 = await vault.claimer(carol.address);
+      expect(claimer2.totalShares).to.be.equal(
+        parseUnits('0.6').mul(SHARES_MULTIPLIER),
+      );
+      expect(claimer2.totalPrincipal).to.be.equal(parseUnits('0.6'));
+    });
+
+    it('updates deposits info at deposit', async () => {
+      const params = depositParams.build({
+        inputToken: underlying.address,
+        claims: [
+          claimParams.percent(40).build({
+            beneficiary: bob.address,
+          }),
+          claimParams.percent(60).build({
+            beneficiary: carol.address,
+          }),
+        ],
+      });
+
+      await vault.connect(alice).deposit(params);
+
+      const currentTime = await getLastBlockTimestamp();
+
+      const deposit1 = await vault.deposits(1);
+      expect(deposit1.amount).to.be.equal(parseUnits('0.4'));
+      expect(deposit1.claimerId).to.be.equal(bob.address);
+      expect(deposit1.lockedUntil).to.be.equal(
+        currentTime.add(params.lockDuration),
+      );
+
+      const deposit2 = await vault.deposits(2);
+      expect(deposit2.amount).to.be.equal(parseUnits('0.6'));
+      expect(deposit2.claimerId).to.be.equal(carol.address);
+      expect(deposit2.lockedUntil).to.be.equal(
+        currentTime.add(params.lockDuration),
+      );
+    });
+
+    describe('immediate investments', () => {
+      it('invests when the current invested amount is 0', async () => {
+        await vault.setImmediateInvestLimitPct('8000');
+        await vault.connect(admin).setStrategy(strategy.address);
+        await vault.connect(admin).setInvestPct('8000');
+
+        await addUnderlyingBalance(alice, '1500');
+
+        const tx = vault.connect(alice).deposit(
+          depositParams.build({
+            amount: parseUnits('500'),
+            inputToken: underlying.address,
+            claims: [claimParams.percent(100).to(alice.address).build()],
+          }),
+        );
+
+        await expect(tx).to.emit(vault, 'Invested').withArgs(parseUnits('400'));
+      });
+
+      it('invests when the current invested amount is less than 80% of the max investable amount', async () => {
+        await vault.setImmediateInvestLimitPct('8000');
+        await vault.connect(admin).setStrategy(strategy.address);
+        await vault.connect(admin).setInvestPct('8000');
+
+        await addUnderlyingBalance(alice, '1000');
+
+        await vault.connect(alice).deposit(
+          depositParams.build({
+            amount: parseUnits('500'),
+            inputToken: underlying.address,
+            claims: [claimParams.percent(100).to(alice.address).build()],
+          }),
+        );
+
+        const tx = vault.connect(alice).deposit(
+          depositParams.build({
+            amount: parseUnits('500'),
+            inputToken: underlying.address,
+            claims: [claimParams.percent(100).to(alice.address).build()],
+          }),
+        );
+
+        await expect(tx).to.emit(vault, 'Invested').withArgs(parseUnits('400'));
+      });
+
+      it("doesn't invest when the current invested amount is more than 80% of the max investable amount", async () => {
+        await vault.setImmediateInvestLimitPct('8000');
+        await vault.connect(admin).setStrategy(strategy.address);
+        await vault.connect(admin).setInvestPct('8000');
+
+        await addUnderlyingBalance(alice, '1000');
+
+        await vault.connect(alice).deposit(
+          depositParams.build({
+            amount: parseUnits('500'),
+            inputToken: underlying.address,
+            claims: [claimParams.percent(100).to(alice.address).build()],
+          }),
+        );
+
+        const tx = vault.connect(alice).deposit(
+          depositParams.build({
+            amount: parseUnits('100'),
+            inputToken: underlying.address,
+            claims: [claimParams.percent(100).to(alice.address).build()],
+          }),
+        );
+
+        await expect(tx).not.to.emit(vault, 'Invested');
+      });
+
+      it(`doesn't invest when the invest amount is less than the minimum for rebalance`, async () => {
+        await vault.setImmediateInvestLimitPct('8000');
+        await vault.connect(admin).setStrategy(strategy.address);
+        await vault.connect(admin).setInvestPct('8000');
+
+        await addUnderlyingBalance(alice, '1000');
+
+        await vault.connect(alice).deposit(
+          depositParams.build({
+            amount: parseUnits('20'),
+            inputToken: underlying.address,
+            claims: [claimParams.percent(100).to(alice.address).build()],
+          }),
+        );
+
+        const tx = vault.connect(alice).deposit(
+          depositParams.build({
+            amount: parseUnits('10'),
+            inputToken: underlying.address,
+            claims: [claimParams.percent(100).to(alice.address).build()],
+          }),
+        );
+
+        await expect(tx).not.to.emit(vault, 'Invested');
+      });
+    });
   });
 
   ['withdraw', 'forceWithdraw'].map((vaultAction) => {
@@ -2746,274 +3141,6 @@ describe('Vault', () => {
       expect(bobYield.claimableYield).to.eq(yieldPerUser.sub(perfFee));
       expect(bobYield.shares).to.eq(parseUnits('25').mul(SHARES_MULTIPLIER));
       expect(bobYield.perfFee).to.eq(perfFee);
-    });
-  });
-
-  describe('deposit', () => {
-    it('fails if amount is 0', async () => {
-      const params = depositParams.build({
-        amount: parseUnits('0'),
-        inputToken: underlying.address,
-      });
-
-      await expect(vault.connect(alice).deposit(params)).to.be.revertedWith(
-        'VaultCannotDeposit0',
-      );
-    });
-
-    it('fails if lock duration is shorter than minimum', async () => {
-      const params = depositParams.build({
-        lockDuration: TWO_WEEKS.sub(BigNumber.from('1')),
-        inputToken: underlying.address,
-      });
-
-      await expect(vault.connect(alice).deposit(params)).to.be.revertedWith(
-        'VaultInvalidLockPeriod',
-      );
-    });
-
-    it('fails if lock duration is longer than maximum', async () => {
-      const params = depositParams.build({
-        lockDuration: MAX_DEPOSIT_LOCK_DURATION.add(BigNumber.from('1')),
-        inputToken: underlying.address,
-      });
-
-      await expect(vault.connect(alice).deposit(params)).to.be.revertedWith(
-        'VaultInvalidLockPeriod',
-      );
-    });
-
-    it('fails if the yield is negative', async () => {
-      const params = depositParams.build({
-        amount: parseUnits('1000'),
-        inputToken: underlying.address,
-      });
-
-      await vault.connect(alice).deposit(params);
-
-      await removeUnderlyingFromVault('21');
-
-      await expect(vault.connect(alice).deposit(params)).to.be.revertedWith(
-        'VaultCannotDepositWhenYieldNegative',
-      );
-    });
-
-    it("works if the negative yield is less than the strategy's estimated fees", async () => {
-      await vault.setStrategy(strategy.address);
-
-      const params = depositParams.build({
-        amount: parseUnits('500'),
-        inputToken: underlying.address,
-      });
-
-      await vault.connect(alice).deposit(params);
-
-      await removeUnderlyingFromVault('1');
-
-      await vault.connect(alice).deposit(params);
-    });
-
-    it('works with valid parameters', async () => {
-      const params = depositParams.build({
-        inputToken: underlying.address,
-      });
-
-      await vault.connect(alice).deposit(params);
-    });
-
-    it('works with multiple claims', async () => {
-      const params = depositParams.build({
-        inputToken: underlying.address,
-        claims: [
-          claimParams.percent(50).build(),
-          claimParams.percent(50).build(),
-        ],
-      });
-
-      await vault.connect(alice).deposit(params);
-    });
-
-    it('calculates correct number of shares for first deposit', async () => {
-      const amount = parseUnits('1');
-      const params = depositParams.build({
-        amount,
-        inputToken: underlying.address,
-      });
-
-      await vault.connect(alice).deposit(params);
-
-      expect(await vault.totalShares()).to.equal(amount.mul(SHARES_MULTIPLIER));
-    });
-
-    it('calculates correct number of shares for second deposit of equal size', async () => {
-      const amount = parseUnits('1');
-      const params = depositParams.build({
-        amount,
-        inputToken: underlying.address,
-      });
-
-      // deposit 1 unit
-      await vault.connect(alice).deposit(params);
-
-      // deposit 1 unit
-      await vault.connect(bob).deposit(params);
-
-      expect(await vault.totalShares()).to.equal(
-        amount.mul(2).mul(SHARES_MULTIPLIER),
-      );
-    });
-
-    it('calculates correct number of shares for second deposit of different size', async () => {
-      const amount = parseUnits('1');
-
-      // deposit 1 unit
-      const params1 = depositParams.build({
-        amount,
-        inputToken: underlying.address,
-      });
-      await vault.connect(alice).deposit(params1);
-
-      // deposit 2 unit
-      const params2 = depositParams.build({
-        amount: amount.mul(2),
-        inputToken: underlying.address,
-      });
-      await vault.connect(bob).deposit(params2);
-
-      // total shares must be 3 units
-      expect(await vault.totalShares()).to.equal(
-        amount.mul(3).mul(SHARES_MULTIPLIER),
-      );
-    });
-
-    it('fails if pct does not add up to 100%', async () => {
-      const params = depositParams.build({
-        inputToken: underlying.address,
-        claims: [
-          claimParams.percent(49).build(),
-          claimParams.percent(50).build(),
-        ],
-      });
-
-      const action = vault.connect(alice).deposit(params);
-
-      await expect(action).to.be.revertedWith('VaultClaimsDontAddUp');
-    });
-
-    it('transfers underlying from user at deposit', async () => {
-      const balanceBefore = await underlying.balanceOf(alice.address);
-
-      const params = depositParams.build({
-        inputToken: underlying.address,
-      });
-
-      await vault.connect(alice).deposit(params);
-
-      expect(await vault.totalUnderlying()).to.equal(params.amount);
-      expect(await underlying.balanceOf(vault.address)).to.equal(params.amount);
-      expect(await underlying.balanceOf(alice.address)).to.equal(
-        balanceBefore.sub(params.amount),
-      );
-    });
-
-    it('updates claimers info for first deposit', async () => {
-      const params = depositParams.build({
-        inputToken: underlying.address,
-        claims: [
-          claimParams.percent(40).build({
-            beneficiary: bob.address,
-          }),
-          claimParams.percent(60).build({
-            beneficiary: carol.address,
-          }),
-        ],
-      });
-
-      await vault.connect(alice).deposit(params);
-
-      const claimer1 = await vault.claimer(bob.address);
-      expect(claimer1.totalShares).to.be.equal(
-        parseUnits('0.4').mul(SHARES_MULTIPLIER),
-      );
-      expect(claimer1.totalPrincipal).to.be.equal(parseUnits('0.4'));
-
-      const claimer2 = await vault.claimer(carol.address);
-      expect(claimer2.totalShares).to.be.equal(
-        parseUnits('0.6').mul(SHARES_MULTIPLIER),
-      );
-      expect(claimer2.totalPrincipal).to.be.equal(parseUnits('0.6'));
-    });
-
-    it('updates claimers info for second deposit', async () => {
-      const params1 = depositParams.build({
-        inputToken: underlying.address,
-        claims: [
-          claimParams.percent(40).build({
-            beneficiary: bob.address,
-          }),
-          claimParams.percent(60).build({
-            beneficiary: carol.address,
-          }),
-        ],
-      });
-
-      const params2 = depositParams.build({
-        inputToken: underlying.address,
-        amount: parseUnits('10'),
-        claims: [
-          claimParams.build({
-            beneficiary: bob.address,
-          }),
-        ],
-      });
-
-      await vault.connect(alice).deposit(params1);
-
-      await vault.connect(alice).deposit(params2);
-
-      const claimer1 = await vault.claimer(bob.address);
-      expect(claimer1.totalShares).to.be.equal(
-        parseUnits('10.4').mul(SHARES_MULTIPLIER),
-      );
-      expect(claimer1.totalPrincipal).to.be.equal(parseUnits('10.4'));
-
-      const claimer2 = await vault.claimer(carol.address);
-      expect(claimer2.totalShares).to.be.equal(
-        parseUnits('0.6').mul(SHARES_MULTIPLIER),
-      );
-      expect(claimer2.totalPrincipal).to.be.equal(parseUnits('0.6'));
-    });
-
-    it('updates deposits info at deposit', async () => {
-      const params = depositParams.build({
-        inputToken: underlying.address,
-        claims: [
-          claimParams.percent(40).build({
-            beneficiary: bob.address,
-          }),
-          claimParams.percent(60).build({
-            beneficiary: carol.address,
-          }),
-        ],
-      });
-
-      await vault.connect(alice).deposit(params);
-
-      const currentTime = await getLastBlockTimestamp();
-
-      const deposit1 = await vault.deposits(1);
-      expect(deposit1.amount).to.be.equal(parseUnits('0.4'));
-      expect(deposit1.claimerId).to.be.equal(bob.address);
-      expect(deposit1.lockedUntil).to.be.equal(
-        currentTime.add(params.lockDuration),
-      );
-
-      const deposit2 = await vault.deposits(2);
-      expect(deposit2.amount).to.be.equal(parseUnits('0.6'));
-      expect(deposit2.claimerId).to.be.equal(carol.address);
-      expect(deposit2.lockedUntil).to.be.equal(
-        currentTime.add(params.lockDuration),
-      );
     });
   });
 

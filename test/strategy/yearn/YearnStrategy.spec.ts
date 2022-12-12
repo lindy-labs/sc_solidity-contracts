@@ -66,6 +66,7 @@ describe('YearnStrategy', () => {
       PERFORMANCE_FEE_PCT,
       INVESTMENT_FEE_PCT,
       [],
+      0,
     );
 
     YearnStrategyFactory = await ethers.getContractFactory('YearnStrategy');

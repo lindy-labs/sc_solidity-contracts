@@ -56,6 +56,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
         underlyingI: 0,
       },
     ],
+    0,
   ];
 
   const vaultDeployment = await deploy('Vault_LUSD', {

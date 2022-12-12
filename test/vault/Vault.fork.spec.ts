@@ -73,6 +73,7 @@ describe('Vault (fork tests)', () => {
           underlyingI: curveIndexes.ust,
         },
       ],
+      0,
     );
 
     await ForkHelpers.mintToken(

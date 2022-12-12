@@ -79,6 +79,7 @@ describe('Integration', () => {
       PERFORMANCE_FEE_PCT,
       INVESTMENT_FEE_PCT,
       [],
+      0,
     );
 
     underlying.connect(owner).approve(vault.address, MaxUint256);
@@ -836,6 +837,82 @@ describe('Integration', () => {
       expect(await underlying.balanceOf(alice.address)).to.eq(
         parseUnits('1100'),
       );
+    });
+  });
+
+  describe('when immediate investments are enabled', () => {
+    beforeEach(async () => {
+      await vault.setImmediateInvestLimitPct('8000');
+      await vault.setStrategy(strategy.address);
+      await vault.setInvestPct('8000');
+    });
+
+    it('invests if deposits increase the investable amount by more than the given percentage', async () => {
+      await addUnderlyingBalance(alice, '1500');
+
+      // there's nothing invested, so the first deposit goes directly to the strategy
+      const tx1 = vault.connect(alice).deposit(
+        depositParams.build({
+          amount: parseUnits('500'),
+          inputToken: underlying.address,
+          claims: [claimParams.percent(100).to(alice.address).build()],
+        }),
+      );
+
+      await expect(tx1).to.emit(vault, 'Invested').withArgs(parseUnits('400'));
+
+      // the second deposit doubles the amount of the TVL,
+      // so the already invested amount is 50% of the max investable amount and it goes directly to the strategy
+      const tx2 = vault.connect(alice).deposit(
+        depositParams.build({
+          amount: parseUnits('500'),
+          inputToken: underlying.address,
+          claims: [claimParams.percent(100).to(alice.address).build()],
+        }),
+      );
+
+      await expect(tx2).to.emit(vault, 'Invested').withArgs(parseUnits('400'));
+
+      // the third deposit is small and the already invested amount is still at ~86% of the max investable amount.
+      const tx3 = vault.connect(alice).deposit(
+        depositParams.build({
+          amount: parseUnits('150'),
+          inputToken: underlying.address,
+          claims: [claimParams.percent(100).to(alice.address).build()],
+        }),
+      );
+
+      await expect(tx3).not.to.emit(vault, 'Invested');
+
+      // the fourth deposit is small,
+      // but enough to take the invested amount to ~76% of the max investable amount
+      const tx4 = vault.connect(alice).deposit(
+        depositParams.build({
+          amount: parseUnits('150'),
+          inputToken: underlying.address,
+          claims: [claimParams.percent(100).to(alice.address).build()],
+        }),
+      );
+
+      await expect(tx4).to.emit(vault, 'Invested').withArgs(parseUnits('240'));
+
+      // the fifth deposit is small and not enough to trigger the invest
+      const tx5 = vault.connect(alice).deposit(
+        depositParams.build({
+          amount: parseUnits('100'),
+          inputToken: underlying.address,
+          claims: [claimParams.percent(100).to(alice.address).build()],
+        }),
+      );
+
+      await expect(tx5).not.to.emit(vault, 'Invested');
+
+      // the updateInvested runs because there are enough funds
+      const updatedInvestedTx = vault.updateInvested();
+
+      await expect(updatedInvestedTx)
+        .to.emit(vault, 'Invested')
+        .withArgs(parseUnits('80'));
     });
   });
 });

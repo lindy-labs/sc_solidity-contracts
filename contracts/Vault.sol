@@ -89,6 +89,9 @@ contract Vault is
     /// @inheritdoc IVault
     uint256 public override(IVault) totalShares;
 
+    /// @inheritdoc IVault
+    uint16 public override(IVault) immediateInvestLimitPct;
+
     /// The investment strategy
     IStrategy public strategy;
 
@@ -141,9 +144,12 @@ contract Vault is
         address _admin,
         uint16 _perfFeePct,
         uint16 _lossTolerancePct,
-        SwapPoolParam[] memory _swapPools
+        SwapPoolParam[] memory _swapPools,
+        uint16 _immediateInvestLimitPct
     ) {
-        if (!_investPct.validPct()) revert VaultInvalidInvestpct();
+        if (!_immediateInvestLimitPct.validPct())
+            revert VaultInvalidImmediateInvestLimitPct();
+        if (!_investPct.validPct()) revert VaultInvalidInvestPct();
         if (!_perfFeePct.validPct()) revert VaultInvalidPerformanceFee();
         if (!_lossTolerancePct.validPct()) revert VaultInvalidLossTolerance();
         if (address(_underlying) == address(0x0))
@@ -164,6 +170,7 @@ contract Vault is
         minLockPeriod = _minLockPeriod;
         perfFeePct = _perfFeePct;
         lossTolerancePct = _lossTolerancePct;
+        immediateInvestLimitPct = _immediateInvestLimitPct;
 
         rebalanceMinimum = 10 * 10**underlying.decimals();
 
@@ -342,6 +349,8 @@ contract Vault is
             _params.name,
             _groupId
         );
+
+        if (immediateInvestLimitPct != 0) _immediateInvestment();
     }
 
     /// @inheritdoc IVault
@@ -587,12 +596,22 @@ contract Vault is
     //
 
     /// @inheritdoc IVaultSettings
+    function setImmediateInvestLimitPct(uint16 _pct) external onlySettings {
+        if (!PercentMath.validPct(_pct))
+            revert VaultInvalidImmediateInvestLimitPct();
+
+        emit ImmediateInvestLimitPctUpdated(_pct);
+
+        immediateInvestLimitPct = _pct;
+    }
+
+    /// @inheritdoc IVaultSettings
     function setInvestPct(uint16 _investPct)
         external
         override(IVaultSettings)
         onlySettings
     {
-        if (!PercentMath.validPct(_investPct)) revert VaultInvalidInvestpct();
+        if (!PercentMath.validPct(_investPct)) revert VaultInvalidInvestPct();
 
         emit InvestPctUpdated(_investPct);
 
@@ -693,6 +712,25 @@ contract Vault is
     //
     // Internal API
     //
+
+    function _immediateInvestment() private {
+        (uint256 maxInvestableAmount, uint256 alreadyInvested) = investState();
+
+        if (
+            alreadyInvested.inPctOf(maxInvestableAmount) >=
+            immediateInvestLimitPct
+        ) return;
+
+        uint256 investAmount = maxInvestableAmount - alreadyInvested;
+
+        if (investAmount < rebalanceMinimum) return;
+
+        underlying.safeTransfer(address(strategy), investAmount);
+
+        strategy.invest();
+
+        emit Invested(investAmount);
+    }
 
     /**
      * Withdraws the principal from the deposits with the ids provided in @param _ids and sends it to @param _to.

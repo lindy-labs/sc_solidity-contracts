@@ -94,6 +94,7 @@ describe('LiquityStrategy', () => {
       PERFORMANCE_FEE_PCT,
       INVESTMENT_FEE_PCT,
       [],
+      0,
     );
 
     const CurveExchange = await ethers.getContractFactory('MockCurveExchange');

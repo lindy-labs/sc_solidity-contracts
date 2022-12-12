@@ -72,6 +72,7 @@ describe('Audit Tests 3', () => {
       PERFORMANCE_FEE_PCT,
       INVESTMENT_FEE_PCT,
       [],
+      0,
     );
 
     await underlying.connect(owner).approve(vault.address, MaxUint256);

@@ -276,9 +276,9 @@ describe('Donations', () => {
 
       await moveForwardTwoWeeks();
 
-      await expect(donations.connect(owner).burn(1, 'some-donation-id')).to.be.revertedWith(
-        'Donations: not allowed',
-      );
+      await expect(
+        donations.connect(owner).burn(1, 'some-donation-id'),
+      ).to.be.revertedWith('Donations: not allowed');
     });
 
     it('emits an event', async () => {
@@ -293,7 +293,9 @@ describe('Donations', () => {
 
       const tx = donations.connect(alice).burn(1, 'some-donation-id');
 
-      await expect(tx).to.emit(donations, 'DonationBurned').withArgs(1, 'some-donation-id');
+      await expect(tx)
+        .to.emit(donations, 'DonationBurned')
+        .withArgs(1, 'some-donation-id');
     });
 
     it('fails if the caller is not the owner nor the admin', async () => {
@@ -306,9 +308,9 @@ describe('Donations', () => {
         }),
       ]);
 
-      await expect(donations.connect(bob).burn(1, 'some-donation-id')).to.be.revertedWith(
-        'Donations: not allowed',
-      );
+      await expect(
+        donations.connect(bob).burn(1, 'some-donation-id'),
+      ).to.be.revertedWith('Donations: not allowed');
     });
   });
 
@@ -346,7 +348,12 @@ describe('Donations', () => {
 
       await moveForwardTwoWeeks();
 
-      await donations.connect(owner).burnBatch([1, 2, 3], ['some-donation-id', 'some-donation-id-1','some-donation-id-2']);
+      await donations
+        .connect(owner)
+        .burnBatch(
+          [1, 2, 3],
+          ['some-donation-id', 'some-donation-id-1', 'some-donation-id-2'],
+        );
 
       expect(
         await donations.transferableAmounts(underlying.address, CHARITY_ID),
@@ -388,11 +395,12 @@ describe('Donations', () => {
 
       await moveForwardDays(10);
 
-      await donations.connect(carol).burnBatch([1, 2, 3], [
-        'some-donation-id',
-        'some-donation-id-1',
-        'some-donation-id-2',
-      ]);
+      await donations
+        .connect(carol)
+        .burnBatch(
+          [1, 2, 3],
+          ['some-donation-id', 'some-donation-id-1', 'some-donation-id-2'],
+        );
 
       expect(
         await donations.transferableAmounts(underlying.address, CHARITY_ID),
