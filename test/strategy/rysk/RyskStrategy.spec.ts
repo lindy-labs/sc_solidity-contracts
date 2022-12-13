@@ -11,7 +11,12 @@ import {
   MockUSDC,
 } from '../../../typechain';
 
-import { generateNewAddress, ForkHelpers, parseUSDC } from '../../shared/';
+import {
+  generateNewAddress,
+  ForkHelpers,
+  parseUSDC,
+  moveForwardTwoWeeks,
+} from '../../shared/';
 import { parseUnits } from 'ethers/lib/utils';
 
 describe('RyskStrategy', () => {
@@ -543,6 +548,9 @@ describe('RyskStrategy', () => {
       await underlying.mint(ryskLqPool.address, parseUSDC('100'));
       await ryskLqPool.executeEpochCalculation();
 
+      // move forward so yield distribution is 100%
+      await moveForwardTwoWeeks();
+
       expect(await strategy.investedAssets()).to.eq(parseUSDC('200'));
     });
 
@@ -570,6 +578,9 @@ describe('RyskStrategy', () => {
       );
       await ryskLqPool.executeEpochCalculation();
 
+      // move forward so yield distribution is 100%
+      await moveForwardTwoWeeks();
+
       expect(
         (await ryskLqPool.withdrawalReceipts(strategy.address)).shares,
       ).to.eq(parseUnits('0'));
@@ -595,6 +606,9 @@ describe('RyskStrategy', () => {
       const stratSigner = await ethers.getSigner(strategy.address);
       ForkHelpers.setBalance(stratSigner.address, parseUnits('1'));
       await ryskLqPool.connect(stratSigner).redeem(parseUnits('50'));
+
+      // move forward so yield distribution is 100%
+      await moveForwardTwoWeeks();
 
       // at this point we have 50 redeemed and 50 unredeemed shares (which doubled in value)
       expect(
