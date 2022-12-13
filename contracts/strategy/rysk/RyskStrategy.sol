@@ -12,6 +12,8 @@ import {BaseStrategy} from "../BaseStrategy.sol";
 import {IRyskLiquidityPool} from "../../interfaces/rysk/IRyskLiquidityPool.sol";
 import {IVault} from "../../vault/IVault.sol";
 
+import "hardhat/console.sol";
+
 /**
  * RyskStrategy generates yield by investing into a Rysk LiquidityPool,
  * that serves to provide liquidity for a dynamic hedging options AMM.
@@ -43,6 +45,11 @@ contract RyskStrategy is BaseStrategy {
     error RyskNoWithdrawalInitiated();
     // cannot complete withdrawal in the same epoch
     error RyskCannotCompleteWithdrawalInSameEpoch();
+
+    uint64 private constant DISTRIBUTION_DURATION = 10 days;
+    uint256 private currentPricePerShare;
+    uint256 private targetPricePerShare;
+    uint256 private targetPricePerShareTimestamp;
 
     /**
      * @param _vault address of the vault that will use this strategy
@@ -108,6 +115,33 @@ contract RyskStrategy is BaseStrategy {
         override(IStrategy)
         returns (uint256)
     {
+        uint256 real = _doInvestedAssets();
+
+        if (targetPricePerShare < currentPricePerShare) return real;
+
+        uint256 diff = block.timestamp - targetPricePerShareTimestamp;
+
+        if (diff > DISTRIBUTION_DURATION) return real;
+
+        return (real * (diff)) / DISTRIBUTION_DURATION;
+    }
+
+    // can be called by anyone to update the current price per share when rysk does
+    // TODO: I'm just trying stuff out,  please fix this
+    function updatedPricePerShare() public {
+        uint256 currentWithdrawalEpoch = ryskLqPool.withdrawalEpoch();
+        // since withdrawal price per share is not updated until the end of the epoch,
+        // we need to use the price per share from the previous epoch
+        uint256 latestWithdrawalPricePerShare = ryskLqPool
+            .withdrawalEpochPricePerShare(currentWithdrawalEpoch - 1);
+
+        if (targetPricePerShare != latestWithdrawalPricePerShare) {
+            targetPricePerShare = latestWithdrawalPricePerShare;
+            targetPricePerShareTimestamp = block.timestamp;
+        }
+    }
+
+    function _doInvestedAssets() public view virtual returns (uint256) {
         uint256 currentWithdrawalEpoch = ryskLqPool.withdrawalEpoch();
         // since withdrawal price per share is not updated until the end of the epoch,
         // we need to use the price per share from the previous epoch
@@ -140,6 +174,7 @@ contract RyskStrategy is BaseStrategy {
 
         emit StrategyInvested(balance);
         ryskLqPool.deposit(balance);
+        updatedPricePerShare();
     }
 
     /// @inheritdoc IStrategy
@@ -167,7 +202,7 @@ contract RyskStrategy is BaseStrategy {
 
         emit StrategyWithdrawalInitiated(_amount);
         ryskLqPool.initiateWithdraw(sharesToWithdraw);
-
+        updatedPricePerShare();
         return 0;
     }
 
@@ -187,6 +222,7 @@ contract RyskStrategy is BaseStrategy {
             revert RyskCannotCompleteWithdrawalInSameEpoch();
 
         _completePendingWithdrawal();
+        updatedPricePerShare();
     }
 
     /**
