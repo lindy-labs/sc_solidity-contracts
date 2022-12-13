@@ -10,7 +10,7 @@
 
 This document describes the specification and verification of Vault using the Certora Prover. 
 
-The scope of this verification is the [`Vault.sol`](https://github.com/lindy-labs/sc_solidity-contracts/blob/main/contracts/Vault.sol) contract. Its specification is available [here](specs/Vault.spec).
+The scope of this verification is the [`Vault.sol`](https://github.com/lindy-labs/sc_solidity-contracts/blob/abe1005872ea3d49052d4ede3b643fb14d4f8542/contracts/Vault.sol) contract. Its specification is available [here](specs/Vault.spec).
 
 The Certora Prover proved the implementation of the Vault contract is correct with respect to formal specifications written by the security team of Lindy Labs.  The team also performed a manual audit of these contracts.
 
@@ -20,9 +20,9 @@ The Certora Prover proved the implementation of the Vault contract is correct wi
 
 | Issue:            | Dust in the Vault | 
 | --------          | -------- |    
-| Description:      | When user withdraw the principal from the vault, the vault may leave some dust due to rounding of uint division in Solidity. E.g., user withdraws 1000 LUSD, the vault may send only 999.99999... LUSD if the share price is not exactly an integer, which can happen when underlying asset value has changed, e.g., yield earned. A counter example can be found [here]( https://prover.certora.com/output/52311/0ca7e4fb086d308eeb51?anonymousKey=2a093f38c9406a97d4b9d56e746f07aec63616a8)  | 
+| Description:      | When user withdraw the principal from the vault, the vault may leave some dust due to rounding of uint division in Solidity. E.g., user withdraws 1000 LUSD, the vault may send only 999.99999... LUSD if the share price is not exactly an integer, which can happen when underlying asset value has changed, e.g., yield earned. | 
 | Mitigation/Fix:   | update the `_withdrawSingle` internal function to remove the redundant and imprecise `computeAmount` function call and return the `_amount` value directly |
-| Property violated:| When user withdraws principal, the requested amount should be sent to the user|
+| Property violated:| When user withdraws principal, the requested amount should be sent to the user. A counter example can be found [here]( https://prover.certora.com/output/52311/0ca7e4fb086d308eeb51?anonymousKey=2a093f38c9406a97d4b9d56e746f07aec63616a8) |
 
 # Overview of the verification
 

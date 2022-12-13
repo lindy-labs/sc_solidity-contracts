@@ -174,7 +174,7 @@ rule integrity_of_reinvest() {
     @Category: variable transition
 
     @Description:
-        invest function moves all the LUSD balance from strategy to the stability pool
+        `withdrawToVault(uint256 amount)` should withdraw amount of LUSD to the Vault
 */
 rule integrity_of_withdrawToVault() {
     require stabilityPool != currentContract && vault != currentContract && vault != stabilityPool;
