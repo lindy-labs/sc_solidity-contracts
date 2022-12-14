@@ -5,7 +5,8 @@ export const getLastBlockTimestamp = async (): Promise<BigNumber> => {
   return BigNumber.from((await time.latest()).toString());
 };
 
-export const increaseTime = time.increase;
+export const increaseTime = (amount: BigNumber | number) =>
+  time.increase(amount) as Promise<BigNumber>;
 
 export const moveForwardTwoWeeks = () => time.increase(time.duration.weeks(2));
 

@@ -2,6 +2,7 @@ import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { ethers } from 'hardhat';
 import { expect } from 'chai';
 import { BigNumber, utils, constants } from 'ethers';
+import { time } from '@openzeppelin/test-helpers';
 
 import {
   Vault,
@@ -16,6 +17,8 @@ import {
   ForkHelpers,
   parseUSDC,
   moveForwardTwoWeeks,
+  getLastBlockTimestamp,
+  increaseTime,
 } from '../../shared/';
 import { parseUnits } from 'ethers/lib/utils';
 
@@ -658,6 +661,38 @@ describe('RyskStrategy', () => {
       );
 
       expect(await strategy.investedAssets()).to.eq(parseUSDC('300'));
+    });
+
+    it('distributes yield linearly over a period', async () => {
+      const amount = parseUSDC('100');
+      await underlying.mint(strategy.address, amount);
+      await strategy.connect(manager).invest();
+
+      const investTimestamp = await getLastBlockTimestamp();
+
+      await ryskLqPool.executeEpochCalculation();
+
+      expect(await strategy.investedAssets()).to.eq(amount);
+
+      // generate yield to increase share value 2x
+      await underlying.mint(ryskLqPool.address, amount);
+      await ryskLqPool.executeOnlyDepositEpochCalculation();
+
+      // move to exactly 1 day since the block where we call invest
+      await increaseTime(
+        time.duration.days(1) -
+          (await getLastBlockTimestamp()).sub(investTimestamp).toNumber(),
+      );
+
+      for (let i = 10; i <= 100; i += 10) {
+        expect(await strategy.investedAssets()).to.eq(
+          amount.mul(100 + i).div(100),
+        );
+
+        await increaseTime(time.duration.days(1));
+      }
+
+      expect(await strategy.investedAssets()).to.eq(amount.mul(2));
     });
   });
 });
