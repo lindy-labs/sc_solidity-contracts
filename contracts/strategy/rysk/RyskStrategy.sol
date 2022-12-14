@@ -148,6 +148,7 @@ contract RyskStrategy is BaseStrategy {
         virtual
         override(IStrategy)
         onlyManager
+        returns (uint256)
     {
         if (_amount == 0) revert StrategyAmountZero();
 
@@ -166,6 +167,8 @@ contract RyskStrategy is BaseStrategy {
 
         emit StrategyWithdrawalInitiated(_amount);
         ryskLqPool.initiateWithdraw(sharesToWithdraw);
+
+        return 0;
     }
 
     /**

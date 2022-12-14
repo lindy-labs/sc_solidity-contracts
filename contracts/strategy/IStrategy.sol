@@ -45,8 +45,10 @@ interface IStrategy {
      * Withdraws the specified amount back to the vault (disinvests)
      *
      * @param amount Amount to withdraw
+     *
+     * @return actual amount withdrawn
      */
-    function withdrawToVault(uint256 amount) external;
+    function withdrawToVault(uint256 amount) external returns (uint256);
 
     /**
      * Transfers the @param _amount to @param _to in the more appropriate currency.

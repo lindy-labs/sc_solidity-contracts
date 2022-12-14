@@ -158,6 +158,7 @@ describe('Vault in sync mode', () => {
         claims: [claimParams.percent(100).to(alice.address).build()],
       });
       await vault.connect(alice).deposit(params);
+      await strategy.setAmountToWithdrawReductionPct(500); // 5%
 
       await addYieldToVault('50');
       await vault.connect(owner).updateInvested();
