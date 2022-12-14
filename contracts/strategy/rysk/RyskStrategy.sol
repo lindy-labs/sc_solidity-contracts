@@ -129,20 +129,23 @@ contract RyskStrategy is BaseStrategy {
 
         return
             real -
-            ((real - virtualDepositedAmount) * (timestampDiff)) /
+            ((real - virtualDepositedAmount) *
+                (DISTRIBUTION_DURATION - timestampDiff)) /
             DISTRIBUTION_DURATION;
     }
 
     // can be called by anyone to update the current price per share when rysk does
-    // TODO: I'm just trying stuff out,  please fix this
+    // TODO: I'm just trying stuff out, please fix later
     function updatedPricePerShare() public {
-        uint256 currentWithdrawalEpoch = ryskLqPool.withdrawalEpoch();
-        // since withdrawal price per share is not updated until the end of the epoch,
-        // we need to use the price per share from the previous epoch
-        uint256 latestWithdrawalPricePerShare = ryskLqPool
-            .withdrawalEpochPricePerShare(currentWithdrawalEpoch - 1);
+        // uint256 epoch = ryskLqPool.depositEpoch();
+        uint256 epoch = ryskLqPool.withdrawalEpoch();
 
-        if (targetPricePerShare == latestWithdrawalPricePerShare) return;
+        // uint256 pricePerShare = ryskLqPool.depositEpochPricePerShare(epoch - 1);
+        uint256 pricePerShare = ryskLqPool.withdrawalEpochPricePerShare(
+            epoch - 1
+        );
+
+        if (targetPricePerShare == pricePerShare) return;
 
         uint256 timestampDiff = block.timestamp - targetPricePerShareTimestamp;
 
@@ -161,7 +164,7 @@ contract RyskStrategy is BaseStrategy {
                 DISTRIBUTION_DURATION;
         }
 
-        targetPricePerShare = latestWithdrawalPricePerShare;
+        targetPricePerShare = pricePerShare;
         targetPricePerShareTimestamp = block.timestamp;
     }
 
