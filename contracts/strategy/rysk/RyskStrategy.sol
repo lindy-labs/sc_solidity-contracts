@@ -46,11 +46,13 @@ contract RyskStrategy is BaseStrategy {
     // cannot complete withdrawal in the same epoch
     error RyskCannotCompleteWithdrawalInSameEpoch();
 
-    uint64 private constant DISTRIBUTION_DURATION = 10 days;
-    uint256 private virtualDepositedAmount;
+    uint256 private yieldDistributionDuration;
+
+    uint256 private depositedAmount;
+
     uint256 private currentPricePerShare;
     uint256 private targetPricePerShare;
-    uint256 private targetPricePerShareTimestamp;
+    uint256 private updatePricePerShareTimestamp;
 
     /**
      * @param _vault address of the vault that will use this strategy
@@ -63,11 +65,14 @@ contract RyskStrategy is BaseStrategy {
         address _admin,
         address _keeper,
         address _ryskLiquidityPool,
-        IERC20 _underlying
+        IERC20 _underlying,
+        uint256 _yieldDistributionDuration
     ) BaseStrategy(_vault, _underlying, _admin) {
         if (_ryskLiquidityPool == address(0))
             revert RyskLiquidityPoolCannotBe0Address();
         if (_keeper == address(0)) revert StrategyKeeperCannotBe0Address();
+
+        yieldDistributionDuration = _yieldDistributionDuration;
 
         ryskLqPool = IRyskLiquidityPool(_ryskLiquidityPool);
 
@@ -118,25 +123,25 @@ contract RyskStrategy is BaseStrategy {
     {
         uint256 real = _doInvestedAssets();
 
-        if (targetPricePerShareTimestamp == 0) return real;
+        if (updatePricePerShareTimestamp == 0) return real;
         if (targetPricePerShare < currentPricePerShare) return real;
-        if (real < virtualDepositedAmount) return real;
+        if (real < depositedAmount) return real;
 
-        uint256 timestampDiff = block.timestamp - targetPricePerShareTimestamp;
+        uint256 timestampDiff = block.timestamp - updatePricePerShareTimestamp;
 
         // yield distribution is at 100%
-        if (timestampDiff > DISTRIBUTION_DURATION) return real;
+        if (timestampDiff > yieldDistributionDuration) return real;
 
         return
             real -
-            ((real - virtualDepositedAmount) *
-                (DISTRIBUTION_DURATION - timestampDiff)) /
-            DISTRIBUTION_DURATION;
+            ((real - depositedAmount) *
+                (yieldDistributionDuration - timestampDiff)) /
+            yieldDistributionDuration;
     }
 
     // can be called by anyone to update the current price per share when rysk does
     // TODO: I'm just trying stuff out, please fix later
-    function updatedPricePerShare() public {
+    function updatePricePerShare() public {
         // uint256 epoch = ryskLqPool.depositEpoch();
         uint256 epoch = ryskLqPool.withdrawalEpoch();
 
@@ -147,25 +152,25 @@ contract RyskStrategy is BaseStrategy {
 
         if (targetPricePerShare == pricePerShare) return;
 
-        uint256 timestampDiff = block.timestamp - targetPricePerShareTimestamp;
+        uint256 timestampDiff = block.timestamp - updatePricePerShareTimestamp;
 
-        if (timestampDiff > DISTRIBUTION_DURATION) {
+        if (timestampDiff > yieldDistributionDuration) {
             // yield distribution is at 100%
             currentPricePerShare = targetPricePerShare;
-            virtualDepositedAmount = _doInvestedAssets();
+            depositedAmount = _doInvestedAssets();
         } else {
             // adjust the price per share and the virtual deposit amount according to the distributed yield
             currentPricePerShare =
                 (currentPricePerShare * (timestampDiff)) /
-                DISTRIBUTION_DURATION;
+                yieldDistributionDuration;
 
-            virtualDepositedAmount =
+            depositedAmount =
                 (_doInvestedAssets() * (timestampDiff)) /
-                DISTRIBUTION_DURATION;
+                yieldDistributionDuration;
         }
 
         targetPricePerShare = pricePerShare;
-        targetPricePerShareTimestamp = block.timestamp;
+        updatePricePerShareTimestamp = block.timestamp;
     }
 
     function _doInvestedAssets() public view virtual returns (uint256) {
@@ -200,9 +205,9 @@ contract RyskStrategy is BaseStrategy {
         if (balance == 0) revert StrategyNoUnderlying();
 
         emit StrategyInvested(balance);
-        virtualDepositedAmount += balance;
+        depositedAmount += balance;
         ryskLqPool.deposit(balance);
-        updatedPricePerShare();
+        updatePricePerShare();
     }
 
     /// @inheritdoc IStrategy
@@ -250,7 +255,7 @@ contract RyskStrategy is BaseStrategy {
             revert RyskCannotCompleteWithdrawalInSameEpoch();
 
         _completePendingWithdrawal();
-        updatedPricePerShare();
+        updatePricePerShare();
     }
 
     /**
@@ -315,9 +320,8 @@ contract RyskStrategy is BaseStrategy {
     function _completePendingWithdrawal() internal {
         uint256 amountWithdrawn = ryskLqPool.completeWithdraw();
 
-        if (amountWithdrawn > virtualDepositedAmount)
-            virtualDepositedAmount = 0;
-        else virtualDepositedAmount -= amountWithdrawn;
+        if (amountWithdrawn > depositedAmount) depositedAmount = 0;
+        else depositedAmount -= amountWithdrawn;
 
         emit StrategyWithdrawn(amountWithdrawn);
         underlying.safeTransfer(vault, amountWithdrawn);

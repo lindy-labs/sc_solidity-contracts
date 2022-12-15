@@ -75,6 +75,7 @@ describe('RyskStrategy', () => {
       keeper.address,
       ryskLqPool.address,
       underlying.address,
+      time.duration.days(10).toString().toString(),
     );
 
     await strategy.connect(admin).grantRole(MANAGER_ROLE, manager.address);
@@ -95,6 +96,7 @@ describe('RyskStrategy', () => {
           keeper.address,
           ryskLqPool.address,
           underlying.address,
+          time.duration.days(10).toString(),
         ),
       ).to.be.revertedWith('StrategyAdminCannotBe0Address');
     });
@@ -107,6 +109,7 @@ describe('RyskStrategy', () => {
           constants.AddressZero,
           ryskLqPool.address,
           underlying.address,
+          time.duration.days(10).toString(),
         ),
       ).to.be.revertedWith('StrategyKeeperCannotBe0Address');
     });
@@ -119,6 +122,7 @@ describe('RyskStrategy', () => {
           keeper.address,
           constants.AddressZero,
           underlying.address,
+          time.duration.days(10).toString(),
         ),
       ).to.be.revertedWith('RyskLiquidityPoolCannotBe0Address');
     });
@@ -131,6 +135,7 @@ describe('RyskStrategy', () => {
           keeper.address,
           ryskLqPool.address,
           constants.AddressZero,
+          time.duration.days(10).toString(),
         ),
       ).to.be.revertedWith('StrategyUnderlyingCannotBe0Address');
     });
@@ -143,6 +148,7 @@ describe('RyskStrategy', () => {
           keeper.address,
           ryskLqPool.address,
           underlying.address,
+          time.duration.days(10).toString(),
         ),
       ).to.be.revertedWith('StrategyNotIVault');
     });
@@ -693,6 +699,54 @@ describe('RyskStrategy', () => {
       }
 
       expect(await strategy.investedAssets()).to.eq(amount.mul(2));
+    });
+
+    it('udpates the yield distribution when there is more yield', async () => {
+      await underlying.mint(strategy.address, parseUSDC('100'));
+      await strategy.connect(manager).invest();
+
+      const investTimestamp = await getLastBlockTimestamp();
+
+      await ryskLqPool.executeEpochCalculation();
+
+      // investedAssets starts at 100
+      expect(await strategy.investedAssets()).to.eq(parseUSDC('100'));
+
+      // generate 100 of yield
+      await underlying.mint(ryskLqPool.address, parseUSDC('100'));
+      await ryskLqPool.executeOnlyDepositEpochCalculation();
+
+      // move forward to exactly 5 days in the future since the invest, minus 3 blocks.
+      // the -3 blocks ensures that the following 3 calls make the updatePricePerShare execute precisely on 5th day since the invest.
+      // because it's exactly 5 days in the future, we know that only 50% of the yield is available
+      await increaseTime(
+        time.duration.days(5) -
+          (await getLastBlockTimestamp()).sub(investTimestamp).toNumber() -
+          3,
+      );
+
+      // generate another 100 of yield
+      await underlying.mint(ryskLqPool.address, parseUSDC('100'));
+      await ryskLqPool.executeEpochCalculation();
+      await strategy.updatePricePerShare();
+
+      expect(await strategy.investedAssets()).to.eq(
+        parseUSDC('100').add(parseUSDC('50')),
+      );
+
+      for (let i = 1; i <= 10; i += 1) {
+        await increaseTime(time.duration.days(1));
+
+        expect(await strategy.investedAssets()).to.eq(
+          parseUSDC('150').add(
+            parseUSDC('150')
+              .mul(i * 10)
+              .div(100),
+          ),
+        );
+      }
+
+      expect(await strategy.investedAssets()).to.eq(parseUSDC('300'));
     });
   });
 });
