@@ -110,6 +110,32 @@ rule integrity_of_withdrawToVault() {
 /*
     @Rule
 
+    @Category: Variable transition
+
+    @Description:
+        Complete a withdraw initiated in a previous epoch
+*/
+rule integrity_of_completeWithdrawal() {
+    env e;
+    require vault != currentContract && vault != ryskLqPool && currentContract != ryskLqPool;
+    mathint _balanceOfVault = underlying.balanceOf(vault);
+    mathint _balanceOfRyskLqPool = underlying.balanceOf(ryskLqPool);
+    mathint _balanceOfStrategy = underlying.balanceOf(currentContract);
+    completeWithdrawal(e); // Complete a withdraw
+
+    mathint balanceOfVault_ = underlying.balanceOf(vault);
+    mathint balanceOfRyskLqPool_ = underlying.balanceOf(ryskLqPool);
+    mathint balanceOfStrategy_ = underlying.balanceOf(currentContract);
+
+    assert _balanceOfStrategy == balanceOfStrategy_;
+    assert _balanceOfRyskLqPool >= balanceOfRyskLqPool_; // Remove the shares from the Rysk Pool
+    assert balanceOfVault_ >= _balanceOfVault; // Transfer the equivalent amount (from shares) from Rysk Pool to Vault
+
+}
+
+/*
+    @Rule
+
     @Category: unit test
 
     @Description:
