@@ -13,7 +13,9 @@ The Certora Prover proved the implementation of the Vault contract is correct wi
 
 # Overview of the verification
 
-## Description of the LiquityStrategy contract
+## Description of the RyskStrategy contract
+
+RyskStrategy generates yield by investing into a Rysk LiquidityPool, that serves to provide liquidity for a dynamic hedging options AMM.
 
 ## Assumptions and Simplifications
 
@@ -37,3 +39,126 @@ Formulas relate the results of method calls. In most cases, these methods are ge
 ## RyskStrategy
 
 ### Rules
+
+#### 1. Privileged functions should revert if there is no privilege
+
+```
+{   
+    adminFunctions(f) && !hasRole(DEFAULT_ADMIN_ROLE(), e.msg.sender)
+    ||
+    managerFunctions(f) && !hasRole(MANAGER_ROLE(), e.msg.sender);
+}
+    f@withrevert(e, args);
+{
+    lastReverted;
+}
+```
+
+
+#### 2. When the balance of the current contract is zero, invest should revert
+
+```
+{
+    require underlying.balanceOf(currentContract) == 0;
+}
+    invest@withrevert(e);
+{
+    lastReverted;
+}
+```
+
+#### 3. Invest function should perform a deposit in the Rysk Liquidity Pool
+
+```
+{
+    ryskLqPool != currentContract;
+}
+    _balanceOfStrategy = underlying.balanceOf(currentContract);
+    _balanceOfPool = underlying.balanceOf(ryskLqPool);
+    invest(e);
+{
+    underlying.balanceOf(currentContract) == 0;
+    underlying.balanceOf(ryskLqPool) - _balanceOfStrategy == _balanceOfPool;
+}
+```
+
+#### 4. When the amount is zero, withdrawToVault should revert
+
+```
+{
+    require amount == 0;
+}
+    withdrawToVault@withrevert(e, amount);
+{
+    lastReverted;
+}
+```
+
+#### 5. Initiate a withdraw to the Rysk Liquidity Pool of the number of underlying ERC20
+
+```
+{
+    require ryskLqPool != currentContract && vault != currentContract && vault != ryskLqPool;
+
+    _balanceOfRyskLqPool = underlying.balanceOf(ryskLqPool);
+    _balanceOfVault = underlying.balanceOf(vault);
+    _balanceOfStrategy = underlying.balanceOf(currentContract);
+}
+    withdrawToVault(e, amount);
+
+{
+    _balanceOfStrategy == underlying.balanceOf(currentContract);
+    underlying.balanceOf(vault) - _balanceOfVault == _balanceOfRyskLqPool - underlying.balanceOf(ryskLqPool);
+}
+```
+
+#### 6. Complete a withdraw initiated in a previous epoch
+
+```
+{
+    require vault != currentContract && vault != ryskLqPool && currentContract != ryskLqPool;
+    _balanceOfVault = underlying.balanceOf(vault);
+    _balanceOfRyskLqPool = underlying.balanceOf(ryskLqPool);
+    _balanceOfStrategy = underlying.balanceOf(currentContract);
+}
+    completeWithdrawal(e);
+{
+    _balanceOfStrategy == underlying.balanceOf(currentContract);
+    _balanceOfRyskLqPool >= underlying.balanceOf(ryskLqPool);
+    underlying.balanceOf(vault) >= _balanceOfVault;
+}
+```
+
+#### 7. isSync() should return false
+
+```
+{
+}
+{
+    !isSync();
+}
+```
+
+#### 8. hasAssets return value should be consistent with investedAssets return value
+{
+}
+
+{
+    investedAssets() > 0 <=> hasAssets() && investedAssets() == 0 <=> !hasAssets();
+}
+
+#### 9. transferAdminRights should transfer admin roles from msg sender to the new admin
+
+```
+{
+}
+    transferAdminRights(e, newAdmin);
+{
+    !hasRole(DEFAULT_ADMIN_ROLE(), e.msg.sender);
+    hasRole(DEFAULT_ADMIN_ROLE(), newAdmin);
+    !hasRole(KEEPER_ROLE(), e.msg.sender);
+    hasRole(KEEPER_ROLE(), newAdmin);
+    !hasRole(SETTINGS_ROLE(), e.msg.sender);
+    hasRole(SETTINGS_ROLE(), newAdmin);
+}
+```
