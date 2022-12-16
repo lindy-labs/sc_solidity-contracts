@@ -41,8 +41,14 @@ contract MockStrategyDirect is BaseStrategy {
     function invest() external virtual override(IStrategy) {}
 
     /// @inheritdoc IStrategy
-    function withdrawToVault(uint256 amount) external override(IStrategy) {
+    function withdrawToVault(uint256 amount)
+        external
+        override(IStrategy)
+        returns (uint256)
+    {
         underlying.transfer(vault, amount);
+
+        return amount;
     }
 
     /// @inheritdoc IStrategy

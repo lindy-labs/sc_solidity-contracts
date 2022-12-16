@@ -115,6 +115,7 @@ contract AnchorStrategy is IAnchorStrategy, BaseStrategy {
         virtual
         override(IStrategy)
         onlyManager
+        returns (uint256)
     {
         if (amount == 0) revert StrategyAmountZero();
         uint256 _aUstToWithdraw = _estimateUstAmountInAUst(amount);
@@ -122,6 +123,8 @@ contract AnchorStrategy is IAnchorStrategy, BaseStrategy {
         if (pendingRedeems < _aUstToWithdraw) {
             initRedeemStable(_aUstToWithdraw - pendingRedeems);
         }
+
+        return 0;
     }
 
     /**

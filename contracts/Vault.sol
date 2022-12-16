@@ -464,9 +464,9 @@ contract Vault is
             if (disinvestAmount < rebalanceMinimum)
                 revert VaultNotEnoughToRebalance();
 
-            strategy.withdrawToVault(disinvestAmount);
+            uint256 amountWithdrawn = strategy.withdrawToVault(disinvestAmount);
 
-            emit Disinvested(disinvestAmount);
+            emit Disinvested(amountWithdrawn);
 
             return;
         }
@@ -816,9 +816,9 @@ contract Vault is
         // to cover the transfer and leave the vault with the expected reserves
         uint256 needed = _amount + expectedReserves - vaultBalance;
 
-        strategy.withdrawToVault(needed);
+        uint256 amountWithdrawn = strategy.withdrawToVault(needed);
 
-        emit Disinvested(needed);
+        emit Disinvested(amountWithdrawn);
     }
 
     /**

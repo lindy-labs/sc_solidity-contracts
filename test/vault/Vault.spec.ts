@@ -684,7 +684,7 @@ describe('Vault', () => {
         );
       });
 
-      it('emits an event', async () => {
+      it('emits Disinvested event', async () => {
         await vault.connect(admin).setStrategy(strategy.address);
         await addYieldToVault('10');
         await underlying.mint(strategy.address, parseUnits('190'));
@@ -694,6 +694,19 @@ describe('Vault', () => {
         await expect(tx)
           .to.emit(vault, 'Disinvested')
           .withArgs(parseUnits('10'));
+      });
+
+      it('emits "Disinvested" event with amount withdrawn from the strategy', async () => {
+        await vault.connect(admin).setStrategy(strategy.address);
+        await addYieldToVault('10');
+        await underlying.mint(strategy.address, parseUnits('190'));
+        await strategy.setAmountToWithdrawReductionPct('1000'); // 10%
+
+        const tx = await vault.connect(admin).updateInvested();
+
+        await expect(tx)
+          .to.emit(vault, 'Disinvested')
+          .withArgs(parseUnits('9'));
       });
     });
   });

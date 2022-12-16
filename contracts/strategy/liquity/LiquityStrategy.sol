@@ -265,6 +265,7 @@ contract LiquityStrategy is
         virtual
         override(IStrategy)
         onlyManager
+        returns (uint256)
     {
         if (amount == 0) revert StrategyAmountZero();
         if (amount > investedAssets()) revert StrategyNotEnoughShares();
@@ -277,6 +278,8 @@ contract LiquityStrategy is
         underlying.transfer(vault, balance);
 
         emit StrategyWithdrawn(balance);
+
+        return balance;
     }
 
     /**
