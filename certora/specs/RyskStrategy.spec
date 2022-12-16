@@ -37,10 +37,7 @@ definition adminFunctions(method f) returns bool =
 definition managerFunctions(method f) returns bool =
     f.selector == invest().selector
     ||
-    f.selector == withdrawToVault(uint256).selector
-    ||
-    f.selector == transferYield(address, uint256).selector; // There is an issue here
-
+    f.selector == withdrawToVault(uint256).selector;
 
 /*
     @Rule
@@ -88,14 +85,14 @@ rule integrity_of_invest() {
     @Category: Variable transition
 
     @Description:
-        Initiate a withdraw to the Rysk Liquidity Pool of the amount of shares needed
+        Initiate a withdraw to the Rysk Liquidity Pool of the number of underlying ERC20
 */
 rule integrity_of_withdrawToVault() {
     env e;
-    require ryskLqPool != currentContract && vault != currentContract && vault != ryskLqPool && vault != e.msg.sender && ryskLqPool != e.msg.sender && currentContract != e.msg.sender;
+    require ryskLqPool != currentContract && vault != currentContract && vault != ryskLqPool;
 
     mathint _balanceOfRyskLqPool = underlying.balanceOf(ryskLqPool);
-    mathint _balanceOfSender = underlying.balanceOf(e.msg.sender);
+    mathint _balanceOfVault = underlying.balanceOf(vault);//e.msg.sender);
     mathint _balanceOfStrategy = underlying.balanceOf(currentContract);
 
     uint256 amount;
@@ -103,40 +100,13 @@ rule integrity_of_withdrawToVault() {
 
     mathint balanceOfStrategy_ = underlying.balanceOf(currentContract);
     mathint balanceOfRyskLqPool_ = underlying.balanceOf(ryskLqPool);
-    mathint balanceOfSender_ = underlying.balanceOf(e.msg.sender);
+    mathint balanceOfVault_ = underlying.balanceOf(vault);//e.msg.sender);
 
     assert _balanceOfStrategy == balanceOfStrategy_;
-    assert balanceOfSender_ - _balanceOfSender == _balanceOfRyskLqPool - balanceOfRyskLqPool_; // Transferring shares from sender to rysk pool
+    assert balanceOfVault_ - _balanceOfVault == _balanceOfRyskLqPool - balanceOfRyskLqPool_;
 
 }
 
-/*
-    @Rule
-
-    @Category: Variable transition
-
-    @Description:
-        Complete a withdraw initiated in a previous epoch
-*/
-rule integrity_of_completeWithdrawal() {
-    env e;
-    require vault != currentContract && vault != ryskLqPool && currentContract != ryskLqPool;
-
-    mathint _balanceOfVault = underlying.balanceOf(vault);
-    mathint _balanceOfRyskLqPool = underlying.balanceOf(ryskLqPool);
-    mathint _balanceOfStrategy = underlying.balanceOf(currentContract);
-
-    completeWithdrawal(e); // Complete a withdraw
-
-    mathint balanceOfVault_ = underlying.balanceOf(vault);
-    mathint balanceOfRyskLqPool_ = underlying.balanceOf(ryskLqPool);
-    mathint balanceOfStrategy_ = underlying.balanceOf(currentContract);
-
-    assert _balanceOfStrategy == balanceOfStrategy_;
-    assert _balanceOfRyskLqPool >= balanceOfRyskLqPool_; // Remove the shares from the Rysk Pool
-    assert balanceOfVault_ >= _balanceOfVault; // Transfer the equivalent amount (from shares) from Rysk Pool to Vault
-
-}
 /*
     @Rule
 
