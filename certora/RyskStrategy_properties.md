@@ -28,7 +28,7 @@ It has the following external/public functions that are view only and change not
 
 | No. | Property  | Category | Priority | Specified | Verified | Report |
 | ---- | --------  | -------- | -------- | -------- | -------- | -------- |
-|   1   | privileged functions should revert if the `msg.sender` does not have the privilege | High level  | high | Y | Y | [Link](https://prover.certora.com/output/52311/95d16e6de876afc15ae3?anonymousKey=c67787f0e09f2d7558944e26cfd0499ea0948ffd) |
+|   1   | privileged functions should revert if the `msg.sender` does not have the privilege | High level  | high | Y | Y | [Link](https://prover.certora.com/output/52311/a2dd3b6db3c5838bebc3?anonymousKey=ee4c691a11e1a2dbef672accd3006bff3f2df8a3) |
 |   2   | `invest()` should revert if `underlying.balanceOf(address(this)) == 0` | Unit test  | medium | Y | Y | [Link](https://prover.certora.com/output/52311/12c428c31cfa583a412e?anonymousKey=65e17c4d25f3a31ff96e646ae507bf1a79153fde) |
 |   3   | `invest()` should perform a deposit in the Rysk Liquidity Pool | medium  | medium | Y | Y | [Link](https://prover.certora.com/output/52311/d363fce80b1d17647eaa?anonymousKey=d767938b5d4fa30e7369b5101cdee6bf87509fa6) |
 |   4   | `withdrawToVault(uint256 _amount)` should revert if `_amount` is zero | Unit test  | medium | Y | Y | [Link](https://prover.certora.com/output/52311/df662363dd3c093b5d0b?anonymousKey=d20958a42db7ed06745492cc562a763236abdc26) |

@@ -5,7 +5,7 @@
 
 This document describes the specification and verification of RyskStrategy using the Certora Prover. 
 
-The scope of this verification is the [`Vault.sol`](https://github.com/lindy-labs/sc_solidity-contracts/blob/main/contracts/Vault.sol) contract. Its specification is available [here](specs/Vault.spec).
+The scope of this verification is the [`RyskStrategy.sol`](https://github.com/lindy-labs/sc_solidity-contracts/blob/abe1005872ea3d49052d4ede3b643fb14d4f8542/contracts/strategy/rysk/RyskStrategy.sol) contract. Its specification is available [here](specs/RyskStrategy.spec).
 
 The Certora Prover proved the implementation of the Vault contract is correct with respect to formal specifications written by the security team of Lindy Labs.  The team also performed a manual audit of these contracts.
 
@@ -40,11 +40,13 @@ Formulas relate the results of method calls. In most cases, these methods are ge
 
 ### Rules
 
-#### 1. Privileged functions should revert if there is no privilege
+#### 1. Privileged functions should revert if there is no privilege ✔️
 
 ```
 {   
     adminFunctions(f) && !hasRole(DEFAULT_ADMIN_ROLE(), e.msg.sender)
+    ||
+    keeperFunctions(f) && !hasRole(DEFAULT_ADMIN_ROLE(), e.msg.sender)
     ||
     managerFunctions(f) && !hasRole(MANAGER_ROLE(), e.msg.sender);
 }
@@ -55,7 +57,7 @@ Formulas relate the results of method calls. In most cases, these methods are ge
 ```
 
 
-#### 2. When the balance of the current contract is zero, invest should revert
+#### 2. When the balance of the current contract is zero, invest should revert ✔️
 
 ```
 {
@@ -67,7 +69,7 @@ Formulas relate the results of method calls. In most cases, these methods are ge
 }
 ```
 
-#### 3. Invest function should perform a deposit in the Rysk Liquidity Pool
+#### 3. Invest function should perform a deposit in the Rysk Liquidity Pool ✔️
 
 ```
 {
@@ -82,7 +84,7 @@ Formulas relate the results of method calls. In most cases, these methods are ge
 }
 ```
 
-#### 4. When the amount is zero, withdrawToVault should revert
+#### 4. When the amount is zero, withdrawToVault should revert ✔️
 
 ```
 {
@@ -94,7 +96,7 @@ Formulas relate the results of method calls. In most cases, these methods are ge
 }
 ```
 
-#### 5. Initiate a withdraw to the Rysk Liquidity Pool of the number of underlying ERC20
+#### 5. Initiate a withdraw to the Rysk Liquidity Pool of the number of underlying ERC20 ✔️
 
 ```
 {
@@ -112,7 +114,7 @@ Formulas relate the results of method calls. In most cases, these methods are ge
 }
 ```
 
-#### 6. Complete a withdraw initiated in a previous epoch
+#### 6. Complete a withdraw initiated in a previous epoch ✔️
 
 ```
 {
@@ -129,7 +131,7 @@ Formulas relate the results of method calls. In most cases, these methods are ge
 }
 ```
 
-#### 7. isSync() should return false
+#### 7. isSync() should return false ✔️
 
 ```
 {
@@ -139,7 +141,7 @@ Formulas relate the results of method calls. In most cases, these methods are ge
 }
 ```
 
-#### 8. hasAssets return value should be consistent with investedAssets return value
+#### 8. hasAssets return value should be consistent with investedAssets return value ✔️
 {
 }
 
@@ -147,7 +149,7 @@ Formulas relate the results of method calls. In most cases, these methods are ge
     investedAssets() > 0 <=> hasAssets() && investedAssets() == 0 <=> !hasAssets();
 }
 
-#### 9. transferAdminRights should transfer admin roles from msg sender to the new admin
+#### 9. transferAdminRights should transfer admin roles from msg sender to the new admin ✔️
 
 ```
 {

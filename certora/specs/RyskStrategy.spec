@@ -34,6 +34,9 @@ methods {
 definition adminFunctions(method f) returns bool =
     f.selector == transferAdminRights(address).selector;
 
+definition keeperFunctions(method f) returns bool =
+    f.selector == completeWithdrawal().selector;
+
 definition managerFunctions(method f) returns bool =
     f.selector == invest().selector
     ||
@@ -52,6 +55,8 @@ filtered{f->adminFunctions(f) || managerFunctions(f)}
 {
     env e;
     require adminFunctions(f) && !hasRole(DEFAULT_ADMIN_ROLE(), e.msg.sender)
+            ||
+            keeperFunctions(f) && !hasRole(DEFAULT_ADMIN_ROLE(), e.msg.sender)
             ||
             managerFunctions(f) && !hasRole(MANAGER_ROLE(), e.msg.sender);
     calldataarg args;
@@ -92,7 +97,7 @@ rule integrity_of_withdrawToVault() {
     require ryskLqPool != currentContract && vault != currentContract && vault != ryskLqPool;
 
     mathint _balanceOfRyskLqPool = underlying.balanceOf(ryskLqPool);
-    mathint _balanceOfVault = underlying.balanceOf(vault);//e.msg.sender);
+    mathint _balanceOfVault = underlying.balanceOf(vault);
     mathint _balanceOfStrategy = underlying.balanceOf(currentContract);
 
     uint256 amount;
@@ -100,7 +105,7 @@ rule integrity_of_withdrawToVault() {
 
     mathint balanceOfStrategy_ = underlying.balanceOf(currentContract);
     mathint balanceOfRyskLqPool_ = underlying.balanceOf(ryskLqPool);
-    mathint balanceOfVault_ = underlying.balanceOf(vault);//e.msg.sender);
+    mathint balanceOfVault_ = underlying.balanceOf(vault);
 
     assert _balanceOfStrategy == balanceOfStrategy_;
     assert balanceOfVault_ - _balanceOfVault == _balanceOfRyskLqPool - balanceOfRyskLqPool_;
