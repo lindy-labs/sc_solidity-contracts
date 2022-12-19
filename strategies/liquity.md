@@ -11,7 +11,7 @@ Liquity is a credit protocol. Users deposit collateral and can open a credit lin
 LUSD can be deposited to the Stability Pool to protect Liquity against insolvency. LUSD in this contract is used to pay off debt, in exchange for discounted collateral and other rewards.
 
 {% hint style="info" %}
-The Metavault **receives LQTY** [**at a fixed APR**](https://docs.liquity.org/faq/lqty-distribution-and-rewards#what-is-lqtys-distribution-schedule) and **earns additional dynamic returns on its stablecoin deposits by dollar-cost averaging into liquidated ETH** through Liquity Protocol's Stability Pool and swapping for the underlying. Liquidation profits are then reinvested into the strategy, compounding yield for depositors over time.
+The Metavault **receives LQTY** [**at a predetermined emission schedule**](https://docs.liquity.org/faq/lqty-distribution-and-rewards#what-is-lqtys-distribution-schedule) and **earns additional dynamic returns on its stablecoin deposits by dollar-cost averaging into liquidated ETH** through Liquity Protocol's Stability Pool and swapping for the underlying. Liquidation profits are then reinvested into the strategy, compounding yield for depositors over time.
 
 Because of this, the short term APY estimate could be as low as 6% and as high as 1000%. It is completely unpredictable. As a result, for our frontend, we use a range using the 7d and the 365d average rolling APR.
 {% endhint %}
