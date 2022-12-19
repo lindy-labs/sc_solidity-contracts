@@ -183,6 +183,14 @@ describe('RyskStrategy', () => {
       );
     });
 
+    it('emits a StrategySyncYield', async () => {
+      await underlying.mint(strategy.address, parseUSDC('100'));
+      await expect(strategy.connect(manager).invest()).to.emit(
+        strategy,
+        'StrategySyncYield',
+      );
+    });
+
     it('transfers underlying to the Rysk liquidity pool', async () => {
       const underlyingAmount = parseUSDC('100');
       await underlying.mint(strategy.address, underlyingAmount);
@@ -533,6 +541,21 @@ describe('RyskStrategy', () => {
     });
   });
 
+  describe('#syncYield', () => {
+    it('emits a StrategySyncYield', async () => {
+      await underlying.mint(strategy.address, parseUSDC('100'));
+      await strategy.connect(manager).invest();
+
+      await ryskLqPool.executeEpochCalculation();
+
+      // generate 100 of yield
+      await underlying.mint(ryskLqPool.address, parseUSDC('100'));
+      await ryskLqPool.executeEpochCalculation();
+
+      await expect(strategy.syncYield()).to.emit(strategy, 'StrategySyncYield');
+    });
+  });
+
   describe('#investedAssets', async () => {
     it('returns 0 when no assets are invested', async () => {
       expect(await strategy.hasAssets()).to.be.false;
@@ -717,7 +740,7 @@ describe('RyskStrategy', () => {
       await ryskLqPool.executeOnlyDepositEpochCalculation();
 
       // move forward to exactly 5 days in the future since the invest, minus 3 blocks.
-      // the -3 blocks ensures that the following 3 calls make the updatePricePerShare execute precisely on 5th day since the invest.
+      // the -3 blocks ensures that the following 3 calls make the syncYield execute precisely on 5th day since the invest.
       // because it's exactly 5 days in the future, we know that only 50% of the yield is available
       await increaseTime(
         time.duration.days(5) -
@@ -728,7 +751,7 @@ describe('RyskStrategy', () => {
       // generate another 100 of yield
       await underlying.mint(ryskLqPool.address, parseUSDC('100'));
       await ryskLqPool.executeEpochCalculation();
-      await strategy.updatePricePerShare();
+      await strategy.syncYield();
 
       expect(await strategy.investedAssets()).to.eq(
         parseUSDC('100').add(parseUSDC('50')),

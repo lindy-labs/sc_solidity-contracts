@@ -39,6 +39,25 @@ contract RyskStrategy is BaseStrategy {
      */
     event StrategyWithdrawalInitiated(uint256 amount);
 
+    /**
+     * Emmited when a withdrawal has been initiated.
+     *
+     * @param startingPricePerShare the price per share at the start of the
+     * yield distribution cycle.
+     * @param targetPricePerShare the price per share at the end of the yield
+     * distribution cycle.
+     * @param syncYieldStartTimestamp the timestamp of the start of the current
+     * yield distribution cycle.
+     * @param depositedAmount the sum of deposits and distributed yield in the
+     * contract.
+     */
+    event StrategySyncYield(
+        uint256 startingPricePerShare,
+        uint256 targetPricePerShare,
+        uint256 syncYieldStartTimestamp,
+        uint256 depositedAmount
+    );
+
     // rysk liquidity pool cannot be 0 address
     error RyskLiquidityPoolCannotBe0Address();
     // no withdrawal initiated
@@ -46,13 +65,14 @@ contract RyskStrategy is BaseStrategy {
     // cannot complete withdrawal in the same epoch
     error RyskCannotCompleteWithdrawalInSameEpoch();
 
-    uint256 private yieldDistributionDuration;
-
+    // The length of a yield distribution cycle
+    uint256 private yieldCycleLength;
+    // The sum of deposits and distributed yield
     uint256 private depositedAmount;
-
-    uint256 private currentPricePerShare;
+    // The price per share at the beginning of the yield distribution cycle
+    uint256 private startingPricePerShare;
     uint256 private targetPricePerShare;
-    uint256 private updatePricePerShareTimestamp;
+    uint256 private syncYieldStartTimestamp;
 
     /**
      * @param _vault address of the vault that will use this strategy
@@ -66,13 +86,13 @@ contract RyskStrategy is BaseStrategy {
         address _keeper,
         address _ryskLiquidityPool,
         IERC20 _underlying,
-        uint256 _yieldDistributionDuration
+        uint256 _yieldCycleLength
     ) BaseStrategy(_vault, _underlying, _admin) {
         if (_ryskLiquidityPool == address(0))
             revert RyskLiquidityPoolCannotBe0Address();
         if (_keeper == address(0)) revert StrategyKeeperCannotBe0Address();
 
-        yieldDistributionDuration = _yieldDistributionDuration;
+        yieldCycleLength = _yieldCycleLength;
 
         ryskLqPool = IRyskLiquidityPool(_ryskLiquidityPool);
 
@@ -121,59 +141,73 @@ contract RyskStrategy is BaseStrategy {
         override(IStrategy)
         returns (uint256)
     {
-        uint256 real = _doInvestedAssets();
+        uint256 realDepositedAmount = _realInvestedAssets();
 
-        if (updatePricePerShareTimestamp == 0) return real;
-        if (targetPricePerShare < currentPricePerShare) return real;
-        if (real < depositedAmount) return real;
+        if (
+            (syncYieldStartTimestamp == 0) ||
+            (targetPricePerShare < startingPricePerShare) ||
+            (realDepositedAmount < depositedAmount)
+        ) return realDepositedAmount;
 
-        uint256 timestampDiff = block.timestamp - updatePricePerShareTimestamp;
+        uint256 timestampDiff = block.timestamp - syncYieldStartTimestamp;
 
-        // yield distribution is at 100%
-        if (timestampDiff > yieldDistributionDuration) return real;
+        // if the yield distribution cycle ended
+        if (timestampDiff > yieldCycleLength) return realDepositedAmount;
 
         return
-            real -
-            ((real - depositedAmount) *
-                (yieldDistributionDuration - timestampDiff)) /
-            yieldDistributionDuration;
+            realDepositedAmount -
+            ((realDepositedAmount - depositedAmount) *
+                (yieldCycleLength - timestampDiff)) /
+            yieldCycleLength;
     }
 
-    // can be called by anyone to update the current price per share when rysk does
-    // TODO: I'm just trying stuff out, please fix later
-    function updatePricePerShare() public {
-        // uint256 epoch = ryskLqPool.depositEpoch();
-        uint256 epoch = ryskLqPool.withdrawalEpoch();
-
-        // uint256 pricePerShare = ryskLqPool.depositEpochPricePerShare(epoch - 1);
+    /**
+     * Updates the yield distribution cycle. This function can be called when
+     * there's a new epoch in Rysk if some yield is generated.
+     *
+     * @notice It can be called by anyone because there's harm from it, and it
+     * makes the system less reliant on the backend.
+     */
+    function syncYield() public {
         uint256 pricePerShare = ryskLqPool.withdrawalEpochPricePerShare(
-            epoch - 1
+            ryskLqPool.withdrawalEpoch() - 1
         );
 
+        // if the price per share didn't change, then there isn't any yield (or
+        // loss) to distribute.
         if (targetPricePerShare == pricePerShare) return;
 
-        uint256 timestampDiff = block.timestamp - updatePricePerShareTimestamp;
+        uint256 timestampDiff = block.timestamp - syncYieldStartTimestamp;
 
-        if (timestampDiff > yieldDistributionDuration) {
-            // yield distribution is at 100%
-            currentPricePerShare = targetPricePerShare;
-            depositedAmount = _doInvestedAssets();
+        if (timestampDiff > yieldCycleLength) {
+            // when the yield distribution is at 100%
+            startingPricePerShare = targetPricePerShare;
+            depositedAmount = _realInvestedAssets();
         } else {
-            // adjust the price per share and the virtual deposit amount according to the distributed yield
-            currentPricePerShare =
-                (currentPricePerShare * (timestampDiff)) /
-                yieldDistributionDuration;
+            // When there's an epoch before the yield distribution cycle ends,
+            // adjust the price per share and the deposit amount according to
+            // the distributed percentage.
+            startingPricePerShare =
+                (startingPricePerShare * (timestampDiff)) /
+                yieldCycleLength;
 
             depositedAmount =
-                (_doInvestedAssets() * (timestampDiff)) /
-                yieldDistributionDuration;
+                (_realInvestedAssets() * (timestampDiff)) /
+                yieldCycleLength;
         }
 
         targetPricePerShare = pricePerShare;
-        updatePricePerShareTimestamp = block.timestamp;
+        syncYieldStartTimestamp = block.timestamp;
+
+        emit StrategySyncYield(
+            startingPricePerShare,
+            targetPricePerShare,
+            syncYieldStartTimestamp,
+            depositedAmount
+        );
     }
 
-    function _doInvestedAssets() public view virtual returns (uint256) {
+    function _realInvestedAssets() public view virtual returns (uint256) {
         uint256 currentWithdrawalEpoch = ryskLqPool.withdrawalEpoch();
         // since withdrawal price per share is not updated until the end of the epoch,
         // we need to use the price per share from the previous epoch
@@ -207,7 +241,7 @@ contract RyskStrategy is BaseStrategy {
         emit StrategyInvested(balance);
         depositedAmount += balance;
         ryskLqPool.deposit(balance);
-        updatePricePerShare();
+        syncYield();
     }
 
     /// @inheritdoc IStrategy
@@ -235,7 +269,7 @@ contract RyskStrategy is BaseStrategy {
 
         emit StrategyWithdrawalInitiated(_amount);
         ryskLqPool.initiateWithdraw(sharesToWithdraw);
-        updatedPricePerShare();
+        syncYield();
         return 0;
     }
 
@@ -255,7 +289,7 @@ contract RyskStrategy is BaseStrategy {
             revert RyskCannotCompleteWithdrawalInSameEpoch();
 
         _completePendingWithdrawal();
-        updatePricePerShare();
+        syncYield();
     }
 
     /**
