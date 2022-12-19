@@ -7,7 +7,7 @@ This document describes the specification and verification of RyskStrategy using
 
 The scope of this verification is the [`RyskStrategy.sol`](https://github.com/lindy-labs/sc_solidity-contracts/blob/abe1005872ea3d49052d4ede3b643fb14d4f8542/contracts/strategy/rysk/RyskStrategy.sol) contract. Its specification is available [here](specs/RyskStrategy.spec).
 
-The Certora Prover proved the implementation of the Vault contract is correct with respect to formal specifications written by the security team of Lindy Labs.  The team also performed a manual audit of these contracts.
+The Certora Prover proved the implementation of the RyskStrategy contract is correct with respect to formal specifications written by the security team of Lindy Labs.  The team also performed a manual audit of these contracts.
 
 ## List of Issues Discovered
 
