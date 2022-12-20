@@ -40,7 +40,7 @@ contract RyskStrategy is BaseStrategy {
     event StrategyWithdrawalInitiated(uint256 amount);
 
     /**
-     * Emmited when a withdrawal has been initiated.
+     * Emmited when the yield distribution cycle is updated.
      *
      * @param startingPricePerShare the price per share at the start of the
      * yield distribution cycle.
@@ -71,7 +71,9 @@ contract RyskStrategy is BaseStrategy {
     uint256 private depositedAmount;
     // The price per share at the beginning of the yield distribution cycle
     uint256 private startingPricePerShare;
+    // The price per share at the end of the yield distribution cycle
     uint256 private targetPricePerShare;
+    // The timestamp of the start of the current yield distribution cycle
     uint256 private syncYieldStartTimestamp;
 
     /**
