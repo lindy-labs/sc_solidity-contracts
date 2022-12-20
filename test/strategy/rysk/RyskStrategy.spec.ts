@@ -797,6 +797,32 @@ describe('RyskStrategy', () => {
       expect(await strategy.investedAssets()).to.eq(amount.mul(2));
     });
 
+    it(`doens't wait for syncYield to reflect the loss of funds`, async () => {
+      await investToRyskLqPool(parseUSDC('100'));
+      await addYieldToRyskLqPool(parseUSDC('100'));
+      await strategy.syncYield();
+
+      await increaseTime(time.duration.days(5));
+      await loseFundsFromRyskLqPool(parseUSDC('50'));
+
+      expect(await strategy.investedAssets()).to.eq(
+        parseUSDC('100').add(parseUSDC('50')),
+      );
+    });
+
+    it(`doesn't reflect the loss of funds immediately if it only affected the yield to be distributed.`, async () => {
+      await investToRyskLqPool(parseUSDC('100'));
+      await addYieldToRyskLqPool(parseUSDC('100'));
+      await strategy.syncYield();
+
+      await increaseTime(time.duration.days(5) - 1);
+      await loseFundsFromRyskLqPool(parseUSDC('10'));
+
+      expect(await strategy.investedAssets()).to.eq(
+        parseUSDC('100').add(parseUSDC('50')),
+      );
+    });
+
     describe('after a call to #syncYield', () => {
       it(`udpates when a new epoch loses funds but doesn't become negative`, async () => {
         await investToRyskLqPool(parseUSDC('100'));

@@ -206,22 +206,22 @@ contract RyskStrategy is BaseStrategy {
         if ((syncYieldStartTimestamp == 0) || (syncYieldAmount == 0))
             return realDepositedAmount;
 
-        uint256 cycleTotalDepositAmount = depositedAmount + syncYieldAmount;
-
-        // if there less funds than expected at the end of the cycle,
-        // return the real funds
-        if (realDepositedAmount < cycleTotalDepositAmount)
-            return realDepositedAmount;
-
         uint256 timestampDiff = block.timestamp - syncYieldStartTimestamp;
 
-        // if the cycle ended
-        if (timestampDiff > yieldCycleLength) return cycleTotalDepositAmount;
+        uint256 cycleTotalDepositAmount = depositedAmount + syncYieldAmount;
+        uint256 cycleDepositAmount = cycleTotalDepositAmount;
 
-        return
-            cycleTotalDepositAmount -
-            (syncYieldAmount * (yieldCycleLength - timestampDiff)) /
-            yieldCycleLength;
+        if (timestampDiff < yieldCycleLength)
+            cycleDepositAmount =
+                cycleTotalDepositAmount -
+                (syncYieldAmount * (yieldCycleLength - timestampDiff)) /
+                yieldCycleLength;
+
+        // if there's a less funds, return the real funds
+        if (realDepositedAmount < cycleDepositAmount)
+            return realDepositedAmount;
+
+        return cycleDepositAmount;
     }
 
     /// @inheritdoc IStrategy
