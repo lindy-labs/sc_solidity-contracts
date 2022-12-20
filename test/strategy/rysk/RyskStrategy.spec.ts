@@ -183,14 +183,6 @@ describe('RyskStrategy', () => {
       );
     });
 
-    it('emits a StrategySyncYield', async () => {
-      await underlying.mint(strategy.address, parseUSDC('100'));
-      await expect(strategy.connect(manager).invest()).to.emit(
-        strategy,
-        'StrategySyncYield',
-      );
-    });
-
     it('transfers underlying to the Rysk liquidity pool', async () => {
       const underlyingAmount = parseUSDC('100');
       await underlying.mint(strategy.address, underlyingAmount);
@@ -542,7 +534,7 @@ describe('RyskStrategy', () => {
   });
 
   describe('#syncYield', () => {
-    it('emits a StrategySyncYield', async () => {
+    it('emits a StrategySyncYield event', async () => {
       await underlying.mint(strategy.address, parseUSDC('100'));
       await strategy.connect(manager).invest();
 
@@ -696,9 +688,6 @@ describe('RyskStrategy', () => {
       const amount = parseUSDC('100');
       await underlying.mint(strategy.address, amount);
       await strategy.connect(manager).invest();
-
-      const investTimestamp = await getLastBlockTimestamp();
-
       await ryskLqPool.executeEpochCalculation();
 
       expect(await strategy.investedAssets()).to.eq(amount);
@@ -706,12 +695,10 @@ describe('RyskStrategy', () => {
       // generate yield to increase share value 2x
       await underlying.mint(ryskLqPool.address, amount);
       await ryskLqPool.executeOnlyDepositEpochCalculation();
+      await strategy.syncYield();
 
       // move to exactly 1 day since the block where we call invest
-      await increaseTime(
-        time.duration.days(1) -
-          (await getLastBlockTimestamp()).sub(investTimestamp).toNumber(),
-      );
+      await increaseTime(time.duration.days(1));
 
       for (let i = 10; i <= 100; i += 10) {
         expect(await strategy.investedAssets()).to.eq(
@@ -724,52 +711,126 @@ describe('RyskStrategy', () => {
       expect(await strategy.investedAssets()).to.eq(amount.mul(2));
     });
 
-    it('udpates the yield distribution when there is more yield', async () => {
-      await underlying.mint(strategy.address, parseUSDC('100'));
-      await strategy.connect(manager).invest();
-
-      const investTimestamp = await getLastBlockTimestamp();
-
-      await ryskLqPool.executeEpochCalculation();
-
-      // investedAssets starts at 100
-      expect(await strategy.investedAssets()).to.eq(parseUSDC('100'));
-
-      // generate 100 of yield
-      await underlying.mint(ryskLqPool.address, parseUSDC('100'));
-      await ryskLqPool.executeOnlyDepositEpochCalculation();
-
-      // move forward to exactly 5 days in the future since the invest, minus 3 blocks.
-      // the -3 blocks ensures that the following 3 calls make the syncYield execute precisely on 5th day since the invest.
-      // because it's exactly 5 days in the future, we know that only 50% of the yield is available
-      await increaseTime(
-        time.duration.days(5) -
-          (await getLastBlockTimestamp()).sub(investTimestamp).toNumber() -
-          3,
-      );
-
-      // generate another 100 of yield
-      await underlying.mint(ryskLqPool.address, parseUSDC('100'));
-      await ryskLqPool.executeEpochCalculation();
-      await strategy.syncYield();
-
-      expect(await strategy.investedAssets()).to.eq(
-        parseUSDC('100').add(parseUSDC('50')),
-      );
-
-      for (let i = 1; i <= 10; i += 1) {
-        await increaseTime(time.duration.days(1));
-
-        expect(await strategy.investedAssets()).to.eq(
-          parseUSDC('150').add(
-            parseUSDC('150')
-              .mul(i * 10)
-              .div(100),
-          ),
+    describe('after a call to #syncYield', () => {
+      it(`udpates when a new epoch loses funds but doesn't become negative`, async () => {
+        const initialRyskPoolBalance = await underlying.balanceOf(
+          ryskLqPool.address,
         );
-      }
+        await underlying.mint(strategy.address, parseUSDC('100'));
+        await strategy.connect(manager).invest();
+        await ryskLqPool.executeEpochCalculation();
 
-      expect(await strategy.investedAssets()).to.eq(parseUSDC('300'));
+        // investedAssets starts at 100
+        expect(await strategy.investedAssets()).to.eq(parseUSDC('100'));
+
+        // generate 100 of yield
+        await underlying.mint(ryskLqPool.address, parseUSDC('100'));
+        await ryskLqPool.executeOnlyDepositEpochCalculation();
+        await strategy.syncYield();
+
+        // move forward to exactly 5 days in the future since the invest, minus 2 blocks.
+        // the -2 blocks ensures that the following 2 calls make the syncYield execute precisely on 5th day since the invest.
+        await increaseTime(time.duration.days(5) - 2);
+
+        // loss of 20 yield
+        await ForkHelpers.setTokenBalance(
+          underlying,
+          ryskLqPool,
+          initialRyskPoolBalance.add(parseUSDC('180')),
+        );
+        await ryskLqPool.executeEpochCalculation();
+        await strategy.syncYield();
+
+        // because it's exactly 5 days in the future, we know that only 50% of the yield is available
+        expect(await strategy.investedAssets()).to.eq(
+          parseUSDC('100').add(parseUSDC('50')),
+        );
+
+        await increaseTime(time.duration.days(11));
+
+        expect(await strategy.investedAssets()).to.eq(parseUSDC('180'));
+      });
+
+      it(`udpates when a new epoch loses user funds`, async () => {
+        const initialRyskPoolBalance = await underlying.balanceOf(
+          ryskLqPool.address,
+        );
+        await underlying.mint(strategy.address, parseUSDC('100'));
+        await strategy.connect(manager).invest();
+        await ryskLqPool.executeEpochCalculation();
+
+        // investedAssets starts at 100
+        expect(await strategy.investedAssets()).to.eq(parseUSDC('100'));
+
+        // generate 100 of yield
+        await underlying.mint(ryskLqPool.address, parseUSDC('100'));
+        await ryskLqPool.executeOnlyDepositEpochCalculation();
+        await strategy.syncYield();
+
+        // move forward to exactly 5 days in the future since the invest, minus 2 blocks.
+        // the -2 blocks ensures that the following 2 calls make the syncYield execute precisely on 5th day since the invest.
+        await increaseTime(time.duration.days(5) - 2);
+
+        // loss of 20 yield
+        await ForkHelpers.setTokenBalance(
+          underlying,
+          ryskLqPool,
+          initialRyskPoolBalance.add(parseUSDC('140')),
+        );
+        await ryskLqPool.executeEpochCalculation();
+        await strategy.syncYield();
+
+        // because it's exactly 5 days in the future, but we know some funds were lost
+        expect(await strategy.investedAssets()).to.eq(
+          parseUSDC('100').add(parseUSDC('40')),
+        );
+
+        await increaseTime(time.duration.days(11));
+
+        expect(await strategy.investedAssets()).to.eq(parseUSDC('140'));
+      });
+
+      it('udpates when a new epoch starts in the middle of a cycle', async () => {
+        await underlying.mint(strategy.address, parseUSDC('100'));
+        await strategy.connect(manager).invest();
+        await ryskLqPool.executeEpochCalculation();
+
+        // investedAssets starts at 100
+        expect(await strategy.investedAssets()).to.eq(parseUSDC('100'));
+
+        // generate 100 of yield
+        await underlying.mint(ryskLqPool.address, parseUSDC('100'));
+        await ryskLqPool.executeOnlyDepositEpochCalculation();
+        await strategy.syncYield();
+
+        // move forward to exactly 5 days in the future since the invest, minus 3 blocks.
+        // the -3 blocks ensures that the following 3 calls make the syncYield execute precisely on 5th day since the invest.
+        await increaseTime(time.duration.days(5) - 3);
+
+        // generate another 100 of yield
+        await underlying.mint(ryskLqPool.address, parseUSDC('100'));
+        await ryskLqPool.executeEpochCalculation();
+        await strategy.syncYield();
+
+        // because it's exactly 5 days in the future, we know that only 50% of the yield is available
+        expect(await strategy.investedAssets()).to.eq(
+          parseUSDC('100').add(parseUSDC('50')),
+        );
+
+        for (let i = 1; i <= 10; i += 1) {
+          await increaseTime(time.duration.days(1));
+
+          expect(await strategy.investedAssets()).to.eq(
+            parseUSDC('150').add(
+              parseUSDC('150')
+                .mul(i * 10)
+                .div(100),
+            ),
+          );
+        }
+
+        expect(await strategy.investedAssets()).to.eq(parseUSDC('300'));
+      });
     });
   });
 });

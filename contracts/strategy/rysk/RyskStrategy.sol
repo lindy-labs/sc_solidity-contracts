@@ -42,19 +42,15 @@ contract RyskStrategy is BaseStrategy {
     /**
      * Emmited when the yield distribution cycle is updated.
      *
-     * @param startingPricePerShare the price per share at the start of the
-     * yield distribution cycle.
-     * @param targetPricePerShare the price per share at the end of the yield
-     * distribution cycle.
      * @param syncYieldStartTimestamp the timestamp of the start of the current
      * yield distribution cycle.
+     * @param syncYieldAmount the amount being distributed in the current cycle.
      * @param depositedAmount the sum of deposits and distributed yield in the
      * contract.
      */
     event StrategySyncYield(
-        uint256 startingPricePerShare,
-        uint256 targetPricePerShare,
         uint256 syncYieldStartTimestamp,
+        uint256 syncYieldAmount,
         uint256 depositedAmount
     );
 
@@ -69,11 +65,9 @@ contract RyskStrategy is BaseStrategy {
     uint256 private yieldCycleLength;
     // The sum of deposits and distributed yield
     uint256 private depositedAmount;
-    // The price per share at the beginning of the yield distribution cycle
-    uint256 private startingPricePerShare;
-    // The price per share at the end of the yield distribution cycle
-    uint256 private targetPricePerShare;
-    // The timestamp of the start of the current yield distribution cycle
+    // The amount being distributed in the yield distribution cycle
+    uint256 private syncYieldAmount;
+    // The timestamp of the start of the yield distribution cycle
     uint256 private syncYieldStartTimestamp;
 
     /**
@@ -102,6 +96,70 @@ contract RyskStrategy is BaseStrategy {
         underlyingDecimals = IERC20Metadata(address(_underlying)).decimals();
 
         _grantRole(KEEPER_ROLE, _keeper);
+    }
+
+    /**
+     * Completes the pending withdrawal initiated in an earlier epoch.
+     *
+     * @notice Expected to be called by the backend (keeper bot) once the Rysk liquidity pool enters a new withdrawal epoch.
+     * The backend should track the 'WithdrawalEpochExecuted' event on the Rysk LiquidityPool contract,
+     * and act by calling this function when the event is emitted to complete pending withdrawal.
+     */
+    function completeWithdrawal() external onlyKeeper {
+        IRyskLiquidityPool.WithdrawalReceipt
+            memory withdrawalReceipt = _getWithdrawalReceipt();
+
+        if (withdrawalReceipt.epoch == 0) revert RyskNoWithdrawalInitiated();
+        if (withdrawalReceipt.epoch == ryskLqPool.withdrawalEpoch())
+            revert RyskCannotCompleteWithdrawalInSameEpoch();
+
+        _completePendingWithdrawal();
+        syncYield();
+    }
+
+    /**
+     * Updates the yield distribution cycle. This function can be called when
+     * there's a new epoch in Rysk if the funds changed.
+     *
+     * @notice It can be called by anyone because there's not harm from it, and it
+     * makes the system less reliant on the backend.
+     */
+    function syncYield() public {
+        uint256 realDepositedAmount = _realInvestedAssets();
+
+        if (depositedAmount + syncYieldAmount == realDepositedAmount) return;
+
+        uint256 timestampDiff = block.timestamp - syncYieldStartTimestamp;
+
+        // if there was yield being distributed
+        if (syncYieldAmount > 0) {
+            if (timestampDiff > yieldCycleLength) {
+                // when the yield distribution is at 100%
+                depositedAmount += syncYieldAmount;
+            } else {
+                // When there's an epoch before the yield distribution cycle ends,
+                // adjust the deposit amount according to the distributed percentage.
+                depositedAmount +=
+                    (syncYieldAmount * (timestampDiff)) /
+                    yieldCycleLength;
+            }
+        }
+
+        // if funds were lost
+        if (realDepositedAmount < depositedAmount) {
+            depositedAmount = realDepositedAmount;
+            syncYieldAmount = 0;
+        } else {
+            syncYieldAmount = realDepositedAmount - depositedAmount;
+        }
+
+        syncYieldStartTimestamp = block.timestamp;
+
+        emit StrategySyncYield(
+            syncYieldStartTimestamp,
+            syncYieldAmount,
+            depositedAmount
+        );
     }
 
     //
@@ -145,93 +203,25 @@ contract RyskStrategy is BaseStrategy {
     {
         uint256 realDepositedAmount = _realInvestedAssets();
 
-        if (
-            (syncYieldStartTimestamp == 0) ||
-            (targetPricePerShare < startingPricePerShare) ||
-            (realDepositedAmount < depositedAmount)
-        ) return realDepositedAmount;
+        if ((syncYieldStartTimestamp == 0) || (syncYieldAmount == 0))
+            return realDepositedAmount;
+
+        uint256 cycleTotalDepositAmount = depositedAmount + syncYieldAmount;
+
+        // if there less funds than expected at the end of the cycle,
+        // return the real funds
+        if (realDepositedAmount < cycleTotalDepositAmount)
+            return realDepositedAmount;
 
         uint256 timestampDiff = block.timestamp - syncYieldStartTimestamp;
 
-        // if the yield distribution cycle ended
-        if (timestampDiff > yieldCycleLength) return realDepositedAmount;
+        // if the cycle ended
+        if (timestampDiff > yieldCycleLength) return cycleTotalDepositAmount;
 
         return
-            realDepositedAmount -
-            ((realDepositedAmount - depositedAmount) *
-                (yieldCycleLength - timestampDiff)) /
+            cycleTotalDepositAmount -
+            (syncYieldAmount * (yieldCycleLength - timestampDiff)) /
             yieldCycleLength;
-    }
-
-    /**
-     * Updates the yield distribution cycle. This function can be called when
-     * there's a new epoch in Rysk if some yield is generated.
-     *
-     * @notice It can be called by anyone because there's harm from it, and it
-     * makes the system less reliant on the backend.
-     */
-    function syncYield() public {
-        uint256 pricePerShare = ryskLqPool.withdrawalEpochPricePerShare(
-            ryskLqPool.withdrawalEpoch() - 1
-        );
-
-        // if the price per share didn't change, then there isn't any yield (or
-        // loss) to distribute.
-        if (targetPricePerShare == pricePerShare) return;
-
-        uint256 timestampDiff = block.timestamp - syncYieldStartTimestamp;
-
-        if (timestampDiff > yieldCycleLength) {
-            // when the yield distribution is at 100%
-            startingPricePerShare = targetPricePerShare;
-            depositedAmount = _realInvestedAssets();
-        } else {
-            // When there's an epoch before the yield distribution cycle ends,
-            // adjust the price per share and the deposit amount according to
-            // the distributed percentage.
-            startingPricePerShare =
-                (startingPricePerShare * (timestampDiff)) /
-                yieldCycleLength;
-
-            depositedAmount =
-                (_realInvestedAssets() * (timestampDiff)) /
-                yieldCycleLength;
-        }
-
-        targetPricePerShare = pricePerShare;
-        syncYieldStartTimestamp = block.timestamp;
-
-        emit StrategySyncYield(
-            startingPricePerShare,
-            targetPricePerShare,
-            syncYieldStartTimestamp,
-            depositedAmount
-        );
-    }
-
-    function _realInvestedAssets() public view virtual returns (uint256) {
-        uint256 currentWithdrawalEpoch = ryskLqPool.withdrawalEpoch();
-        // since withdrawal price per share is not updated until the end of the epoch,
-        // we need to use the price per share from the previous epoch
-        uint256 latestWithdrawalPricePerShare = ryskLqPool
-            .withdrawalEpochPricePerShare(currentWithdrawalEpoch - 1);
-
-        uint256 amountInDepositReceipt = _getAmountFromDepositReceipt();
-
-        uint256 amountInPendingWithdrawal = _getAmountForPendingWithdrawal(
-            currentWithdrawalEpoch,
-            latestWithdrawalPricePerShare
-        );
-
-        uint256 amountInRedeemedShares = _sharesToUnderlying(
-            _getSharesBalance(),
-            latestWithdrawalPricePerShare
-        );
-
-        return
-            amountInDepositReceipt +
-            amountInPendingWithdrawal +
-            amountInRedeemedShares;
     }
 
     /// @inheritdoc IStrategy
@@ -243,7 +233,6 @@ contract RyskStrategy is BaseStrategy {
         emit StrategyInvested(balance);
         depositedAmount += balance;
         ryskLqPool.deposit(balance);
-        syncYield();
     }
 
     /// @inheritdoc IStrategy
@@ -275,23 +264,33 @@ contract RyskStrategy is BaseStrategy {
         return 0;
     }
 
-    /**
-     * Completes the pending withdrawal initiated in an earlier epoch.
-     *
-     * @notice Expected to be called by the backend (keeper bot) once the Rysk liquidity pool enters a new withdrawal epoch.
-     * The backend should track the 'WithdrawalEpochExecuted' event on the Rysk LiquidityPool contract,
-     * and act by calling this function when the event is emitted to complete pending withdrawal.
-     */
-    function completeWithdrawal() external onlyKeeper {
-        IRyskLiquidityPool.WithdrawalReceipt
-            memory withdrawalReceipt = _getWithdrawalReceipt();
+    //
+    // Internal API
+    //
 
-        if (withdrawalReceipt.epoch == 0) revert RyskNoWithdrawalInitiated();
-        if (withdrawalReceipt.epoch == ryskLqPool.withdrawalEpoch())
-            revert RyskCannotCompleteWithdrawalInSameEpoch();
+    function _realInvestedAssets() public view virtual returns (uint256) {
+        uint256 currentWithdrawalEpoch = ryskLqPool.withdrawalEpoch();
+        // since withdrawal price per share is not updated until the end of the epoch,
+        // we need to use the price per share from the previous epoch
+        uint256 latestWithdrawalPricePerShare = ryskLqPool
+            .withdrawalEpochPricePerShare(currentWithdrawalEpoch - 1);
 
-        _completePendingWithdrawal();
-        syncYield();
+        uint256 amountInDepositReceipt = _getAmountFromDepositReceipt();
+
+        uint256 amountInPendingWithdrawal = _getAmountForPendingWithdrawal(
+            currentWithdrawalEpoch,
+            latestWithdrawalPricePerShare
+        );
+
+        uint256 amountInRedeemedShares = _sharesToUnderlying(
+            _getSharesBalance(),
+            latestWithdrawalPricePerShare
+        );
+
+        return
+            amountInDepositReceipt +
+            amountInPendingWithdrawal +
+            amountInRedeemedShares;
     }
 
     /**
