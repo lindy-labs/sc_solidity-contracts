@@ -62,13 +62,13 @@ contract RyskStrategy is BaseStrategy {
     error RyskCannotCompleteWithdrawalInSameEpoch();
 
     // The length of a yield distribution cycle
-    uint256 private yieldCycleLength;
+    uint256 public yieldCycleLength;
     // The sum of deposits and distributed yield
-    uint256 private depositedAmount;
+    uint256 public depositedAmount;
     // The amount being distributed in the yield distribution cycle
-    uint256 private syncYieldAmount;
+    uint256 public syncYieldAmount;
     // The timestamp of the start of the yield distribution cycle
-    uint256 private syncYieldStartTimestamp;
+    uint256 public syncYieldStartTimestamp;
 
     /**
      * @param _vault address of the vault that will use this strategy
