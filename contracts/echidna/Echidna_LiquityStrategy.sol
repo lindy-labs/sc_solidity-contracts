@@ -27,7 +27,7 @@ contract Echidna_LiquityStrategy is Helper {
     function invest_underlying_zero() public {
 	require(address(this) == 0x5409ED021D9299bf6814279A6A1411A7e866A631);
 	require(vault.totalUnderlying() == 0);
-	strategy.grantRole(MANAGER_ROLE, 0x5409ED021D9299bf6814279A6A1411A7e866A631);
+	strategy.grantRole(MANAGER_ROLE, address(this));
         try strategy.invest() {
             assert(false);
         } catch {
@@ -40,7 +40,7 @@ contract Echidna_LiquityStrategy is Helper {
 	require(address(this) == 0x5409ED021D9299bf6814279A6A1411A7e866A631);
 	uint256 amount = one_to_max_uint64(_amount);
 	underlying.mint(address(strategy), amount);
-	strategy.grantRole(MANAGER_ROLE, 0x5409ED021D9299bf6814279A6A1411A7e866A631);
+	strategy.grantRole(MANAGER_ROLE, address(this));
 	uint256 before = underlying.balanceOf(address(stabilityPool));
         try strategy.invest() {
             assert(true);
