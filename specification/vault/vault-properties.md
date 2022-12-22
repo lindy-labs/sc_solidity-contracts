@@ -59,8 +59,8 @@ Invoking Vault.withdraw() with invalid parameters always reverts when
 
 | Property                                                         | Echidna | Formally Verified |
 | ---------------------------------------------------------------- | :-----: | :---------------: |
-| lock duration has not passed yet                                 |    ✓    |                   |
-| user has not made a deposit and tries to withdraw more than zero |    ✓    |                   |
+| lock duration has not passed yet                                 |    ✓    |         ✓         |
+| user has not made a deposit and tries to withdraw more than zero |    ✓    |         ✓         |
 
 Invoking Vault.deposit() or Vault.withdraw() does not change price per share
 
@@ -85,6 +85,6 @@ Invoking Vault.deposit() or Vault.withdraw() does not change the relation $$tota
 | invoking deposit or sponsor always reverts if vault is Paused                                                      |         |         ✓         |
 | invoking withdraw, partialWithdraw, forceWithdraw or claimYield always reverts if vault is ExitPaused              |         |         ✓         |
 | invoking unsponsor or partial Unsponsor always reverts if vault is ExitPaused                                      |         |         ✓         |
-| invoking deposit or sponsor always reverts if vault is in Loss Mode                                                |         |                   |
+| invoking deposit always reverts if vault is in Loss Mode                                                           |         |                   |
 | invoking deposit or sponsor always succeeds when all preconditions are met                                         |         |         ✓         |
 | invoking withdraw always reverts if vault is in Loss Mode                                                          |         |         ✓         |
