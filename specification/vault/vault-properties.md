@@ -19,13 +19,13 @@ Invoking Vault.deposit() with invalid parameters always reverts when
 
 | Property                                           | Echidna | Formally Verified |
 | -------------------------------------------------- | :-----: | :---------------: |
-| deposit amount equals zero                         |    ✓    |                   |
-| claim percentage is zero                           |    ✓    |                   |
-| lock duration is less than the minimum timelock    |    ✓    |                   |
-| lock duration is greater than the maximum timelock |    ✓    |                   |
-| claim percentages do not add up to 100 percent     |    ✓    |                   |
-| claim percentages are greater than 100 percent     |    ✓    |                   |
-| input token is not supported                       |    ✓    |                   |
+| deposit amount equals zero                         |    ✓    |         ✓         |
+| claim percentage is zero                           |    ✓    |         ✓         |
+| lock duration is less than the minimum timelock    |    ✓    |         ✓         |
+| lock duration is greater than the maximum timelock |    ✓    |         ✓         |
+| claim percentages do not add up to 100 percent     |    ✓    |         ✓         |
+| claim percentages are greater than 100 percent     |    ✓    |         ✓         |
+| input token is not supported                       |    ✓    |         ✓         |
 
 Invoking Vault.sponsor() with valid parameters always succeeds when
 
@@ -41,13 +41,10 @@ Invoking Vault.sponsor() with invalid parameters always reverts when
 
 | Property                                           | Echidna | Formally Verified |
 | -------------------------------------------------- | :-----: | :---------------: |
-| deposit amount equals zero                         |         |                   |
-| claim percentage is zero                           |         |                   |
-| lock duration is less than the minimum timelock    |         |                   |
-| lock duration is greater than the maximum timelock |         |                   |
-| claim percentages do not add up to 100 percent     |         |                   |
-| claim percentages are greater than 100 percent     |         |                   |
-| input token is not supported                       |         |                   |
+| deposit amount equals zero                         |         |         ✓         |
+| lock duration is less than the minimum timelock    |         |         ✓         |
+| lock duration is greater than the maximum timelock |         |         ✓         |
+| input token is not supported                       |         |         ✓         |
 
 Invoking Vault.withdraw() with valid parameters always succeeds when
 
@@ -70,14 +67,14 @@ Invoking Vault.deposit() or Vault.withdraw() does not change price per share
 | Property                             | Echidna | Formally Verified |
 | ------------------------------------ | :-----: | :---------------: |
 | deposits preserve price per share    |         |         ✓         |
-| withdrawals preserve price per share |         |         ✓         |
+| withdrawals preserve price per share |         |                   |
 
 Invoking Vault.deposit() or Vault.withdraw() does not change the relation $$totalPrincipal == \sum deposits$$
 
-| Property                             | Echidna | Formally Verified |
-| ------------------------------------ | :-----: | :---------------: |
-| deposits preserve price per share    |         |         ✓         |
-| withdrawals preserve price per share |         |         ✓         |
+| Property                                                | Echidna | Formally Verified |
+| ------------------------------------------------------- | :-----: | :---------------: |
+| deposits preserve $$totalPrincipal == \sum deposits$$   |         |         ✓         |
+| withdrawals preserve $$totalPrincipal == \sum deposits$$|         |         ✓         |
 
 ### Access Control
 
@@ -85,7 +82,9 @@ Invoking Vault.deposit() or Vault.withdraw() does not change the relation $$tota
 | ------------------------------------------------------------------------------------------------------------------ | :-----: | :---------------: |
 | invoking strategy function invest, finishDepositstable or initRedeemstable always reverts if caller is not manager |    ✓    |                   |
 | invoking sponsor always reverts if caller does not have the SPONSOR\_ROLE                                          |         |                   |
-| invoking deposit or sponsor always reverts if vault is Paused                                                      |         |                   |
-| invoking withdraw or claimYield always reverts if vault is ExitPaused                                              |         |                   |
+| invoking deposit or sponsor always reverts if vault is Paused                                                      |         |         ✓         |
+| invoking withdraw, partialWithdraw, forceWithdraw or claimYield always reverts if vault is ExitPaused              |         |         ✓         |
+| invoking unsponsor or partial Unsponsor always reverts if vault is ExitPaused                                      |         |         ✓         |
 | invoking deposit or sponsor always reverts if vault is in Loss Mode                                                |         |                   |
 | invoking deposit or sponsor always succeeds when all preconditions are met                                         |         |         ✓         |
+| invoking withdraw always reverts if vault is in Loss Mode                                                          |         |         ✓         |
