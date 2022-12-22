@@ -1019,3 +1019,80 @@ rule totalUnderlyingMinusSponsored_correct() {
     require totalSponsored() + accumulatedPerfFee() <= totalUnderlying();
     assert totalUnderlyingMinusSponsored() == totalUnderlying() - totalSponsored() - accumulatedPerfFee();
 }
+
+
+/*
+    @Rule
+
+    @Category: unit test
+
+    @Description:
+        withdraw reverts if lock duration has not passed yet
+*/
+rule withdraw_reverts_if_still_locked() {
+    env e;
+    address to;
+    uint256[] ids;
+    require ids.length == 3 && 
+            (
+                depositLockedUntil(ids[0]) > e.block.timestamp 
+                || 
+                depositLockedUntil(ids[1]) > e.block.timestamp 
+                || 
+                depositLockedUntil(ids[2]) > e.block.timestamp
+            );
+    withdraw@withrevert(e, to, ids); // should always revert
+    assert lastReverted;
+}
+
+
+/*
+    @Rule
+
+    @Category: unit test
+
+    @Description:
+        withdraw reverts if the user didn't make the deposits
+*/
+rule withdraw_reverts_if_not_owner() {
+    env e;
+    address to;
+    uint256[] ids;
+    require ids.length == 3 && 
+            (
+                depositOwner(ids[0]) > e.msg.sender 
+                || 
+                depositOwner(ids[1]) > e.msg.sender 
+                || 
+                depositOwner(ids[2]) > e.msg.sender
+            );
+    withdraw@withrevert(e, to, ids); // should always revert
+    assert lastReverted;
+}
+
+
+/*
+    @Rule
+
+    @Category: unit test
+
+    @Description:
+        withdrawal check should not be bypassed
+*/
+rule partialWithdraw_bypass_withdraw_check() {
+    require totalUnderlyingMinusSponsored() < totalPrincipal();
+    env e;
+    address to;
+    uint256[] ids;
+    require ids.length == 3;
+    require ids[0] != ids[1] && ids[1] != ids[2] && ids[2] != ids[0];
+    withdraw@withrevert(e, to, ids); // should always revert
+    assert lastReverted;
+    uint256[] amounts;
+    require amounts.length == 3;
+    require depositAmount(ids[0]) == amounts[0];
+    require depositAmount(ids[1]) == amounts[1];
+    require depositAmount(ids[2]) == amounts[2];
+    partialWithdraw@withrevert(e, to, ids, amounts); // should always revert
+    assert lastReverted;
+}
