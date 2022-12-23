@@ -81,10 +81,10 @@ Invoking Vault.deposit() or Vault.withdraw() does not change the relation $$tota
 | Property                                                                                                           | Echidna | Formally Verified |
 | ------------------------------------------------------------------------------------------------------------------ | :-----: | :---------------: |
 | invoking strategy function invest, finishDepositstable or initRedeemstable always reverts if caller is not manager |    ✓    |                   |
-| invoking sponsor always reverts if caller does not have the SPONSOR\_ROLE                                          |         |                   |
+| invoking sponsor always reverts if caller does not have the SPONSOR\_ROLE                                          |         |         ✓         |
 | invoking deposit or sponsor always reverts if vault is Paused                                                      |         |         ✓         |
 | invoking withdraw, partialWithdraw, forceWithdraw or claimYield always reverts if vault is ExitPaused              |         |         ✓         |
 | invoking unsponsor or partial Unsponsor always reverts if vault is ExitPaused                                      |         |         ✓         |
-| invoking deposit always reverts if vault is in Loss Mode                                                           |         |                   |
+| invoking deposit always reverts if vault is in Loss Mode                                                           |         |         ✓         |
 | invoking deposit or sponsor always succeeds when all preconditions are met                                         |         |         ✓         |
 | invoking withdraw always reverts if vault is in Loss Mode                                                          |         |         ✓         |
