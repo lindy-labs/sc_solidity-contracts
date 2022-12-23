@@ -58,6 +58,7 @@ methods {
     anyZero(uint16[]) returns (bool) envfree
     isTotal100Pct(uint16[]) returns (bool) envfree
     anyZero(address[]) returns (bool) envfree
+    applyLossTolerance(uint256) returns (uint256) envfree
 
     // public variables
     underlying() returns (address) envfree
@@ -74,6 +75,9 @@ methods {
     paused() returns (bool) envfree
     exitPaused() returns (bool) envfree
     DEFAULT_ADMIN_ROLE() returns (bytes32) envfree
+    SETTINGS_ROLE() returns (bytes32) envfree
+    KEEPER_ROLE() returns (bytes32) envfree
+    SPONSOR_ROLE() returns (bytes32) envfree
     MAX_DEPOSIT_LOCK_DURATION() returns (uint64) envfree
     MIN_SPONSOR_LOCK_DURATION() returns (uint64) envfree
     MAX_SPONSOR_LOCK_DURATION() returns (uint64) envfree
@@ -107,6 +111,38 @@ definition rebalanceMinimum() returns uint256 = 10 * 10^18;
 definition PCT_DIVISOR() returns uint256 = 10000;
 
 definition EPSILON() returns uint256 = 10;
+
+definition adminFunctions(method f) returns bool =
+    f.selector == transferAdminRights(address).selector
+    ||
+    f.selector == pause().selector
+    ||
+    f.selector == unpause().selector
+    ||
+    f.selector == exitPause().selector
+    ||
+    f.selector == exitUnpause().selector;
+
+definition settingsFunctions(method f) returns bool =
+    f.selector == setImmediateInvestLimitPct(uint16).selector
+    ||
+    f.selector == setInvestPct(uint16).selector
+    ||
+    f.selector == setTreasury(address).selector
+    ||
+    f.selector == setPerfFeePct(uint16).selector
+    ||
+    f.selector == setStrategy(address).selector
+    ||
+    f.selector == setLossTolerancePct(uint16).selector;
+
+definition keeperFunctions(method f) returns bool =
+    f.selector == updateInvested().selector
+    ||
+    f.selector == withdrawPerformanceFee().selector;
+
+definition sponsorFunctions(method f) returns bool =
+    f.selector == sponsor(address, uint256, uint256, uint256).selector;
 
 // pctOf function in PercentMath lib
 function pctOf(uint256 _amount, uint16 _fracNum) returns uint256 {
@@ -1074,25 +1110,42 @@ rule withdraw_reverts_if_not_owner() {
 /*
     @Rule
 
+    @Category: high level
+
+    @Description:
+        privileged functions should revert is the caller has no privilege
+*/
+rule privileged_functions_revert_if_no_priviledge(method f) 
+filtered{f->adminFunctions(f) || settingsFunctions(f) || keeperFunctions(f) || sponsorFunctions(f)} 
+{
+    env e;
+    require adminFunctions(f) && !hasRole(DEFAULT_ADMIN_ROLE(), e.msg.sender)
+            ||
+            settingsFunctions(f) && !hasRole(SETTINGS_ROLE(), e.msg.sender)
+            ||
+            keeperFunctions(f) && !hasRole(KEEPER_ROLE(), e.msg.sender)
+            ||
+            sponsorFunctions(f) && !hasRole(SPONSOR_ROLE(), e.msg.sender);
+    calldataarg args;
+
+    f@withrevert(e, args);
+
+    assert lastReverted;
+}
+
+
+/*
+    @Rule
+
     @Category: unit test
 
     @Description:
-        withdrawal check should not be bypassed
+        when the vault is in a loss, deposit should revert
 */
-rule partialWithdraw_bypass_withdraw_check() {
-    require totalUnderlyingMinusSponsored() < totalPrincipal();
+rule deposit_reverts_when_in_loss() {
+    require totalUnderlyingMinusSponsored() < applyLossTolerance(totalPrincipal());
     env e;
-    address to;
-    uint256[] ids;
-    require ids.length == 3;
-    require ids[0] != ids[1] && ids[1] != ids[2] && ids[2] != ids[0];
-    withdraw@withrevert(e, to, ids); // should always revert
-    assert lastReverted;
-    uint256[] amounts;
-    require amounts.length == 3;
-    require depositAmount(ids[0]) == amounts[0];
-    require depositAmount(ids[1]) == amounts[1];
-    require depositAmount(ids[2]) == amounts[2];
-    partialWithdraw@withrevert(e, to, ids, amounts); // should always revert
+    calldataarg args;
+    deposit@withrevert(e, args); // should always revert
     assert lastReverted;
 }

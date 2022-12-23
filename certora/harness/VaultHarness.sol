@@ -265,4 +265,8 @@ contract VaultHarness is Vault {
         }
         return false;
     }
+
+    function applyLossTolerance(uint256 _amount) external view returns (uint256) {
+        return _applyLossTolerance(_amount);
+    }
 }

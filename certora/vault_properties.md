@@ -108,4 +108,6 @@ It has the following external/public functions that are view only and change not
 | 30 | `totalUnderlyingMinusSponsored() == totalUnderlying() - totalSponsored - accumulatedPerfFee` | unit test | medium | Y | Y | [Link](https://prover.certora.com/output/15154/4b2c0be038cb5ab3d1cc?anonymousKey=3fb7818a868990500c964aded0a5842770bab570) |
 | 31 | `withdraw(...)` reverts if lock duration has not passed yet | unit test | medium | Y | Y | [Link](https://prover.certora.com/output/52311/6b6c2c4d9ca1690949af?anonymousKey=4358d09ef16511052fac96589af9890028fdc580) |
 | 32 | `withdraw(...)` reverts if the user didn't make the deposits | unit test | medium | Y | Y | [Link](https://prover.certora.com/output/52311/4b79fd8101412aeac3e4?anonymousKey=b1f8c176b7c85879a83a53a769f2c3e8b16beef3) |
+| 33 | privileged functions should revert if the `msg.sender` does not have the privilege | high level | high | Y | Y | [Link](https://prover.certora.com/output/52311/620f809e567ab9283a14?anonymousKey=c708b65ab8dbb63948fb423369b0d30fc3b4c1ed)  |
+| 34 | `deposit(...)` reverts if the Vault is in a loss | unit test | high | Y | Y | [Link](https://prover.certora.com/output/52311/8f1e6bfc6bf7a3877ef1?anonymousKey=587a895654a628ef7a253be8877b48169103a1c9)  |
 

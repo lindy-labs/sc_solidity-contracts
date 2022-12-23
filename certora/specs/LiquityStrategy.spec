@@ -73,7 +73,7 @@ definition managerFunctions(method f) returns bool =
 /*
     @Rule
 
-    @Category: unit test
+    @Category: high level
 
     @Description:
         privileged functions should revert is the caller has no privilege
