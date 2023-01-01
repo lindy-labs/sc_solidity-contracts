@@ -1096,11 +1096,11 @@ rule withdraw_reverts_if_not_owner() {
     uint256[] ids;
     require ids.length == 3 && 
             (
-                depositOwner(ids[0]) > e.msg.sender 
+                depositOwner(ids[0]) != e.msg.sender 
                 || 
-                depositOwner(ids[1]) > e.msg.sender 
+                depositOwner(ids[1]) != e.msg.sender 
                 || 
-                depositOwner(ids[2]) > e.msg.sender
+                depositOwner(ids[2]) != e.msg.sender
             );
     withdraw@withrevert(e, to, ids); // should always revert
     assert lastReverted;
