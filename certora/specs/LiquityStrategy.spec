@@ -343,3 +343,36 @@ rule integrity_of_transferAdminRights() {
     assert !hasRole(SETTINGS_ROLE(), e.msg.sender);
     assert hasRole(SETTINGS_ROLE(), newAdmin);
 }
+
+
+/*
+    @Rule
+
+    @Category: unit test
+
+    @Description:
+        `invest()` reverts if the strategy does not hold any underlying assets
+*/
+rule invest_reverts_if_no_underlying_assets() {
+    require underlying.balanceOf(currentContract) == 0;
+    env e;
+    invest@withrevert(e);
+    assert lastReverted;
+}
+
+
+/*
+    @Rule
+
+    @Category: unit test
+
+    @Description:
+        `withdrawToVault(amount)` reverts if the `amount` is 0 or greater than `investedAssets()`
+*/
+rule withdrawToVault_reverts_if_amount_is_zero() {
+    uint256 amount;
+    require amount == 0 || amount > investedAssets();
+    env e;
+    withdrawToVault@withrevert(e, amount);
+    assert lastReverted;
+}

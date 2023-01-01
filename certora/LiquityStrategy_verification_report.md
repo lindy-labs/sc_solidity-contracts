@@ -195,3 +195,19 @@ isSync()
     hasRole(SETTINGS_ROLE(), newAdmin);
 }
 ```
+
+#### 14. invest reverts if the underlying asset balance is 0 ✔️
+
+```
+{ underlying.balanceOf(currentContract) == 0 }
+    invest()
+{ lastReverted }    
+```
+
+#### 14. withdrawToVault reverts if the amount is 0 or greater than investedAsset ✔️
+
+```
+{ amount == 0 || amount > investedAssets() }
+    withdrawToVault(amount)
+{ lastReverted }    
+```
