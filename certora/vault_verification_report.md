@@ -464,3 +464,61 @@ totalUnderlying().pctOf(investPct) == investState().maxInvestableAmount
 ```
 totalUnderlyingMinusSponsored() == totalUnderlying() - totalSponsored() - accumulatedPerfFee()
 ```
+
+#### 31. withdraw function reverts if the lock period is not passed yet ✔️
+
+```
+{
+    depositLockedUntil(ids[0]) > e.block.timestamp 
+    || 
+    depositLockedUntil(ids[1]) > e.block.timestamp 
+    || 
+    depositLockedUntil(ids[2]) > e.block.timestamp
+}
+    withdraw@withrevert(e, to, ids)
+{ 
+    lastReverted 
+}
+```
+
+#### 32. withdraw function reverts if the user didn't make the deposit ✔️
+
+```
+{
+    depositOwner(ids[0]) != e.msg.sender 
+    || 
+    depositOwner(ids[1]) != e.msg.sender 
+    || 
+    depositOwner(ids[2]) != e.msg.sender
+}
+    withdraw@withrevert(e, to, ids)
+{
+    lastReverted
+}
+```
+
+#### 33. privileged functions should revert if the `msg.sender` does not have the privilege ✔️
+
+```
+{
+    adminFunctions(f) && !hasRole(DEFAULT_ADMIN_ROLE(), e.msg.sender)
+    ||
+    settingsFunctions(f) && !hasRole(SETTINGS_ROLE(), e.msg.sender)
+    ||
+    keeperFunctions(f) && !hasRole(KEEPER_ROLE(), e.msg.sender)
+    ||
+    sponsorFunctions(f) && !hasRole(SPONSOR_ROLE(), e.msg.sender)
+}
+    f@withrevert(e, args)
+{
+    lastReverted
+}
+```
+
+#### 34. deposit function reverts if the vault is in a loss ✔️
+
+```
+{ totalUnderlyingMinusSponsored() < applyLossTolerance(totalPrincipal()) }
+    deposit@withrevert(e, args)
+{ lastReverted }
+```

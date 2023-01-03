@@ -18,7 +18,8 @@ contract VaultHarness is Vault {
         address _admin,
         uint16 _perfFeePct,
         uint16 _lossTolerancePct,
-        SwapPoolParam[] memory _swapPools
+        SwapPoolParam[] memory _swapPools,
+        uint16 _immediateInvestLimitPct
     ) Vault(
         _underlying, 
         _minLockPeriod, 
@@ -27,7 +28,8 @@ contract VaultHarness is Vault {
         _admin, 
         _perfFeePct, 
         _lossTolerancePct, 
-        _swapPools
+        _swapPools,
+        _immediateInvestLimitPct
     ) {}
 
     // helper function which will be used in some rules
@@ -262,5 +264,9 @@ contract VaultHarness is Vault {
             }
         }
         return false;
+    }
+
+    function applyLossTolerance(uint256 _amount) external view returns (uint256) {
+        return _applyLossTolerance(_amount);
     }
 }
