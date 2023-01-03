@@ -204,7 +204,7 @@ isSync()
 { lastReverted }    
 ```
 
-#### 14. withdrawToVault reverts if the amount is 0 or greater than investedAsset ✔️
+#### 15. withdrawToVault reverts if the amount is 0 or greater than investedAsset ✔️
 
 ```
 { amount == 0 || amount > investedAssets() }
