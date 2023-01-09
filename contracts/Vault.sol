@@ -1015,6 +1015,15 @@ contract Vault is
         uint256 _localTotalPrincipal,
         string calldata _name
     ) internal returns (uint256) {
+        // Checks if the user is not already in debt
+        if (
+            _computeShares(
+                _applyLossTolerance(claimer[_claim.beneficiary].totalPrincipal),
+                _localTotalShares,
+                _localTotalPrincipal
+            ) > claimer[_claim.beneficiary].totalShares
+        ) revert VaultCannotDepositWhenClaimerInDebt();
+
         _depositTokenIds.increment();
         CreateClaimLocals memory locals = CreateClaimLocals({
             newShares: _computeShares(
@@ -1025,15 +1034,6 @@ contract Vault is
             claimerId: _claim.beneficiary,
             tokenId: _depositTokenIds.current()
         });
-
-        // Checks if the user is not already in debt
-        if (
-            _computeShares(
-                _applyLossTolerance(claimer[locals.claimerId].totalPrincipal),
-                _localTotalShares,
-                _localTotalPrincipal
-            ) > claimer[locals.claimerId].totalShares
-        ) revert VaultCannotDepositWhenClaimerInDebt();
 
         claimer[locals.claimerId].totalShares += locals.newShares;
         claimer[locals.claimerId].totalPrincipal += _amount;
