@@ -1101,7 +1101,7 @@ contract Vault is
             revert VaultCannotWithdrawMoreThanAvailable();
 
         // Amount of shares the _amount is worth
-        uint256 amountShares = _computeShares(
+        uint256 sharesToBurn = _computeShares(
             _amount,
             _totalShares,
             _totalUnderlyingMinusSponsored
@@ -1112,13 +1112,12 @@ contract Vault is
         uint256 claimerShares = (_amount * _claim.totalShares) /
             _claim.totalPrincipal;
 
-        if (!_force && amountShares > claimerShares)
+        if (!_force && sharesToBurn > claimerShares)
             revert VaultMustUseForceWithdrawToAcceptLosses();
 
-        uint256 sharesToBurn = amountShares;
+        bool haircut = sharesToBurn > claimerShares;
 
-        if (_force && amountShares > claimerShares)
-            sharesToBurn = claimerShares;
+        if (haircut) sharesToBurn = claimerShares;
 
         claimer[_deposit.claimerId].totalShares -= sharesToBurn;
         claimer[_deposit.claimerId].totalPrincipal -= _amount;
@@ -1134,11 +1133,14 @@ contract Vault is
             deposits[_tokenId].amount -= _amount;
         }
 
-        uint256 amount = _computeAmount(
-            sharesToBurn,
-            _totalShares,
-            _totalUnderlyingMinusSponsored
-        );
+        uint256 amount = _amount;
+        if (haircut) {
+            amount = _computeAmount(
+                sharesToBurn,
+                _totalShares,
+                _totalUnderlyingMinusSponsored
+            );
+        }
 
         emit DepositWithdrawn(_tokenId, sharesToBurn, amount, _to, isFull);
 
