@@ -58,7 +58,7 @@ It was initially designed in order to incentivize giving, but it can fulfill oth
 
 ## Circulating
 
-6,013,458 QUARTZ
+7,513,458 QUARTZ
 
 ## Non-circulating
 

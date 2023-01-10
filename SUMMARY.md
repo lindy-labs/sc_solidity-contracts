@@ -15,8 +15,6 @@
 
 ## Technical Documentation
 
-***
-
 * [Specification](specification/README.md)
   * [Vault](specification/vault/README.md)
     * [Vault Properties](specification/vault/vault-properties.md)
