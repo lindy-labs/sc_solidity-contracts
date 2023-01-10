@@ -2265,13 +2265,13 @@ describe('Vault', () => {
 
       await vault.connect(alice).deposit(params);
 
-      const claimer1 = await vault.claimer(bob.address);
+      const claimer1 = await vault.claimers(bob.address);
       expect(claimer1.totalShares).to.be.equal(
         parseUnits('0.4').mul(SHARES_MULTIPLIER),
       );
       expect(claimer1.totalPrincipal).to.be.equal(parseUnits('0.4'));
 
-      const claimer2 = await vault.claimer(carol.address);
+      const claimer2 = await vault.claimers(carol.address);
       expect(claimer2.totalShares).to.be.equal(
         parseUnits('0.6').mul(SHARES_MULTIPLIER),
       );
@@ -2305,13 +2305,13 @@ describe('Vault', () => {
 
       await vault.connect(alice).deposit(params2);
 
-      const claimer1 = await vault.claimer(bob.address);
+      const claimer1 = await vault.claimers(bob.address);
       expect(claimer1.totalShares).to.be.equal(
         parseUnits('10.4').mul(SHARES_MULTIPLIER),
       );
       expect(claimer1.totalPrincipal).to.be.equal(parseUnits('10.4'));
 
-      const claimer2 = await vault.claimer(carol.address);
+      const claimer2 = await vault.claimers(carol.address);
       expect(claimer2.totalShares).to.be.equal(
         parseUnits('0.6').mul(SHARES_MULTIPLIER),
       );
@@ -2805,7 +2805,7 @@ describe('Vault', () => {
         .connect(alice)
         .partialWithdraw(alice.address, [2], [parseUnits('30')]);
 
-      const deposit = await vault.claimer(bob.address);
+      const deposit = await vault.claimers(bob.address);
       expect(deposit.totalPrincipal).to.eq(parseUnits('20'));
       expect(deposit.totalShares).to.eq(
         parseUnits('35').mul(SHARES_MULTIPLIER),

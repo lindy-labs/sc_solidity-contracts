@@ -106,7 +106,7 @@ contract Vault is
     Counters.Counter private _depositTokenIds;
 
     /// claimer address => claimer data
-    mapping(address => Claimer) public claimer;
+    mapping(address => Claimer) public claimers;
 
     /// The total of principal deposited
     uint256 public override(IVault) totalPrincipal;
@@ -254,8 +254,8 @@ contract Vault is
             uint256 perfFee
         )
     {
-        uint256 claimerPrincipal = claimer[_to].totalPrincipal;
-        uint256 claimerShares = claimer[_to].totalShares;
+        uint256 claimerPrincipal = claimers[_to].totalPrincipal;
+        uint256 claimerShares = claimers[_to].totalShares;
         uint256 _totalUnderlyingMinusSponsored = totalUnderlyingMinusSponsored();
 
         uint256 currentClaimerPrincipal = _computeAmount(
@@ -371,7 +371,7 @@ contract Vault is
 
         accumulatedPerfFee += fee;
 
-        claimer[msg.sender].totalShares -= shares;
+        claimers[msg.sender].totalShares -= shares;
         totalShares -= shares;
 
         emit YieldClaimed(
@@ -1029,14 +1029,14 @@ contract Vault is
         // Checks if the user is not already in debt
         if (
             _computeShares(
-                _applyLossTolerance(claimer[locals.claimerId].totalPrincipal),
+                _applyLossTolerance(claimers[locals.claimerId].totalPrincipal),
                 _localTotalShares,
                 _localTotalPrincipal
-            ) > claimer[locals.claimerId].totalShares
+            ) > claimers[locals.claimerId].totalShares
         ) revert VaultCannotDepositWhenClaimerInDebt();
 
-        claimer[locals.claimerId].totalShares += locals.newShares;
-        claimer[locals.claimerId].totalPrincipal += _amount;
+        claimers[locals.claimerId].totalShares += locals.newShares;
+        claimers[locals.claimerId].totalPrincipal += _amount;
 
         totalShares += locals.newShares;
         totalPrincipal += _amount;
@@ -1093,7 +1093,7 @@ contract Vault is
 
         // memoizing saves warm sloads
         Deposit memory _deposit = deposits[_tokenId];
-        Claimer memory _claim = claimer[_deposit.claimerId];
+        Claimer memory _claim = claimers[_deposit.claimerId];
 
         if (_deposit.lockedUntil > block.timestamp) revert VaultDepositLocked();
         if (_deposit.claimerId == address(0)) revert VaultNotDeposit();
@@ -1120,8 +1120,8 @@ contract Vault is
         if (_force && amountShares > claimerShares)
             sharesToBurn = claimerShares;
 
-        claimer[_deposit.claimerId].totalShares -= sharesToBurn;
-        claimer[_deposit.claimerId].totalPrincipal -= _amount;
+        claimers[_deposit.claimerId].totalShares -= sharesToBurn;
+        claimers[_deposit.claimerId].totalPrincipal -= _amount;
 
         totalShares -= sharesToBurn;
         totalPrincipal -= _amount;
@@ -1226,11 +1226,11 @@ contract Vault is
     }
 
     function sharesOf(address claimerId) external view returns (uint256) {
-        return claimer[claimerId].totalShares;
+        return claimers[claimerId].totalShares;
     }
 
     function principalOf(address claimerId) external view returns (uint256) {
-        return claimer[claimerId].totalPrincipal;
+        return claimers[claimerId].totalPrincipal;
     }
 
     function pause() external onlyAdmin {
@@ -1241,11 +1241,11 @@ contract Vault is
         _unpause();
     }
 
-    function exitPause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function exitPause() external onlyAdmin {
         _exitPause();
     }
 
-    function exitUnpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function exitUnpause() external onlyAdmin {
         _exitUnpause();
     }
 }
