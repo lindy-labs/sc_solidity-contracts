@@ -52,8 +52,8 @@ contract LiquityStrategy is
         0xD51a44d3FaE010294C616388b506AcdA1bfAAE46;
     address public constant LUSD_CURVE_POOL =
         0xEd279fDD11cA84bEef15AF5D39BB4d4bEE23F0cA;
-    // address public constant CURVE_ROUTER =
-    //     0x81C46fECa27B31F3ADC2b91eE4be9717d1cd3DD7;
+    address public constant CURVE_ROUTER =
+        0x81C46fECa27B31F3ADC2b91eE4be9717d1cd3DD7;
     address public constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address public constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
 
@@ -68,9 +68,9 @@ contract LiquityStrategy is
     /// @inheritdoc IStrategy
     address public override(IStrategy) vault;
     IStabilityPool public stabilityPool;
-    ICurveExchange public curveExchange;
     IERC20 public lqty; // reward token
     mapping(address => bool) public allowedSwapTargets; // whitelist of swap targets
+    ICurveExchange public curveExchange;
 
     /**
      * A percentage that specifies the minimum amount of principal to protect plus the sponsored amount.
