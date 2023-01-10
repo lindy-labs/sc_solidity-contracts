@@ -75,7 +75,7 @@ contract Vault is
     //
 
     /// @inheritdoc IVault
-    IERC20Metadata public override(IVault) underlying;
+    IERC20Metadata public immutable override(IVault) underlying;
 
     /// @inheritdoc IVault
     uint16 public override(IVault) investPct;
