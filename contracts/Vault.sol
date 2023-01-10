@@ -336,7 +336,7 @@ contract Vault is
         uint256 newUnderlyingAmount = _swapIntoUnderlying(
             _params.inputToken,
             _params.amount,
-            _params.slippage
+            _params.minAmountOut
         );
 
         uint64 lockedUntil = _params.lockDuration + _blockTimestamp();
@@ -504,7 +504,7 @@ contract Vault is
         address _inputToken,
         uint256 _amount,
         uint256 _lockDuration,
-        uint256 _slippage
+        uint256 _minAmountOut
     )
         external
         override(IVaultSponsoring)
@@ -527,7 +527,7 @@ contract Vault is
         uint256 underlyingAmount = _swapIntoUnderlying(
             _inputToken,
             _amount,
-            _slippage
+            _minAmountOut
         );
 
         deposits[tokenId] = Deposit(

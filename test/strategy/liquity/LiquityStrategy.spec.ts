@@ -15,11 +15,7 @@ import {
   ERC20,
 } from '../../../typechain';
 
-import {
-  generateNewAddress,
-  getETHBalance,
-  CURVE_SLIPPAGE,
-} from '../../shared/';
+import { generateNewAddress, getETHBalance } from '../../shared/';
 import { depositParams, claimParams } from '../../shared/factories';
 import { setBalance } from '../../shared/forkHelpers';
 import createVaultHelpers from '../../shared/vault';
@@ -596,7 +592,7 @@ describe('LiquityStrategy', () => {
           underlying.address,
           parseUnits('10000'),
           MIN_LOCK_PERIOD,
-          CURVE_SLIPPAGE,
+          parseUnits('10000'),
         );
 
       await vault.updateInvested();
@@ -658,7 +654,7 @@ describe('LiquityStrategy', () => {
           underlying.address,
           parseUnits('10000'),
           MIN_LOCK_PERIOD,
-          CURVE_SLIPPAGE,
+          parseUnits('10000'),
         );
 
       await vault.updateInvested();

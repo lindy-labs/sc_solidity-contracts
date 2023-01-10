@@ -58,6 +58,10 @@ abstract contract CurveSwapper {
         uint256 toAmount
     );
 
+    error SwapperPoolAlreadyExists(address token);
+    error SwapperPoolDoesNotExist(address token);
+    error SwapperUnderlyingIndexMismatch(address token, address underlying);
+
     //
     // State
     //
@@ -73,10 +77,11 @@ abstract contract CurveSwapper {
     ///
     /// @param _token The token we want to swap into
     /// @param _amount The amount of underlying we want to swap
+    /// @param _minAmountOut The minimum amount of tokens we want to receive
     function _swapIntoUnderlying(
         address _token,
         uint256 _amount,
-        uint256 _slippage
+        uint256 _minAmountOut
     ) internal returns (uint256 amount) {
         address underlyingToken = getUnderlying();
         if (_token == underlyingToken) {
@@ -85,23 +90,17 @@ abstract contract CurveSwapper {
         }
 
         Swapper storage swapper = swappers[_token];
-        require(
-            address(swapper.pool) != address(0x0),
-            "non-existing swap pool"
-        );
 
-        uint256 minAmount = _calcMinDy(
-            _amount,
-            swapper.tokenDecimals,
-            swapper.underlyingDecimals,
-            _slippage
-        );
+        if (address(swapper.pool) == address(0x0)) {
+            // pool does not exist
+            revert SwapperPoolDoesNotExist(_token);
+        }
 
         amount = swapper.pool.exchange_underlying(
             swapper.tokenI,
             swapper.underlyingI,
             _amount,
-            minAmount
+            _minAmountOut
         );
 
         emit Swap(_token, underlyingToken, _amount, amount);
@@ -112,43 +111,28 @@ abstract contract CurveSwapper {
     ///
     /// @param _token The token we want to swap into
     /// @param _amount The amount of underlying we want to swap
+    /// @param _minAmountOut The minimum amount of tokens we want to receive
     function _swapFromUnderlying(
         address _token,
         uint256 _amount,
-        uint256 _slippage
+        uint256 _minAmountOut
     ) internal returns (uint256 amount) {
-        if (_token == getUnderlying()) {
-            // same token, nothing to do
-            return _amount;
-        }
+        // same token, nothing to do
+        if (_token == getUnderlying()) return _amount;
 
         Swapper storage swapper = swappers[_token];
 
-        uint256 minAmount = _calcMinDy(
-            _amount,
-            swapper.underlyingDecimals,
-            swapper.tokenDecimals,
-            _slippage
-        );
+        if (address(swapper.pool) == address(0x0))
+            revert SwapperPoolDoesNotExist(_token);
 
         amount = swapper.pool.exchange_underlying(
             swapper.underlyingI,
             swapper.tokenI,
             _amount,
-            minAmount
+            _minAmountOut
         );
 
         emit Swap(getUnderlying(), _token, _amount, amount);
-    }
-
-    function _calcMinDy(
-        uint256 _amount,
-        uint8 _fromDecimals,
-        uint8 _toDecimals,
-        uint256 _slippage
-    ) internal pure returns (uint256) {
-        return
-            (_amount * _slippage * 10**_toDecimals) / (10**_fromDecimals * 10000);
     }
 
     /// This is necessary because some tokens (USDT) force you to approve(0)
@@ -171,20 +155,18 @@ abstract contract CurveSwapper {
     }
 
     function _addPool(SwapPoolParam memory _param) internal {
-        require(
-            address(swappers[_param.token].pool) == address(0),
-            "token already has a swap pool"
-        );
-        require(
-            ICurve(_param.pool).coins(uint256(uint128(_param.underlyingI))) ==
-                getUnderlying(),
-            "_underlyingI does not match underlying token"
-        );
+        if (address(swappers[_param.token].pool) != address(0))
+            revert SwapperPoolAlreadyExists(_param.token);
+
+        // _underlyingI does not match underlying token
+        if (
+            getUnderlying() !=
+            ICurve(_param.pool).coins(uint256(uint128(_param.underlyingI)))
+        ) revert SwapperUnderlyingIndexMismatch(_param.token, getUnderlying());
 
         uint256 tokenDecimals = IERC20Metadata(_param.token).decimals();
         uint256 underlyingDecimals = IERC20Metadata(getUnderlying()).decimals();
 
-        // TODO check if _token and _underlyingIndex match the pool settings
         swappers[_param.token] = Swapper(
             ICurve(_param.pool),
             uint8(tokenDecimals),
@@ -205,10 +187,9 @@ abstract contract CurveSwapper {
     }
 
     function _removePool(address _inputToken) internal {
-        require(
-            address(swappers[_inputToken].pool) != address(0),
-            "pool does not exist"
-        );
+        if (address(swappers[_inputToken].pool) == address(0))
+            revert SwapperPoolDoesNotExist(_inputToken);
+
         delete swappers[_inputToken];
 
         emit CurveSwapPoolRemoved(_inputToken);
