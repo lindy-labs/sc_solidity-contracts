@@ -201,7 +201,7 @@ describe('Audit Tests 3', () => {
     // expect depositor3 can normally withdraw
     await vault.connect(depositor3).withdraw(depositor3.address, [3]);
     expect(await underlying.balanceOf(depositor3.address)).to.eq(
-      parseUnits('100000').sub(1),
+      parseUnits('100000'),
     );
     console.log(
       'depositor3 underlying balance: ' +
@@ -293,7 +293,7 @@ describe('Audit Tests 3', () => {
     // expect depositor3 can normally withdraw but must use forceWithdraw
     await vault.connect(depositor3).forceWithdraw(depositor3.address, [3]);
     expect(await underlying.balanceOf(depositor3.address)).to.eq(
-      parseUnits('100000').sub(1),
+      parseUnits('100000'),
     );
     console.log(
       'depositor3 underlying balance: ' +
