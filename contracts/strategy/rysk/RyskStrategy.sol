@@ -96,7 +96,7 @@ contract RyskStrategy is LinearYieldDistributionStrategy {
             revert RyskCannotCompleteWithdrawalInSameEpoch();
 
         _completePendingWithdrawal();
-        syncYield();
+        updateYieldDistributionCycle();
     }
 
     //
@@ -136,7 +136,7 @@ contract RyskStrategy is LinearYieldDistributionStrategy {
 
         if (balance == 0) revert StrategyNoUnderlying();
 
-        _accountForDeposit(balance);
+        _handleDepositInYieldDistributionCycle(balance);
         ryskLqPool.deposit(balance);
 
         emit StrategyInvested(balance);
@@ -167,7 +167,7 @@ contract RyskStrategy is LinearYieldDistributionStrategy {
 
         emit StrategyWithdrawalInitiated(_amount);
         ryskLqPool.initiateWithdraw(sharesToWithdraw);
-        syncYield();
+        updateYieldDistributionCycle();
         return 0;
     }
 
@@ -175,7 +175,7 @@ contract RyskStrategy is LinearYieldDistributionStrategy {
     // Internal API
     //
 
-    function _realInvestedAssets()
+    function _totalInvestedAssets()
         internal
         view
         virtual
@@ -268,7 +268,7 @@ contract RyskStrategy is LinearYieldDistributionStrategy {
     function _completePendingWithdrawal() internal {
         uint256 amountWithdrawn = ryskLqPool.completeWithdraw();
 
-        _accountForWithdrawal(amountWithdrawn);
+        _handleWthdrawalInYieldDistributionCycle(amountWithdrawn);
 
         emit StrategyWithdrawn(amountWithdrawn);
         underlying.safeTransfer(vault, amountWithdrawn);
