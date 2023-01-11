@@ -8,7 +8,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {PercentMath} from "../../lib/PercentMath.sol";
 import {ERC165Query} from "../../lib/ERC165Query.sol";
 import {IStrategy} from "../IStrategy.sol";
-import {BaseStrategy} from "../BaseStrategy.sol";
+import {LinearYieldDistributionStrategy} from "../LinearYieldDistributionStrategy.sol";
 import {IRyskLiquidityPool} from "../../interfaces/rysk/IRyskLiquidityPool.sol";
 import {IVault} from "../../vault/IVault.sol";
 
@@ -19,9 +19,10 @@ import "hardhat/console.sol";
  * that serves to provide liquidity for a dynamic hedging options AMM.
  *
  * @notice This strategy is asyncrhonous (doesn't support immediate withdrawals).
+ * @notice This strategy uses a linear yield distribution model.
  *
  */
-contract RyskStrategy is BaseStrategy {
+contract RyskStrategy is LinearYieldDistributionStrategy {
     using SafeERC20 for IERC20;
     using PercentMath for uint256;
 
@@ -39,36 +40,12 @@ contract RyskStrategy is BaseStrategy {
      */
     event StrategyWithdrawalInitiated(uint256 amount);
 
-    /**
-     * Emmited when the yield distribution cycle is updated.
-     *
-     * @param syncYieldStartTimestamp the timestamp of the start of the current
-     * yield distribution cycle.
-     * @param syncYieldAmount the amount being distributed in the current cycle.
-     * @param depositedAmount the sum of deposits and distributed yield in the
-     * contract.
-     */
-    event StrategySyncYield(
-        uint256 syncYieldStartTimestamp,
-        uint256 syncYieldAmount,
-        uint256 depositedAmount
-    );
-
     // rysk liquidity pool cannot be 0 address
     error RyskLiquidityPoolCannotBe0Address();
     // no withdrawal initiated
     error RyskNoWithdrawalInitiated();
     // cannot complete withdrawal in the same epoch
     error RyskCannotCompleteWithdrawalInSameEpoch();
-
-    // The length of a yield distribution cycle
-    uint256 public yieldCycleLength;
-    // The sum of deposits and distributed yield
-    uint256 public depositedAmount;
-    // The amount being distributed in the yield distribution cycle
-    uint256 public syncYieldAmount;
-    // The timestamp of the start of the yield distribution cycle
-    uint256 public syncYieldStartTimestamp;
 
     /**
      * @param _vault address of the vault that will use this strategy
@@ -83,12 +60,17 @@ contract RyskStrategy is BaseStrategy {
         address _ryskLiquidityPool,
         IERC20 _underlying,
         uint256 _yieldCycleLength
-    ) BaseStrategy(_vault, _underlying, _admin) {
+    )
+        LinearYieldDistributionStrategy(
+            _vault,
+            _admin,
+            _underlying,
+            _yieldCycleLength
+        )
+    {
         if (_ryskLiquidityPool == address(0))
             revert RyskLiquidityPoolCannotBe0Address();
         if (_keeper == address(0)) revert StrategyKeeperCannotBe0Address();
-
-        yieldCycleLength = _yieldCycleLength;
 
         ryskLqPool = IRyskLiquidityPool(_ryskLiquidityPool);
 
@@ -115,51 +97,6 @@ contract RyskStrategy is BaseStrategy {
 
         _completePendingWithdrawal();
         syncYield();
-    }
-
-    /**
-     * Updates the yield distribution cycle. This function can be called when
-     * there's a new epoch in Rysk if the funds changed.
-     *
-     * @notice It can be called by anyone because there's not harm from it, and it
-     * makes the system less reliant on the backend.
-     */
-    function syncYield() public {
-        uint256 realDepositedAmount = _realInvestedAssets();
-
-        if (depositedAmount + syncYieldAmount == realDepositedAmount) return;
-
-        uint256 timestampDiff = block.timestamp - syncYieldStartTimestamp;
-
-        // if there was yield being distributed
-        if (syncYieldAmount > 0) {
-            if (timestampDiff > yieldCycleLength) {
-                // when the yield distribution is at 100%
-                depositedAmount += syncYieldAmount;
-            } else {
-                // When there's an epoch before the yield distribution cycle ends,
-                // adjust the deposit amount according to the distributed percentage.
-                depositedAmount +=
-                    (syncYieldAmount * (timestampDiff)) /
-                    yieldCycleLength;
-            }
-        }
-
-        // if funds were lost
-        if (realDepositedAmount < depositedAmount) {
-            depositedAmount = realDepositedAmount;
-            syncYieldAmount = 0;
-        } else {
-            syncYieldAmount = realDepositedAmount - depositedAmount;
-        }
-
-        syncYieldStartTimestamp = block.timestamp;
-
-        emit StrategySyncYield(
-            syncYieldStartTimestamp,
-            syncYieldAmount,
-            depositedAmount
-        );
     }
 
     //
@@ -194,45 +131,15 @@ contract RyskStrategy is BaseStrategy {
     }
 
     /// @inheritdoc IStrategy
-    function investedAssets()
-        public
-        view
-        virtual
-        override(IStrategy)
-        returns (uint256)
-    {
-        uint256 realDepositedAmount = _realInvestedAssets();
-
-        if ((syncYieldStartTimestamp == 0) || (syncYieldAmount == 0))
-            return realDepositedAmount;
-
-        uint256 timestampDiff = block.timestamp - syncYieldStartTimestamp;
-
-        uint256 cycleTotalDepositAmount = depositedAmount + syncYieldAmount;
-        uint256 cycleDepositAmount = cycleTotalDepositAmount;
-
-        if (timestampDiff < yieldCycleLength)
-            cycleDepositAmount =
-                cycleTotalDepositAmount -
-                (syncYieldAmount * (yieldCycleLength - timestampDiff)) /
-                yieldCycleLength;
-
-        // if there's a less funds, return the real funds
-        if (realDepositedAmount < cycleDepositAmount)
-            return realDepositedAmount;
-
-        return cycleDepositAmount;
-    }
-
-    /// @inheritdoc IStrategy
     function invest() external virtual override(IStrategy) onlyManager {
         uint256 balance = underlying.balanceOf(address(this));
 
         if (balance == 0) revert StrategyNoUnderlying();
 
-        emit StrategyInvested(balance);
-        depositedAmount += balance;
+        _accountForDeposit(balance);
         ryskLqPool.deposit(balance);
+
+        emit StrategyInvested(balance);
     }
 
     /// @inheritdoc IStrategy
@@ -268,7 +175,13 @@ contract RyskStrategy is BaseStrategy {
     // Internal API
     //
 
-    function _realInvestedAssets() public view virtual returns (uint256) {
+    function _realInvestedAssets()
+        internal
+        view
+        virtual
+        override(LinearYieldDistributionStrategy)
+        returns (uint256)
+    {
         uint256 currentWithdrawalEpoch = ryskLqPool.withdrawalEpoch();
         // since withdrawal price per share is not updated until the end of the epoch,
         // we need to use the price per share from the previous epoch
@@ -355,8 +268,7 @@ contract RyskStrategy is BaseStrategy {
     function _completePendingWithdrawal() internal {
         uint256 amountWithdrawn = ryskLqPool.completeWithdraw();
 
-        if (amountWithdrawn > depositedAmount) depositedAmount = 0;
-        else depositedAmount -= amountWithdrawn;
+        _accountForWithdrawal(amountWithdrawn);
 
         emit StrategyWithdrawn(amountWithdrawn);
         underlying.safeTransfer(vault, amountWithdrawn);
