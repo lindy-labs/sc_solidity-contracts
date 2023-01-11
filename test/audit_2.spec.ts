@@ -152,12 +152,10 @@ describe('Audit Tests 2', () => {
 
       await vault.connect(charlie).withdraw(charlie.address, [5]);
 
-      expect(await underlying.balanceOf(charlie.address)).to.eq(
-        oldBalance.sub(1),
-      );
+      expect(await underlying.balanceOf(charlie.address)).to.eq(oldBalance);
     });
 
-    it('price per share can be manipulated', async () => {
+    it('price per share can not be manipulated', async () => {
       await addUnderlyingBalance(alice, '10000');
       await underlying.mint(bob.address, parseUnits('10000'));
       await underlying.mint(charlie.address, parseUnits('10000'));
@@ -285,7 +283,7 @@ describe('Audit Tests 2', () => {
 
       await vault.connect(charlie).withdraw(charlie.address, [4]);
 
-      expect(Number(await underlying.balanceOf(charlie.address))).to.lessThan(
+      expect(Number(await underlying.balanceOf(charlie.address))).to.equal(
         oldBalance,
       );
     });
