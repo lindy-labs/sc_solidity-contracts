@@ -4,7 +4,12 @@ import { ethers } from 'hardhat';
 import { expect } from 'chai';
 import { time } from '@openzeppelin/test-helpers';
 
-import { ForkHelpers, generateNewAddress, parseUSDC } from '../../shared';
+import {
+  ForkHelpers,
+  generateNewAddress,
+  parseUSDC,
+  increaseTime,
+} from '../../shared';
 
 import {
   Vault,
@@ -92,6 +97,7 @@ describe('Rysk Strategy (mainnet fork tests)', () => {
       admin.address,
       RYSK_LIQUIDITY_POOL,
       usdc.address,
+      TWO_WEEKS,
     );
 
     await vault.setStrategy(strategy.address);
@@ -272,6 +278,9 @@ describe('Rysk Strategy (mainnet fork tests)', () => {
 
       await executeEpochCalculation();
 
+      await strategy.updateYieldDistributionCycle();
+      await increaseTime(TWO_WEEKS);
+
       await strategy.connect(admin).completeWithdrawal();
 
       // have to use gte because of the changing rounding errors
@@ -355,6 +364,9 @@ describe('Rysk Strategy (mainnet fork tests)', () => {
 
       await strategy.connect(admin).completeWithdrawal();
 
+      await strategy.updateYieldDistributionCycle();
+      await increaseTime(TWO_WEEKS);
+
       // we gained ~20 before withdraw, withdrawn 1000 USDC to vault, and invested another 1000 USDC
       expect(await usdc.balanceOf(vault.address)).to.gte('999999000');
       expect(await strategy.investedAssets()).to.gte('1186057000');
@@ -403,6 +415,9 @@ describe('Rysk Strategy (mainnet fork tests)', () => {
 
       await ForkHelpers.mintToken(usdc, strategy.address, amount);
       await strategy.connect(admin).invest();
+
+      await strategy.updateYieldDistributionCycle();
+      await increaseTime(TWO_WEEKS);
 
       expect(await usdc.balanceOf(vault.address)).to.gte('732572000');
       expect(await strategy.investedAssets()).to.gte('2732572000');
