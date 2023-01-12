@@ -56,19 +56,20 @@ abstract contract LinearYieldDistributionStrategy is IStrategy {
 
         uint256 timestampDiff = block.timestamp - cycleStartTimestamp;
 
-        uint256 ydcEndAmount = cycleStartAmount + cycleDistributionAmount;
-        uint256 ydcCurrentAmount = ydcEndAmount;
+        uint256 cycleEndAmount = cycleStartAmount + cycleDistributionAmount;
+        uint256 cycleCurrentAmount = cycleEndAmount;
 
         if (timestampDiff < cycleLength)
-            ydcCurrentAmount =
-                ydcEndAmount -
+            cycleCurrentAmount =
+                cycleEndAmount -
                 (cycleDistributionAmount * (cycleLength - timestampDiff)) /
                 cycleLength;
 
         // if there's a less funds, return the real funds
-        if (totalInvestedAssets < ydcCurrentAmount) return totalInvestedAssets;
+        if (totalInvestedAssets < cycleCurrentAmount)
+            return totalInvestedAssets;
 
-        return ydcCurrentAmount;
+        return cycleCurrentAmount;
     }
 
     /**
