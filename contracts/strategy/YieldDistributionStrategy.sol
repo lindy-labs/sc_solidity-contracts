@@ -29,8 +29,8 @@ abstract contract YieldDistributionStrategy is IStrategy {
     uint256 public cycleDistributionAmount;
     // The timestamp of the start of the yield distribution cycle
     uint256 public cycleStartTimestamp;
-    // The sum of deposits and distributed yield
-    uint256 public cycleAvailableAmount;
+    // The sum of deposits and distributed yield at the cycle start
+    uint256 public cycleStartAmount;
 
     constructor(uint256 _yieldCycleLength) {
         // TODO: check if the yield cycle length is valid
@@ -56,7 +56,7 @@ abstract contract YieldDistributionStrategy is IStrategy {
 
         uint256 timeDelta = block.timestamp - cycleStartTimestamp;
 
-        uint256 cycleEndAmount = cycleAvailableAmount + cycleDistributionAmount;
+        uint256 cycleEndAmount = cycleStartAmount + cycleDistributionAmount;
         uint256 cycleCurrentAmount = cycleEndAmount;
 
         if (timeDelta < cycleLength)
@@ -82,10 +82,8 @@ abstract contract YieldDistributionStrategy is IStrategy {
     function updateYieldDistributionCycle() public {
         uint256 totalInvestedAssets = _totalInvestedAssets();
 
-        if (
-            cycleAvailableAmount + cycleDistributionAmount ==
-            totalInvestedAssets
-        ) return;
+        if (cycleStartAmount + cycleDistributionAmount == totalInvestedAssets)
+            return;
 
         uint256 timeDelta = block.timestamp - cycleStartTimestamp;
 
@@ -93,24 +91,20 @@ abstract contract YieldDistributionStrategy is IStrategy {
         if (cycleDistributionAmount > 0) {
             if (timeDelta > cycleLength) {
                 // when the yield distribution is at 100%
-                cycleAvailableAmount += cycleDistributionAmount;
+                cycleStartAmount += cycleDistributionAmount;
             } else {
                 // When there's an epoch before the yield distribution cycle ends,
                 // adjust the deposit amount according to the distributed percentage.
-                cycleAvailableAmount += _calcNewYieldAmountToDistribute(
-                    timeDelta
-                );
+                cycleStartAmount += _calcNewYieldAmountToDistribute(timeDelta);
             }
         }
 
         // if funds were lost
-        if (totalInvestedAssets < cycleAvailableAmount) {
-            cycleAvailableAmount = totalInvestedAssets;
+        if (totalInvestedAssets < cycleStartAmount) {
+            cycleStartAmount = totalInvestedAssets;
             cycleDistributionAmount = 0;
         } else {
-            cycleDistributionAmount =
-                totalInvestedAssets -
-                cycleAvailableAmount;
+            cycleDistributionAmount = totalInvestedAssets - cycleStartAmount;
         }
 
         cycleStartTimestamp = block.timestamp;
@@ -118,19 +112,19 @@ abstract contract YieldDistributionStrategy is IStrategy {
         emit StrategyYieldDistributionCycleUpdate(
             cycleStartTimestamp,
             cycleDistributionAmount,
-            cycleAvailableAmount
+            cycleStartAmount
         );
     }
 
     function _handleWthdrawalInYieldDistributionCycle(uint256 _amount)
         internal
     {
-        if (_amount > cycleAvailableAmount) cycleAvailableAmount = 0;
-        else cycleAvailableAmount -= _amount;
+        if (_amount > cycleStartAmount) cycleStartAmount = 0;
+        else cycleStartAmount -= _amount;
     }
 
     function _handleDepositInYieldDistributionCycle(uint256 _amount) internal {
-        cycleAvailableAmount += _amount;
+        cycleStartAmount += _amount;
     }
 
     function _totalInvestedAssets() internal view virtual returns (uint256);
