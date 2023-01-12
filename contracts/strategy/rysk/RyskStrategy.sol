@@ -8,6 +8,7 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 import {PercentMath} from "../../lib/PercentMath.sol";
 import {ERC165Query} from "../../lib/ERC165Query.sol";
 import {IStrategy} from "../IStrategy.sol";
+import {BaseStrategy} from "../BaseStrategy.sol";
 import {LinearYieldDistributionStrategy} from "../LinearYieldDistributionStrategy.sol";
 import {IRyskLiquidityPool} from "../../interfaces/rysk/IRyskLiquidityPool.sol";
 import {IVault} from "../../vault/IVault.sol";
@@ -22,7 +23,7 @@ import "hardhat/console.sol";
  * @notice This strategy uses a linear yield distribution model.
  *
  */
-contract RyskStrategy is LinearYieldDistributionStrategy {
+contract RyskStrategy is BaseStrategy, LinearYieldDistributionStrategy {
     using SafeERC20 for IERC20;
     using PercentMath for uint256;
 
@@ -61,12 +62,8 @@ contract RyskStrategy is LinearYieldDistributionStrategy {
         IERC20 _underlying,
         uint256 _yieldCycleLength
     )
-        LinearYieldDistributionStrategy(
-            _vault,
-            _admin,
-            _underlying,
-            _yieldCycleLength
-        )
+        BaseStrategy(_vault, _underlying, _admin)
+        LinearYieldDistributionStrategy(_yieldCycleLength)
     {
         if (_ryskLiquidityPool == address(0))
             revert RyskLiquidityPoolCannotBe0Address();

@@ -4,11 +4,10 @@ pragma solidity =0.8.10;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {IStrategy} from "./IStrategy.sol";
-import {BaseStrategy} from "./BaseStrategy.sol";
 
 import "hardhat/console.sol";
 
-abstract contract LinearYieldDistributionStrategy is BaseStrategy {
+abstract contract LinearYieldDistributionStrategy is IStrategy {
     /**
      * Emmited when the yield distribution cycle is updated.
      *
@@ -33,12 +32,7 @@ abstract contract LinearYieldDistributionStrategy is BaseStrategy {
     // The sum of deposits and distributed yield at the beginning of a cycle
     uint256 public cycleStartAmount;
 
-    constructor(
-        address _vault,
-        address _admin,
-        IERC20 _underlying,
-        uint256 _yieldCycleLength
-    ) BaseStrategy(_vault, _underlying, _admin) {
+    constructor(uint256 _yieldCycleLength) {
         // TODO: check if the yield cycle length is valid
         require(_yieldCycleLength > 0, "Yield cycle length cannot be 0");
 
