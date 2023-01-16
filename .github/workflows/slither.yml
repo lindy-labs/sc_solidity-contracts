@@ -35,6 +35,7 @@ jobs:
       id: slither
       with:
         ignore-compile: true
+        slither-version: dev-workaround-action-48
         sarif: results.sarif
 
     - name: Upload SARIF file
