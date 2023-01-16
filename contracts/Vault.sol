@@ -1018,10 +1018,10 @@ contract Vault is
         // Checks if the user is not already in debt
         if (
             _computeShares(
-                _applyLossTolerance(claimer[_claim.beneficiary].totalPrincipal),
+                _applyLossTolerance(claimers[_claim.beneficiary].totalPrincipal),
                 _localTotalShares,
                 _localTotalPrincipal
-            ) > claimer[_claim.beneficiary].totalShares
+            ) > claimers[_claim.beneficiary].totalShares
         ) revert VaultCannotDepositWhenClaimerInDebt();
 
         _depositTokenIds.increment();
@@ -1035,8 +1035,8 @@ contract Vault is
             tokenId: _depositTokenIds.current()
         });
 
-        claimer[locals.claimerId].totalShares += locals.newShares;
-        claimer[locals.claimerId].totalPrincipal += _amount;
+        claimers[locals.claimerId].totalShares += locals.newShares;
+        claimers[locals.claimerId].totalPrincipal += _amount;
 
         totalShares += locals.newShares;
         totalPrincipal += _amount;
