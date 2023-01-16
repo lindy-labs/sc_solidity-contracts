@@ -547,7 +547,7 @@ describe('RyskStrategy', () => {
     it(`starts a cycle when there isn't one`, async () => {
       await investToRyskLqPool(parseUSDC('100'));
 
-      expect(await strategy.cycleStartAmount()).to.eq(parseUSDC('100'));
+      expect(await strategy.depositedAmount()).to.eq(parseUSDC('100'));
       expect(await strategy.cycleDistributionAmount()).to.eq(parseUSDC('0'));
       expect(await strategy.cycleStartTimestamp()).to.eq(0);
 
@@ -555,7 +555,7 @@ describe('RyskStrategy', () => {
       await addYieldToRyskLqPool(parseUSDC('100'));
       await strategy.updateYieldDistributionCycle();
 
-      expect(await strategy.cycleStartAmount()).to.eq(parseUSDC('100'));
+      expect(await strategy.depositedAmount()).to.eq(parseUSDC('100'));
       expect(await strategy.cycleDistributionAmount()).to.eq(parseUSDC('100'));
       expect(await strategy.cycleStartTimestamp()).to.eq(
         await getLastBlockTimestamp(),
@@ -574,7 +574,7 @@ describe('RyskStrategy', () => {
       await ryskLqPool.executeOnlyDepositEpochCalculation();
       await strategy.updateYieldDistributionCycle();
 
-      expect(await strategy.cycleStartAmount()).to.eq(parseUSDC('200'));
+      expect(await strategy.depositedAmount()).to.eq(parseUSDC('200'));
       expect(await strategy.cycleDistributionAmount()).to.eq(parseUSDC('100'));
       expect(await strategy.cycleStartTimestamp()).to.eq(
         await getLastBlockTimestamp(),
@@ -593,7 +593,7 @@ describe('RyskStrategy', () => {
       await ryskLqPool.executeOnlyDepositEpochCalculation();
       await strategy.updateYieldDistributionCycle();
 
-      expect(await strategy.cycleStartAmount()).to.eq(parseUSDC('150'));
+      expect(await strategy.depositedAmount()).to.eq(parseUSDC('150'));
       expect(await strategy.cycleDistributionAmount()).to.eq(parseUSDC('150'));
       expect(await strategy.cycleStartTimestamp()).to.eq(
         await getLastBlockTimestamp(),
@@ -611,7 +611,7 @@ describe('RyskStrategy', () => {
       await loseFundsFromRyskLqPool(parseUSDC('50'));
       await strategy.updateYieldDistributionCycle();
 
-      expect(await strategy.cycleStartAmount()).to.eq(parseUSDC('150'));
+      expect(await strategy.depositedAmount()).to.eq(parseUSDC('150'));
       expect(await strategy.cycleDistributionAmount()).to.eq(parseUSDC('0'));
       expect(await strategy.cycleStartTimestamp()).to.eq(
         await getLastBlockTimestamp(),
@@ -629,7 +629,7 @@ describe('RyskStrategy', () => {
       await loseFundsFromRyskLqPool(parseUSDC('80'));
       await strategy.updateYieldDistributionCycle();
 
-      expect(await strategy.cycleStartAmount()).to.eq(parseUSDC('120'));
+      expect(await strategy.depositedAmount()).to.eq(parseUSDC('120'));
       expect(await strategy.cycleDistributionAmount()).to.eq(parseUSDC('0'));
       expect(await strategy.cycleStartTimestamp()).to.eq(
         await getLastBlockTimestamp(),
@@ -827,7 +827,7 @@ describe('RyskStrategy', () => {
     });
 
     describe('after a call to #updateYieldDistributionCycle', () => {
-      it(`udpates when a new epoch loses funds but doesn't become negative`, async () => {
+      it(`updates when a new epoch loses funds but doesn't become negative`, async () => {
         await investToRyskLqPool(parseUSDC('100'));
         await addYieldToRyskLqPool(parseUSDC('100'));
         await strategy.updateYieldDistributionCycle();
@@ -849,7 +849,7 @@ describe('RyskStrategy', () => {
         expect(await strategy.investedAssets()).to.eq(parseUSDC('180'));
       });
 
-      it(`udpates when a new epoch loses user funds`, async () => {
+      it(`updates when a new epoch loses user funds`, async () => {
         await investToRyskLqPool(parseUSDC('100'));
         await addYieldToRyskLqPool(parseUSDC('100'));
         await strategy.updateYieldDistributionCycle();
@@ -871,7 +871,7 @@ describe('RyskStrategy', () => {
         expect(await strategy.investedAssets()).to.eq(parseUSDC('140'));
       });
 
-      it('udpates when a new epoch starts in the middle of a cycle', async () => {
+      it('updates when a new epoch starts in the middle of a cycle', async () => {
         await investToRyskLqPool(parseUSDC('100'));
         await addYieldToRyskLqPool(parseUSDC('100'));
         await strategy.updateYieldDistributionCycle();
@@ -904,6 +904,50 @@ describe('RyskStrategy', () => {
 
         expect(await strategy.investedAssets()).to.eq(parseUSDC('300'));
       });
+
+      it('handles a new deposit during a cycle', async () => {
+        await investToRyskLqPool(parseUSDC('100'));
+        await addYieldToRyskLqPool(parseUSDC('100'));
+        await strategy.updateYieldDistributionCycle();
+
+        await increaseTime(time.duration.days(5) - 3);
+
+        await investToRyskLqPool(parseUSDC('100'));
+
+        // because it's exactly 5 days in the future, we know that only 50% of the yield is available
+        expect(await strategy.investedAssets()).to.eq(
+          parseUSDC('200').add(parseUSDC('50')),
+        );
+
+        await increaseTime(time.duration.days(5));
+
+        expect(await strategy.investedAssets()).to.eq(parseUSDC('300'));
+        expect(await strategy.depositedAmount()).to.eq(parseUSDC('200'));
+      });
+
+      it('handles a withdrawal during a cycle', async () => {
+        await investToRyskLqPool(parseUSDC('100'));
+        await addYieldToRyskLqPool(parseUSDC('100'));
+        await strategy.updateYieldDistributionCycle();
+
+        await increaseTime(time.duration.days(5));
+
+        expect(await strategy.investedAssets()).to.eq(parseUSDC('150'));
+
+        await strategy.connect(manager).withdrawToVault(parseUSDC('150'));
+
+        await ryskLqPool.executeEpochCalculation();
+
+        await strategy.connect(keeper).completeWithdrawal();
+
+        expect(await strategy.investedAssets()).to.eq(parseUSDC('0'));
+        expect(await strategy.depositedAmount()).to.eq(parseUSDC('0'));
+
+        await increaseTime(time.duration.days(6));
+
+        expect(await strategy.investedAssets()).to.eq(parseUSDC('50'));
+        expect(await strategy.depositedAmount()).to.eq(parseUSDC('50'));
+      });
     });
   });
 
@@ -915,7 +959,7 @@ describe('RyskStrategy', () => {
 
   async function addYieldToRyskLqPool(amount: BigNumber) {
     await underlying.mint(ryskLqPool.address, amount);
-    await ryskLqPool.executeOnlyDepositEpochCalculation();
+    await ryskLqPool.executeEpochCalculation();
   }
 
   async function loseFundsFromRyskLqPool(amount: BigNumber) {
