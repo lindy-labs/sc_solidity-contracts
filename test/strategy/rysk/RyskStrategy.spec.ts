@@ -534,24 +534,24 @@ describe('RyskStrategy', () => {
   });
 
   describe('#updateYieldDistributionCycle', () => {
-    it('emits a StrategyYieldDistributionCycle event', async () => {
+    it('emits a StrategyNewYieldDistributionCycle event', async () => {
       await investToRyskLqPool(parseUSDC('100'));
       await addYieldToRyskLqPool(parseUSDC('100'));
 
       const tx = await strategy.updateYieldDistributionCycle();
 
       const cycleStartAmount = await strategy.cycleStartAmount();
-      const cycleEndAmount = await strategy.cycleEndAmount();
+      const cycleDuration = await strategy.cycleDuration();
       const cycleDistributionAmount = await strategy.cycleDistributionAmount();
       const cycleStartTimestamp = await strategy.cycleStartTimestamp();
 
       await expect(tx)
-        .to.emit(strategy, 'StrategyYieldDistributionCycleUpdate')
+        .to.emit(strategy, 'StrategyNewYieldDistributionCycle')
         .withArgs(
           cycleStartTimestamp,
+          cycleDuration,
           cycleDistributionAmount,
           cycleStartAmount,
-          cycleEndAmount,
         );
     });
 
@@ -592,6 +592,20 @@ describe('RyskStrategy', () => {
       expect(await strategy.cycleDistributionAmount()).to.eq(parseUSDC('100'));
       expect(await strategy.cycleStartTimestamp()).to.eq(
         await getLastBlockTimestamp(),
+      );
+    });
+
+    it(`doesn't start a cycle after if there is no yield generated since previous cycle started`, async () => {
+      await investToRyskLqPool(parseUSDC('100'));
+
+      await addYieldToRyskLqPool(parseUSDC('100'));
+      await strategy.updateYieldDistributionCycle();
+
+      await increaseTime(time.duration.days(6));
+
+      await expect(strategy.updateYieldDistributionCycle()).to.not.emit(
+        strategy,
+        'StrategyNewYieldDistributionCycle',
       );
     });
 

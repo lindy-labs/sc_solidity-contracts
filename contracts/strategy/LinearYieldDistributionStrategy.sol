@@ -11,21 +11,19 @@ abstract contract LinearYieldDistributionStrategy is IStrategy {
     /**
      * Emmited when the yield distribution cycle is updated.
      *
-     * @param startTimestamp the timestamp of the start of the current
-     * yield distribution cycle.
+     * @param startTimestamp the timestamp of the start of the current yield distribution cycle.
      * @param distributionAmount the amount being distributed in the current cycle.
      * @param startAmount the sum of deposits and distributed yield at the start of the cycle.
-     * @param endAmount the sum of deposits and distributed yield at the end of the cycle.
      */
-    event StrategyYieldDistributionCycleUpdate(
+    event StrategyNewYieldDistributionCycle(
         uint256 startTimestamp,
+        uint256 duration,
         uint256 distributionAmount,
-        uint256 startAmount,
-        uint256 endAmount
+        uint256 startAmount
     );
 
     // The length of a yield distribution cycle
-    uint256 public cycleLength;
+    uint256 public cycleDuration;
     // The amount being distributed in the yield distribution cycle
     uint256 public cycleDistributionAmount;
     // The timestamp of the start of the yield distribution cycle
@@ -35,11 +33,11 @@ abstract contract LinearYieldDistributionStrategy is IStrategy {
     // The sum of deposits and distributed yield at the cycle end
     uint256 public cycleEndAmount;
 
-    constructor(uint256 _yieldCycleLength) {
-        // TODO: check if the yield cycle length is valid
-        require(_yieldCycleLength > 0, "Yield cycle length cannot be 0");
+    constructor(uint256 _yieldCycleDuration) {
+        // TODO: check if the yield cycle duration is valid
+        require(_yieldCycleDuration > 0, "Yield cycle length cannot be 0");
 
-        cycleLength = _yieldCycleLength;
+        cycleDuration = _yieldCycleDuration;
     }
 
     // TODO: make dist cycle length configurable
@@ -54,20 +52,20 @@ abstract contract LinearYieldDistributionStrategy is IStrategy {
     {
         uint256 totalInvestedAssets = _totalInvestedAssets();
 
+        // if there's no yield being distributed, return the real funds
         if ((cycleStartTimestamp == 0) || (cycleDistributionAmount == 0))
             return totalInvestedAssets;
 
-        uint256 timeDelta = block.timestamp - cycleStartTimestamp;
-
+        uint256 timeElapsed = block.timestamp - cycleStartTimestamp;
         uint256 cycleCurrentAmount = cycleEndAmount;
 
-        if (timeDelta < cycleLength)
+        if (timeElapsed < cycleDuration)
             cycleCurrentAmount =
                 cycleEndAmount -
-                (cycleDistributionAmount * (cycleLength - timeDelta)) /
-                cycleLength;
+                (cycleDistributionAmount * (cycleDuration - timeElapsed)) /
+                cycleDuration;
 
-        // if there's a less funds, return the real funds
+        // if there's less funds, return the real funds
         if (totalInvestedAssets < cycleCurrentAmount)
             return totalInvestedAssets;
 
@@ -76,7 +74,7 @@ abstract contract LinearYieldDistributionStrategy is IStrategy {
 
     /**
      * Updates the yield distribution cycle or starts a new one if previous has finished. This function can be called when
-     * there's a new epoch in Rysk if the funds changed.
+     * there's a new yield generated or when there's a loss in the strategy.
      *
      * @notice It can be called by anyone because there's not harm from it, and it
      * makes the system less reliant on the backend.
@@ -90,17 +88,17 @@ abstract contract LinearYieldDistributionStrategy is IStrategy {
 
         // if there was yield being distributed
         if (cycleDistributionAmount > 0) {
-            uint256 timeDelta = block.timestamp - cycleStartTimestamp;
+            uint256 timeElapsed = block.timestamp - cycleStartTimestamp;
 
-            if (timeDelta > cycleLength) {
+            if (timeElapsed > cycleDuration) {
                 // when the yield distribution is at 100%
                 cycleStartAmount += cycleDistributionAmount;
             } else {
-                // When there's new yield generated before the yield distribution cycle ends,
-                // adjust the deposit amount according to the distributed percentage.
+                // when there's new yield generated before the yield distribution cycle ends,
+                // adjust the deposit amount according to the distributed percentage
                 cycleStartAmount +=
-                    (cycleDistributionAmount * timeDelta) /
-                    cycleLength;
+                    (cycleDistributionAmount * timeElapsed) /
+                    cycleDuration;
             }
         }
 
@@ -115,14 +113,17 @@ abstract contract LinearYieldDistributionStrategy is IStrategy {
         cycleStartTimestamp = block.timestamp;
         cycleEndAmount = totalInvestedAssets;
 
-        emit StrategyYieldDistributionCycleUpdate(
+        emit StrategyNewYieldDistributionCycle(
             cycleStartTimestamp,
+            cycleDuration,
             cycleDistributionAmount,
-            cycleStartAmount,
-            cycleEndAmount
+            cycleStartAmount
         );
     }
 
+    /**
+     * Handles the withdrawal of funds in the yield distribution cycle. This function should be called by the strategy implementation.
+     */
     function _handleWthdrawalInYieldDistributionCycle(uint256 _amount)
         internal
     {
@@ -132,10 +133,16 @@ abstract contract LinearYieldDistributionStrategy is IStrategy {
         cycleEndAmount -= _amount;
     }
 
+    /**
+     * Handles the deposit of funds in the yield distribution cycle. This function should be called by the strategy implementation.
+     */
     function _handleDepositInYieldDistributionCycle(uint256 _amount) internal {
         cycleStartAmount += _amount;
         cycleEndAmount += _amount;
     }
 
+    /**
+     * Returns the total invested assets in the strategy if there's no delay in yield distribution, ie the actual invested assets.
+     */
     function _totalInvestedAssets() internal view virtual returns (uint256);
 }
