@@ -2952,6 +2952,59 @@ describe('Vault', () => {
   });
 
   describe('claimYield', () => {
+    it.only('echidna test', async () => {
+      console.log('balance', await underlying.balanceOf(vault.address));
+      console.log('shares', await vault.totalShares());
+
+      await vault.connect(alice).deposit(
+        depositParams.build({
+          amount: '11360096784749681973',
+          inputToken: underlying.address,
+          claims: [
+            {
+              pct: BigNumber.from('10000'),
+              beneficiary: alice.address,
+              data: 0,
+            },
+          ],
+        }),
+      );
+
+      console.log('balance', await underlying.balanceOf(vault.address));
+      console.log('shares', await vault.totalShares());
+
+      await vault.connect(alice).deposit(
+        depositParams.build({
+          amount: '9',
+          inputToken: underlying.address,
+          claims: [
+            {
+              pct: BigNumber.from('6670'),
+              beneficiary: alice.address,
+              data: 0,
+            },
+            {
+              pct: BigNumber.from('566'),
+              beneficiary: bob.address,
+              data: 0,
+            },
+            {
+              pct: BigNumber.from('1330'),
+              beneficiary: bob.address,
+              data: 0,
+            },
+            {
+              pct: BigNumber.from('1434'),
+              beneficiary: bob.address,
+              data: 0,
+            },
+          ],
+        }),
+      );
+      console.log('balance', await underlying.balanceOf(vault.address));
+      console.log('shares', await vault.totalShares());
+    });
+
     it('emits an event', async () => {
       const params = depositParams.build({
         amount: parseUnits('100'),
