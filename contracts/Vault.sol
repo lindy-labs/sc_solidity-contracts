@@ -75,7 +75,7 @@ contract Vault is
     //
 
     /// @inheritdoc IVault
-    IERC20Metadata public override(IVault) underlying;
+    IERC20Metadata public immutable override(IVault) underlying;
 
     /// @inheritdoc IVault
     uint16 public override(IVault) investPct;
@@ -1015,6 +1015,15 @@ contract Vault is
         uint256 _localTotalPrincipal,
         string calldata _name
     ) internal returns (uint256) {
+        // Checks if the user is not already in debt
+        if (
+            _computeShares(
+                _applyLossTolerance(claimer[_claim.beneficiary].totalPrincipal),
+                _localTotalShares,
+                _localTotalPrincipal
+            ) > claimer[_claim.beneficiary].totalShares
+        ) revert VaultCannotDepositWhenClaimerInDebt();
+
         _depositTokenIds.increment();
         CreateClaimLocals memory locals = CreateClaimLocals({
             newShares: _computeShares(
@@ -1026,17 +1035,8 @@ contract Vault is
             tokenId: _depositTokenIds.current()
         });
 
-        // Checks if the user is not already in debt
-        if (
-            _computeShares(
-                _applyLossTolerance(claimers[locals.claimerId].totalPrincipal),
-                _localTotalShares,
-                _localTotalPrincipal
-            ) > claimers[locals.claimerId].totalShares
-        ) revert VaultCannotDepositWhenClaimerInDebt();
-
-        claimers[locals.claimerId].totalShares += locals.newShares;
-        claimers[locals.claimerId].totalPrincipal += _amount;
+        claimer[locals.claimerId].totalShares += locals.newShares;
+        claimer[locals.claimerId].totalPrincipal += _amount;
 
         totalShares += locals.newShares;
         totalPrincipal += _amount;
