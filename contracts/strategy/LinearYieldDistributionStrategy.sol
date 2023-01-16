@@ -31,6 +31,7 @@ abstract contract LinearYieldDistributionStrategy is IStrategy {
     uint256 public cycleStartTimestamp;
     // The sum of deposits and distributed yield at the cycle start
     uint256 public depositedAmount;
+    uint256 public cycleYieldWithdrawnAmount;
 
     constructor(uint256 _yieldCycleLength) {
         // TODO: check if the yield cycle length is valid
@@ -51,12 +52,18 @@ abstract contract LinearYieldDistributionStrategy is IStrategy {
     {
         uint256 totalInvestedAssets = _totalInvestedAssets();
 
+        console.log("depositedAmount", depositedAmount);
+        console.log("cycleDistributionAmount", cycleDistributionAmount);
+        console.log("cycleYieldWithdrawnAmount", cycleYieldWithdrawnAmount);
+
         if ((cycleStartTimestamp == 0) || (cycleDistributionAmount == 0))
             return totalInvestedAssets;
 
         uint256 timeDelta = block.timestamp - cycleStartTimestamp;
 
-        uint256 cycleEndAmount = depositedAmount + cycleDistributionAmount;
+        uint256 cycleEndAmount = depositedAmount +
+            cycleDistributionAmount -
+            cycleYieldWithdrawnAmount;
         uint256 cycleCurrentAmount = cycleEndAmount;
 
         if (timeDelta < cycleLength)
@@ -121,8 +128,12 @@ abstract contract LinearYieldDistributionStrategy is IStrategy {
     function _handleWthdrawalInYieldDistributionCycle(uint256 _amount)
         internal
     {
-        if (_amount > depositedAmount) depositedAmount = 0;
-        else depositedAmount -= _amount;
+        console.log("_amount > depositedAmount", _amount > depositedAmount);
+        if (_amount > depositedAmount) {
+            cycleYieldWithdrawnAmount = _amount - depositedAmount;
+            depositedAmount = 0;
+            console.log("cycleYieldWithdrawnAmount", cycleYieldWithdrawnAmount);
+        } else depositedAmount -= _amount;
     }
 
     function _handleDepositInYieldDistributionCycle(uint256 _amount) internal {

@@ -940,13 +940,13 @@ describe('RyskStrategy', () => {
 
         await strategy.connect(keeper).completeWithdrawal();
 
-        expect(await strategy.investedAssets()).to.eq(parseUSDC('0'));
+        expect(await strategy.investedAssets()).to.eq('348');
         expect(await strategy.depositedAmount()).to.eq(parseUSDC('0'));
 
         await increaseTime(time.duration.days(6));
 
         expect(await strategy.investedAssets()).to.eq(parseUSDC('50'));
-        expect(await strategy.depositedAmount()).to.eq(parseUSDC('50'));
+        expect(await strategy.depositedAmount()).to.eq(parseUSDC('0'));
       });
     });
   });

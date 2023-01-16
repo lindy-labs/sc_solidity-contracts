@@ -93,7 +93,6 @@ contract RyskStrategy is BaseStrategy, LinearYieldDistributionStrategy {
             revert RyskCannotCompleteWithdrawalInSameEpoch();
 
         _completePendingWithdrawal();
-        updateYieldDistributionCycle();
     }
 
     //
