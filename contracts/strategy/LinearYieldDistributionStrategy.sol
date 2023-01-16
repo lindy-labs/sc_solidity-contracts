@@ -88,10 +88,10 @@ abstract contract LinearYieldDistributionStrategy is IStrategy {
         if (cycleStartAmount + cycleDistributionAmount == totalInvestedAssets)
             return;
 
-        uint256 timeDelta = block.timestamp - cycleStartTimestamp;
-
         // if there was yield being distributed
         if (cycleDistributionAmount > 0) {
+            uint256 timeDelta = block.timestamp - cycleStartTimestamp;
+
             if (timeDelta > cycleLength) {
                 // when the yield distribution is at 100%
                 cycleStartAmount += cycleDistributionAmount;
@@ -117,7 +117,7 @@ abstract contract LinearYieldDistributionStrategy is IStrategy {
 
         emit StrategyYieldDistributionCycleUpdate(
             cycleStartTimestamp,
-            cycleStartAmount,
+            cycleDistributionAmount,
             cycleStartAmount,
             cycleEndAmount
         );

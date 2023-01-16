@@ -438,7 +438,7 @@ describe('RyskStrategy', () => {
       );
     });
 
-    it('emits strategy withdrawn event', async () => {
+    it('emits StrategyWithdrawn event', async () => {
       await underlying.mint(strategy.address, parseUSDC('100'));
       await strategy.connect(manager).invest();
       await ryskLqPool.executeEpochCalculation();
@@ -538,10 +538,21 @@ describe('RyskStrategy', () => {
       await investToRyskLqPool(parseUSDC('100'));
       await addYieldToRyskLqPool(parseUSDC('100'));
 
-      await expect(strategy.updateYieldDistributionCycle()).to.emit(
-        strategy,
-        'StrategyYieldDistributionCycleUpdate',
-      );
+      const tx = await strategy.updateYieldDistributionCycle();
+
+      const cycleStartAmount = await strategy.cycleStartAmount();
+      const cycleEndAmount = await strategy.cycleEndAmount();
+      const cycleDistributionAmount = await strategy.cycleDistributionAmount();
+      const cycleStartTimestamp = await strategy.cycleStartTimestamp();
+
+      await expect(tx)
+        .to.emit(strategy, 'StrategyYieldDistributionCycleUpdate')
+        .withArgs(
+          cycleStartTimestamp,
+          cycleDistributionAmount,
+          cycleStartAmount,
+          cycleEndAmount,
+        );
     });
 
     it(`starts a cycle when there isn't one`, async () => {
