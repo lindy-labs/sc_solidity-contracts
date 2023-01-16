@@ -14,13 +14,14 @@ abstract contract LinearYieldDistributionStrategy is IStrategy {
      * @param startTimestamp the timestamp of the start of the current
      * yield distribution cycle.
      * @param distributionAmount the amount being distributed in the current cycle.
-     * @param startAmount the sum of deposits and distributed yield in the
-     * contract at the beginning of a cycle.
+     * @param startAmount the sum of deposits and distributed yield at the start of the cycle.
+     * @param endAmount the sum of deposits and distributed yield at the end of the cycle.
      */
     event StrategyYieldDistributionCycleUpdate(
         uint256 startTimestamp,
         uint256 distributionAmount,
-        uint256 startAmount
+        uint256 startAmount,
+        uint256 endAmount
     );
 
     // The length of a yield distribution cycle
@@ -30,8 +31,9 @@ abstract contract LinearYieldDistributionStrategy is IStrategy {
     // The timestamp of the start of the yield distribution cycle
     uint256 public cycleStartTimestamp;
     // The sum of deposits and distributed yield at the cycle start
-    uint256 public depositedAmount;
-    uint256 public cycleYieldWithdrawnAmount;
+    uint256 public cycleStartAmount;
+    // The sum of deposits and distributed yield at the cycle end
+    uint256 public cycleEndAmount;
 
     constructor(uint256 _yieldCycleLength) {
         // TODO: check if the yield cycle length is valid
@@ -52,18 +54,11 @@ abstract contract LinearYieldDistributionStrategy is IStrategy {
     {
         uint256 totalInvestedAssets = _totalInvestedAssets();
 
-        console.log("depositedAmount", depositedAmount);
-        console.log("cycleDistributionAmount", cycleDistributionAmount);
-        console.log("cycleYieldWithdrawnAmount", cycleYieldWithdrawnAmount);
-
         if ((cycleStartTimestamp == 0) || (cycleDistributionAmount == 0))
             return totalInvestedAssets;
 
         uint256 timeDelta = block.timestamp - cycleStartTimestamp;
 
-        uint256 cycleEndAmount = depositedAmount +
-            cycleDistributionAmount -
-            cycleYieldWithdrawnAmount;
         uint256 cycleCurrentAmount = cycleEndAmount;
 
         if (timeDelta < cycleLength)
@@ -89,7 +84,8 @@ abstract contract LinearYieldDistributionStrategy is IStrategy {
     function updateYieldDistributionCycle() public {
         uint256 totalInvestedAssets = _totalInvestedAssets();
 
-        if (depositedAmount + cycleDistributionAmount == totalInvestedAssets)
+        // there is no new yield generated to distribute since cycle started
+        if (cycleStartAmount + cycleDistributionAmount == totalInvestedAssets)
             return;
 
         uint256 timeDelta = block.timestamp - cycleStartTimestamp;
@@ -98,46 +94,47 @@ abstract contract LinearYieldDistributionStrategy is IStrategy {
         if (cycleDistributionAmount > 0) {
             if (timeDelta > cycleLength) {
                 // when the yield distribution is at 100%
-                depositedAmount += cycleDistributionAmount;
+                cycleStartAmount += cycleDistributionAmount;
             } else {
-                // When there's an epoch before the yield distribution cycle ends,
+                // When there's new yield generated before the yield distribution cycle ends,
                 // adjust the deposit amount according to the distributed percentage.
-                depositedAmount +=
+                cycleStartAmount +=
                     (cycleDistributionAmount * timeDelta) /
                     cycleLength;
             }
         }
 
         // if funds were lost
-        if (totalInvestedAssets < depositedAmount) {
-            depositedAmount = totalInvestedAssets;
+        if (totalInvestedAssets < cycleStartAmount) {
+            cycleStartAmount = totalInvestedAssets;
             cycleDistributionAmount = 0;
         } else {
-            cycleDistributionAmount = totalInvestedAssets - depositedAmount;
+            cycleDistributionAmount = totalInvestedAssets - cycleStartAmount;
         }
 
         cycleStartTimestamp = block.timestamp;
+        cycleEndAmount = totalInvestedAssets;
 
         emit StrategyYieldDistributionCycleUpdate(
             cycleStartTimestamp,
-            cycleDistributionAmount,
-            depositedAmount
+            cycleStartAmount,
+            cycleStartAmount,
+            cycleEndAmount
         );
     }
 
     function _handleWthdrawalInYieldDistributionCycle(uint256 _amount)
         internal
     {
-        console.log("_amount > depositedAmount", _amount > depositedAmount);
-        if (_amount > depositedAmount) {
-            cycleYieldWithdrawnAmount = _amount - depositedAmount;
-            depositedAmount = 0;
-            console.log("cycleYieldWithdrawnAmount", cycleYieldWithdrawnAmount);
-        } else depositedAmount -= _amount;
+        if (_amount > cycleStartAmount) cycleStartAmount = 0;
+        else cycleStartAmount -= _amount;
+
+        cycleEndAmount -= _amount;
     }
 
     function _handleDepositInYieldDistributionCycle(uint256 _amount) internal {
-        depositedAmount += _amount;
+        cycleStartAmount += _amount;
+        cycleEndAmount += _amount;
     }
 
     function _totalInvestedAssets() internal view virtual returns (uint256);
