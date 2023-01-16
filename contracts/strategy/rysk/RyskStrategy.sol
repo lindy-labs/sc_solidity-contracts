@@ -9,7 +9,6 @@ import {PercentMath} from "../../lib/PercentMath.sol";
 import {ERC165Query} from "../../lib/ERC165Query.sol";
 import {IStrategy} from "../IStrategy.sol";
 import {BaseStrategy} from "../BaseStrategy.sol";
-import {YieldDistributionStrategy} from "../LinearYieldDistributionStrategy.sol";
 import {LinearYieldDistributionStrategy} from "../LinearYieldDistributionStrategy.sol";
 import {IRyskLiquidityPool} from "../../interfaces/rysk/IRyskLiquidityPool.sol";
 import {IVault} from "../../vault/IVault.sol";
@@ -177,7 +176,7 @@ contract RyskStrategy is BaseStrategy, LinearYieldDistributionStrategy {
         internal
         view
         virtual
-        override(YieldDistributionStrategy)
+        override(LinearYieldDistributionStrategy)
         returns (uint256)
     {
         uint256 currentWithdrawalEpoch = ryskLqPool.withdrawalEpoch();
