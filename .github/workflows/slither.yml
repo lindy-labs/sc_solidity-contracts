@@ -30,7 +30,7 @@ jobs:
     - run: yarn run hardhat compile
 
     - name: Run Slither
-      uses: crytic/slither-action@v0.1.0
+      uses: crytic/slither-action@v0.2.0
       continue-on-error: true
       id: slither
       with:
