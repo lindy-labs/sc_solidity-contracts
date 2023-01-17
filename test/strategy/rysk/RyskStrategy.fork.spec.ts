@@ -8,7 +8,7 @@ import {
   ForkHelpers,
   generateNewAddress,
   parseUSDC,
-  increaseTime,
+  moveForwardTwoWeeks,
 } from '../../shared';
 
 import {
@@ -279,7 +279,7 @@ describe('Rysk Strategy (mainnet fork tests)', () => {
       await executeEpochCalculation();
 
       await strategy.updateYieldDistributionCycle();
-      await increaseTime(TWO_WEEKS);
+      await moveForwardTwoWeeks();
 
       await strategy.connect(admin).completeWithdrawal();
 
@@ -309,6 +309,9 @@ describe('Rysk Strategy (mainnet fork tests)', () => {
 
       await executeEpochCalculation();
 
+      await strategy.updateYieldDistributionCycle();
+      await moveForwardTwoWeeks();
+
       expect(await strategy.investedAssets()).to.gte('1186057000');
     });
 
@@ -320,7 +323,7 @@ describe('Rysk Strategy (mainnet fork tests)', () => {
 
       await executeEpochCalculation();
 
-      await strategy.connect(admin).withdrawToVault(amount);
+      await strategy.connect(admin).withdrawToVault(amount.sub(1)); // account for rounding error
 
       await executeEpochCalculation();
 
@@ -365,7 +368,7 @@ describe('Rysk Strategy (mainnet fork tests)', () => {
       await strategy.connect(admin).completeWithdrawal();
 
       await strategy.updateYieldDistributionCycle();
-      await increaseTime(TWO_WEEKS);
+      await moveForwardTwoWeeks();
 
       // we gained ~20 before withdraw, withdrawn 1000 USDC to vault, and invested another 1000 USDC
       expect(await usdc.balanceOf(vault.address)).to.gte('999999000');
@@ -417,7 +420,7 @@ describe('Rysk Strategy (mainnet fork tests)', () => {
       await strategy.connect(admin).invest();
 
       await strategy.updateYieldDistributionCycle();
-      await increaseTime(TWO_WEEKS);
+      await moveForwardTwoWeeks();
 
       expect(await usdc.balanceOf(vault.address)).to.gte('732572000');
       expect(await strategy.investedAssets()).to.gte('2732572000');
