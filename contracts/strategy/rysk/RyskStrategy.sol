@@ -147,6 +147,7 @@ contract RyskStrategy is BaseStrategy, LinearYieldDistributionStrategy {
         returns (uint256)
     {
         if (_amount == 0) revert StrategyAmountZero();
+        if (_amount > investedAssets()) revert StrategyNotEnoughShares();
 
         uint256 withdrawalEpoch = ryskLqPool.withdrawalEpoch();
         _checkAndCompletePendingWithdrawal(withdrawalEpoch);
@@ -161,9 +162,9 @@ contract RyskStrategy is BaseStrategy, LinearYieldDistributionStrategy {
             withdrawalPricePerShare
         );
 
-        emit StrategyWithdrawalInitiated(_amount);
         ryskLqPool.initiateWithdraw(sharesToWithdraw);
-        updateYieldDistributionCycle();
+        emit StrategyWithdrawalInitiated(_amount);
+
         return 0;
     }
 

@@ -52,18 +52,14 @@ abstract contract LinearYieldDistributionStrategy is IStrategy {
     {
         uint256 totalInvestedAssets = _totalInvestedAssets();
 
-        // if there's no yield being distributed, return the real funds
+        // if there's no yield being distributed
         if ((cycleStartTimestamp == 0) || (cycleDistributionAmount == 0))
-            return totalInvestedAssets;
+            return
+                cycleStartAmount < totalInvestedAssets
+                    ? cycleStartAmount
+                    : totalInvestedAssets;
 
-        uint256 timeElapsed = block.timestamp - cycleStartTimestamp;
-        uint256 cycleCurrentAmount = cycleEndAmount;
-
-        if (timeElapsed < cycleDuration)
-            cycleCurrentAmount =
-                cycleEndAmount -
-                (cycleDistributionAmount * (cycleDuration - timeElapsed)) /
-                cycleDuration;
+        uint256 cycleCurrentAmount = _calcCurrentlyDistributedYieldAmount();
 
         // if there's less funds, return the real funds
         if (totalInvestedAssets < cycleCurrentAmount)
@@ -76,6 +72,8 @@ abstract contract LinearYieldDistributionStrategy is IStrategy {
      * Updates the yield distribution cycle or starts a new one if previous has finished. This function can be called when
      * there's a new yield generated or when there's a loss in the strategy.
      *
+     * @dev Has to be called inside (IStrategy)#withdrawToVault before the actual withdrawal.
+     *
      * @notice It can be called by anyone because there's not harm from it, and it
      * makes the system less reliant on the backend.
      */
@@ -83,23 +81,11 @@ abstract contract LinearYieldDistributionStrategy is IStrategy {
         uint256 totalInvestedAssets = _totalInvestedAssets();
 
         // there is no new yield generated to distribute since cycle started
-        if (cycleStartAmount + cycleDistributionAmount == totalInvestedAssets)
-            return;
+        if (cycleEndAmount == totalInvestedAssets) return;
 
         // if there was yield being distributed
         if (cycleDistributionAmount > 0) {
-            uint256 timeElapsed = block.timestamp - cycleStartTimestamp;
-
-            if (timeElapsed > cycleDuration) {
-                // when the yield distribution is at 100%
-                cycleStartAmount += cycleDistributionAmount;
-            } else {
-                // when there's new yield generated before the yield distribution cycle ends,
-                // adjust the deposit amount according to the distributed percentage
-                cycleStartAmount +=
-                    (cycleDistributionAmount * timeElapsed) /
-                    cycleDuration;
-            }
+            cycleStartAmount = _calcCurrentlyDistributedYieldAmount();
         }
 
         // if funds were lost
@@ -122,6 +108,26 @@ abstract contract LinearYieldDistributionStrategy is IStrategy {
     }
 
     /**
+     * Calculates the amount of yield distributed in the current point in time in the current cycle.
+     */
+    function _calcCurrentlyDistributedYieldAmount()
+        internal
+        view
+        returns (uint256)
+    {
+        uint256 timeElapsed = block.timestamp - cycleStartTimestamp;
+
+        // when the yield distribution is at 100%
+        if (timeElapsed >= cycleDuration) return cycleEndAmount;
+
+        // when there's new yield generated before the yield distribution cycle ends
+        return
+            cycleEndAmount -
+            (cycleDistributionAmount * (cycleDuration - timeElapsed)) /
+            cycleDuration;
+    }
+
+    /**
      * Handles the withdrawal of funds in the yield distribution cycle. This function should be called by the strategy implementation.
      */
     function _handleWthdrawalInYieldDistributionCycle(uint256 _amount)
@@ -130,7 +136,8 @@ abstract contract LinearYieldDistributionStrategy is IStrategy {
         if (_amount > cycleStartAmount) cycleStartAmount = 0;
         else cycleStartAmount -= _amount;
 
-        cycleEndAmount -= _amount;
+        if (_amount > cycleEndAmount) cycleEndAmount = 0;
+        else cycleEndAmount -= _amount;
     }
 
     /**
