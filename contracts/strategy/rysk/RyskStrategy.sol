@@ -23,7 +23,7 @@ import "hardhat/console.sol";
  * @notice This strategy uses a linear yield distribution model.
  *
  */
-contract RyskStrategy is BaseStrategy, LinearYieldDistributionStrategy {
+contract RyskStrategy is LinearYieldDistributionStrategy {
     using SafeERC20 for IERC20;
     using PercentMath for uint256;
 
@@ -62,8 +62,8 @@ contract RyskStrategy is BaseStrategy, LinearYieldDistributionStrategy {
         IERC20 _underlying,
         uint256 _yieldCycleLength
     )
-        BaseStrategy(_vault, _underlying, _admin)
         LinearYieldDistributionStrategy(_yieldCycleLength)
+        BaseStrategy(_vault, _underlying, _admin)
     {
         if (_ryskLiquidityPool == address(0))
             revert RyskLiquidityPoolCannotBe0Address();
@@ -74,6 +74,7 @@ contract RyskStrategy is BaseStrategy, LinearYieldDistributionStrategy {
         underlying.safeIncreaseAllowance(_ryskLiquidityPool, type(uint256).max);
         underlyingDecimals = IERC20Metadata(address(_underlying)).decimals();
 
+        _grantRole(SETTINGS_ROLE, _admin);
         _grantRole(KEEPER_ROLE, _keeper);
     }
 

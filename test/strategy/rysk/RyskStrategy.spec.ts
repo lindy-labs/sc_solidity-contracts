@@ -35,7 +35,10 @@ describe('RyskStrategy', () => {
   let RyskStrategyFactory: RyskStrategy__factory;
 
   const DEFAULT_ADMIN_ROLE = constants.HashZero;
+  const SETTINGS_ROLE = utils.keccak256(utils.toUtf8Bytes('SETTINGS_ROLE'));
   const MANAGER_ROLE = utils.keccak256(utils.toUtf8Bytes('MANAGER_ROLE'));
+
+  const YIELD_CYCLE_DURATION = time.duration.days(10).toString();
 
   beforeEach(async () => {
     [admin, alice, manager, keeper] = await ethers.getSigners();
@@ -75,7 +78,7 @@ describe('RyskStrategy', () => {
       keeper.address,
       ryskLqPool.address,
       underlying.address,
-      time.duration.days(10).toString().toString(),
+      YIELD_CYCLE_DURATION,
     );
 
     await strategy.connect(admin).grantRole(MANAGER_ROLE, manager.address);
@@ -96,7 +99,7 @@ describe('RyskStrategy', () => {
           keeper.address,
           ryskLqPool.address,
           underlying.address,
-          time.duration.days(10).toString(),
+          YIELD_CYCLE_DURATION,
         ),
       ).to.be.revertedWith('StrategyAdminCannotBe0Address');
     });
@@ -109,7 +112,7 @@ describe('RyskStrategy', () => {
           constants.AddressZero,
           ryskLqPool.address,
           underlying.address,
-          time.duration.days(10).toString(),
+          YIELD_CYCLE_DURATION,
         ),
       ).to.be.revertedWith('StrategyKeeperCannotBe0Address');
     });
@@ -122,7 +125,7 @@ describe('RyskStrategy', () => {
           keeper.address,
           constants.AddressZero,
           underlying.address,
-          time.duration.days(10).toString(),
+          YIELD_CYCLE_DURATION,
         ),
       ).to.be.revertedWith('RyskLiquidityPoolCannotBe0Address');
     });
@@ -135,7 +138,7 @@ describe('RyskStrategy', () => {
           keeper.address,
           ryskLqPool.address,
           constants.AddressZero,
-          time.duration.days(10).toString(),
+          YIELD_CYCLE_DURATION,
         ),
       ).to.be.revertedWith('StrategyUnderlyingCannotBe0Address');
     });
@@ -148,20 +151,52 @@ describe('RyskStrategy', () => {
           keeper.address,
           ryskLqPool.address,
           underlying.address,
-          time.duration.days(10).toString(),
+          YIELD_CYCLE_DURATION,
         ),
       ).to.be.revertedWith('StrategyNotIVault');
+    });
+
+    it('reverts if yield cycle duration is greater than max duration', async () => {
+      const invalidCycleDuration = (await strategy.MAX_CYCLE_DURATION()).add(1);
+
+      await expect(
+        RyskStrategyFactory.deploy(
+          vault.address,
+          admin.address,
+          keeper.address,
+          ryskLqPool.address,
+          underlying.address,
+          invalidCycleDuration,
+        ),
+      ).to.be.revertedWith('StrategyInvalidYieldDistributionCycleDuration');
+    });
+
+    it('reverts if yield cycle duration is less than min duration', async () => {
+      const invalidCycleDuration = (await strategy.MIN_CYCLE_DURATION()).sub(1);
+
+      await expect(
+        RyskStrategyFactory.deploy(
+          vault.address,
+          admin.address,
+          keeper.address,
+          ryskLqPool.address,
+          underlying.address,
+          invalidCycleDuration,
+        ),
+      ).to.be.revertedWith('StrategyInvalidYieldDistributionCycleDuration');
     });
 
     it('sets initial values as expected', async () => {
       expect(await strategy.vault()).to.eq(vault.address);
       expect(await strategy.ryskLqPool()).to.eq(ryskLqPool.address);
       expect(await strategy.underlying()).to.eq(underlying.address);
+      expect(await strategy.cycleDuration()).to.eq(YIELD_CYCLE_DURATION);
 
       expect(await strategy.isSync()).to.be.false;
 
       expect(await strategy.hasRole(DEFAULT_ADMIN_ROLE, admin.address)).to.be
         .true;
+      expect(await strategy.hasRole(SETTINGS_ROLE, admin.address)).to.be.true;
       expect(await strategy.hasRole(MANAGER_ROLE, vault.address)).to.be.true;
 
       expect(
@@ -858,6 +893,17 @@ describe('RyskStrategy', () => {
       );
     });
 
+    it(`doesn't wait for another #updateYieldDistributionCycle to reflect the loss of funds from principal amount`, async () => {
+      await investToRyskLqPool(parseUSDC('100'));
+      await addYieldToRyskLqPool(parseUSDC('50'));
+      await strategy.updateYieldDistributionCycle();
+
+      await increaseTime(time.duration.days(6));
+      await loseFundsFromRyskLqPool(parseUSDC('100'));
+
+      expect(await strategy.investedAssets()).to.eq(parseUSDC('50'));
+    });
+
     it(`doesn't reflect the loss of funds immediately if it only affected the yield to be distributed.`, async () => {
       await investToRyskLqPool(parseUSDC('100'));
       await addYieldToRyskLqPool(parseUSDC('100'));
@@ -875,8 +921,6 @@ describe('RyskStrategy', () => {
         await addYieldToRyskLqPool(parseUSDC('100'));
         await strategy.updateYieldDistributionCycle();
 
-        // move forward to exactly 5 days in the future since the invest, minus 2 blocks.
-        // the -2 blocks ensures that the following 2 calls make the syncYield execute precisely on 5th day since the invest.
         await increaseTime(time.duration.days(5));
 
         await loseFundsFromRyskLqPool(parseUSDC('20'));
@@ -1062,6 +1106,78 @@ describe('RyskStrategy', () => {
         expectEqualOrClose(await strategy.investedAssets(), parseUSDC('30'));
         expectEqualOrClose(await strategy.cycleStartAmount(), parseUSDC('0'));
         expectEqualOrClose(await strategy.cycleEndAmount(), parseUSDC('90'));
+      });
+    });
+  });
+
+  describe('#setYieldDistributionCycleDuration', () => {
+    it('fails if caller not SETTINGS', async () => {
+      await expect(
+        strategy.connect(manager).setYieldDistributionCycleDuration(1),
+      ).to.be.revertedWith('StrategyCallerNotSettings');
+    });
+
+    it('fails if new cycle druation is greater than max', async () => {
+      const invalidCycleDuration = (await strategy.MAX_CYCLE_DURATION()).add(1);
+
+      await expect(
+        strategy
+          .connect(admin)
+          .setYieldDistributionCycleDuration(invalidCycleDuration),
+      ).to.be.revertedWith('StrategyInvalidYieldDistributionCycleDuration');
+    });
+
+    it('fails if new cycle druation is less than min', async () => {
+      const invalidCycleDuration = (await strategy.MIN_CYCLE_DURATION()).sub(1);
+
+      await expect(
+        strategy
+          .connect(admin)
+          .setYieldDistributionCycleDuration(invalidCycleDuration),
+      ).to.be.revertedWith('StrategyInvalidYieldDistributionCycleDuration');
+    });
+
+    it('works when new duration is less than max and greater than min', async () => {
+      const cycleDuration = await strategy.MIN_CYCLE_DURATION();
+
+      await strategy
+        .connect(admin)
+        .setYieldDistributionCycleDuration(cycleDuration);
+
+      expect(await strategy.cycleDuration()).to.eq(cycleDuration);
+    });
+
+    describe('after a call to #updateYieldDistributionCycle', () => {
+      it('shortens the cycle if new duration is less than current cycle duration', async () => {
+        await investToRyskLqPool(parseUSDC('100'));
+        await addYieldToRyskLqPool(parseUSDC('100'));
+        await strategy.updateYieldDistributionCycle();
+
+        increaseTime(time.duration.days(2));
+
+        const newCycleDuration = time.duration.days(4).toString();
+
+        await strategy
+          .connect(admin)
+          .setYieldDistributionCycleDuration(newCycleDuration);
+
+        expectEqualOrClose(await strategy.investedAssets(), parseUSDC('150'));
+      });
+
+      it('lengthens the cycle if new duration is greater than current cycle duration', async () => {
+        await investToRyskLqPool(parseUSDC('100'));
+        await addYieldToRyskLqPool(parseUSDC('100'));
+        await strategy.updateYieldDistributionCycle();
+
+        increaseTime(YIELD_CYCLE_DURATION);
+
+        const newCycleDuration = BigNumber.from(YIELD_CYCLE_DURATION).mul(2);
+
+        await strategy
+          .connect(admin)
+          .setYieldDistributionCycleDuration(newCycleDuration);
+
+        expectEqualOrClose(await strategy.investedAssets(), parseUSDC('150'));
       });
     });
   });

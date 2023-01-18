@@ -4,12 +4,13 @@ pragma solidity =0.8.10;
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import {IStrategy} from "./IStrategy.sol";
+import {BaseStrategy} from "./BaseStrategy.sol";
 
 import "hardhat/console.sol";
 
-abstract contract LinearYieldDistributionStrategy is IStrategy {
+abstract contract LinearYieldDistributionStrategy is BaseStrategy {
     /**
-     * Emmited when the yield distribution cycle is updated.
+     * Emmited when a new yield distribution cycle starts.
      *
      * @param startTimestamp the timestamp of the start of the current yield distribution cycle.
      * @param duration the duration of the current yield distribution cycle
@@ -23,6 +24,11 @@ abstract contract LinearYieldDistributionStrategy is IStrategy {
         uint256 startAmount
     );
 
+    error StrategyInvalidYieldDistributionCycleDuration();
+
+    uint256 public constant MIN_CYCLE_DURATION = 1 days;
+    uint256 public constant MAX_CYCLE_DURATION = 21 days;
+
     // The length of a yield distribution cycle
     uint256 public cycleDuration;
     // The amount being distributed in the yield distribution cycle
@@ -35,13 +41,18 @@ abstract contract LinearYieldDistributionStrategy is IStrategy {
     uint256 public cycleEndAmount;
 
     constructor(uint256 _yieldCycleDuration) {
-        // TODO: check if the yield cycle duration is valid
-        require(_yieldCycleDuration > 0, "Yield cycle length cannot be 0");
-
-        cycleDuration = _yieldCycleDuration;
+        _setYieldDistributionCycleDuration(_yieldCycleDuration);
     }
 
-    // TODO: make dist cycle length configurable
+    /**
+     * Sets the duration of the yield distribution cycle.
+     */
+    function setYieldDistributionCycleDuration(uint256 _newDuration)
+        public
+        onlySettings
+    {
+        _setYieldDistributionCycleDuration(_newDuration);
+    }
 
     /// @inheritdoc IStrategy
     function investedAssets()
@@ -72,8 +83,6 @@ abstract contract LinearYieldDistributionStrategy is IStrategy {
     /**
      * Updates the yield distribution cycle or starts a new one if previous has finished. This function can be called when
      * there's a new yield generated or when there's a loss in the strategy.
-     *
-     * @dev Has to be called inside (IStrategy)#withdrawToVault before the actual withdrawal.
      *
      * @notice It can be called by anyone because there's not harm from it, and it
      * makes the system less reliant on the backend.
@@ -106,6 +115,19 @@ abstract contract LinearYieldDistributionStrategy is IStrategy {
             cycleDistributionAmount,
             cycleStartAmount
         );
+    }
+
+    /**
+     * @dev Sets the duration of the yield distribution cycle.
+     * Fails if the duration is not between MIN_CYCLE_DURATION and MAX_CYCLE_DURATION.
+     */
+    function _setYieldDistributionCycleDuration(uint256 _newDuration) internal {
+        if (
+            _newDuration > MAX_CYCLE_DURATION ||
+            _newDuration < MIN_CYCLE_DURATION
+        ) revert StrategyInvalidYieldDistributionCycleDuration();
+
+        cycleDuration = _newDuration;
     }
 
     /**
