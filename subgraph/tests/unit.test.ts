@@ -486,6 +486,54 @@ test('handleYieldClaimed reduces shares from Deposits and creates Donations', ()
   assert.fieldEquals('Donation', donationId(mockEvent, '1'), 'amount', '100');
 });
 
+test("handleYieldClaimed updates the Vault's amount claimed", () => {
+  let mockEvent = newMockEvent();
+
+  // Create deposits
+  createDeposit('1', 50, false, '1', '1', 1, 50);
+
+  // Create vault
+  const vault = new Vault('0');
+  vault.treasury = Address.fromString(TREASURY_ADDRESS);
+  vault.amountClaimed = BigInt.fromI32(50);
+  vault.save();
+
+  // Create claimer
+  const claimer = new Claimer(MOCK_ADDRESS_1);
+  claimer.vault = vault.id;
+  claimer.depositsIds = ['1', '2'];
+  claimer.save();
+
+  // Create foundation
+  const foundation = new Foundation('1');
+  foundation.vault = vault.id;
+  foundation.save();
+
+  const event = new YieldClaimed(
+    mockEvent.address,
+    mockEvent.logIndex,
+    mockEvent.transactionLogIndex,
+    mockEvent.logType,
+    mockEvent.block,
+    mockEvent.transaction,
+    mockEvent.parameters,
+    null,
+  );
+  event.parameters = new Array();
+
+  event.parameters.push(newParamAddress('claimerId', MOCK_ADDRESS_1));
+  event.parameters.push(newParamAddress('to', TREASURY_ADDRESS));
+  event.parameters.push(newParamI32('amount', 50));
+  event.parameters.push(newParamI32('burnedShares', 25));
+  event.parameters.push(newParamI32('perfFee', 0));
+  event.parameters.push(newParamI32('totalUnderlying', 300));
+  event.parameters.push(newParamI32('totalShares', 150));
+
+  handleYieldClaimed(event);
+
+  assert.fieldEquals('Vault', '0', 'amountClaimed', '100');
+});
+
 test('handleYieldClaimed takes the performance fee into account', () => {
   let mockEvent = newMockEvent();
 

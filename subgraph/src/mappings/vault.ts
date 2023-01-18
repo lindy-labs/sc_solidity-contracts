@@ -35,6 +35,7 @@ export function handleYieldClaimed(event: YieldClaimed): void {
   claimer.claimed = claimer.claimed.plus(event.params.amount);
   claimer.shares = claimer.shares.minus(event.params.burnedShares);
   vault.totalShares = vault.totalShares.minus(event.params.burnedShares);
+  vault.amountClaimed = vault.amountClaimed.plus(event.params.amount);
   log.debug('claim, sub shares {}', [event.params.burnedShares.toString()]);
 
   let totalClaimedShares = new BigInt(0);
