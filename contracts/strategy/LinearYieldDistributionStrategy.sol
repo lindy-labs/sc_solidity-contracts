@@ -12,6 +12,7 @@ abstract contract LinearYieldDistributionStrategy is IStrategy {
      * Emmited when the yield distribution cycle is updated.
      *
      * @param startTimestamp the timestamp of the start of the current yield distribution cycle.
+     * @param duration the duration of the current yield distribution cycle
      * @param distributionAmount the amount being distributed in the current cycle.
      * @param startAmount the sum of deposits and distributed yield at the start of the cycle.
      */
