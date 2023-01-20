@@ -14,6 +14,8 @@ import {IStabilityPool} from "../../interfaces/liquity/IStabilityPool.sol";
 import {ERC165Query} from "../../lib/ERC165Query.sol";
 import {ICurveExchange} from "../../interfaces/curve/ICurveExchange.sol";
 
+import "hardhat/console.sol";
+
 /***
  * Liquity Strategy generates yield by investing LUSD assets into Liquity Stability Pool contract.
  * Stability pool gives out LQTY & ETH as rewards for liquidity providers.
@@ -376,18 +378,21 @@ contract LiquityStrategy is
         view
     {
         uint256 totalDeposited = IVault(vault).totalPrincipal() +
-            IVaultSponsoring(vault).totalSponsored();
-
-        // check if the amountOutMin is enough to protect the principal plus sponsored
-        if (
-            totalDeposited.pctOf(minPrincipalProtectionPct) <=
-            totalDeposited + _amountOutMin
-        ) return;
+            IVaultSponsoring(vault).totalSponsored() +
+            IVault(vault).accumulatedPerfFee();
 
         // minimum principal protection does not apply when total underlying value is less than min protected principal plus sponsored amount
         if (
             IVault(vault).totalUnderlying() <
             totalDeposited.pctOf(minPrincipalProtectionPct)
+        ) return;
+
+        // check if the amountOutMin is enough to protect the principal plus sponsored
+        if (
+            totalDeposited.pctOf(minPrincipalProtectionPct) <=
+            stabilityPool.getCompoundedLUSDDeposit(address(this)) +
+                underlying.balanceOf(vault) +
+                _amountOutMin
         ) return;
 
         revert StrategyMinimumPrincipalProtection();

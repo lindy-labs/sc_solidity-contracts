@@ -90,6 +90,11 @@ interface IVault {
     function totalPrincipal() external view returns (uint256);
 
     /**
+     * The accumulated performance fee amount.
+     */
+    function accumulatedPerfFee() external view returns (uint256);
+
+    /**
      * Update the invested amount;
      */
     function updateInvested() external;
