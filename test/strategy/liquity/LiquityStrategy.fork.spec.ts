@@ -537,8 +537,8 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       ).to.be.revertedWith('StrategyInsufficientOutputAmount');
     });
 
-    it('fails if the minimum principal protection is not ensured', async () => {
-      // set the minimum principal protection to 200%
+    it('fails if the minimum assets protection is not ensured', async () => {
+      // set the minimum assets protection to 200%
       await strategy.setMinPrincipalProtectionPct(20000);
 
       const initialDeposit = LQTY_REWARD_IN_LUSD.add(ETH_REWARD_IN_LUSD).mul(2);
@@ -553,15 +553,24 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
       );
 
       await vault.updateInvested();
-      // add 100% of the initial deposit as yield to the vault to reach the minimum principal protection threshold
-      await ForkHelpers.mintToken(lusd, vault.address, initialDeposit);
+      // add 95% of the initial deposit as yield directly to the vault to get to 195% of the initial deposit
+      await ForkHelpers.mintToken(
+        lusd,
+        vault.address,
+        initialDeposit.mul(95).div(100),
+      );
 
-      // generated yield as 50% of the initial deposit
+      // generate yield in ETH as 10% of the initial deposit since LQTY is not used when calculating #investedAssets, only ETH.
+      // ETH part of the rewards is ~5.1% of the total rewards so we multipy it by 2 to get to 10%
       await ForkHelpers.mintToken(lqty, strategy.address, EXPECTED_LQTY_REWARD);
-      ForkHelpers.setBalance(strategy.address, EXPECTED_ETH_REWARD);
+      await ForkHelpers.setBalance(
+        strategy.address,
+        EXPECTED_ETH_REWARD.mul(2),
+      );
 
-      // trying to reinvest yield in amount equal to 50% of the initial deposit should fail
-      // because to cover the principal we need to reinvest amount of at least 100% of the initial deposit
+      // trying to reinvest yield in amount equal to 4% of the initial deposit should fail
+      // because to cover the assets we need to reinvest amount of at least 200% -195% = 5% of the initial deposit
+      const insufficientAmountOutMin = initialDeposit.mul(4).div(100);
       await expect(
         strategy.reinvest(
           SWAP_TARGET,
@@ -569,9 +578,9 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
           SWAP_LQTY_DATA,
           EXPECTED_ETH_REWARD,
           SWAP_ETH_DATA,
-          LQTY_REWARD_IN_LUSD.add(ETH_REWARD_IN_LUSD),
+          insufficientAmountOutMin,
         ),
-      ).to.be.revertedWith('StrategyMinimumPrincipalProtection');
+      ).to.be.revertedWith('StrategyMinimumAssetsProtection');
     });
   });
 

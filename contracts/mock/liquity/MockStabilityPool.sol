@@ -1,12 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.10;
 
-import {IStabilityPool} from "../../interfaces/liquity/IStabilityPool.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+import {IStabilityPool} from "../../interfaces/liquity/IStabilityPool.sol";
 import {MockLUSD} from "../MockERC20.sol";
-
-import "hardhat/console.sol";
 
 contract MockStabilityPool is IStabilityPool {
     MockLUSD public immutable lusd;
@@ -25,8 +23,6 @@ contract MockStabilityPool is IStabilityPool {
 
     mapping(address => uint256) public balances;
 
-    uint256 public totalDeposits;
-
     address public priceFeed;
 
     function provideToSP(
@@ -37,7 +33,6 @@ contract MockStabilityPool is IStabilityPool {
         // the balance must appear on getCompoundedLUSDDeposit
         lusd.transferFrom(msg.sender, address(this), _amount);
         balances[msg.sender] += _amount;
-        totalDeposits += _amount;
     }
 
     function withdrawFromSP(uint256 _amount) external {

@@ -47,7 +47,7 @@ describe('LiquityStrategy', () => {
     amount: string | BigNumber,
   ) => Promise<void>;
 
-  let addYieldToVault: (amount: string) => Promise<BigNumber>;
+  let addYieldToVault: (amount: string | BigNumber) => Promise<BigNumber>;
 
   const TREASURY = generateNewAddress();
   const MIN_LOCK_PERIOD = BigNumber.from(time.duration.weeks(2).toNumber());
@@ -609,7 +609,7 @@ describe('LiquityStrategy', () => {
             [],
             insufficientAmountOutMin,
           ),
-      ).to.be.revertedWith('StrategyMinimumPrincipalProtection');
+      ).to.be.revertedWith('StrategyMinimumAssetsProtection');
     });
 
     it('protects the principal + sponsored amount', async () => {
@@ -670,7 +670,7 @@ describe('LiquityStrategy', () => {
             [],
             insufficientAmountOutMin,
           ),
-      ).to.be.revertedWith('StrategyMinimumPrincipalProtection');
+      ).to.be.revertedWith('StrategyMinimumAssetsProtection');
     });
 
     it('protects the principal + sponsored amount + accumulated perf fee', async () => {
@@ -740,7 +740,7 @@ describe('LiquityStrategy', () => {
             [],
             insufficientAmountOutMin,
           ),
-      ).to.be.revertedWith('StrategyMinimumPrincipalProtection');
+      ).to.be.revertedWith('StrategyMinimumAssetsProtection');
     });
 
     it('bypasses principal protection when total underlying assets are less than min protected principal', async () => {
@@ -960,7 +960,7 @@ describe('LiquityStrategy', () => {
           ethSwapData,
           parseUnits('1999'), // amountOutMin
         ),
-      ).to.be.revertedWith('StrategyMinimumPrincipalProtection');
+      ).to.be.revertedWith('StrategyMinimumAssetsProtection');
     });
 
     it('works when selling and reinvesting all of LQTY and ETH', async () => {
@@ -1016,27 +1016,6 @@ describe('LiquityStrategy', () => {
       );
     });
   });
-
-  async function setUpVaultState(
-    depositAmount: BigNumber,
-    sponsorAmount: BigNumber,
-    accumulatedPerfFee: BigNumber,
-  ) {
-    await addUnderlyingBalance(alice, depositAmount);
-    await depositToVault(alice, depositAmount);
-
-    await addUnderlyingBalance(admin, sponsorAmount);
-    await vault.sponsor(
-      underlying.address,
-      sponsorAmount,
-      MIN_LOCK_PERIOD,
-      '99000',
-    );
-
-    await vault.setPerfFeePct('10000'); // 100%
-    await addYieldToVault(parseUnits('1000'));
-    await vault.connect(alice).claimYield(alice.address);
-  }
 
   async function depositToVault(
     user: SignerWithAddress,
