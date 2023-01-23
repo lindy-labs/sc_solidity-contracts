@@ -1079,7 +1079,13 @@ describe('RyskStrategy', () => {
         await ryskLqPool.executeEpochCalculation();
         await strategy.connect(keeper).completeWithdrawal();
 
+        expectEqualOrClose(await strategy.investedAssets(), parseUSDC('0'));
+        expectEqualOrClose(await strategy.cycleStartAmount(), parseUSDC('0'));
+        expectEqualOrClose(await strategy.cycleEndAmount(), parseUSDC('50'));
+
         await increaseTime(time.duration.days(3));
+
+        expectEqualOrClose(await strategy.investedAssets(), parseUSDC('30'));
 
         await strategy.connect(manager).withdrawToVault(parseUSDC('10'));
         await ryskLqPool.executeEpochCalculation();

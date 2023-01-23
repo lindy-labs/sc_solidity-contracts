@@ -6,8 +6,6 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IStrategy} from "./IStrategy.sol";
 import {BaseStrategy} from "./BaseStrategy.sol";
 
-import "hardhat/console.sol";
-
 abstract contract LinearYieldDistributionStrategy is BaseStrategy {
     /**
      * Emmited when a new yield distribution cycle starts.
@@ -66,10 +64,7 @@ abstract contract LinearYieldDistributionStrategy is BaseStrategy {
 
         // if there's no yield being distributed
         if ((cycleStartTimestamp == 0) || (cycleDistributionAmount == 0))
-            return
-                cycleStartAmount < totalInvestedAssets
-                    ? cycleStartAmount
-                    : totalInvestedAssets;
+            return totalInvestedAssets;
 
         uint256 cycleCurrentAmount = _calcCurrentlyDistributedYieldAmount();
 

@@ -13,8 +13,6 @@ import {LinearYieldDistributionStrategy} from "../LinearYieldDistributionStrateg
 import {IRyskLiquidityPool} from "../../interfaces/rysk/IRyskLiquidityPool.sol";
 import {IVault} from "../../vault/IVault.sol";
 
-import "hardhat/console.sol";
-
 /**
  * RyskStrategy generates yield by investing into a Rysk LiquidityPool,
  * that serves to provide liquidity for a dynamic hedging options AMM.
