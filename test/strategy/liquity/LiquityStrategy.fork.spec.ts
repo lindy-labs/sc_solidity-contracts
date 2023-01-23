@@ -539,7 +539,7 @@ describe('Liquity Strategy (mainnet fork tests)', () => {
 
     it('fails if the minimum assets protection is not ensured', async () => {
       // set the minimum assets protection to 200%
-      await strategy.setMinPrincipalProtectionPct(20000);
+      await strategy.setMinProtectedAssetsPct(20000);
 
       const initialDeposit = LQTY_REWARD_IN_LUSD.add(ETH_REWARD_IN_LUSD).mul(2);
       await ForkHelpers.mintToken(lusd, alice, parseUnits('10000000000'));

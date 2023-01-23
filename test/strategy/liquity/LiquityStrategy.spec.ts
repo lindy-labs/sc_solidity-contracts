@@ -317,28 +317,28 @@ describe('LiquityStrategy', () => {
     });
   });
 
-  describe('setMinPrincipalProtectionPct', () => {
+  describe('#setMinProtectedAssetsPct', () => {
     it('changes the percentage of principal to protect', async () => {
-      await strategy.setMinPrincipalProtectionPct(5000);
+      await strategy.setMinProtectedAssetsPct(5000);
 
-      expect(await strategy.minPrincipalProtectionPct()).to.eq(5000);
+      expect(await strategy.minProtectedAssetsPct()).to.eq(5000);
     });
 
     it('allows for percentages above 0', async () => {
-      await strategy.setMinPrincipalProtectionPct(12000);
+      await strategy.setMinProtectedAssetsPct(12000);
 
-      expect(await strategy.minPrincipalProtectionPct()).to.eq(12000);
+      expect(await strategy.minProtectedAssetsPct()).to.eq(12000);
     });
 
     it('allows for a percentage of 0', async () => {
-      await strategy.setMinPrincipalProtectionPct(0);
+      await strategy.setMinProtectedAssetsPct(0);
 
-      expect(await strategy.minPrincipalProtectionPct()).to.eq(0);
+      expect(await strategy.minProtectedAssetsPct()).to.eq(0);
     });
 
     it('reverts if caller is not settings', async () => {
       await expect(
-        strategy.connect(manager).setMinPrincipalProtectionPct(5000),
+        strategy.connect(manager).setMinProtectedAssetsPct(5000),
       ).to.be.revertedWith('StrategyCallerNotSettings');
     });
   });
@@ -564,11 +564,11 @@ describe('LiquityStrategy', () => {
       ).to.be.revertedWith('StrategyNothingToReinvest');
     });
 
-    it('protects the principal by reverting when the reinvested amount is not enough to cover the principal', async () => {
+    it('protects principal by reverting when the reinvested amount is not enough to cover the principal', async () => {
       const depositAmount = parseUnits('10000');
       const protectedPct = '10500'; // 105%
       const protectedAmount = depositAmount.mul(protectedPct).div(10000);
-      await strategy.setMinPrincipalProtectionPct(protectedPct);
+      await strategy.setMinProtectedAssetsPct(protectedPct);
 
       // deposit
       await addUnderlyingBalance(alice, depositAmount);
@@ -612,7 +612,7 @@ describe('LiquityStrategy', () => {
       ).to.be.revertedWith('StrategyMinimumAssetsProtection');
     });
 
-    it('protects the principal + sponsored amount', async () => {
+    it('protects principal + the sponsored amount', async () => {
       const depositAmount = parseUnits('5000');
       const sponsorAmount = parseUnits('5000');
       const protectedPct = '10500'; // 105%
@@ -620,7 +620,7 @@ describe('LiquityStrategy', () => {
         .add(sponsorAmount)
         .mul(protectedPct)
         .div(10000);
-      await strategy.setMinPrincipalProtectionPct(protectedPct);
+      await strategy.setMinProtectedAssetsPct(protectedPct);
 
       // deposit
       await addUnderlyingBalance(alice, depositAmount);
@@ -673,7 +673,7 @@ describe('LiquityStrategy', () => {
       ).to.be.revertedWith('StrategyMinimumAssetsProtection');
     });
 
-    it('protects the principal + sponsored amount + accumulated perf fee', async () => {
+    it('protects principal + sponsored amount + accumulated perf fee', async () => {
       const depositAmount = parseUnits('5000');
       const sponsorAmount = parseUnits('5000');
       const performanceFee = parseUnits('1000');
@@ -683,7 +683,7 @@ describe('LiquityStrategy', () => {
         .add(performanceFee)
         .mul(protectedPct)
         .div(10000);
-      await strategy.setMinPrincipalProtectionPct(protectedPct);
+      await strategy.setMinProtectedAssetsPct(protectedPct);
 
       // deposit
       await addUnderlyingBalance(alice, depositAmount);
@@ -743,11 +743,11 @@ describe('LiquityStrategy', () => {
       ).to.be.revertedWith('StrategyMinimumAssetsProtection');
     });
 
-    it('bypasses principal protection when total underlying assets are less than min protected principal', async () => {
+    it('bypasses min assets protection when total underlying assets are less than principal', async () => {
       const depositAmount = parseUnits('10000');
       const protectedPct = '11500'; // 115%
       const protectedAmount = depositAmount.mul(protectedPct).div(10000);
-      await strategy.setMinPrincipalProtectionPct(protectedPct);
+      await strategy.setMinProtectedAssetsPct(protectedPct);
 
       // deposit
       await addUnderlyingBalance(alice, depositAmount);
@@ -798,7 +798,7 @@ describe('LiquityStrategy', () => {
       expect(await getETHBalance(strategy.address)).to.eq('0');
     });
 
-    it('bypasses principal protection when total underlying assets are less than min protected principal + sponsored amount + perf fee', async () => {
+    it('bypasses min assets protection when total underlying assets are less than principal + sponsored amount + perf fee', async () => {
       const depositAmount = parseUnits('5000');
       const sponsorAmount = parseUnits('5000');
       const performanceFee = parseUnits('1000');
@@ -808,7 +808,7 @@ describe('LiquityStrategy', () => {
         .add(performanceFee)
         .mul(protectedPct)
         .div(10000);
-      await strategy.setMinPrincipalProtectionPct(protectedPct);
+      await strategy.setMinProtectedAssetsPct(protectedPct);
 
       // deposit
       await addUnderlyingBalance(alice, depositAmount);
@@ -873,9 +873,9 @@ describe('LiquityStrategy', () => {
       expect(await getETHBalance(strategy.address)).to.eq('0');
     });
 
-    it('works if LQTY + ETH amount sold is enough to protect the principal', async () => {
+    it('works if LQTY + ETH amount sold is enough to cover min protected assets amount', async () => {
       await vault.setInvestPct('5000'); // 50%
-      await strategy.setMinPrincipalProtectionPct('11000'); // 110%
+      await strategy.setMinProtectedAssetsPct('11000'); // 110%
       await addUnderlyingBalance(alice, '20000');
 
       const params = depositParams.build({
@@ -922,9 +922,9 @@ describe('LiquityStrategy', () => {
       expect(await strategy.investedAssets()).to.eq(parseUnits('12100'));
     });
 
-    it('fails if LQTY + ETH amount sold is not enough to protect the principal', async () => {
+    it('fails if LQTY + ETH amount sold is not enough to cover protected assets amount', async () => {
       await vault.setInvestPct('9000'); // 90%
-      await strategy.setMinPrincipalProtectionPct('12000'); // 120%
+      await strategy.setMinProtectedAssetsPct('12000'); // 120%
       await addUnderlyingBalance(alice, '10000');
 
       const params = depositParams.build({
