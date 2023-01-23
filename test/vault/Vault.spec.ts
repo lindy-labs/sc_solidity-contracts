@@ -2956,6 +2956,8 @@ describe('Vault', () => {
       console.log('balance', await underlying.balanceOf(vault.address));
       console.log('shares', await vault.totalShares());
 
+      await underlying.mint(vault.address, 1);
+
       await vault.connect(alice).deposit(
         depositParams.build({
           amount: '11360096784749681973',
