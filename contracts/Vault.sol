@@ -118,7 +118,7 @@ contract Vault is
     uint16 public perfFeePct;
 
     /// Current accumulated performance fee;
-    uint256 public accumulatedPerfFee;
+    uint256 public override(IVault) accumulatedPerfFee;
 
     /// Loss tolerance pct
     uint16 public lossTolerancePct;
@@ -1018,7 +1018,9 @@ contract Vault is
         // Checks if the user is not already in debt
         if (
             _computeShares(
-                _applyLossTolerance(claimers[_claim.beneficiary].totalPrincipal),
+                _applyLossTolerance(
+                    claimers[_claim.beneficiary].totalPrincipal
+                ),
                 _localTotalShares,
                 _localTotalPrincipal
             ) > claimers[_claim.beneficiary].totalShares
