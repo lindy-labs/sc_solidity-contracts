@@ -22,10 +22,16 @@ abstract contract LinearYieldDistributionStrategy is BaseStrategy {
         uint256 startAmount
     );
 
+    /**
+     *  Emmited when the duration of the yield distribution cycle is changed.
+     *
+     * @param newDuration the new duration of the yield distribution cycle.
+     */
+    event StrategyYieldDistributionCycleDurationChanged(uint256 newDuration);
+
     error StrategyInvalidYieldDistributionCycleDuration();
 
-    uint256 public constant MIN_CYCLE_DURATION = 1 days;
-    uint256 public constant MAX_CYCLE_DURATION = 21 days;
+    uint256 public constant MAX_CYCLE_DURATION = 30 days;
 
     // The length of a yield distribution cycle
     uint256 public cycleDuration;
@@ -63,8 +69,11 @@ abstract contract LinearYieldDistributionStrategy is BaseStrategy {
         uint256 totalInvestedAssets = _totalInvestedAssets();
 
         // if there's no yield being distributed
-        if ((cycleStartTimestamp == 0) || (cycleDistributionAmount == 0))
-            return totalInvestedAssets;
+        if (
+            (cycleStartTimestamp == 0) ||
+            (cycleDistributionAmount == 0) ||
+            cycleDuration == 0
+        ) return totalInvestedAssets;
 
         uint256 cycleCurrentAmount = _calcCurrentlyDistributedYieldAmount();
 
@@ -83,6 +92,8 @@ abstract contract LinearYieldDistributionStrategy is BaseStrategy {
      * makes the system less reliant on the backend.
      */
     function updateYieldDistributionCycle() public {
+        if (cycleDuration == 0) return;
+
         uint256 totalInvestedAssets = _totalInvestedAssets();
 
         // there is no new yield generated to distribute since cycle started
@@ -117,12 +128,11 @@ abstract contract LinearYieldDistributionStrategy is BaseStrategy {
      * Fails if the duration is not between MIN_CYCLE_DURATION and MAX_CYCLE_DURATION.
      */
     function _setYieldDistributionCycleDuration(uint256 _newDuration) internal {
-        if (
-            _newDuration > MAX_CYCLE_DURATION ||
-            _newDuration < MIN_CYCLE_DURATION
-        ) revert StrategyInvalidYieldDistributionCycleDuration();
+        if (_newDuration > MAX_CYCLE_DURATION)
+            revert StrategyInvalidYieldDistributionCycleDuration();
 
         cycleDuration = _newDuration;
+        emit StrategyYieldDistributionCycleDurationChanged(_newDuration);
     }
 
     /**

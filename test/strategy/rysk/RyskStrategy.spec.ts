@@ -171,9 +171,7 @@ describe('RyskStrategy', () => {
       ).to.be.revertedWith('StrategyInvalidYieldDistributionCycleDuration');
     });
 
-    it('reverts if yield cycle duration is less than min duration', async () => {
-      const invalidCycleDuration = (await strategy.MIN_CYCLE_DURATION()).sub(1);
-
+    it('works if yield cycle duration is 0', async () => {
       await expect(
         RyskStrategyFactory.deploy(
           vault.address,
@@ -181,9 +179,9 @@ describe('RyskStrategy', () => {
           keeper.address,
           ryskLqPool.address,
           underlying.address,
-          invalidCycleDuration,
+          0,
         ),
-      ).to.be.revertedWith('StrategyInvalidYieldDistributionCycleDuration');
+      ).to.not.be.reverted;
     });
 
     it('sets initial values as expected', async () => {
@@ -596,6 +594,17 @@ describe('RyskStrategy', () => {
           cycleDistributionAmount,
           cycleStartAmount,
         );
+    });
+
+    it('works if distribution cycle duration is 0', async () => {
+      await investToRyskLqPool(parseUSDC('100'));
+      await addYieldToRyskLqPool(parseUSDC('100'));
+
+      await strategy.setYieldDistributionCycleDuration(0);
+
+      await expect(strategy.updateYieldDistributionCycle()).to.not.be.reverted;
+
+      expect(await strategy.investedAssets()).to.eq(parseUSDC('200'));
     });
 
     it(`starts a cycle when there isn't one`, async () => {
@@ -1133,24 +1142,34 @@ describe('RyskStrategy', () => {
       ).to.be.revertedWith('StrategyInvalidYieldDistributionCycleDuration');
     });
 
-    it('fails if new cycle druation is less than min', async () => {
-      const invalidCycleDuration = (await strategy.MIN_CYCLE_DURATION()).sub(1);
-
-      await expect(
-        strategy
-          .connect(admin)
-          .setYieldDistributionCycleDuration(invalidCycleDuration),
-      ).to.be.revertedWith('StrategyInvalidYieldDistributionCycleDuration');
-    });
-
-    it('works when new duration is less than max and greater than min', async () => {
-      const cycleDuration = await strategy.MIN_CYCLE_DURATION();
+    it('works when new duration equals max', async () => {
+      const cycleDuration = await strategy.MAX_CYCLE_DURATION();
 
       await strategy
         .connect(admin)
         .setYieldDistributionCycleDuration(cycleDuration);
 
       expect(await strategy.cycleDuration()).to.eq(cycleDuration);
+    });
+
+    it('works when new cycle druation is 0', async () => {
+      await expect(
+        strategy.connect(admin).setYieldDistributionCycleDuration('0'),
+      ).to.not.be.reverted;
+    });
+
+    it('works when new cycle druation is 0', async () => {
+      const newCycleDuration = await (
+        await strategy.MAX_CYCLE_DURATION()
+      ).div(2);
+
+      const tx = await strategy
+        .connect(admin)
+        .setYieldDistributionCycleDuration(newCycleDuration);
+
+      await expect(tx)
+        .to.emit(strategy, 'StrategyYieldDistributionCycleDurationChanged')
+        .withArgs(newCycleDuration);
     });
 
     describe('after a call to #updateYieldDistributionCycle', () => {
@@ -1167,6 +1186,7 @@ describe('RyskStrategy', () => {
           .connect(admin)
           .setYieldDistributionCycleDuration(newCycleDuration);
 
+        expect(await strategy.cycleDuration()).to.eq(newCycleDuration);
         expectEqualOrClose(await strategy.investedAssets(), parseUSDC('150'));
       });
 
@@ -1183,7 +1203,38 @@ describe('RyskStrategy', () => {
           .connect(admin)
           .setYieldDistributionCycleDuration(newCycleDuration);
 
+        expect(await strategy.cycleDuration()).to.eq(newCycleDuration);
         expectEqualOrClose(await strategy.investedAssets(), parseUSDC('150'));
+      });
+
+      it('stops yield distribution if new duration is 0', async () => {
+        await investToRyskLqPool(parseUSDC('100'));
+        await addYieldToRyskLqPool(parseUSDC('100'));
+        await strategy.updateYieldDistributionCycle();
+
+        increaseTime(BigNumber.from(YIELD_CYCLE_DURATION).div(2));
+
+        await strategy.connect(admin).setYieldDistributionCycleDuration('0');
+
+        expectEqualOrClose(await strategy.investedAssets(), parseUSDC('200'));
+      });
+
+      it('prevents starting a new cycle if duration is 0', async () => {
+        await investToRyskLqPool(parseUSDC('100'));
+        await addYieldToRyskLqPool(parseUSDC('100'));
+        await strategy.updateYieldDistributionCycle();
+
+        increaseTime(BigNumber.from(YIELD_CYCLE_DURATION).div(2));
+
+        await strategy.connect(admin).setYieldDistributionCycleDuration('0');
+
+        await addYieldToRyskLqPool(parseUSDC('100'));
+
+        const tx = await strategy.updateYieldDistributionCycle();
+        await expect(tx).to.not.emit(
+          strategy,
+          'StrategyNewYieldDistributionCycle',
+        );
       });
     });
   });
