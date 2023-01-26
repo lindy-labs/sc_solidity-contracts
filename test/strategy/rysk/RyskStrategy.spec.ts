@@ -1070,21 +1070,27 @@ describe('RyskStrategy', () => {
       });
 
       it('handles multiple withdrawals during a cycle and updates cycle sucessfully after', async () => {
-        // 1. deposit 100 and generate 100 in yield
-        // 2. move forward 5 days and withdraw 150 => 0 available and 50 left to distribute
-        // 3. move forward 3 days and withdraw 10 => 20 available and 20 left to distribute
-        // 4. genearte 100 in yield and update cycle => 20 available and 120 left to distribute
-        // 4. move forward 5 days and withdraw 50 => 40 avaialble and 60 left to distribute
-        //
+        // 1. deposit 100 and generate 100 in yield distributed over 10 days
+        // 2. move forward 5 days and initiate withdraw for 150
+        // 3. complete withdrawal in a new epoch with unchanged pps => 0 available and 50 left to distribute
+        // 4. move forward 3 days and initiate withdraw for 10
+        // 5. complete withdrawal in a new epoch with unchanged pps => 20 available and 20 left to distribute
+        // 6. move forward 1 day and initiate withdraw for 20 => 30 available and 10 left to distribute
+        // 7. genearte 40 in yield and update dist cycle =>  30 available and 50 left to distribute
+        // 8. complete withdrawal in a new epoch => 0 available and 40 left to distribute
+        // 9. move forward 10 days => all yield distributed
+
+        // step 1
         await investToRyskLqPool(parseUSDC('100'));
         await addYieldToRyskLqPool(parseUSDC('100'));
         await strategy.updateYieldDistributionCycle();
 
+        // step 2
         await increaseTime(time.duration.days(5));
-
         expectEqualOrClose(await strategy.investedAssets(), parseUSDC('150'));
-
         await strategy.connect(manager).withdrawToVault(parseUSDC('150'));
+
+        // step 3
         await ryskLqPool.executeEpochCalculation();
         await strategy.connect(keeper).completeWithdrawal();
 
@@ -1092,11 +1098,12 @@ describe('RyskStrategy', () => {
         expectEqualOrClose(await strategy.cycleStartAmount(), parseUSDC('0'));
         expectEqualOrClose(await strategy.cycleEndAmount(), parseUSDC('50'));
 
+        // step 4
         await increaseTime(time.duration.days(3));
-
         expectEqualOrClose(await strategy.investedAssets(), parseUSDC('30'));
-
         await strategy.connect(manager).withdrawToVault(parseUSDC('10'));
+
+        // step 5
         await ryskLqPool.executeEpochCalculation();
         await strategy.connect(keeper).completeWithdrawal();
 
@@ -1104,23 +1111,35 @@ describe('RyskStrategy', () => {
         expectEqualOrClose(await strategy.cycleStartAmount(), parseUSDC('0'));
         expectEqualOrClose(await strategy.cycleEndAmount(), parseUSDC('40'));
 
-        await addYieldToRyskLqPool(parseUSDC('100'));
-        await strategy.updateYieldDistributionCycle();
-
-        expectEqualOrClose(await strategy.investedAssets(), parseUSDC('20'));
-        expectEqualOrClose(await strategy.cycleStartAmount(), parseUSDC('20'));
-        expectEqualOrClose(await strategy.cycleEndAmount(), parseUSDC('140'));
-
-        await increaseTime(time.duration.days(5));
-
-        await strategy.connect(manager).withdrawToVault(parseUSDC('50'));
-        await ryskLqPool.executeEpochCalculation();
-        await strategy.connect(keeper).completeWithdrawal();
-        await strategy.updateYieldDistributionCycle();
+        // step 6
+        await increaseTime(time.duration.days(1));
+        await strategy.connect(manager).withdrawToVault(parseUSDC('20'));
 
         expectEqualOrClose(await strategy.investedAssets(), parseUSDC('30'));
         expectEqualOrClose(await strategy.cycleStartAmount(), parseUSDC('0'));
-        expectEqualOrClose(await strategy.cycleEndAmount(), parseUSDC('90'));
+        expectEqualOrClose(await strategy.cycleEndAmount(), parseUSDC('40'));
+
+        // step 7
+        await addYieldToRyskLqPool(parseUSDC('40')); // double the pps
+        // starts a new cycle to distribute the 50 yield, 10 from previous and 40 from this one
+        await strategy.updateYieldDistributionCycle();
+
+        expectEqualOrClose(await strategy.investedAssets(), parseUSDC('30'));
+        expectEqualOrClose(await strategy.cycleStartAmount(), parseUSDC('30'));
+        expectEqualOrClose(await strategy.cycleEndAmount(), parseUSDC('80'));
+
+        // actually withdraws 40 even though 30 is available
+        await strategy.connect(keeper).completeWithdrawal();
+
+        expectEqualOrClose(await strategy.investedAssets(), parseUSDC('0'));
+        expectEqualOrClose(await strategy.cycleStartAmount(), parseUSDC('0'));
+        expectEqualOrClose(await strategy.cycleEndAmount(), parseUSDC('40'));
+
+        await increaseTime(time.duration.days(10));
+
+        expectEqualOrClose(await strategy.investedAssets(), parseUSDC('40'));
+        expectEqualOrClose(await strategy.cycleStartAmount(), parseUSDC('0'));
+        expectEqualOrClose(await strategy.cycleEndAmount(), parseUSDC('40'));
       });
     });
   });

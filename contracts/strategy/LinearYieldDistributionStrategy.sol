@@ -75,7 +75,8 @@ abstract contract LinearYieldDistributionStrategy is BaseStrategy {
             cycleDuration == 0
         ) return totalInvestedAssets;
 
-        uint256 cycleCurrentAmount = _calcCurrentlyDistributedYieldAmount();
+        uint256 cycleCurrentAmount = cycleEndAmount -
+            _calcRemainingYieldAmount();
 
         // if there's less funds, return the real funds
         if (totalInvestedAssets < cycleCurrentAmount)
@@ -101,7 +102,7 @@ abstract contract LinearYieldDistributionStrategy is BaseStrategy {
 
         // if there was yield being distributed
         if (cycleDistributionAmount > 0) {
-            cycleStartAmount = _calcCurrentlyDistributedYieldAmount();
+            cycleStartAmount = cycleEndAmount - _calcRemainingYieldAmount();
         }
 
         // if funds were lost
@@ -136,23 +137,23 @@ abstract contract LinearYieldDistributionStrategy is BaseStrategy {
     }
 
     /**
-     * Calculates the amount of yield distributed in the current point in time in the current cycle.
+     * Calculates the amount of yield that remains to be distributed in the current cycle.
      */
-    function _calcCurrentlyDistributedYieldAmount()
-        internal
-        view
-        returns (uint256)
-    {
+    function _calcRemainingYieldAmount() internal view returns (uint256) {
         uint256 timeElapsed = block.timestamp - cycleStartTimestamp;
 
         // when the yield distribution is at 100%
-        if (timeElapsed >= cycleDuration) return cycleEndAmount;
+        if (timeElapsed >= cycleDuration) return 0;
+
+        uint256 remainingYieldToDistribute = (cycleDistributionAmount *
+            (cycleDuration - timeElapsed)) / cycleDuration;
+
+        // when withdrawn amount > total deposited + distributed yield
+        // this can happen for strategies like Rysk that update price per share discretely (in epochs)
+        if (remainingYieldToDistribute > cycleEndAmount) return cycleEndAmount;
 
         // when there's new yield generated before the yield distribution cycle ends
-        return
-            cycleEndAmount -
-            (cycleDistributionAmount * (cycleDuration - timeElapsed)) /
-            cycleDuration;
+        return remainingYieldToDistribute;
     }
 
     /**
