@@ -146,21 +146,10 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
   console.log('LquityStrategy initialized');
 
-  // set manager role
-  await liquityStrategy
-    .connect(owner)
-    .grantRole(
-      utils.keccak256(utils.toUtf8Bytes('MANAGER_ROLE')),
-      owner.address,
-    );
-
-  console.log('manager_role granted to owner for strategy');
-
   await vault.connect(owner).setStrategy(liquityStrategy.address);
   console.log('strategy set to vault');
 
   // get 0x contract
-
   if (!address0x) address0x = '0xdef1c0ded9bec7f1a1670819833240f027b25eff';
 
   await liquityStrategy.connect(owner).allowSwapTarget(address0x);
