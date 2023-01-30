@@ -51,6 +51,7 @@ describe('Audit Tests 2', () => {
       PERFORMANCE_FEE_PCT,
       INVESTMENT_FEE_PCT,
       [],
+      0,
     );
     underlying.connect(owner).approve(vault.address, MaxUint256);
     underlying.connect(alice).approve(vault.address, MaxUint256);
@@ -110,7 +111,9 @@ describe('Audit Tests 2', () => {
 
       await time.increase(24 * 60 * 60);
 
-      await expect(vault.connect(alice).claimYield(alice.address)).to.be.revertedWith('VaultNoYieldToClaim');
+      await expect(
+        vault.connect(alice).claimYield(alice.address),
+      ).to.be.revertedWith('VaultNoYieldToClaim');
       await vault.connect(alice).withdraw(alice.address, [2]);
 
       await underlying

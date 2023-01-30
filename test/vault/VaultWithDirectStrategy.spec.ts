@@ -78,6 +78,7 @@ describe('VaultWithDirectStrategy', () => {
       PERFORMANCE_FEE_PCT,
       INVESTMENT_FEE_PCT,
       [],
+      0,
     );
 
     let MockERC20 = await ethers.getContractFactory('MockERC20');

@@ -6,6 +6,7 @@ type Vault @entity {
   claimers: [Claimer!]! @derivedFrom(field: "vault")
   treasury: Bytes
   strategy: Bytes
+  amountClaimed: BigInt!
 }
 
 type Foundation @entity {
@@ -26,6 +27,7 @@ type Deposit @entity {
   id: ID!
   vault: Vault!
   amount: BigInt!
+  amountClaimed: BigInt!
   initialAmount: BigInt!
   claimer: Claimer!
   depositor: Bytes!

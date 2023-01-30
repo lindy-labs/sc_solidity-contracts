@@ -75,7 +75,7 @@ contract Vault is
     //
 
     /// @inheritdoc IVault
-    IERC20Metadata public override(IVault) underlying;
+    IERC20Metadata public immutable override(IVault) underlying;
 
     /// @inheritdoc IVault
     uint16 public override(IVault) investPct;
@@ -88,6 +88,9 @@ contract Vault is
 
     /// @inheritdoc IVault
     uint256 public override(IVault) totalShares;
+
+    /// @inheritdoc IVault
+    uint16 public override(IVault) immediateInvestLimitPct;
 
     /// The investment strategy
     IStrategy public strategy;
@@ -103,7 +106,7 @@ contract Vault is
     Counters.Counter private _depositTokenIds;
 
     /// claimer address => claimer data
-    mapping(address => Claimer) public claimer;
+    mapping(address => Claimer) public claimers;
 
     /// The total of principal deposited
     uint256 public override(IVault) totalPrincipal;
@@ -141,9 +144,12 @@ contract Vault is
         address _admin,
         uint16 _perfFeePct,
         uint16 _lossTolerancePct,
-        SwapPoolParam[] memory _swapPools
+        SwapPoolParam[] memory _swapPools,
+        uint16 _immediateInvestLimitPct
     ) {
-        if (!_investPct.validPct()) revert VaultInvalidInvestpct();
+        if (!_immediateInvestLimitPct.validPct())
+            revert VaultInvalidImmediateInvestLimitPct();
+        if (!_investPct.validPct()) revert VaultInvalidInvestPct();
         if (!_perfFeePct.validPct()) revert VaultInvalidPerformanceFee();
         if (!_lossTolerancePct.validPct()) revert VaultInvalidLossTolerance();
         if (address(_underlying) == address(0x0))
@@ -164,6 +170,7 @@ contract Vault is
         minLockPeriod = _minLockPeriod;
         perfFeePct = _perfFeePct;
         lossTolerancePct = _lossTolerancePct;
+        immediateInvestLimitPct = _immediateInvestLimitPct;
 
         rebalanceMinimum = 10 * 10**underlying.decimals();
 
@@ -247,8 +254,8 @@ contract Vault is
             uint256 perfFee
         )
     {
-        uint256 claimerPrincipal = claimer[_to].totalPrincipal;
-        uint256 claimerShares = claimer[_to].totalShares;
+        uint256 claimerPrincipal = claimers[_to].totalPrincipal;
+        uint256 claimerShares = claimers[_to].totalShares;
         uint256 _totalUnderlyingMinusSponsored = totalUnderlyingMinusSponsored();
 
         uint256 currentClaimerPrincipal = _computeAmount(
@@ -342,6 +349,8 @@ contract Vault is
             _params.name,
             _groupId
         );
+
+        if (immediateInvestLimitPct != 0) _immediateInvestment();
     }
 
     /// @inheritdoc IVault
@@ -362,7 +371,7 @@ contract Vault is
 
         accumulatedPerfFee += fee;
 
-        claimer[msg.sender].totalShares -= shares;
+        claimers[msg.sender].totalShares -= shares;
         totalShares -= shares;
 
         emit YieldClaimed(
@@ -377,11 +386,11 @@ contract Vault is
 
         if (address(strategy) != address(0)) {
             uint256 yieldTransferred = strategy.transferYield(_to, yield);
-            if (yieldTransferred == yield) {
+            if (yieldTransferred >= yield) {
                 return;
             }
 
-            yield = yield - yieldTransferred;
+            yield -= yieldTransferred;
         }
 
         _rebalanceBeforeWithdrawing(yield);
@@ -455,9 +464,9 @@ contract Vault is
             if (disinvestAmount < rebalanceMinimum)
                 revert VaultNotEnoughToRebalance();
 
-            strategy.withdrawToVault(disinvestAmount);
+            uint256 amountWithdrawn = strategy.withdrawToVault(disinvestAmount);
 
-            emit Disinvested(disinvestAmount);
+            emit Disinvested(amountWithdrawn);
 
             return;
         }
@@ -587,12 +596,22 @@ contract Vault is
     //
 
     /// @inheritdoc IVaultSettings
+    function setImmediateInvestLimitPct(uint16 _pct) external onlySettings {
+        if (!PercentMath.validPct(_pct))
+            revert VaultInvalidImmediateInvestLimitPct();
+
+        emit ImmediateInvestLimitPctUpdated(_pct);
+
+        immediateInvestLimitPct = _pct;
+    }
+
+    /// @inheritdoc IVaultSettings
     function setInvestPct(uint16 _investPct)
         external
         override(IVaultSettings)
         onlySettings
     {
-        if (!PercentMath.validPct(_investPct)) revert VaultInvalidInvestpct();
+        if (!PercentMath.validPct(_investPct)) revert VaultInvalidInvestPct();
 
         emit InvestPctUpdated(_investPct);
 
@@ -694,6 +713,25 @@ contract Vault is
     // Internal API
     //
 
+    function _immediateInvestment() private {
+        (uint256 maxInvestableAmount, uint256 alreadyInvested) = investState();
+
+        if (
+            alreadyInvested.inPctOf(maxInvestableAmount) >=
+            immediateInvestLimitPct
+        ) return;
+
+        uint256 investAmount = maxInvestableAmount - alreadyInvested;
+
+        if (investAmount < rebalanceMinimum) return;
+
+        underlying.safeTransfer(address(strategy), investAmount);
+
+        strategy.invest();
+
+        emit Invested(investAmount);
+    }
+
     /**
      * Withdraws the principal from the deposits with the ids provided in @param _ids and sends it to @param _to.
      *
@@ -778,9 +816,9 @@ contract Vault is
         // to cover the transfer and leave the vault with the expected reserves
         uint256 needed = _amount + expectedReserves - vaultBalance;
 
-        strategy.withdrawToVault(needed);
+        uint256 amountWithdrawn = strategy.withdrawToVault(needed);
 
-        emit Disinvested(needed);
+        emit Disinvested(amountWithdrawn);
     }
 
     /**
@@ -977,6 +1015,15 @@ contract Vault is
         uint256 _localTotalPrincipal,
         string calldata _name
     ) internal returns (uint256) {
+        // Checks if the user is not already in debt
+        if (
+            _computeShares(
+                _applyLossTolerance(claimers[_claim.beneficiary].totalPrincipal),
+                _localTotalShares,
+                _localTotalPrincipal
+            ) > claimers[_claim.beneficiary].totalShares
+        ) revert VaultCannotDepositWhenClaimerInDebt();
+
         _depositTokenIds.increment();
         CreateClaimLocals memory locals = CreateClaimLocals({
             newShares: _computeShares(
@@ -988,17 +1035,8 @@ contract Vault is
             tokenId: _depositTokenIds.current()
         });
 
-        // Checks if the user is not already in debt
-        if (
-            _computeShares(
-                _applyLossTolerance(claimer[locals.claimerId].totalPrincipal),
-                _localTotalShares,
-                _localTotalPrincipal
-            ) > claimer[locals.claimerId].totalShares
-        ) revert VaultCannotDepositWhenClaimerInDebt();
-
-        claimer[locals.claimerId].totalShares += locals.newShares;
-        claimer[locals.claimerId].totalPrincipal += _amount;
+        claimers[locals.claimerId].totalShares += locals.newShares;
+        claimers[locals.claimerId].totalPrincipal += _amount;
 
         totalShares += locals.newShares;
         totalPrincipal += _amount;
@@ -1055,7 +1093,7 @@ contract Vault is
 
         // memoizing saves warm sloads
         Deposit memory _deposit = deposits[_tokenId];
-        Claimer memory _claim = claimer[_deposit.claimerId];
+        Claimer memory _claim = claimers[_deposit.claimerId];
 
         if (_deposit.lockedUntil > block.timestamp) revert VaultDepositLocked();
         if (_deposit.claimerId == address(0)) revert VaultNotDeposit();
@@ -1082,8 +1120,8 @@ contract Vault is
         if (_force && amountShares > claimerShares)
             sharesToBurn = claimerShares;
 
-        claimer[_deposit.claimerId].totalShares -= sharesToBurn;
-        claimer[_deposit.claimerId].totalPrincipal -= _amount;
+        claimers[_deposit.claimerId].totalShares -= sharesToBurn;
+        claimers[_deposit.claimerId].totalPrincipal -= _amount;
 
         totalShares -= sharesToBurn;
         totalPrincipal -= _amount;
@@ -1188,11 +1226,11 @@ contract Vault is
     }
 
     function sharesOf(address claimerId) external view returns (uint256) {
-        return claimer[claimerId].totalShares;
+        return claimers[claimerId].totalShares;
     }
 
     function principalOf(address claimerId) external view returns (uint256) {
-        return claimer[claimerId].totalPrincipal;
+        return claimers[claimerId].totalPrincipal;
     }
 
     function pause() external onlyAdmin {
@@ -1203,11 +1241,11 @@ contract Vault is
         _unpause();
     }
 
-    function exitPause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function exitPause() external onlyAdmin {
         _exitPause();
     }
 
-    function exitUnpause() external onlyRole(DEFAULT_ADMIN_ROLE) {
+    function exitUnpause() external onlyAdmin {
         _exitUnpause();
     }
 }

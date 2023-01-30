@@ -267,7 +267,7 @@ contract OpynCrabStrategy is BaseStrategy {
     /// @inheritdoc IStrategy
     function withdrawToVault(
         uint256 amount
-    ) external virtual override(IStrategy) onlyManager {
+    ) external virtual override(IStrategy) onlyManager returns (uint256) {
         if (amount == 0) revert StrategyAmountZero();
         // TODO: check if amount could be deducted from usdc balance
 
@@ -277,7 +277,7 @@ contract OpynCrabStrategy is BaseStrategy {
             // withdraw immediately from usdc balance
             amountInUsdcToWithdrawFromCrab = 0;
             // transfer usdc to vault
-            return;
+            return 0;
         } else {
             amountInUsdcToWithdrawFromCrab = amount - usdcBalance;
         }
@@ -334,6 +334,8 @@ contract OpynCrabStrategy is BaseStrategy {
         console.log("\n* after swap eth to usdc *");
         console.log("eth balance", address(this).balance);
         console.log("usdc balance", underlying.balanceOf(address(this)));
+
+        return 0;
     }
 
     /// @inheritdoc IStrategy

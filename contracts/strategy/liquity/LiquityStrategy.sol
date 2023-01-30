@@ -9,6 +9,7 @@ import {PercentMath} from "../../lib/PercentMath.sol";
 import {IStrategy} from "../IStrategy.sol";
 import {CustomErrors} from "../../interfaces/CustomErrors.sol";
 import {IVault} from "../../vault/IVault.sol";
+import {IVaultSponsoring} from "../../vault/IVaultSponsoring.sol";
 import {IStabilityPool} from "../../interfaces/liquity/IStabilityPool.sol";
 import {ERC165Query} from "../../lib/ERC165Query.sol";
 import {ICurveExchange} from "../../interfaces/curve/ICurveExchange.sol";
@@ -41,8 +42,6 @@ contract LiquityStrategy is
     error StrategyCurveExchangeCannotBe0Address();
     error StrategySwapTargetCannotBe0Address();
     error StrategySwapTargetNotAllowed();
-    error StrategyTokenApprovalFailed(address token);
-    error StrategyTokenTransferFailed(address token);
     error StrategyInsufficientOutputAmount();
     error StrategyYieldTokenCannotBe0Address();
     error StrategyMinimumPrincipalProtection();
@@ -53,8 +52,8 @@ contract LiquityStrategy is
         0xD51a44d3FaE010294C616388b506AcdA1bfAAE46;
     address public constant LUSD_CURVE_POOL =
         0xEd279fDD11cA84bEef15AF5D39BB4d4bEE23F0cA;
-    // address public constant CURVE_ROUTER =
-    //     0x81C46fECa27B31F3ADC2b91eE4be9717d1cd3DD7;
+    address public constant CURVE_ROUTER =
+        0x81C46fECa27B31F3ADC2b91eE4be9717d1cd3DD7;
     address public constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address public constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
 
@@ -69,12 +68,12 @@ contract LiquityStrategy is
     /// @inheritdoc IStrategy
     address public override(IStrategy) vault;
     IStabilityPool public stabilityPool;
-    ICurveExchange public curveExchange;
     IERC20 public lqty; // reward token
     mapping(address => bool) public allowedSwapTargets; // whitelist of swap targets
+    ICurveExchange public curveExchange;
 
     /**
-     * A percentage that specifies the minimum amount of principal to protect.
+     * A percentage that specifies the minimum amount of principal to protect plus the sponsored amount.
      * This value acts as a threshold and is applied only when the total underlying assets are grater tha the minimum amount of principal to protect.
      * The protected principal is kept in LUSD.
      *
@@ -154,9 +153,7 @@ contract LiquityStrategy is
         lqty = IERC20(_lqty);
         minPrincipalProtectionPct = _principalProtectionPct;
 
-        if (!underlying.approve(_stabilityPool, type(uint256).max)) {
-            revert StrategyTokenApprovalFailed(_underlying);
-        }
+        underlying.approve(_stabilityPool, type(uint256).max);
     }
 
     /**
@@ -268,6 +265,7 @@ contract LiquityStrategy is
         virtual
         override(IStrategy)
         onlyManager
+        returns (uint256)
     {
         if (amount == 0) revert StrategyAmountZero();
         if (amount > investedAssets()) revert StrategyNotEnoughShares();
@@ -277,11 +275,11 @@ contract LiquityStrategy is
 
         // use balance instead of amount since amount could be greater than what was actually withdrawn
         uint256 balance = underlying.balanceOf(address(this));
-        if (!underlying.transfer(vault, balance)) {
-            revert StrategyTokenTransferFailed(address(underlying));
-        }
+        underlying.transfer(vault, balance);
 
         emit StrategyWithdrawn(balance);
+
+        return balance;
     }
 
     /**
@@ -337,7 +335,7 @@ contract LiquityStrategy is
         uint256 _amountOutMin
     ) external virtual onlyKeeper {
         _checkSwapTarget(_swapTarget);
-        _checkMinPrincpalProtectionRequirement(_amountOutMin);
+        _checkMinPrincipalProtectionRequirement(_amountOutMin);
 
         _swapLQTYtoLUSD(_swapTarget, _lqtyAmount, _lqtySwapData);
         _swapETHtoLUSD(_swapTarget, _ethAmount, _ethSwapData);
@@ -373,20 +371,23 @@ contract LiquityStrategy is
      *
      * @param _amountOutMin the minimum amount of LUSD to be received after the ETH & LQTY -> LUSD swap.
      */
-    function _checkMinPrincpalProtectionRequirement(uint256 _amountOutMin)
+    function _checkMinPrincipalProtectionRequirement(uint256 _amountOutMin)
         internal
         view
     {
-        // check if the amountOutMin is enough to protect the principal
+        uint256 totalDeposited = IVault(vault).totalPrincipal() +
+            IVaultSponsoring(vault).totalSponsored();
+
+        // check if the amountOutMin is enough to protect the principal plus sponsored
         if (
-            IVault(vault).totalPrincipal().pctOf(minPrincipalProtectionPct) <=
-            IVault(vault).totalPrincipal() + _amountOutMin
+            totalDeposited.pctOf(minPrincipalProtectionPct) <=
+            totalDeposited + _amountOutMin
         ) return;
 
-        // minimum principal protection does not apply when total underlying value is less than min protected principal
+        // minimum principal protection does not apply when total underlying value is less than min protected principal plus sponsored amount
         if (
             IVault(vault).totalUnderlying() <
-            IVault(vault).totalPrincipal().pctOf(minPrincipalProtectionPct)
+            totalDeposited.pctOf(minPrincipalProtectionPct)
         ) return;
 
         revert StrategyMinimumPrincipalProtection();
@@ -430,9 +431,7 @@ contract LiquityStrategy is
         uint256 lqtyBalance = lqty.balanceOf(address(this));
         if (_amount > lqtyBalance) revert StrategyNotEnoughLQTY();
 
-        // give approval to the swapTarget
-        if (!lqty.approve(_swapTarget, _amount))
-            revert StrategyTokenApprovalFailed(address(lqty));
+        lqty.approve(_swapTarget, _amount);
 
         // perform the swap
         (bool success, ) = _swapTarget.call{value: 0}(_lqtySwapData);

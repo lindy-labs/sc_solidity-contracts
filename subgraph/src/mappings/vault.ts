@@ -35,6 +35,7 @@ export function handleYieldClaimed(event: YieldClaimed): void {
   claimer.claimed = claimer.claimed.plus(event.params.amount);
   claimer.shares = claimer.shares.minus(event.params.burnedShares);
   vault.totalShares = vault.totalShares.minus(event.params.burnedShares);
+  vault.amountClaimed = vault.amountClaimed.plus(event.params.amount);
   log.debug('claim, sub shares {}', [event.params.burnedShares.toString()]);
 
   let totalClaimedShares = new BigInt(0);
@@ -61,6 +62,7 @@ export function handleYieldClaimed(event: YieldClaimed): void {
 
     totalClaimedShares = totalClaimedShares.plus(depositClaimedShares);
 
+    deposit.amountClaimed = deposit.amountClaimed.plus(depositClaimedAmount);
     deposit.shares = deposit.shares.minus(depositClaimedShares);
     deposit.save();
 
@@ -150,6 +152,7 @@ export function handleDepositMinted(event: DepositMinted): void {
 
   deposit.initialAmount = event.params.amount;
   deposit.amount = event.params.amount;
+  deposit.amountClaimed = BigInt.fromString('0');
   deposit.claimer = claimerId;
   deposit.depositor = event.params.depositor;
   deposit.foundation = foundationId;

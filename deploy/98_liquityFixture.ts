@@ -7,8 +7,7 @@ import { parseEther, parseUnits } from 'ethers/lib/utils';
 
 const func = async function (env: HardhatRuntimeEnvironment) {
   const [owner, _alice, _bob] = await ethers.getSigners();
-  const { deployer } = await env.getNamedAccounts();
-  const { deploy, get } = env.deployments;
+  const { get } = env.deployments;
 
   // Deploy and gather needed mock contracts
 
@@ -26,12 +25,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     stabilityPoolDeployment.address,
   );
 
-  const troveManagerDeployment = await deploy('TroveManager', {
-    contract: 'MockTroveManager',
-    from: deployer,
-    log: true,
-    args: [stabilityPoolDeployment.address, liquityPriceFeed.address],
-  });
+  const troveManagerDeployment = await get('TroveManager');
   const troveManager = await ethers.getContractAt(
     'MockTroveManager',
     troveManagerDeployment.address,
@@ -39,6 +33,11 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
   const vaultDeployment = await get('Vault_Liquity');
   const vault = await ethers.getContractAt('Vault', vaultDeployment.address);
+
+  const liquityStrategy = await ethers.getContractAt(
+    'LiquityStrategy',
+    await vault.strategy(),
+  );
 
   // Trigger events needed for backend development
 
@@ -53,7 +52,10 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
   // Move time forward 12 days
   await ethers.provider.send('evm_increaseTime', [1.037e6]);
-  await ethers.provider.send('evm_mine', []);
+  // ideal way of advancing block but cannot be done because graph interprets
+  // the blocks as being uncled which prevents sync
+  // await ethers.provider.send("hardhat_mine", ["0x32"]);
+  await mineNBlocks(75);
 
   await liquityPriceFeed.setPrice(parseUnits('1750', 18));
 
@@ -69,13 +71,14 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     BigNumber.from('200000000000000000000'),
   );
 
-  // Move time forward 12 days
-  await ethers.provider.send('evm_increaseTime', [1.037e6]);
-  await ethers.provider.send('evm_mine', []);
-
   await liquityPriceFeed.setPrice(parseUnits('1800', 18));
 
-  await stabilityPool.withdrawFromSP(0);
+  await liquityStrategy.harvest();
+
+  // Move time forward 12 days
+  await ethers.provider.send('evm_increaseTime', [1.037e6]);
+  // await ethers.provider.send('evm_mine', []);
+  await mineNBlocks(75);
 
   await troveManager.liquidation(
     BigNumber.from('2000000000000000000000'),
@@ -91,7 +94,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
   // Move time forward 12 days
   await ethers.provider.send('evm_increaseTime', [1.037e6]);
-  await ethers.provider.send('evm_mine', []);
+  await mineNBlocks(75);
 
   await liquityPriceFeed.setPrice(parseUnits('1500', 18));
 
@@ -108,5 +111,11 @@ func.dependencies = ['dev', 'fixtures', 'vault', 'strategy'];
 
 func.skip = async (env: HardhatRuntimeEnvironment) =>
   !includes(['docker', 'hardhat'], env.deployments.getNetworkName());
+
+async function mineNBlocks(n: number) {
+  for (let index = 0; index < n; index++) {
+    await ethers.provider.send('evm_mine', []);
+  }
+}
 
 export default func;

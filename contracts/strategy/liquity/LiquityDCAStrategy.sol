@@ -35,9 +35,8 @@ contract LiquityDCAStrategy is LiquityStrategy {
 
         _sendETH(_to, ethToTransfer);
 
-        uint256 equivalentAmountInUnderlying = _amount.pctOf(
-            ethToTransfer.inPctOf(amountInETH)
-        );
+        uint256 equivalentAmountInUnderlying = (_amount * ethToTransfer) /
+            amountInETH;
 
         emit StrategyYieldTransferred(_to, equivalentAmountInUnderlying);
 
@@ -67,8 +66,7 @@ contract LiquityDCAStrategy is LiquityStrategy {
         uint256 lqtyBalance = lqty.balanceOf(address(this));
         if (_amount > lqtyBalance) revert StrategyNotEnoughLQTY();
 
-        if (!lqty.approve(_swapTarget, _amount))
-            revert StrategyTokenApprovalFailed(address(lqty));
+        lqty.approve(_swapTarget, _amount);
 
         uint256 ethBalance = address(this).balance;
 

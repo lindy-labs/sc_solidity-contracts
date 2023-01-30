@@ -1,0 +1,44 @@
+{
+  "language": "Solidity",
+  "sources": {
+    "contracts/mock/liquity/MockTroveManager.sol": {
+      "content": "// SPDX-License-Identifier: MIT\npragma solidity =0.8.10;\n\n/* \n * Mock contract does not coincide with interface of production contract.\n * Used to emit event as found in production contract to simply simulate events that\n * rarely happen, for development.\n */\ncontract MockTroveManager {\n    string public constant NAME = \"TroveManager\";\n\n    address public stabilityPool;\n    address public priceFeed;\n\n    constructor(address _stabilityPool, address _priceFeed) {\n        stabilityPool = _stabilityPool;\n        priceFeed = _priceFeed;\n    }\n\n    event Liquidation(\n        uint256 _liquidatedDebt,\n        uint256 _liquidatedColl,\n        uint256 _collGasCompensation,\n        uint256 _LUSDGasCompensation\n    );\n\n    function liquidation(\n        uint256 _liquidatedDebt,\n        uint256 _liquidatedColl,\n        uint256 _collGasCompensation,\n        uint256 _LUSDGasCompensation\n    ) public {\n        emit Liquidation(\n            _liquidatedDebt,\n            _liquidatedColl,\n            _collGasCompensation,\n            _LUSDGasCompensation\n        );\n    }\n}\n"
+    }
+  },
+  "settings": {
+    "optimizer": {
+      "enabled": true,
+      "runs": 1000
+    },
+    "outputSelection": {
+      "*": {
+        "*": [
+          "abi",
+          "evm.bytecode",
+          "evm.deployedBytecode",
+          "evm.methodIdentifiers",
+          "metadata",
+          "devdoc",
+          "userdoc",
+          "storageLayout",
+          "evm.gasEstimates",
+          "devdoc",
+          "userdoc",
+          "devdoc",
+          "userdoc",
+          "devdoc",
+          "userdoc",
+          "devdoc",
+          "userdoc"
+        ],
+        "": [
+          "ast"
+        ]
+      }
+    },
+    "metadata": {
+      "useLiteralContent": true
+    },
+    "libraries": {}
+  }
+}

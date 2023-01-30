@@ -47,6 +47,7 @@ describe('BaseStrategy', () => {
       BigNumber.from('0'), // PERFORMANCE_FEE_PCT,
       BigNumber.from('0'), // INVESTMENT_FEE_PCT,
       [],
+      0,
     );
 
     BaseStrategyFactory = await ethers.getContractFactory('MockBaseStrategy');

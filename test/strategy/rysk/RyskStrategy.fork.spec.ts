@@ -81,6 +81,7 @@ describe('Rysk Strategy (mainnet fork tests)', () => {
       PERFORMANCE_FEE_PCT,
       INVESTMENT_FEE_PCT,
       [],
+      0,
     );
 
     const RyskStrategyFactory = await ethers.getContractFactory('RyskStrategy');
@@ -210,7 +211,7 @@ describe('Rysk Strategy (mainnet fork tests)', () => {
       expect(await strategy.investedAssets()).to.gte('999999995');
     });
 
-    it('fails if called without completing withdrawal from previous epoch', async () => {
+    it('completes the pending withdrawal from previous epoch', async () => {
       const amount = parseUSDC('1000');
       await ForkHelpers.mintToken(usdc, strategy.address, amount);
 
@@ -218,12 +219,15 @@ describe('Rysk Strategy (mainnet fork tests)', () => {
 
       await executeEpochCalculation();
 
-      await strategy.connect(admin).withdrawToVault(amount.div(2));
+      const halfAmount = amount.div(2);
+      await strategy.connect(admin).withdrawToVault(halfAmount);
 
       await executeEpochCalculation();
 
-      await expect(strategy.connect(admin).withdrawToVault(amount.div(2))).to.be
-        .reverted;
+      await expect(strategy.connect(admin).withdrawToVault(halfAmount)).to.not
+        .be.reverted;
+
+      expect(await usdc.balanceOf(vault.address)).to.eq('499999998'); // rounding error
     });
   });
 

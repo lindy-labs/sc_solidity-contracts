@@ -58,6 +58,7 @@ const config: HardhatUserConfig = {
       accounts: {
         mnemonic: process.env.TESTNET_MNEMONIC || 'TODO',
       },
+      blockGasLimit: 30000000,
     },
     mumbai: {
       url: process.env.MUMBAI_RPC || 'missing-rpc-endpoint',

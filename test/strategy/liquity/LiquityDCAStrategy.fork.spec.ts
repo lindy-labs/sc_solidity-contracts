@@ -76,6 +76,7 @@ describe('Liquity DCA Strategy (mainnet fork tests)', () => {
       PERFORMANCE_FEE_PCT,
       INVESTMENT_FEE_PCT,
       [],
+      0,
     );
 
     const LiquityDCAStrategyFactory = await ethers.getContractFactory(
@@ -212,11 +213,11 @@ describe('Liquity DCA Strategy (mainnet fork tests)', () => {
           .sub(await getTransactionGasCost(tx))
           .add(parseUnits('1')),
       );
-      // the difference in alice's end LUSD balance of ~97.16 and expected 100 LUSD comes from the differece in LUSD to ETH and ETH to LUSD exchange rates
-      // this means that some small amount yield for alice (~2.84 LUSD) is left in the vault after the yield was claimed
-      expect(await lusd.balanceOf(alice.address)).to.eq('97160101407531212992');
+      // the difference in alice's end LUSD balance of ~97.11 and expected 100 LUSD comes from the differece in LUSD to ETH and ETH to LUSD exchange rates
+      // this means that some small amount yield for alice (~2.89 LUSD) is left in the vault after the yield was claimed
+      expect(await lusd.balanceOf(alice.address)).to.eq('97108857183451805045');
       expect((await vault.yieldFor(alice.address)).claimableYield).to.eq(
-        '2839898592468787007', // in LUSD
+        '2891142816548194954', // in LUSD
       );
     });
   });

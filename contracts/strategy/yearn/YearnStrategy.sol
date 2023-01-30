@@ -129,6 +129,7 @@ contract YearnStrategy is BaseStrategy {
         virtual
         override(IStrategy)
         onlyManager
+        returns (uint256)
     {
         if (_amount == 0) revert StrategyAmountZero();
         uint256 uninvestedUnderlying = _getUnderlyingBalance();
@@ -155,6 +156,8 @@ contract YearnStrategy is BaseStrategy {
         underlying.safeTransfer(vault, _amount);
 
         emit StrategyWithdrawn(_amount);
+
+        return _amount;
     }
 
     /**

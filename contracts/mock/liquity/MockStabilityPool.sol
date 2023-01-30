@@ -10,14 +10,14 @@ contract MockStabilityPool is IStabilityPool {
     event StabilityPoolETHBalanceUpdated(uint _newBalance);
     event ETHGainWithdrawn(address indexed _depositor, uint _ETH, uint _LUSDLoss);
 
-    constructor(address _lusd, address _pricefeed) {
+    constructor(address _lusd, address _priceFeed) {
         lusd = IERC20(_lusd);
-        pricefeed = _pricefeed;
+        priceFeed = _priceFeed;
     }
 
     mapping(address => uint256) public balances;
 
-    address public pricefeed;
+    address public priceFeed;
 
     function provideToSP(
         uint256 _amount,

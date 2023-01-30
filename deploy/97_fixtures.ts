@@ -23,6 +23,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
     const underlying = await ethers.getContractAt('MockERC20', lusd.address);
 
     const vaultAddress = vaults[vaultKey].address;
+    console.log('vaultAddress', vaultAddress);
     const vault = await ethers.getContractAt('Vault', vaultAddress);
 
     console.log('Configuring vault strategy, treasury and investPct');
@@ -39,9 +40,6 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
           .approve(vault.address, parseUnits('5000', 18)),
       ),
     );
-
-    console.log('Set treasury');
-    await vault.connect(owner).setTreasury(treasury.address);
 
     console.log('The treasury sponsors 1000');
     await vault.grantRole(

@@ -8,8 +8,13 @@ import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 import {IStrategy} from "../strategy/IStrategy.sol";
 import {BaseStrategy} from "../strategy/BaseStrategy.sol";
 import {CustomErrors} from "../interfaces/CustomErrors.sol";
+import {PercentMath} from "../lib/PercentMath.sol";
 
 contract MockStrategySync is BaseStrategy {
+    using PercentMath for uint256;
+
+    uint16 amountToWithdrawReductionPct;
+
     constructor(
         address _vault,
         IERC20 _underlying,
@@ -25,8 +30,15 @@ contract MockStrategySync is BaseStrategy {
     function invest() external virtual override(IStrategy) {}
 
     /// @inheritdoc IStrategy
-    function withdrawToVault(uint256 amount) external override(IStrategy) {
-        underlying.transfer(vault, amount);
+    function withdrawToVault(uint256 amount)
+        external
+        override(IStrategy)
+        returns (uint256)
+    {
+        uint256 toWithdraw = amount.pctOf(10000 - amountToWithdrawReductionPct);
+        underlying.transfer(vault, toWithdraw);
+
+        return toWithdraw;
     }
 
     /// @inheritdoc IStrategy
@@ -49,4 +61,8 @@ contract MockStrategySync is BaseStrategy {
         override(BaseStrategy)
         onlyAdmin
     {}
+
+    function setAmountToWithdrawReductionPct(uint16 _reductionPct) external {
+        amountToWithdrawReductionPct = _reductionPct;
+    }
 }
