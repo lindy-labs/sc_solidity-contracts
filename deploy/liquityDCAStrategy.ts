@@ -5,6 +5,8 @@ import { ethers } from 'hardhat';
 import { utils } from 'ethers';
 import { getCurrentNetworkConfig } from '../scripts/deployConfigs';
 
+import liquityMocks from './helpers/liquityMocks';
+
 const func = async function (env: HardhatRuntimeEnvironment) {
   const { deployer } = await env.getNamedAccounts();
   const { get, deploy, getNetworkName } = env.deployments;
@@ -54,87 +56,8 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   }
 
   if (getNetworkName() !== 'mainnet') {
-    const mockLiquityPriceFeedDeployment = await deploy(
-      'Liquity_DCA_Price_Feed',
-      {
-        contract: 'MockLiquityPriceFeed',
-        from: deployer,
-        log: true,
-        args: [],
-      },
-    );
-
-    const liquityStabilityPoolArgs = [
-      LUSDDeployment.address,
-      mockLiquityPriceFeedDeployment.address,
-    ];
-    const mockLiquityStabilityPool = await deploy(
-      'Liquity_DCA_Stability_Pool',
-      {
-        contract: 'MockStabilityPool',
-        from: deployer,
-        args: liquityStabilityPoolArgs,
-        log: true,
-      },
-    );
-
-    const troveManagerDeploymentArgs = [
-      mockLiquityStabilityPool.address,
-      mockLiquityPriceFeedDeployment.address,
-    ];
-    const troveManagerDeployment = await deploy('Liquity_DCA_Trove_Manager', {
-      contract: 'MockTroveManager',
-      from: deployer,
-      log: true,
-      args: troveManagerDeploymentArgs,
-    });
-
-    const mock0x = await deploy('Liquity_DCA_Mock0x', {
-      contract: 'Mock0x',
-      from: deployer,
-      args: [],
-      log: true,
-    });
-
-    address0x = mock0x.address;
-
-    console.log('asdjfklsadfdsa');
-    if (getNetworkName() !== 'hardhat' && getNetworkName() !== 'docker') {
-      const priceFeedVerification = env.run('verify:verify', {
-        address: mockLiquityPriceFeedDeployment.address,
-        constructorArguments: [],
-      });
-
-      const troveManagerVerification = env.run('verify:verify', {
-        address: troveManagerDeployment.address,
-        constructorArguments: troveManagerDeploymentArgs,
-      });
-
-      const stabilityPoolVerification = env.run('verify:verify', {
-        address: mockLiquityStabilityPool.address,
-        constructorArguments: liquityStabilityPoolArgs,
-      });
-
-      const mock0xVerification = env.run('verify:verify', {
-        address: mock0x.address,
-        constructorArguments: [],
-      });
-
-      const promises = [
-        priceFeedVerification,
-        troveManagerVerification,
-        stabilityPoolVerification,
-        mock0xVerification,
-      ];
-
-      await Promise.allSettled(promises).then((results) =>
-        results.forEach((result) => {
-          if (result.status === 'rejected') {
-            console.error((result.reason as Error).message);
-          }
-        }),
-      );
-    }
+    const res = await liquityMocks(env, 'Liquity_DCA');
+    address0x = res.mock0x.address;
   }
 
   const stabilityPool = await get('Liquity_DCA_Stability_Pool');
