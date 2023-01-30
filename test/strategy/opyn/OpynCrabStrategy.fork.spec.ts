@@ -93,6 +93,7 @@ describe('Opyn Crab Strategy (mainnet fork tests)', () => {
       PERFORMANCE_FEE_PCT,
       INVESTMENT_FEE_PCT,
       [],
+      10000,
     );
 
     const OpynCrabStrategyFactory = await ethers.getContractFactory(
