@@ -77,11 +77,11 @@ abstract contract CurveSwapper {
     ///
     /// @param _token The token we want to swap into
     /// @param _amount The amount of underlying we want to swap
-    /// @param _minAmountOut The minimum amount of tokens we want to receive
+    /// @param _amountOutMin The minimum amount of tokens we want to receive
     function _swapIntoUnderlying(
         address _token,
         uint256 _amount,
-        uint256 _minAmountOut
+        uint256 _amountOutMin
     ) internal returns (uint256 amount) {
         address underlyingToken = getUnderlying();
         if (_token == underlyingToken) {
@@ -100,7 +100,7 @@ abstract contract CurveSwapper {
             swapper.tokenI,
             swapper.underlyingI,
             _amount,
-            _minAmountOut
+            _amountOutMin
         );
 
         emit Swap(_token, underlyingToken, _amount, amount);
@@ -111,11 +111,11 @@ abstract contract CurveSwapper {
     ///
     /// @param _token The token we want to swap into
     /// @param _amount The amount of underlying we want to swap
-    /// @param _minAmountOut The minimum amount of tokens we want to receive
+    /// @param _amountOutMin The minimum amount of tokens we want to receive
     function _swapFromUnderlying(
         address _token,
         uint256 _amount,
-        uint256 _minAmountOut
+        uint256 _amountOutMin
     ) internal returns (uint256 amount) {
         // same token, nothing to do
         if (_token == getUnderlying()) return _amount;
@@ -129,7 +129,7 @@ abstract contract CurveSwapper {
             swapper.underlyingI,
             swapper.tokenI,
             _amount,
-            _minAmountOut
+            _amountOutMin
         );
 
         emit Swap(getUnderlying(), _token, _amount, amount);

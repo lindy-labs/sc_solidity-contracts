@@ -90,7 +90,7 @@ describe('CurveSwapper', () => {
   describe('swapToUnderlying', function () {
     it('swaps 100DAI for approximately 100UST', async () => {
       const input = parseUnits('100', decimals.dai);
-      const minAmountOut = calcMinAmountOut(
+      const amountOutMin = calcAmountOutMin(
         input,
         decimals.dai,
         decimals.ust,
@@ -98,13 +98,13 @@ describe('CurveSwapper', () => {
       );
 
       const action = () =>
-        swapper.test_swapIntoUnderlying(dai.address, input, minAmountOut);
+        swapper.test_swapIntoUnderlying(dai.address, input, amountOutMin);
       await validateSwap(action, swapper, dai, ust, '100');
     });
 
     it('swaps 100USDC for approximately 100UST', async () => {
       const input = parseUnits('100', decimals.usdc);
-      const minAmountOut = calcMinAmountOut(
+      const amountOutMin = calcAmountOutMin(
         input,
         decimals.usdc,
         decimals.ust,
@@ -112,13 +112,13 @@ describe('CurveSwapper', () => {
       );
 
       const action = () =>
-        swapper.test_swapIntoUnderlying(usdc.address, input, minAmountOut);
+        swapper.test_swapIntoUnderlying(usdc.address, input, amountOutMin);
       await validateSwap(action, swapper, usdc, ust, '100');
     });
 
     it('swaps 100USDT for approximately 100UST', async () => {
       const input = parseUnits('100', decimals.usdt);
-      const minAmountOut = calcMinAmountOut(
+      const amountOutMin = calcAmountOutMin(
         input,
         decimals.usdt,
         decimals.ust,
@@ -126,7 +126,7 @@ describe('CurveSwapper', () => {
       );
 
       const action = () =>
-        swapper.test_swapIntoUnderlying(usdt.address, input, minAmountOut);
+        swapper.test_swapIntoUnderlying(usdt.address, input, amountOutMin);
       await validateSwap(action, swapper, usdt, ust, '100');
     });
 
@@ -143,7 +143,7 @@ describe('CurveSwapper', () => {
 
     it('fails when slippage is too high', async () => {
       const input = parseUnits('100', decimals.usdt);
-      const minAmountOut = calcMinAmountOut(
+      const amountOutMin = calcAmountOutMin(
         input,
         decimals.usdt,
         decimals.ust,
@@ -151,13 +151,13 @@ describe('CurveSwapper', () => {
       );
 
       await expect(
-        swapper.test_swapIntoUnderlying(usdt.address, input, minAmountOut),
+        swapper.test_swapIntoUnderlying(usdt.address, input, amountOutMin),
       ).to.be.reverted;
     });
 
     it('fails when the pool does not exist', async () => {
       const input = parseUnits('100', decimals.usdt);
-      const minAmountOut = calcMinAmountOut(
+      const amountOutMin = calcAmountOutMin(
         input,
         decimals.usdt,
         decimals.ust,
@@ -168,7 +168,7 @@ describe('CurveSwapper', () => {
         swapper.test_swapIntoUnderlying(
           constants.AddressZero,
           input,
-          minAmountOut,
+          amountOutMin,
         ),
       ).to.be.revertedWith('SwapperPoolDoesNotExist');
     });
@@ -177,7 +177,7 @@ describe('CurveSwapper', () => {
   describe('swapFromUnderlying', function () {
     it('swaps 100UST for approximately 100DAI', async () => {
       const input = parseUnits('100', decimals.ust);
-      const minAmountOut = calcMinAmountOut(
+      const amountOutMin = calcAmountOutMin(
         input,
         decimals.ust,
         decimals.dai,
@@ -185,13 +185,13 @@ describe('CurveSwapper', () => {
       );
 
       const action = () =>
-        swapper.test_swapFromUnderlying(dai.address, input, minAmountOut);
+        swapper.test_swapFromUnderlying(dai.address, input, amountOutMin);
       await validateSwap(action, swapper, ust, dai, '100');
     });
 
     it('swaps 100UST for approximately 100USDC', async () => {
       const input = parseUnits('100', decimals.ust);
-      const minAmountOut = calcMinAmountOut(
+      const amountOutMin = calcAmountOutMin(
         input,
         decimals.ust,
         decimals.usdc,
@@ -199,13 +199,13 @@ describe('CurveSwapper', () => {
       );
 
       const action = () =>
-        swapper.test_swapFromUnderlying(usdc.address, input, minAmountOut);
+        swapper.test_swapFromUnderlying(usdc.address, input, amountOutMin);
       await validateSwap(action, swapper, ust, usdc, '100');
     });
 
     it('swaps 100UST for approximately 100USDT', async () => {
       const input = parseUnits('100', decimals.ust);
-      const minAmountOut = calcMinAmountOut(
+      const amountOutMin = calcAmountOutMin(
         input,
         decimals.ust,
         decimals.usdt,
@@ -213,7 +213,7 @@ describe('CurveSwapper', () => {
       );
 
       const action = () =>
-        swapper.test_swapFromUnderlying(usdt.address, input, minAmountOut);
+        swapper.test_swapFromUnderlying(usdt.address, input, amountOutMin);
       await validateSwap(action, swapper, ust, usdt, '100');
     });
 
@@ -230,7 +230,7 @@ describe('CurveSwapper', () => {
 
     it('fails when slippage is too high', async () => {
       const input = parseUnits('100', decimals.usdt);
-      const minAmountOut = calcMinAmountOut(
+      const amountOutMin = calcAmountOutMin(
         input,
         decimals.usdt,
         decimals.ust,
@@ -238,13 +238,13 @@ describe('CurveSwapper', () => {
       );
 
       await expect(
-        swapper.test_swapFromUnderlying(usdt.address, input, minAmountOut),
+        swapper.test_swapFromUnderlying(usdt.address, input, amountOutMin),
       ).to.be.reverted;
     });
 
     it('fails when the pool does not exist', async () => {
       const input = parseUnits('100', decimals.usdt);
-      const minAmountOut = calcMinAmountOut(
+      const amountOutMin = calcAmountOutMin(
         input,
         decimals.usdt,
         decimals.ust,
@@ -255,7 +255,7 @@ describe('CurveSwapper', () => {
         swapper.test_swapFromUnderlying(
           constants.AddressZero,
           input,
-          minAmountOut,
+          amountOutMin,
         ),
       ).to.be.revertedWith('SwapperPoolDoesNotExist');
     });
@@ -357,7 +357,7 @@ describe('CurveSwapper', () => {
     );
   }
 
-  function calcMinAmountOut(
+  function calcAmountOutMin(
     amountIn: BigNumber,
     inputTokenDecimals: number,
     outputTokenDecimals: number,

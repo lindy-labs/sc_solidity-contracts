@@ -190,14 +190,14 @@ describe('Vault (fork tests)', () => {
     it('automatically swaps into LUSD and deposits that', async () => {
       // DAI and LUSD both have 18 decimals
       const sponsorAmount = parseUnits('1000');
-      const minAmountOut = parseUnits('995');
+      const amountOutMin = parseUnits('995');
       const expectedUnderlyingAmount = '995643944707865674480';
       await ForkHelpers.mintToken(dai, admin, sponsorAmount);
       await dai.connect(admin).approve(vault.address, MaxUint256);
 
       const action = vault
         .connect(admin)
-        .sponsor(dai.address, sponsorAmount, TWO_WEEKS, minAmountOut);
+        .sponsor(dai.address, sponsorAmount, TWO_WEEKS, amountOutMin);
 
       await expect(action)
         .to.emit(vault, 'Swap')

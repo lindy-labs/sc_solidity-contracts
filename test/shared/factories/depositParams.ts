@@ -13,7 +13,7 @@ interface DepositParams {
   claims: ClaimParams[];
   lockDuration: BigNumberish;
   name: string;
-  minAmountOut: BigNumberish;
+  amountOutMin: BigNumberish;
 }
 
 export const depositParams = Factory.define<DepositParams>(() => {
@@ -23,6 +23,6 @@ export const depositParams = Factory.define<DepositParams>(() => {
     claims: [claimParams.build()],
     lockDuration: ethers.BigNumber.from(time.duration.weeks(2).toNumber()), // 2 weeks
     name: 'Foundation name',
-    minAmountOut: parseUnits('1'),
+    amountOutMin: parseUnits('1'),
   };
 });
