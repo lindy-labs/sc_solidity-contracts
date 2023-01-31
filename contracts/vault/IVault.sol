@@ -80,6 +80,8 @@ interface IVault {
 
     event FeeWithdrawn(uint256 amount);
 
+    event MinLockPeriodUpdated(uint64 newMinLockPeriod);
+
     //
     // Public API
     //
