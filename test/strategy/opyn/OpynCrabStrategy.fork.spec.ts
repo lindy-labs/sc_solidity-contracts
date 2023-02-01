@@ -184,7 +184,7 @@ describe('Opyn Crab Strategy (mainnet fork tests)', () => {
       expect(await usdc.balanceOf(strategy.address)).to.gt(parseUSDC('9300')); // fees & slippage included
     });
 
-    it('#invest -> #withdrawToVault for half amount deposited', async () => {
+    it.only('#invest -> #withdrawToVault for half amount deposited', async () => {
       const depositAmount = parseUSDC('10000');
       await ForkHelpers.mintToken(usdc, strategy.address, depositAmount);
 

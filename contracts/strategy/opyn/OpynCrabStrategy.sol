@@ -52,10 +52,10 @@ contract OpynCrabStrategy is BaseStrategy {
         ISwapRouter _swapRouter,
         IOracle _oracle
     ) BaseStrategy(_vault, _underlying, _admin) {
-        underlying.safeIncreaseAllowance(
-            address(_crabHelper),
-            type(uint256).max
-        );
+        // underlying.safeIncreaseAllowance(
+        //     address(_crabHelper),
+        //     type(uint256).max
+        // );
 
         _grantRole(KEEPER_ROLE, _keeper);
 
@@ -161,6 +161,122 @@ contract OpynCrabStrategy is BaseStrategy {
         return invested;
     }
 
+    /// @inheritdoc IStrategy
+    function invest() external virtual override(IStrategy) onlyManager {
+        console.log("\n### INVEST ###\n");
+        // TODO: emit event
+    }
+
+    /// @inheritdoc IStrategy
+    function withdrawToVault(
+        uint256 amount
+    ) external virtual override(IStrategy) onlyManager returns (uint256) {
+        if (amount == 0) revert StrategyAmountZero();
+        // TODO: check if amount could be deducted from usdc balance
+
+        uint256 usdcBalance = underlying.balanceOf(address(this));
+        uint256 amountInUsdcToWithdrawFromCrab;
+        if (amount <= usdcBalance) {
+            // withdraw immediately from usdc balance
+            amountInUsdcToWithdrawFromCrab = 0;
+            // transfer usdc to vault
+            return 0;
+        } else {
+            amountInUsdcToWithdrawFromCrab = amount - usdcBalance;
+        }
+
+        uint256 invested = investedAssets();
+
+        console.log("\n### WITHDRAW ###\n");
+        uint256 crabBalance = crabStrategy.balanceOf(address(this));
+
+        // get amount of crab needed to cover withdrawal amount
+        uint256 crabNeeded = (crabBalance * amountInUsdcToWithdrawFromCrab) /
+            invested;
+        crabNeeded = crabNeeded > crabBalance ? crabBalance : crabNeeded;
+
+        // get amount in squeeth needed to cover withdrawal amount
+        uint256 squeethNeeded = crabStrategy.getWsqueethFromCrabAmount(
+            crabNeeded
+        );
+
+        uint256 squeethPriceInWeth = getOraclePrice(wethOsqthPool, oSqth, weth);
+
+        // get amount in eth needed to repay squeeth debth (cover withdrawal amount)
+        uint256 ethNeeded = (squeethNeeded * squeethPriceInWeth) / 1e18;
+
+        // max amount of eth to used to repay short squeeth position which has to be done to release collateral in the crab strategy.
+        // has to be grater than ethNeeded to cover fees and slippage
+        uint maxEthUsedInFlashSwap = ethNeeded.pctOf(10100); // 1% more to cover fee & slippage
+
+        console.log("amount\t\t\t", amount);
+        console.log("invested\t\t", invested);
+        console.log("usdcBalance\t\t", usdcBalance);
+        console.log("crabBalance\t\t", crabBalance);
+        console.log("crabNeeded\t\t", crabNeeded);
+        console.log("squeethNeeded\t\t", squeethNeeded);
+        console.log("ethNeeded\t\t", ethNeeded);
+        console.log("maxEthUsedInFlashSwap\t", maxEthUsedInFlashSwap);
+
+        // TODO: find actual amount withdrawn
+        crabStrategy.flashWithdraw(
+            crabNeeded,
+            maxEthUsedInFlashSwap,
+            IUniswapV3Pool(wethOsqthPool).fee()
+        );
+
+        // TODO: transfer to vault
+
+        console.log("\n* after flash withdraw *");
+        console.log("usdc balance", underlying.balanceOf(address(this)));
+        console.log("eth balance", address(this).balance);
+        console.log("crab balance", crabStrategy.balanceOf(address(this)));
+
+        swapEthToUSDC();
+        console.log("\n* after swap eth to usdc *");
+        console.log("eth balance", address(this).balance);
+        console.log("usdc balance", underlying.balanceOf(address(this)));
+
+        return 0;
+    }
+
+    /// @inheritdoc IStrategy
+    function transferYield(
+        address,
+        uint256
+    ) external virtual override(BaseStrategy) onlyManager returns (uint256) {
+        return 0;
+    }
+
+    // TODO: onlyKeeper
+    function flashWithdrawFromCrabStrategy(
+        uint256 _crabAmount,
+        uint256 _maxEthToPayForDebt
+    ) public {
+        uint256 crabBalance = crabStrategy.balanceOf(address(this));
+
+        if (_crabAmount > crabBalance) {
+            _crabAmount = crabBalance;
+        }
+
+        // get amount in squeeth needed to cover withdrawal amount
+        // uint256 squeethNeeded = crabStrategy.getWsqueethFromCrabAmount(
+        //     _crabAmount
+        // );
+
+        // uint256 squeethPriceInWeth = getOraclePrice(wethOsqthPool, oSqth, weth);
+
+        // uint256 ethNeeded = (squeethNeeded * squeethPriceInWeth) / 1e18;
+
+        crabStrategy.flashWithdraw(
+            _crabAmount,
+            _maxEthToPayForDebt,
+            IUniswapV3Pool(wethOsqthPool).fee()
+        );
+
+        swapEthToUSDC();
+    }
+
     // TODO: onlyKeeper
     // @param _ethAmount amount of eth to send as msg.value in falshDeposit call
     // @param _ethAmountToBorrow amount of eth that will be borrowed in uni v3 flash swap
@@ -208,99 +324,6 @@ contract OpynCrabStrategy is BaseStrategy {
         console.log("usdcAmount\t\t", underlying.balanceOf(address(this)));
     }
 
-    /// @inheritdoc IStrategy
-    function invest() external virtual override(IStrategy) onlyManager {
-        console.log("\n### INVEST ###\n");
-        // TODO: emit event for backend
-    }
-
-    /// @inheritdoc IStrategy
-    function withdrawToVault(
-        uint256 amount
-    ) external virtual override(IStrategy) onlyManager returns (uint256) {
-        if (amount == 0) revert StrategyAmountZero();
-        // TODO: check if amount could be deducted from usdc balance
-
-        uint256 usdcBalance = underlying.balanceOf(address(this));
-        uint256 amountInUsdcToWithdrawFromCrab;
-        if (amount <= usdcBalance) {
-            // withdraw immediately from usdc balance
-            amountInUsdcToWithdrawFromCrab = 0;
-            // transfer usdc to vault
-            return 0;
-        } else {
-            amountInUsdcToWithdrawFromCrab = amount - usdcBalance;
-        }
-
-        uint256 invested = investedAssets();
-
-        console.log("\n### WITHDRAW ###\n");
-        uint256 crabBalance = crabStrategy.balanceOf(address(this));
-
-        // get amount of crab needed to cover withdrawal amount
-        uint256 crabNeeded = (crabBalance * amountInUsdcToWithdrawFromCrab) /
-            invested;
-        crabNeeded = crabNeeded > crabBalance ? crabBalance : crabNeeded;
-
-        // get amount in squeeth needed to cover withdrawal amount
-        uint256 squeethNeeded = crabStrategy.getWsqueethFromCrabAmount(
-            crabNeeded
-        );
-
-        uint256 squeethPriceInWeth = getOraclePrice(wethOsqthPool, oSqth, weth);
-
-        // get amount in eth needed to repay squeeth debth (cover withdrawal amount)
-        uint256 ethNeeded = (squeethNeeded * squeethPriceInWeth) / 1e18;
-
-        // max amount of eth to be used in uni v3 flash swap, has to be grate than ethNeeded to cover fees and slippage
-        uint maxEthUsedInFlashSwap = ethNeeded.pctOf(10100); // 1% more to cover fee & slippage
-
-        console.log("amount\t\t\t", amount);
-        console.log("invested\t\t", invested);
-        console.log("usdcBalance\t\t", usdcBalance);
-        console.log("crabBalance\t\t", crabBalance);
-        console.log("crabNeeded\t\t", crabNeeded);
-        console.log("squeethNeeded\t\t", squeethNeeded);
-        console.log("ethNeeded\t\t", ethNeeded);
-        console.log("maxEthUsedInFlashSwap\t", maxEthUsedInFlashSwap);
-
-        // TODO: find actual amount withdrawn
-        crabStrategy.flashWithdraw(
-            crabNeeded,
-            maxEthUsedInFlashSwap,
-            3000 // pool fee
-        );
-
-        // TODO: transfer to vault
-
-        console.log("\n* after flash withdraw *");
-        console.log("usdc balance", underlying.balanceOf(address(this)));
-        console.log("eth balance", address(this).balance);
-        console.log("crab balance", crabStrategy.balanceOf(address(this)));
-
-        swapEthToUSDC();
-        console.log("\n* after swap eth to usdc *");
-        console.log("eth balance", address(this).balance);
-        console.log("usdc balance", underlying.balanceOf(address(this)));
-
-        return 0;
-    }
-
-    /// @inheritdoc IStrategy
-    function transferYield(
-        address,
-        uint256
-    ) external virtual override(BaseStrategy) onlyManager returns (uint256) {
-        return 0;
-    }
-
-    /**
-     * Strategy has to be able to receive ETH because deposit/withdrawal can leave some leftovers.
-     */
-    receive() external payable {
-        console.log("received eth \t\t", msg.value);
-    }
-
     function getOraclePrice(
         address pool,
         IERC20 base,
@@ -311,8 +334,8 @@ contract OpynCrabStrategy is BaseStrategy {
                 pool,
                 address(base),
                 address(quote),
-                420 seconds,
-                true
+                420 seconds, // period
+                true // check period
             );
     }
 
@@ -358,5 +381,9 @@ contract OpynCrabStrategy is BaseStrategy {
         weth.approve(address(swapRouter), ethBalance);
 
         swapRouter.exactInputSingle(params);
+    }
+
+    receive() external payable {
+        console.log("received eth \t\t", msg.value);
     }
 }
