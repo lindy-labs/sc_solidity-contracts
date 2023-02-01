@@ -13,115 +13,44 @@ import {IStrategy} from "../IStrategy.sol";
 import {BaseStrategy} from "../BaseStrategy.sol";
 import {IVault} from "../../vault/IVault.sol";
 import {ERC165Query} from "../../lib/ERC165Query.sol";
-import {OracleLibrary} from "../../lib/uniswap/OracleLibrary.sol";
 import {ICurveExchange} from "../../interfaces/curve/ICurveExchange.sol";
+import {IOracle} from "../../interfaces/uniswap/IOracle.sol";
+import {ICrabStrategyV2, ICrabHelper, IWETH} from "../../interfaces/opyn/ICrabStrategyV2.sol";
 
 import "hardhat/console.sol";
-
-interface ICrabStrategyV2 is IERC20 {
-    /**
-     * @notice get the vault composition of the strategy
-     * @return operator
-     * @return nft collateral id
-     * @return collateral amount
-     * @return short amount
-     */
-    function getVaultDetails()
-        external
-        view
-        returns (address, uint256, uint256, uint256);
-
-    /**
-     * @notice flash deposit into strategy, providing ETH, selling wSqueeth and receiving strategy tokens
-     * @dev this function will execute a flash swap where it receives ETH, deposits and mints using flash swap proceeds and msg.value, and then repays the flash swap with wSqueeth
-     * @dev _ethToDeposit must be less than msg.value plus the proceeds from the flash swap
-     * @dev the difference between _ethToDeposit and msg.value provides the minimum that a user can receive for their sold wSqueeth
-     * @param _ethToDeposit total ETH that will be deposited in to the strategy which is a combination of msg.value and flash swap proceeds
-     * @param _poolFee Uniswap pool fee
-     */
-    function flashDeposit(
-        uint256 _ethToDeposit,
-        uint24 _poolFee
-    ) external payable;
-
-    /**
-     * @notice flash withdraw from strategy, providing strategy tokens, buying wSqueeth, burning and receiving ETH
-     * @dev this function will execute a flash swap where it receives wSqueeth, burns, withdraws ETH and then repays the flash swap with ETH
-     * @param _crabAmount strategy token amount to burn
-     * @param _maxEthToPay maximum ETH to pay to buy back the wSqueeth debt
-     * @param _poolFee Uniswap pool fee
-     */
-    function flashWithdraw(
-        uint256 _crabAmount,
-        uint256 _maxEthToPay,
-        uint24 _poolFee
-    ) external;
-
-    function deposit() external payable;
-
-    function getWsqueethFromCrabAmount(
-        uint256 _crabAmount
-    ) external view returns (uint256);
-}
-
-interface IWETH is IERC20 {
-    function deposit() external payable;
-
-    function withdraw(uint256 wad) external;
-}
-
-interface ISqueethController {}
-
-interface ICrabHelper {
-    function flashDepositERC20(
-        uint256 _ethToDeposit,
-        uint256 _amountIn,
-        uint256 _minEthToGet,
-        uint24 _erc20Fee,
-        uint24 _wPowerPerpFee,
-        address _tokenIn
-    ) external;
-
-    function flashWithdrawERC20(
-        uint256 _crabAmount,
-        uint256 _maxEthToPay,
-        address _tokenOut,
-        uint256 _minAmountOut,
-        uint24 _erc20Fee,
-        uint24 _wPowerPerpFee
-    ) external;
-}
 
 contract OpynCrabStrategy is BaseStrategy {
     using PercentMath for uint256;
     using ERC165Query for address;
     using SafeERC20 for IERC20;
 
-    address public constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
-    address public constant oSQTH = 0xf1B99e3E573A1a9C5E6B2Ce818b617F0E664E86B;
-    address public constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+    // address public constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
+    // address public constant oSQTH = 0xf1B99e3E573A1a9C5E6B2Ce818b617F0E664E86B;
+    // address public constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
+    // address public constant ORACLE = 0x65D66c76447ccB45dAf1e8044e918fA786A483A1;
 
-    ICrabStrategyV2 crabStrategy;
-    ICrabHelper crabHelper;
-    address wethOsqthPool;
-    address usdcWethPool;
-    ISwapRouter swapRouter;
+    IWETH public weth;
+    IERC20 public oSqth;
+    ICrabStrategyV2 public crabStrategy;
+    ICrabHelper public crabHelper;
+    address public wethOsqthPool;
+    address public usdcWethPool;
+    ISwapRouter public swapRouter;
+    IOracle public oracle;
 
-    /**
-     * @param _vault address of the vault that will use this strategy
-     * @param _admin address of the administrator account for this strategy
-     * @param _underlying address of the underlying token
-     */
     constructor(
         address _vault,
         address _admin,
         address _keeper,
-        IERC20 _underlying,
+        IERC20 _underlying, // USDC,
+        IWETH _weth,
+        IERC20 _oSqth,
         ICrabStrategyV2 _crabStrategy,
         ICrabHelper _crabHelper,
         address _wethOsqthPool,
         address _usdcWethPool,
-        ISwapRouter _swapRouter
+        ISwapRouter _swapRouter,
+        IOracle _oracle
     ) BaseStrategy(_vault, _underlying, _admin) {
         underlying.safeIncreaseAllowance(
             address(_crabHelper),
@@ -130,11 +59,14 @@ contract OpynCrabStrategy is BaseStrategy {
 
         _grantRole(KEEPER_ROLE, _keeper);
 
+        weth = _weth;
+        oSqth = _oSqth;
         crabStrategy = _crabStrategy;
         crabHelper = _crabHelper;
         wethOsqthPool = _wethOsqthPool;
         usdcWethPool = _usdcWethPool;
         swapRouter = _swapRouter;
+        oracle = _oracle;
     }
 
     //
@@ -176,26 +108,44 @@ contract OpynCrabStrategy is BaseStrategy {
         uint256 squeethDebt = crabStrategy.getWsqueethFromCrabAmount(
             crabBalance
         );
-
-        uint256 squeethDebtInWeth = getQuoteFromOracle(
-            wethOsqthPool,
-            oSQTH,
-            WETH,
-            squeethDebt
+        uint256 squeethPriceInWeth = getOraclePrice(wethOsqthPool, oSqth, weth);
+        uint256 wethPriceInUsdc = getOraclePrice(
+            usdcWethPool,
+            weth,
+            underlying
         );
 
-        uint16 collateralizationRatioPct = getCrabStrategyCollateralizationRatio();
+        uint256 squeethDebtInWeth = (squeethDebt * squeethPriceInWeth) / 1e18;
+
+        // uint16 collateralizationRatioPct = _getCrabStrategyCollateralizationRatio();
+        // (, , uint256 strategyCollateral, uint256 strategyDebt) = crabStrategy
+        //     .getVaultDetails();
+
+        // uint256 strategyDebtInEth = getQuoteFromOracle(
+        //     wethOsqthPool,
+        //     address(oSqth),
+        //     address(weth),
+        //     strategyDebt
+        // );
+
+        // return strategyCollateral.inPctOf(strategyDebtInEth);
+
+        (, , uint256 strategyCollateral, uint256 strategyDebt) = crabStrategy
+            .getVaultDetails();
+        uint256 strategyDebtInEth = (strategyDebt * squeethPriceInWeth) / 1e18;
+
+        uint16 collateralizationRatioPct = strategyCollateral.inPctOf(
+            strategyDebtInEth
+        );
 
         uint redeemableCollateral = squeethDebtInWeth.pctOf(
             collateralizationRatioPct - 10000
         );
 
-        uint256 redeemableCollateralInUsdc = getQuoteFromOracle(
-            usdcWethPool,
-            WETH,
-            USDC,
-            redeemableCollateral
-        );
+        uint256 redeemableCollateralInUsdc = (redeemableCollateral *
+            wethPriceInUsdc) /
+            1e18 /
+            1e12;
 
         uint256 invested = redeemableCollateralInUsdc +
             underlying.balanceOf(address(this));
@@ -215,22 +165,40 @@ contract OpynCrabStrategy is BaseStrategy {
     // @param _ethAmount amount of eth to send as msg.value in falshDeposit call
     // @param _ethAmountToBorrow amount of eth that will be borrowed in uni v3 flash swap
     function flashDepositToCrabStrategy(
-        uint256 _ethAmount,
+        uint256 _usdcAmount,
+        uint256 _ethAmountOutMin, // amount of eth to receive from usdc -> eth swap
         uint256 _ethAmountToBorrow
     ) public {
         // TODO: check the crab strategy collateral cap
+        // uint256 balance = underlying.balanceOf(address(this));
+        swapUsdcToEth(_usdcAmount, _ethAmountOutMin);
 
-        crabStrategy.flashDeposit{value: _ethAmount}(
-            _ethAmount + _ethAmountToBorrow,
-            3000
+        uint256 ethBalance = address(this).balance;
+        console.log("ethBalance\t\t", ethBalance);
+        // NOTE: eth amount to borrow is hardcoded since it is impossible to get the precise estimate on-chain
+        // this is because the amount of eth to borrow depends on the amount of squeeth that will be minted (and used to repay the flas swap debt),
+        //  which again depends on the total amount of eth to be deposited (borrowed + owned), a catch22 situation.
+        // Because of this, invest cannot directly deposit to the opyn crab strategy, but instead it has to rely on another function that will be called from backend.
+        // The backend must determine the amount of eth to borrow from uni v3 pool, and then call the flashDepositToCrabStrategy function.
+        // NOTE: eth amount to borrow must be less than eth owned (including fees and slippage), otherwise deposit transaction reverts (crab strategy collateral ratio has to remain the same)
+        // uint256 ethAmountToBorrow = (ethBalance * 984) / 1000; // 2% less
+        uint256 totalEthToDeposit = ethBalance + _ethAmountToBorrow;
+
+        console.log("ethAmount\t\t", ethBalance);
+        console.log("ethAmountToBorrow\t", _ethAmountToBorrow);
+        console.log("totalEthToDeposit\t", totalEthToDeposit);
+
+        crabStrategy.flashDeposit{value: ethBalance}(
+            ethBalance + _ethAmountToBorrow,
+            IUniswapV3Pool(wethOsqthPool).fee()
         ); // 0.3% uniswap pool fee
 
         console.log("\n* after flash deposit *");
         console.log("ethAmount\t\t", address(this).balance);
-        console.log("wehtAmount\t\t", IWETH(WETH).balanceOf(address(this)));
+        console.log("wehtAmount\t\t", weth.balanceOf(address(this)));
         console.log("usdcAmount\t\t", underlying.balanceOf(address(this)));
         console.log("crabAmount\t\t", crabStrategy.balanceOf(address(this)));
-        console.log("sqeethAmount\t\t", IERC20(oSQTH).balanceOf(address(this)));
+        console.log("sqeethAmount\t\t", oSqth.balanceOf(address(this)));
 
         // swap eth amount not used for covering the slippage costs
         swapEthToUSDC();
@@ -243,25 +211,7 @@ contract OpynCrabStrategy is BaseStrategy {
     /// @inheritdoc IStrategy
     function invest() external virtual override(IStrategy) onlyManager {
         console.log("\n### INVEST ###\n");
-        // TOOD: emit event for backend
-
-        swapUsdcToEth();
-
-        uint256 ethAmount = address(this).balance;
-        // NOTE: eth amount to borrow is hardcoded since it is impossible to get the precise estimate on-chain
-        // this is because the amount of eth to borrow depends on the amount of squeeth that will be minted (and used to repay the flas swap debt),
-        //  which again depends on the total amount of eth to be deposited (borrowed + owned), a catch22 situation.
-        // Because of this, invest cannot directly deposit to the opyn crab strategy, but instead it has to rely on another function that will be called from backend.
-        // The backend must determine the amount of eth to borrow from uni v3 pool, and then call the flashDepositToCrabStrategy function.
-        // NOTE: eth amount to borrow must be less than eth owned (including fees and slippage), otherwise deposit transaction reverts (crab strategy collateral ratio has to remain the same)
-        uint256 ethAmountToBorrow = (ethAmount * 984) / 1000; // 2% less
-        uint256 totalEthToDeposit = ethAmount + ethAmountToBorrow;
-
-        console.log("ethAmount\t\t", ethAmount);
-        console.log("ethAmountToBorrow\t", ethAmountToBorrow);
-        console.log("totalEthToDeposit\t", totalEthToDeposit);
-
-        flashDepositToCrabStrategy(ethAmount, ethAmountToBorrow);
+        // TODO: emit event for backend
     }
 
     /// @inheritdoc IStrategy
@@ -297,18 +247,13 @@ contract OpynCrabStrategy is BaseStrategy {
             crabNeeded
         );
 
+        uint256 squeethPriceInWeth = getOraclePrice(wethOsqthPool, oSqth, weth);
+
         // get amount in eth needed to repay squeeth debth (cover withdrawal amount)
-        uint256 ethNeeded = getQuoteFromOracle(
-            wethOsqthPool,
-            oSQTH,
-            WETH,
-            squeethNeeded
-        );
+        uint256 ethNeeded = (squeethNeeded * squeethPriceInWeth) / 1e18;
 
         // max amount of eth to be used in uni v3 flash swap, has to be grate than ethNeeded to cover fees and slippage
         uint maxEthUsedInFlashSwap = ethNeeded.pctOf(10100); // 1% more to cover fee & slippage
-
-        crabStrategy.approve(address(crabHelper), crabNeeded);
 
         console.log("amount\t\t\t", amount);
         console.log("invested\t\t", invested);
@@ -319,11 +264,14 @@ contract OpynCrabStrategy is BaseStrategy {
         console.log("ethNeeded\t\t", ethNeeded);
         console.log("maxEthUsedInFlashSwap\t", maxEthUsedInFlashSwap);
 
+        // TODO: find actual amount withdrawn
         crabStrategy.flashWithdraw(
             crabNeeded,
             maxEthUsedInFlashSwap,
             3000 // pool fee
         );
+
+        // TODO: transfer to vault
 
         console.log("\n* after flash withdraw *");
         console.log("usdc balance", underlying.balanceOf(address(this)));
@@ -353,52 +301,31 @@ contract OpynCrabStrategy is BaseStrategy {
         console.log("received eth \t\t", msg.value);
     }
 
-    function getCrabStrategyCollateralizationRatio()
-        internal
-        view
-        returns (uint16)
-    {
-        (, , uint256 strategyCollateral, uint256 strategyDebt) = crabStrategy
-            .getVaultDetails();
-
-        uint256 strategyDebtInEth = getQuoteFromOracle(
-            wethOsqthPool,
-            oSQTH,
-            WETH,
-            strategyDebt
-        );
-
-        return strategyCollateral.inPctOf(strategyDebtInEth);
-    }
-
-    function getQuoteFromOracle(
+    function getOraclePrice(
         address pool,
-        address tokenIn,
-        address tokenOut,
-        uint256 amountIn
-    ) public view returns (uint256 quote) {
-        (int24 arithmeticMeanTick, ) = OracleLibrary.consult(pool, 240);
-
-        quote = OracleLibrary.getQuoteAtTick(
-            arithmeticMeanTick,
-            uint128(amountIn),
-            tokenIn,
-            tokenOut
-        );
+        IERC20 base,
+        IERC20 quote
+    ) internal view returns (uint256) {
+        return
+            oracle.getTwap(
+                pool,
+                address(base),
+                address(quote),
+                420 seconds,
+                true
+            );
     }
 
-    function swapUsdcToEth() internal {
-        uint256 underlyingBalance = underlying.balanceOf(address(this));
-
+    function swapUsdcToEth(uint256 _amount, uint256 _amountOutMin) internal {
         ISwapRouter.ExactInputSingleParams memory params = ISwapRouter
             .ExactInputSingleParams({
-                tokenIn: USDC,
-                tokenOut: WETH,
-                fee: 500,
+                tokenIn: address(underlying),
+                tokenOut: address(weth),
+                fee: IUniswapV3Pool(usdcWethPool).fee(),
                 recipient: address(this),
                 deadline: block.timestamp,
-                amountIn: underlyingBalance,
-                amountOutMinimum: 0,
+                amountIn: _amount,
+                amountOutMinimum: _amountOutMin,
                 sqrtPriceLimitX96: 0
             });
 
@@ -406,7 +333,9 @@ contract OpynCrabStrategy is BaseStrategy {
 
         uint256 amountOut = swapRouter.exactInputSingle(params);
 
-        IWETH(WETH).withdraw(amountOut);
+        console.log("amountOut\t\t", amountOut);
+
+        weth.withdraw(amountOut);
     }
 
     function swapEthToUSDC() internal {
@@ -414,9 +343,9 @@ contract OpynCrabStrategy is BaseStrategy {
 
         ISwapRouter.ExactInputSingleParams memory params = ISwapRouter
             .ExactInputSingleParams({
-                tokenIn: WETH,
-                tokenOut: USDC,
-                fee: 500,
+                tokenIn: address(weth),
+                tokenOut: address(underlying),
+                fee: IUniswapV3Pool(usdcWethPool).fee(),
                 recipient: address(this),
                 deadline: block.timestamp,
                 amountIn: ethBalance,
@@ -424,9 +353,9 @@ contract OpynCrabStrategy is BaseStrategy {
                 sqrtPriceLimitX96: 0
             });
 
-        IWETH(WETH).deposit{value: ethBalance}();
+        weth.deposit{value: ethBalance}();
 
-        IWETH(WETH).approve(address(swapRouter), ethBalance);
+        weth.approve(address(swapRouter), ethBalance);
 
         swapRouter.exactInputSingle(params);
     }

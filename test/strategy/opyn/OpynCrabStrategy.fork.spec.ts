@@ -54,6 +54,7 @@ describe('Opyn Crab Strategy (mainnet fork tests)', () => {
   const WETH_oSQTH_UNISWAP_POOL = '0x82c427AdFDf2d245Ec51D8046b41c4ee87F0d29C';
   const USDC_WETH_UNISWAP_POOL = '0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640';
   const UNISWAP_SWAP_ROUTER = '0xE592427A0AEce92De3Edee1F18E0157C05861564';
+  const ORACLE = '0x65D66c76447ccB45dAf1e8044e918fA786A483A1';
 
   const FORK_BLOCK_1 = 16094470; // collateralization ratio 200.76%
   const FORK_BLOCK_2 = 16147760; // collateralization ratio 194.56%
@@ -106,11 +107,14 @@ describe('Opyn Crab Strategy (mainnet fork tests)', () => {
       admin.address,
       admin.address,
       usdc.address,
+      weth.address,
+      osqth.address,
       CRAB_STRATEGY_V2,
       CRAB_HELPER,
       WETH_oSQTH_UNISWAP_POOL,
       USDC_WETH_UNISWAP_POOL,
       UNISWAP_SWAP_ROUTER,
+      ORACLE,
     );
 
     await vault.setStrategy(strategy.address);
@@ -161,9 +165,16 @@ describe('Opyn Crab Strategy (mainnet fork tests)', () => {
 
     it.only('#invest -> #investedAssets -> #withdrawToVault', async () => {
       const depositAmount = parseUSDC('10000');
+      const minEthAmount = '7852544515515418078';
+      const ethToBorrow = '7726903803267171388';
       await ForkHelpers.mintToken(usdc, strategy.address, depositAmount);
 
       await strategy.invest();
+      await strategy.flashDepositToCrabStrategy(
+        depositAmount,
+        minEthAmount,
+        ethToBorrow,
+      );
 
       const invested = await strategy.investedAssets();
       expect(invested).to.gt(parseUSDC('9600')); // with fees & slippage taken from 10000
@@ -173,7 +184,7 @@ describe('Opyn Crab Strategy (mainnet fork tests)', () => {
       expect(await usdc.balanceOf(strategy.address)).to.gt(parseUSDC('9300')); // fees & slippage included
     });
 
-    it.only('#invest -> #withdrawToVault for half amount deposited', async () => {
+    it('#invest -> #withdrawToVault for half amount deposited', async () => {
       const depositAmount = parseUSDC('10000');
       await ForkHelpers.mintToken(usdc, strategy.address, depositAmount);
 
