@@ -3,9 +3,12 @@ import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { includes } from 'lodash';
 import { ethers } from 'hardhat';
 import { utils } from 'ethers';
-import { getCurrentNetworkConfig } from '../scripts/deployConfigs';
 
+import { getCurrentNetworkConfig } from '../scripts/deployConfigs';
 import liquityMocks from './helpers/liquityMocks';
+import init0x from './helpers/init0x';
+import initCurveRouter from './helpers/initCurveRouter';
+import { LiquityStrategy, Vault } from '@root/typechain';
 
 const func = async function (env: HardhatRuntimeEnvironment) {
   const { deployer } = await env.getNamedAccounts();
@@ -18,7 +21,11 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
   const LUSDDeployment = await get('LUSD');
 
-  let address0x: string;
+  console.log('Initializing Curve Router');
+  const curveRouter = await initCurveRouter(env);
+
+  console.log('Initializing 0x');
+  const swapTarget0x = await init0x(env);
 
   let liquityStrategyContract = includes(
     ['hardhat', 'docker'],
@@ -27,14 +34,13 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     ? 'MockLiquityStrategyV3'
     : 'LiquityDCAStrategy';
 
+  console.log('Deploying Liquity DCA Strategy');
   const liquityStrategyDeployment = await deploy('Liquity_DCA_Strategy', {
     contract: liquityStrategyContract,
     from: deployer,
     args: [],
     log: true,
   });
-
-  let curveRouter = '0x81C46fECa27B31F3ADC2b91eE4be9717d1cd3DD7';
 
   const liquityStrategy = await ethers.getContractAt(
     'LiquityStrategy',
@@ -55,16 +61,13 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     });
   }
 
-  if (getNetworkName() !== 'mainnet') {
-    const res = await liquityMocks(env, 'Liquity_DCA');
-    address0x = res.mock0x.address;
-  }
+  if (getNetworkName() !== 'mainnet') await liquityMocks(env, 'Liquity_DCA');
 
   const stabilityPool = await get('Liquity_DCA_Stability_Pool');
   const LQTYDeployment = await get('LQTY');
 
   try {
-    // initialize strategy
+    console.log('Initializing strategy');
     const tx = await liquityStrategy.initialize(
       vault.address,
       owner.address,
@@ -77,12 +80,11 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     );
 
     await tx.wait();
-    console.log('LquityStrategy initialized');
   } catch (e) {
     console.log('Liquity_DCA_Strategy already initialized');
   }
 
-  // set manager role
+  console.log('Granting MANAGER_ROLE to owner');
   await liquityStrategy
     .connect(owner)
     .grantRole(
@@ -90,27 +92,31 @@ const func = async function (env: HardhatRuntimeEnvironment) {
       owner.address,
     );
 
-  console.log('manager_role granted to owner for strategy');
-
+  console.log('Setting strategy in vault');
   await vault.connect(owner).setStrategy(liquityStrategy.address);
-  console.log('strategy set to vault');
 
-  // get 0x contract
+  await liquityStrategy.connect(owner).allowSwapTarget(swapTarget0x);
 
-  if (!address0x) address0x = '0xdef1c0ded9bec7f1a1670819833240f027b25eff';
-
-  await liquityStrategy.connect(owner).allowSwapTarget(address0x);
-
-  if (owner.address !== multisig) {
-    await (await vault.connect(owner).transferAdminRights(multisig)).wait();
-    console.log('vault ownership transfered to multisig');
-
-    await (
-      await liquityStrategy.connect(owner).transferAdminRights(multisig)
-    ).wait();
-    console.log('strategy ownership transfered to multisig');
-  }
+  await transferOwnershipToMultisig(vault, liquityStrategy);
 };
+
+async function transferOwnershipToMultisig(
+  vault: Vault,
+  liquityStrategy: LiquityStrategy,
+) {
+  const [owner] = await ethers.getSigners();
+  const { multisig } = await getCurrentNetworkConfig();
+
+  if (owner.address === multisig) return;
+
+  console.log('Transferring vault to multisig');
+  await (await vault.connect(owner).transferAdminRights(multisig)).wait();
+
+  console.log('Transferring strategy to multisig');
+  await (
+    await liquityStrategy.connect(owner).transferAdminRights(multisig)
+  ).wait();
+}
 
 func.tags = ['liquity_dca_strategy'];
 func.dependencies = ['liquity_dca_vault'];

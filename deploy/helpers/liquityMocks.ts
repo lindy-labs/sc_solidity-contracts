@@ -35,13 +35,6 @@ export default async function (env: HardhatRuntimeEnvironment, prefix: string) {
     args: troveManagerDeploymentArgs,
   });
 
-  const mock0x = await deploy(`${prefix}_Mock0x`, {
-    contract: 'Mock0x',
-    from: deployer,
-    args: [],
-    log: true,
-  });
-
   if (getNetworkName() !== 'hardhat' && getNetworkName() !== 'docker') {
     const priceFeedVerification = env.run('verify:verify', {
       address: mockLiquityPriceFeedDeployment.address,
@@ -58,16 +51,10 @@ export default async function (env: HardhatRuntimeEnvironment, prefix: string) {
       constructorArguments: liquityStabilityPoolArgs,
     });
 
-    const mock0xVerification = env.run('verify:verify', {
-      address: mock0x.address,
-      constructorArguments: [],
-    });
-
     const promises = [
       priceFeedVerification,
       troveManagerVerification,
       stabilityPoolVerification,
-      mock0xVerification,
     ];
 
     await Promise.allSettled(promises).then((results) =>
@@ -78,6 +65,4 @@ export default async function (env: HardhatRuntimeEnvironment, prefix: string) {
       }),
     );
   }
-
-  return { mock0x };
 }
