@@ -1,17 +1,23 @@
 // SPDX-License-Identifier: MIT
 pragma solidity =0.8.10;
 
-import {IStabilityPool} from "../../interfaces/liquity/IStabilityPool.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-contract MockStabilityPool is IStabilityPool {
-    IERC20 public immutable lusd;
+import {IStabilityPool} from "../../interfaces/liquity/IStabilityPool.sol";
+import {MockLUSD} from "../MockERC20.sol";
 
-    event StabilityPoolETHBalanceUpdated(uint _newBalance);
-    event ETHGainWithdrawn(address indexed _depositor, uint _ETH, uint _LUSDLoss);
+contract MockStabilityPool is IStabilityPool {
+    MockLUSD public immutable lusd;
+
+    event StabilityPoolETHBalanceUpdated(uint256 _newBalance);
+    event ETHGainWithdrawn(
+        address indexed _depositor,
+        uint256 _ETH,
+        uint256 _LUSDLoss
+    );
 
     constructor(address _lusd, address _priceFeed) {
-        lusd = IERC20(_lusd);
+        lusd = MockLUSD(_lusd);
         priceFeed = _priceFeed;
     }
 
@@ -64,6 +70,13 @@ contract MockStabilityPool is IStabilityPool {
         returns (uint256)
     {
         return balances[_depositor];
+    }
+
+    function reduceDepositorLUSDBalance(address _depositor, uint256 _amount)
+        external
+    {
+        balances[_depositor] -= _amount;
+        lusd.burn(address(this), _amount);
     }
 
     function offset(uint256 _debtToOffset, uint256 _collToAdd) external {}

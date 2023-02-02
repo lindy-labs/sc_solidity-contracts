@@ -254,7 +254,7 @@ describe('LiquityDCAStrategy', () => {
 
     it('works with pricipal protection set', async () => {
       await addUnderlyingBalance(alice, '100');
-      await strategy.setMinPrincipalProtectionPct('11000');
+      await strategy.setMinProtectedAssetsPct('11000');
 
       const params = depositParams.build({
         amount: parseUnits('100'),
