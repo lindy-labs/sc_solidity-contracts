@@ -350,9 +350,9 @@ contract LiquityStrategy is
             revert StrategyInsufficientOutputAmount();
         }
 
-        emit StrategyReinvested(balance);
-
         stabilityPool.provideToSP(balance, address(0));
+
+        emit StrategyReinvested(balance);
     }
 
     /// @inheritdoc IStrategy
