@@ -21,6 +21,10 @@ import {
   ERC20,
   ERC20__factory,
   OpynCrabStrategy,
+  ICrabStrategyV2,
+  ICrabStrategyV2__factory,
+  ICrabNetting,
+  ICrabNetting__factory,
 } from '../../../typechain';
 
 const { parseUnits } = ethers.utils;
@@ -37,6 +41,8 @@ describe('Opyn Crab Strategy (mainnet fork tests)', () => {
   let strategy: OpynCrabStrategy;
   let wethUsdcUniV3Pool: Pool;
   let wethOsqthUniV3Pool: Pool;
+  let crabStrategyV2: ICrabStrategyV2;
+  let crabNetting: ICrabNetting;
 
   const TWO_WEEKS = time.duration.days(14).toNumber();
   const INVEST_PCT = 10000; // set 100% for test
@@ -51,16 +57,16 @@ describe('Opyn Crab Strategy (mainnet fork tests)', () => {
   const oSQTH = '0xf1B99e3E573A1a9C5E6B2Ce818b617F0E664E86B'; // squeeth
   const CRAB_STRATEGY_V2 = '0x3B960E47784150F5a63777201ee2B15253D713e8'; // Opyn CrabStrategyV2
   const CRAB_HELPER = '0x2F55e27E669F070dEf7B5771dB72f6B31A6d4df8'; // Opyn CrabHelper
+  const CRAB_NETTING = '0x6E536adDB53d1b47d357cdca83BCF460194A395F';
+  const OWNER_CRAB_NETTING = '0xAfE66363c27EedB597a140c28B70b32F113fd5a8';
   const WETH_oSQTH_UNISWAP_POOL = '0x82c427AdFDf2d245Ec51D8046b41c4ee87F0d29C';
   const USDC_WETH_UNISWAP_POOL = '0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640';
   const UNISWAP_SWAP_ROUTER = '0xE592427A0AEce92De3Edee1F18E0157C05861564';
   const ORACLE = '0x65D66c76447ccB45dAf1e8044e918fA786A483A1';
 
-  const FORK_BLOCK_1 = 16094470; // collateralization ratio 200.76%
-  const FORK_BLOCK_2 = 16147760; // collateralization ratio 194.56%
-
   beforeEach(async () => {
-    await ForkHelpers.forkToMainnet(FORK_BLOCK_1); //  16147760
+    // await ForkHelpers.forkToMainnet(16094470);
+    await ForkHelpers.forkToMainnet(16539370);
 
     [admin, alice] = await ethers.getSigners();
 
@@ -79,9 +85,8 @@ describe('Opyn Crab Strategy (mainnet fork tests)', () => {
       osqth,
     );
 
-    // uniPool = IUniswapV3Pool__factory.connect(WETH_oSQTH_UNISWAP_POOL, admin);
-    // expect(await uniPool.token0()).to.eq(WETH);
-    // expect(await uniPool.token1()).to.eq(oSQTH);
+    crabStrategyV2 = ICrabStrategyV2__factory.connect(CRAB_STRATEGY_V2, admin);
+    crabNetting = ICrabNetting__factory.connect(CRAB_NETTING, admin);
 
     const VaultFactory = await ethers.getContractFactory('Vault');
 
@@ -101,7 +106,6 @@ describe('Opyn Crab Strategy (mainnet fork tests)', () => {
       'OpynCrabStrategy',
     );
 
-    // 787029136771394475
     strategy = await OpynCrabStrategyFactory.deploy(
       vault.address,
       admin.address,
@@ -110,7 +114,7 @@ describe('Opyn Crab Strategy (mainnet fork tests)', () => {
       weth.address,
       osqth.address,
       CRAB_STRATEGY_V2,
-      CRAB_HELPER,
+      CRAB_NETTING,
       WETH_oSQTH_UNISWAP_POOL,
       USDC_WETH_UNISWAP_POOL,
       UNISWAP_SWAP_ROUTER,
@@ -125,48 +129,10 @@ describe('Opyn Crab Strategy (mainnet fork tests)', () => {
   });
 
   describe('#invest', () => {
-    xit('deposits', async () => {
-      await ForkHelpers.mintToken(usdc, strategy.address, parseUSDC('15000'));
-
-      // await strategy.invest();
-      console.log('*** USDC_WETH ***');
-      console.log('token0', wethUsdcUniV3Pool.token0.name);
-      console.log('uniPool.token0Price', await wethUsdcUniV3Pool.token0Price);
-      console.log('uniPool.token1Price', await wethUsdcUniV3Pool.token1Price);
-
-      const token0 = new Token(
-        1,
-        usdc.address,
-        await usdc.decimals(),
-        await usdc.symbol(),
-        await usdc.name(),
-      );
-      const token1 = new Token(
-        1,
-        weth.address,
-        await weth.decimals(),
-        await weth.symbol(),
-        await weth.name(),
-      );
-
-      //
-
-      console.log(
-        `1 WETH = ${wethUsdcUniV3Pool.token0Price.quote(
-          CurrencyAmount.fromRawAmount(token0, parseUnits('1').toString()),
-        )} USDC`,
-      );
-      console.log(
-        wethUsdcUniV3Pool.token1Price
-          .quote(CurrencyAmount.fromRawAmount(token0, '1'))
-          .toFixed(6),
-      );
-    });
-
     it.only('#invest -> #investedAssets -> #withdrawToVault', async () => {
       const depositAmount = parseUSDC('10000');
-      const minEthAmount = '7852544515515418078';
-      const ethToBorrow = '7726903803267171388';
+      const minEthAmount = '5999366505836873648';
+      const ethToBorrow = '6560000000000000000';
       await ForkHelpers.mintToken(usdc, strategy.address, depositAmount);
 
       await strategy.invest();
@@ -186,15 +152,86 @@ describe('Opyn Crab Strategy (mainnet fork tests)', () => {
 
     it.only('#invest -> #withdrawToVault for half amount deposited', async () => {
       const depositAmount = parseUSDC('10000');
+      const minEthAmount = '5999366505836873648';
+      const ethToBorrow = '6568960000000000000'; // f(collateralization ratio); atm collateralization ratio 190.44%
       await ForkHelpers.mintToken(usdc, strategy.address, depositAmount);
 
       await strategy.invest();
+
+      await strategy.flashDepositToCrabStrategy(
+        depositAmount,
+        minEthAmount,
+        ethToBorrow,
+      );
+
+      const x = await crabStrategyV2.getVaultDetails();
+      console.log('x', x);
 
       await strategy.withdrawToVault(depositAmount.div(2));
 
       expect(await usdc.balanceOf(strategy.address)).to.gt(
         parseUSDC('4980'), // fees & slippage included
       );
+    });
+
+    it.only('#invest thru netting contract', async () => {
+      const depositAmount = parseUSDC('10000');
+      const minEthAmount = '5999366505836873648';
+      const ethToBorrow = '6568960000000000000'; // f(collateralization ratio); atm collateralization ratio 190.44%
+      await ForkHelpers.mintToken(usdc, strategy.address, depositAmount);
+
+      await strategy.depositToCrabNetting(depositAmount);
+
+      const deposited = await crabNetting.usdBalance(strategy.address);
+
+      console.log('deposited\t', deposited.toString());
+
+      const depositsQueued = await crabNetting.depositsQueued();
+      const withdrawsQueued = await crabNetting.withdrawsQueued();
+
+      await ForkHelpers.impersonate([OWNER_CRAB_NETTING]);
+      const crabNettingOwner = await ethers.getSigner(OWNER_CRAB_NETTING);
+      await ForkHelpers.setBalance(OWNER_CRAB_NETTING, parseUnits('1'));
+
+      const crabPriceInWeth = await strategy.getOraclePrice(
+        WETH_oSQTH_UNISWAP_POOL,
+        oSQTH,
+        WETH,
+      );
+      const wethPriceInUsdc = await strategy.getOraclePrice(
+        USDC_WETH_UNISWAP_POOL,
+        WETH,
+        USDC,
+      );
+
+      console.log('depositsQueued\t', depositsQueued.toString());
+      console.log('withdrawsQueued\t', withdrawsQueued.toString());
+
+      console.log('crabPriceInWeth\t', crabPriceInWeth.toString());
+      console.log('wethPriceInUsdc\t', wethPriceInUsdc.toString());
+
+      const crabPriceInUsdc = crabPriceInWeth
+        .div(1e9)
+        .mul(wethPriceInUsdc)
+        .div(1e9);
+
+      console.log('crabPriceInUsdc\t', crabPriceInUsdc.toString());
+
+      const fairPrice = await strategy.getCrabFairPrice();
+
+      await crabNetting
+        .connect(crabNettingOwner)
+        .netAtPrice(fairPrice, depositsQueued);
+
+      const crabBalance = await crabStrategyV2.balanceOf(strategy.address);
+
+      console.log('crabBalance\t', crabBalance.toString());
+
+      await strategy.investedAssets();
+
+      // crabPriceInWeth  0.61966525918995800
+      // wethPriceInUsdc  1665.751660000000000000
+      // crabPriceInUsdc  103. 220841883181500000
     });
   });
 });
