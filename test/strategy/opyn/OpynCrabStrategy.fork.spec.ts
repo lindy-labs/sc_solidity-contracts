@@ -115,8 +115,6 @@ describe('Opyn Crab Strategy (mainnet fork tests)', () => {
       osqth.address,
       CRAB_STRATEGY_V2,
       CRAB_NETTING,
-      WETH_oSQTH_UNISWAP_POOL,
-      USDC_WETH_UNISWAP_POOL,
       UNISWAP_SWAP_ROUTER,
       ORACLE,
     );

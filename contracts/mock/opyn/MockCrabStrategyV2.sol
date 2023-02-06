@@ -4,7 +4,9 @@ pragma solidity =0.8.10;
 import {ICrabStrategyV2} from "../../interfaces/opyn/ICrabStrategyV2.sol";
 
 contract MockCrabStrategyV2 is ICrabStrategyV2 {
-    function totalSupply() external view override returns (uint256) {}
+    function totalSupply() external pure override returns (uint256) {
+        return 1e18;
+    }
 
     function balanceOf(
         address account
