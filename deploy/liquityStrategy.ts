@@ -4,6 +4,7 @@ import { includes } from 'lodash';
 import { ethers } from 'hardhat';
 import { utils } from 'ethers';
 import { getCurrentNetworkConfig } from '../scripts/deployConfigs';
+import liquityMocks from './helpers/liquityMocks';
 
 const func = async function (env: HardhatRuntimeEnvironment) {
   const { deployer } = await env.getNamedAccounts();
