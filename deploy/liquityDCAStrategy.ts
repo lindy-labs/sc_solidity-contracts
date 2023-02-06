@@ -68,18 +68,18 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
   try {
     console.log('Initializing strategy');
-    const tx = await liquityStrategy.initialize(
-      vault.address,
-      owner.address,
-      stabilityPool.address,
-      LQTYDeployment.address,
-      LUSDDeployment.address,
-      multisig,
-      0,
-      curveRouter,
-    );
-
-    await tx.wait();
+    await (
+      await liquityStrategy.initialize(
+        vault.address,
+        owner.address,
+        stabilityPool.address,
+        LQTYDeployment.address,
+        LUSDDeployment.address,
+        multisig,
+        0,
+        curveRouter,
+      )
+    ).wait();
   } catch (e) {
     console.log('Liquity_DCA_Strategy already initialized');
   }
