@@ -29,6 +29,8 @@ contract OpynCrabStrategy is BaseStrategy {
     // address public constant USDC = 0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48;
     // address public constant ORACLE = 0x65D66c76447ccB45dAf1e8044e918fA786A483A1;
 
+    uint32 public constant TWAP_PERIOD = 420 seconds;
+
     IWETH public weth;
     IERC20 public oSqth;
     ICrabStrategyV2 public crabStrategy;
@@ -52,11 +54,6 @@ contract OpynCrabStrategy is BaseStrategy {
         ISwapRouter _swapRouter,
         IOracle _oracle
     ) BaseStrategy(_vault, _underlying, _admin) {
-        // underlying.safeIncreaseAllowance(
-        //     address(_crabHelper),
-        //     type(uint256).max
-        // );
-
         _grantRole(KEEPER_ROLE, _keeper);
 
         weth = _weth;
@@ -88,11 +85,10 @@ contract OpynCrabStrategy is BaseStrategy {
     {
         return
             underlying.balanceOf(address(this)) > 0 ||
-            crabStrategy.balanceOf(address(this)) > 0;
+            crabStrategy.balanceOf(address(this)) > 0 ||
+            crabNetting.usdBalance(address(this)) > 0 ||
+            crabNetting.crabBalance(address(this)) > 0;
     }
-
-    // 155796485951247848 - 92143313564999 = 155704242637582549 total eth deposited
-    // 79135025576445512 * 2008 / 10000 =
 
     /// @inheritdoc IStrategy
     function investedAssets()
@@ -104,66 +100,17 @@ contract OpynCrabStrategy is BaseStrategy {
     {
         console.log("\n### INVESTED ASSETS ###\n");
 
+        uint256 usdcBalance = underlying.balanceOf(address(this));
         uint256 crabBalance = crabStrategy.balanceOf(address(this));
-        // uint256 squeethDebt = crabStrategy.getWsqueethFromCrabAmount(
-        //     crabBalance
-        // );
-        // uint256 squeethPriceInWeth = getOraclePrice(wethOsqthPool, oSqth, weth);
-        // uint256 wethPriceInUsdc = getOraclePrice(
-        //     usdcWethPool,
-        //     weth,
-        //     underlying
-        // );
+        uint256 usdcPendingDeposit = crabNetting.usdBalance(address(this));
+        uint256 crabPendingWithdraw = crabNetting.crabBalance(address(this));
 
-        // uint256 squeethDebtInWeth = (squeethDebt * squeethPriceInWeth) / 1e18;
+        uint256 amountInCrab = ((crabBalance + crabPendingWithdraw) *
+            getCrabFairPrice()) / 1e18;
 
-        // // uint16 collateralizationRatioPct = _getCrabStrategyCollateralizationRatio();
-        // // (, , uint256 strategyCollateral, uint256 strategyDebt) = crabStrategy
-        // //     .getVaultDetails();
+        uint256 invested = usdcBalance + usdcPendingDeposit + amountInCrab;
 
-        // // uint256 strategyDebtInEth = getQuoteFromOracle(
-        // //     wethOsqthPool,
-        // //     address(oSqth),
-        // //     address(weth),
-        // //     strategyDebt
-        // // );
-
-        // // return strategyCollateral.inPctOf(strategyDebtInEth);
-
-        // (, , uint256 strategyCollateral, uint256 strategyDebt) = crabStrategy
-        //     .getVaultDetails();
-        // uint256 strategyDebtInEth = (strategyDebt * squeethPriceInWeth) / 1e18;
-
-        // uint16 collateralizationRatioPct = strategyCollateral.inPctOf(
-        //     strategyDebtInEth
-        // );
-
-        // uint redeemableCollateral = squeethDebtInWeth.pctOf(
-        //     collateralizationRatioPct - 10000
-        // );
-
-        // uint256 redeemableCollateralInUsdc = (redeemableCollateral *
-        //     wethPriceInUsdc) /
-        //     1e18 /
-        //     1e12;
-
-        // uint256 invested = redeemableCollateralInUsdc +
-        //     underlying.balanceOf(address(this));
-
-        // console.log("collateralization ratio\t", collateralizationRatioPct);
-        // console.log("crabBalance\t\t", crabBalance);
-        // console.log("squeethDebt\t\t", squeethDebt);
-        // console.log("squeethDebtInWeth\t", squeethDebtInWeth);
-        // console.log("redeemableCollateral\t", redeemableCollateral);
-        // console.log("redeemableInUsdc\t", redeemableCollateralInUsdc);
-        // console.log("invested assets\t\t", invested);
-
-        uint256 invested2 = (crabBalance * getCrabFairPrice()) /
-            1e18 +
-            underlying.balanceOf(address(this));
-        console.log("invested assets 2\t", invested2);
-
-        return invested2;
+        return invested;
     }
 
     /// @inheritdoc IStrategy
@@ -174,66 +121,57 @@ contract OpynCrabStrategy is BaseStrategy {
 
     /// @inheritdoc IStrategy
     function withdrawToVault(
-        uint256 amount
+        uint256 _amount
     ) external virtual override(IStrategy) onlyManager returns (uint256) {
-        if (amount == 0) revert StrategyAmountZero();
-        // TODO: check if amount could be deducted from usdc balance
+        console.log("\n### WITHDRAW ###\n");
+
+        if (_amount == 0) revert StrategyAmountZero();
+        // TODO: check if amount could be deducted from usdc balance & crab netting
 
         uint256 usdcBalance = underlying.balanceOf(address(this));
         uint256 amountInUsdcToWithdrawFromCrab;
-        if (amount <= usdcBalance) {
+        if (_amount <= usdcBalance) {
             // withdraw immediately from usdc balance
             amountInUsdcToWithdrawFromCrab = 0;
             // transfer usdc to vault
             return 0;
         } else {
-            amountInUsdcToWithdrawFromCrab = amount - usdcBalance;
+            amountInUsdcToWithdrawFromCrab = _amount - usdcBalance;
         }
 
-        uint256 invested = investedAssets();
-
-        console.log("\n### WITHDRAW ###\n");
         uint256 crabBalance = crabStrategy.balanceOf(address(this));
-
-        // get amount of crab needed to cover withdrawal amount
-        uint256 crabNeeded = (crabBalance * amountInUsdcToWithdrawFromCrab) /
-            invested;
-
-        console.log("*crabNeeded\t", crabNeeded);
-        crabNeeded = crabNeeded > crabBalance ? crabBalance : crabNeeded;
-
-        // get amount in squeeth needed to cover withdrawal amount
-        uint256 squeethNeeded = crabStrategy.getWsqueethFromCrabAmount(
-            crabNeeded
-        );
-        //1,126,711,412,608,942
-        uint256 squeethPriceInWeth = getOraclePrice(wethOsqthPool, oSqth, weth);
-
-        // get amount in eth needed to repay squeeth debth (cover withdrawal amount)
-        uint256 ethNeeded = (squeethNeeded * squeethPriceInWeth) / 1e18;
-
-        // max amount of eth to used to repay short squeeth position which has to be done to release collateral in the crab strategy.
-        // has to be grater than ethNeeded to cover fees and slippage
-        uint256 maxEthUsedInFlashSwap = ethNeeded.pctOf(10100); // 1% more to cover fee & slippage
 
         uint256 crabToWithdraw = (amountInUsdcToWithdrawFromCrab * 1e18) /
             getCrabFairPrice();
 
-        console.log("amount\t\t\t", amount);
-        console.log("invested\t\t", invested);
+        if (crabToWithdraw > crabBalance) crabToWithdraw = crabBalance;
+
+        // get amount in squeeth needed to cover withdrawal amount
+        uint256 squeethDebtToPay = crabStrategy.getWsqueethFromCrabAmount(
+            crabToWithdraw
+        );
+
+        uint256 squeethPriceInWeth = getOraclePrice(wethOsqthPool, oSqth, weth);
+
+        uint256 debtCostInEth = (squeethDebtToPay * squeethPriceInWeth) / 1e18;
+
+        // max amount of eth to used to repay short squeeth position which has to be done to release collateral in the crab strategy.
+        // this has to be grater than debt cost in eth to account for fees and slippage when swapping eth for squeeth
+        uint256 maxEthToPayDebt = debtCostInEth.pctOf(10100); // 1% more to cover fee & slippage
+
+        console.log("amount\t\t\t", _amount);
         console.log("usdcBalance\t\t", usdcBalance);
         console.log("crabBalance\t\t", crabBalance);
-        console.log("crabNeeded\t\t", crabNeeded);
         console.log("crabToWithdraw\t\t", crabToWithdraw);
         console.log("crabFairPrice\t\t", getCrabFairPrice());
-        console.log("squeethNeeded\t\t", squeethNeeded);
-        console.log("ethNeeded\t\t", ethNeeded);
-        console.log("maxEthUsedInFlashSwap\t", maxEthUsedInFlashSwap);
+        console.log("squeethDebtToPay\t\t", squeethDebtToPay);
+        console.log("debtCostInEth\t\t", debtCostInEth);
+        console.log("maxEthToPayDebt\t", maxEthToPayDebt);
 
         // TODO: find actual amount withdrawn
         crabStrategy.flashWithdraw(
-            crabNeeded,
-            maxEthUsedInFlashSwap,
+            crabToWithdraw,
+            maxEthToPayDebt,
             IUniswapV3Pool(wethOsqthPool).fee()
         );
 
@@ -318,15 +256,6 @@ contract OpynCrabStrategy is BaseStrategy {
             _crabAmount = crabBalance;
         }
 
-        // get amount in squeeth needed to cover withdrawal amount
-        // uint256 squeethNeeded = crabStrategy.getWsqueethFromCrabAmount(
-        //     _crabAmount
-        // );
-
-        // uint256 squeethPriceInWeth = getOraclePrice(wethOsqthPool, oSqth, weth);
-
-        // uint256 ethNeeded = (squeethNeeded * squeethPriceInWeth) / 1e18;
-
         crabStrategy.flashWithdraw(
             _crabAmount,
             _maxEthToPayForDebt,
@@ -336,7 +265,8 @@ contract OpynCrabStrategy is BaseStrategy {
         swapEthToUSDC();
     }
 
-    function depositToCrabNetting(uint256 _usdcAmount) external {
+    // TODO: onlyKeeper
+    function depositUsdcToNetting(uint256 _usdcAmount) external {
         uint256 usdcBalance = underlying.balanceOf(address(this));
 
         if (_usdcAmount > usdcBalance) {
@@ -347,15 +277,53 @@ contract OpynCrabStrategy is BaseStrategy {
         crabNetting.depositUSDC(_usdcAmount);
     }
 
-    function withdrawFromCrabNetting(uint256 _usdcAmount) public {
-        uint256 usdcBalance = underlying.balanceOf(address(this));
-
-        if (_usdcAmount > usdcBalance) {
-            _usdcAmount = usdcBalance;
-        }
+    // TODO: onlyKeeper
+    function withdrawUsdcFromNetting(uint256 _usdcAmount) public {
         uint256 queuedAmount = crabNetting.usdBalance(address(this));
 
+        if (queuedAmount < _usdcAmount) {
+            _usdcAmount = queuedAmount;
+        }
+
         crabNetting.withdrawUSDC(_usdcAmount, true);
+    }
+
+    // TODO: onlyKeeper
+    function queueCrabForWithdrawal(uint256 _crabAmount) external {
+        uint256 crabBalance = crabStrategy.balanceOf(address(this));
+
+        if (_crabAmount > crabBalance) {
+            _crabAmount = crabBalance;
+        }
+
+        crabStrategy.approve(address(crabNetting), _crabAmount);
+        crabNetting.queueCrabForWithdrawal(_crabAmount);
+    }
+
+    // TODO: onlyKeeper
+    function dequeueCrab(uint256 _crabAmount) external {
+        uint256 queuedAmount = crabNetting.crabBalance(address(this));
+
+        if (queuedAmount < _crabAmount) {
+            _crabAmount = queuedAmount;
+        }
+
+        crabNetting.dequeueCrab(_crabAmount, true);
+    }
+
+    function getCrabFairPrice() public view returns (uint256) {
+        // Get twap
+        uint256 squeethEthPrice = getOraclePrice(wethOsqthPool, oSqth, weth);
+        uint256 usdcEthPrice = getOraclePrice(usdcWethPool, weth, underlying);
+
+        (, , uint256 collateral, uint256 squeethDebt) = crabStrategy
+            .getVaultDetails();
+
+        uint256 crabFairPrice = ((collateral -
+            ((squeethDebt * squeethEthPrice) / 1e18)) * usdcEthPrice) /
+            crabStrategy.totalSupply();
+
+        return crabFairPrice / 1e12; // account for usdc decimals
     }
 
     function getOraclePrice(
@@ -368,7 +336,7 @@ contract OpynCrabStrategy is BaseStrategy {
                 pool,
                 address(base),
                 address(quote),
-                420 seconds, // period
+                TWAP_PERIOD,
                 true // check period
             );
     }
@@ -382,7 +350,7 @@ contract OpynCrabStrategy is BaseStrategy {
                 recipient: address(this),
                 deadline: block.timestamp,
                 amountIn: _amount,
-                amountOutMinimum: 0,
+                amountOutMinimum: _amountOutMin,
                 sqrtPriceLimitX96: 0
             });
 
@@ -406,7 +374,7 @@ contract OpynCrabStrategy is BaseStrategy {
                 recipient: address(this),
                 deadline: block.timestamp,
                 amountIn: ethBalance,
-                amountOutMinimum: 0,
+                amountOutMinimum: (ethBalance * 99) / 100, // 1% max slippage
                 sqrtPriceLimitX96: 0
             });
 
@@ -419,85 +387,5 @@ contract OpynCrabStrategy is BaseStrategy {
 
     receive() external payable {
         console.log("received eth \t\t", msg.value);
-    }
-
-    function getCrabFairPrice() public view returns (uint256) {
-        // Get twap
-        uint256 squeethEthPrice = IOracle(oracle).getTwap(
-            wethOsqthPool,
-            address(oSqth),
-            address(weth),
-            420 seconds,
-            true
-        );
-
-        uint256 usdcEthPrice = IOracle(oracle).getTwap(
-            0x8ad599c3A0ff1De082011EFDDc58f1908eb6e6D8, // usdcWethPool,
-            address(weth),
-            address(underlying),
-            420 seconds,
-            true
-        );
-
-        (, , uint256 collateral, uint256 debt) = crabStrategy.getVaultDetails();
-
-        uint256 crabFairPrice = ((collateral -
-            ((debt * squeethEthPrice) / 1e18)) * usdcEthPrice) /
-            crabStrategy.totalSupply();
-
-        // crabFairPrice = crabFairPrice / 1e12;
-
-        return crabFairPrice / 1e12;
-    }
-
-    // TODO: not really needed function
-    function checkCrabPrice(uint256 _price) public view returns (uint256) {
-        // Get twap
-        uint256 squeethEthPrice = IOracle(oracle).getTwap(
-            wethOsqthPool,
-            address(oSqth),
-            address(weth),
-            420 seconds,
-            true
-        );
-        uint256 usdcEthPrice = IOracle(oracle).getTwap(
-            0x8ad599c3A0ff1De082011EFDDc58f1908eb6e6D8, // usdcWethPool,
-            address(weth),
-            address(underlying),
-            420 seconds,
-            true
-        );
-        (, , uint256 collateral, uint256 debt) = crabStrategy.getVaultDetails();
-        uint256 crabFairPrice = ((collateral -
-            ((debt * squeethEthPrice) / 1e18)) * usdcEthPrice) /
-            crabStrategy.totalSupply();
-        crabFairPrice = crabFairPrice / 1e12; //converting from units of 18 to 6
-
-        console.log("crabFairPrice\t\t", crabFairPrice);
-
-        console.log(
-            "N23\t\t",
-            (crabFairPrice * (1e18 + crabNetting.otcPriceTolerance())) / 1e18
-        );
-
-        console.log(
-            "N24\t\t",
-            (crabFairPrice * (1e18 - crabNetting.otcPriceTolerance())) / 1e18
-        );
-
-        require(
-            _price <=
-                (crabFairPrice * (1e18 + crabNetting.otcPriceTolerance())) /
-                    1e18,
-            "N23"
-        );
-        require(
-            _price >=
-                (crabFairPrice * (1e18 - crabNetting.otcPriceTolerance())) /
-                    1e18,
-            "N24"
-        );
-
-        return crabFairPrice;
     }
 }

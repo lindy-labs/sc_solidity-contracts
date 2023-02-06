@@ -153,7 +153,7 @@ describe('Opyn Crab Strategy (mainnet fork tests)', () => {
     it.only('#invest -> #withdrawToVault for half amount deposited', async () => {
       const depositAmount = parseUSDC('10000');
       const minEthAmount = '5999366505836873648';
-      const ethToBorrow = '6568960000000000000'; // f(collateralization ratio); atm collateralization ratio 190.44%
+      const ethToBorrow = '6568960000000000000'; // f(collateralization ratio & pool fees); atm collateralization ratio 190.44%
       await ForkHelpers.mintToken(usdc, strategy.address, depositAmount);
 
       await strategy.invest();
@@ -176,11 +176,9 @@ describe('Opyn Crab Strategy (mainnet fork tests)', () => {
 
     it.only('#invest thru netting contract', async () => {
       const depositAmount = parseUSDC('10000');
-      const minEthAmount = '5999366505836873648';
-      const ethToBorrow = '6568960000000000000'; // f(collateralization ratio); atm collateralization ratio 190.44%
       await ForkHelpers.mintToken(usdc, strategy.address, depositAmount);
 
-      await strategy.depositToCrabNetting(depositAmount);
+      await strategy.depositUsdcToNetting(depositAmount);
 
       const deposited = await crabNetting.usdBalance(strategy.address);
 
@@ -193,30 +191,6 @@ describe('Opyn Crab Strategy (mainnet fork tests)', () => {
       const crabNettingOwner = await ethers.getSigner(OWNER_CRAB_NETTING);
       await ForkHelpers.setBalance(OWNER_CRAB_NETTING, parseUnits('1'));
 
-      const crabPriceInWeth = await strategy.getOraclePrice(
-        WETH_oSQTH_UNISWAP_POOL,
-        oSQTH,
-        WETH,
-      );
-      const wethPriceInUsdc = await strategy.getOraclePrice(
-        USDC_WETH_UNISWAP_POOL,
-        WETH,
-        USDC,
-      );
-
-      console.log('depositsQueued\t', depositsQueued.toString());
-      console.log('withdrawsQueued\t', withdrawsQueued.toString());
-
-      console.log('crabPriceInWeth\t', crabPriceInWeth.toString());
-      console.log('wethPriceInUsdc\t', wethPriceInUsdc.toString());
-
-      const crabPriceInUsdc = crabPriceInWeth
-        .div(1e9)
-        .mul(wethPriceInUsdc)
-        .div(1e9);
-
-      console.log('crabPriceInUsdc\t', crabPriceInUsdc.toString());
-
       const fairPrice = await strategy.getCrabFairPrice();
 
       await crabNetting
@@ -228,10 +202,6 @@ describe('Opyn Crab Strategy (mainnet fork tests)', () => {
       console.log('crabBalance\t', crabBalance.toString());
 
       await strategy.investedAssets();
-
-      // crabPriceInWeth  0.61966525918995800
-      // wethPriceInUsdc  1665.751660000000000000
-      // crabPriceInUsdc  103. 220841883181500000
     });
   });
 });
