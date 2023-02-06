@@ -5,10 +5,12 @@ import { ethers } from 'hardhat';
 import { utils } from 'ethers';
 
 import { getCurrentNetworkConfig } from '../scripts/deployConfigs';
-import liquityMocks from './helpers/liquityMocks';
+import { LiquityStrategy, Vault } from '@root/typechain';
+
 import init0x from './helpers/init0x';
 import initCurveRouter from './helpers/initCurveRouter';
-import { LiquityStrategy, Vault } from '@root/typechain';
+import liquityMocks from './helpers/liquityMocks';
+import verify from './helpers/verify';
 
 const func = async function (env: HardhatRuntimeEnvironment) {
   const { deployer } = await env.getNamedAccounts();
@@ -48,12 +50,10 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   );
 
   if (getNetworkName() !== 'hardhat' && getNetworkName() !== 'docker') {
-    await env
-      .run('verify:verify', {
-        address: liquityStrategy.address,
-        constructorArguments: [],
-      })
-      .catch((e) => console.error((e as Error).message));
+    await verify(env, {
+      address: liquityStrategy.address,
+      constructorArguments: [],
+    });
 
     await env.tenderly.persistArtifacts({
       name: 'Liquity_DCA_Strategy',
@@ -92,9 +92,12 @@ const func = async function (env: HardhatRuntimeEnvironment) {
       owner.address,
     );
 
-  console.log('Setting strategy in vault');
-  await vault.connect(owner).setStrategy(liquityStrategy.address);
+  if ((await vault.strategy()) !== liquityStrategy.address) {
+    console.log('Setting strategy in vault');
+    await vault.connect(owner).setStrategy(liquityStrategy.address);
+  }
 
+  console.log('Allowing swapTarget', swapTarget0x);
   await liquityStrategy.connect(owner).allowSwapTarget(swapTarget0x);
 
   await transferOwnershipToMultisig(vault, liquityStrategy);

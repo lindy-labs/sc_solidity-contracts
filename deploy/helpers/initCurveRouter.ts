@@ -1,4 +1,5 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
+import verify from './verify';
 
 const MAINNET_CURVE_ROUTER = '0x81C46fECa27B31F3ADC2b91eE4be9717d1cd3DD7';
 
@@ -17,7 +18,7 @@ export default async function (env: HardhatRuntimeEnvironment) {
   });
 
   if (getNetworkName() !== 'hardhat' && getNetworkName() !== 'docker') {
-    await env.run('verify:verify', {
+    await verify(env, {
       address: curveRouter.address,
       constructorArguments: [],
     });

@@ -1,5 +1,5 @@
 {
-  "address": "0x70cF3348bDc555df91F0CcAc8f0476b4Db8ba0B7",
+  "address": "0xa5D42FBF2Fc632C6201B94BA4fb7e92f09D2A8ce",
   "abi": [
     {
       "anonymous": false,
@@ -67,25 +67,25 @@
       "type": "function"
     }
   ],
-  "transactionHash": "0xde2ab67bf04f17212f91c75a06301bb571cc58e7d746c59f69bb3b678a8ee716",
+  "transactionHash": "0x731a6551fc84dba95916f274743c452287a014b7003c66018ae2c11fb19513d3",
   "receipt": {
     "to": null,
     "from": "0xCfF577D4072BF126Cdd73CDC7353637A1Fa5f4CE",
-    "contractAddress": "0x70cF3348bDc555df91F0CcAc8f0476b4Db8ba0B7",
-    "transactionIndex": 106,
+    "contractAddress": "0xa5D42FBF2Fc632C6201B94BA4fb7e92f09D2A8ce",
+    "transactionIndex": 172,
     "gasUsed": "146731",
     "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
-    "blockHash": "0x1929eb5c813f5599c6c74aed6e1899e7fc4a6e3ec0ffa90f9e09363232f848cf",
-    "transactionHash": "0xde2ab67bf04f17212f91c75a06301bb571cc58e7d746c59f69bb3b678a8ee716",
+    "blockHash": "0xca22516f98418d58fa590932896e1b14969836a368cf1fbc27bfee68b5f12bfa",
+    "transactionHash": "0x731a6551fc84dba95916f274743c452287a014b7003c66018ae2c11fb19513d3",
     "logs": [],
-    "blockNumber": 8403063,
-    "cumulativeGasUsed": "20170151",
+    "blockNumber": 8444191,
+    "cumulativeGasUsed": "28246065",
     "status": 1,
     "byzantium": true
   },
   "args": [],
   "numDeployments": 1,
-  "solcInputHash": "f86497a869232b57c1fcb6ae1006bf5f",
+  "solcInputHash": "d3836542e048a56ea51940fa540e4d27",
   "metadata": "{\"compiler\":{\"version\":\"0.8.10+commit.fc410830\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_lastGoodPrice\",\"type\":\"uint256\"}],\"name\":\"LastGoodPriceUpdated\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"NAME\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"fetchPrice\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"lastGoodPrice\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"price\",\"type\":\"uint256\"}],\"name\":\"setPrice\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/mock/liquity/MockLiquityPriceFeed.sol\":\"MockLiquityPriceFeed\"},\"evmVersion\":\"london\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":1000},\"remappings\":[]},\"sources\":{\"contracts/interfaces/liquity/IPriceFeed.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity =0.8.10;\\n\\ninterface IPriceFeed {\\n\\n    // --- Events ---\\n    event LastGoodPriceUpdated(uint _lastGoodPrice);\\n\\n    // --- Function ---\\n    function fetchPrice() external returns (uint);\\n}\\n\",\"keccak256\":\"0xcd2f65f6d7d3ad93ee5d51aaed4cad6611f52f0be294dc87ce38484b4d8a3849\",\"license\":\"MIT\"},\"contracts/mock/liquity/MockLiquityPriceFeed.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity =0.8.10;\\n\\nimport \\\"../../interfaces/liquity/IPriceFeed.sol\\\";\\n\\ncontract MockLiquityPriceFeed is IPriceFeed {\\n    string constant public NAME = \\\"PriceFeed\\\";\\n\\n    uint public lastGoodPrice;\\n\\n    function fetchPrice() external view override returns (uint) {\\n        return lastGoodPrice;\\n    }\\n\\n    function setPrice(uint price) external {\\n        lastGoodPrice = price;\\n\\n        emit LastGoodPriceUpdated(lastGoodPrice);\\n    }\\n}\\n\",\"keccak256\":\"0x089dc74a9461b54acd9c6e055c53327fe214ff0264647f0af141ee0ce9b7bb07\",\"license\":\"MIT\"}},\"version\":1}",
   "bytecode": "0x608060405234801561001057600080fd5b506101b2806100206000396000f3fe608060405234801561001057600080fd5b506004361061004c5760003560e01c80630490be83146100515780630fdb11cf1461006d57806391b7f5ed14610075578063a3f4df7e1461008a575b600080fd5b61005a60005481565b6040519081526020015b60405180910390f35b60005461005a565b61008861008336600461010e565b6100d3565b005b6100c66040518060400160405280600981526020017f507269636546656564000000000000000000000000000000000000000000000081525081565b6040516100649190610127565b60008190556040518181527f4d29de21de555af78a62fc82dd4bc05e9ae5b0660a37f04729527e0f22780cd39060200160405180910390a150565b60006020828403121561012057600080fd5b5035919050565b600060208083528351808285015260005b8181101561015457858101830151858201604001528201610138565b81811115610166576000604083870101525b50601f01601f191692909201604001939250505056fea2646970667358221220c697fe05390d6cc9db633abddeb059ae70258bd14bfca9d5e5f443345ffa25e864736f6c634300080a0033",
   "deployedBytecode": "0x608060405234801561001057600080fd5b506004361061004c5760003560e01c80630490be83146100515780630fdb11cf1461006d57806391b7f5ed14610075578063a3f4df7e1461008a575b600080fd5b61005a60005481565b6040519081526020015b60405180910390f35b60005461005a565b61008861008336600461010e565b6100d3565b005b6100c66040518060400160405280600981526020017f507269636546656564000000000000000000000000000000000000000000000081525081565b6040516100649190610127565b60008190556040518181527f4d29de21de555af78a62fc82dd4bc05e9ae5b0660a37f04729527e0f22780cd39060200160405180910390a150565b60006020828403121561012057600080fd5b5035919050565b600060208083528351808285015260005b8181101561015457858101830151858201604001528201610138565b81811115610166576000604083870101525b50601f01601f191692909201604001939250505056fea2646970667358221220c697fe05390d6cc9db633abddeb059ae70258bd14bfca9d5e5f443345ffa25e864736f6c634300080a0033",

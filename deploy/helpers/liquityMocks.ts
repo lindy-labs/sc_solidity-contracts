@@ -1,5 +1,7 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 
+import verify from './verify';
+
 export default async function (env: HardhatRuntimeEnvironment, prefix: string) {
   const { get, deploy, getNetworkName } = env.deployments;
   const { deployer } = await env.getNamedAccounts();
@@ -36,17 +38,17 @@ export default async function (env: HardhatRuntimeEnvironment, prefix: string) {
   });
 
   if (getNetworkName() !== 'hardhat' && getNetworkName() !== 'docker') {
-    const priceFeedVerification = env.run('verify:verify', {
+    const priceFeedVerification = verify(env, {
       address: mockLiquityPriceFeedDeployment.address,
       constructorArguments: [],
     });
 
-    const troveManagerVerification = env.run('verify:verify', {
+    const troveManagerVerification = verify(env, {
       address: troveManagerDeployment.address,
       constructorArguments: troveManagerDeploymentArgs,
     });
 
-    const stabilityPoolVerification = env.run('verify:verify', {
+    const stabilityPoolVerification = verify(env, {
       address: mockLiquityStabilityPool.address,
       constructorArguments: liquityStabilityPoolArgs,
     });

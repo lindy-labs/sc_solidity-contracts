@@ -1,4 +1,5 @@
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
+import verify from './verify';
 
 const MAINNET_0X_SWAP_TARGET = '0xdef1c0ded9bec7f1a1670819833240f027b25eff';
 
@@ -17,7 +18,7 @@ export default async function init0x(env: HardhatRuntimeEnvironment) {
   });
 
   if (getNetworkName() !== 'hardhat' && getNetworkName() !== 'docker') {
-    await env.run('verify:verify', {
+    await verify(env, {
       address: mock0x.address,
       constructorArguments: [],
     });
