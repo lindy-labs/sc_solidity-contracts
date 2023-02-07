@@ -1,14 +1,15 @@
 #!/bin/bash
+cd ../..
 if [ "$#" -eq 0 ]
 then 
   certoraRun certora/harness/VaultHarness.sol \
-  	  contracts/mock/MockStrategyAsync.sol \
+  	  contracts/mock/MockStrategySync.sol \
 			contracts/mock/MockERC20.sol:MockLUSD \
 			contracts/mock/MockCurvePool.sol:MockCurve \
-	  --link VaultHarness:strategy=MockStrategyAsync \
+	  --link VaultHarness:strategy=MockStrategySync \
       VaultHarness:underlying=MockLUSD \
-			MockStrategyAsync:underlying=MockLUSD \
-      MockStrategyAsync:vault=VaultHarness \
+			MockStrategySync:underlying=MockLUSD \
+      MockStrategySync:vault=VaultHarness \
     --verify VaultHarness:certora/specs/Vault.spec \
     --optimistic_loop \
     --loop_iter 3 \
@@ -17,13 +18,13 @@ then
 elif [ "$#" -eq 1 ]
 then
   certoraRun certora/harness/VaultHarness.sol \
-  	  contracts/mock/MockStrategyAsync.sol \
+  	  contracts/mock/MockStrategySync.sol \
 			contracts/mock/MockERC20.sol:MockLUSD \
 			contracts/mock/MockCurvePool.sol:MockCurve \
-	  --link VaultHarness:strategy=MockStrategyAsync \
+	  --link VaultHarness:strategy=MockStrategySync \
       VaultHarness:underlying=MockLUSD \
-			MockStrategyAsync:underlying=MockLUSD \
-      MockStrategyAsync:vault=VaultHarness \
+			MockStrategySync:underlying=MockLUSD \
+      MockStrategySync:vault=VaultHarness \
     --verify VaultHarness:certora/specs/Vault.spec \
     --optimistic_loop \
     --loop_iter 3 \

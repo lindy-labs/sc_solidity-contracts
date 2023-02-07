@@ -1,4 +1,5 @@
 #!/bin/bash
+cd ../..
 if [ "$#" -eq 0 ]
 then 
   certoraRun certora/harness/LiquityStrategyHarness.sol \
