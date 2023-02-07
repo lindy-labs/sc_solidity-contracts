@@ -106,7 +106,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 };
 
 func.tags = ['liquity_fixture'];
-func.dependencies = ['dev', 'fixtures', 'vault', 'strategy'];
+func.dependencies = ['dev', 'fixtures', 'liquity_amethyst_strategy'];
 
 func.skip = async (env: HardhatRuntimeEnvironment) =>
   !includes(['docker', 'hardhat'], env.deployments.getNetworkName());

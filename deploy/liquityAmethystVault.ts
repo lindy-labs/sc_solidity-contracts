@@ -86,7 +86,7 @@ func.skip = async (env: HardhatRuntimeEnvironment) =>
     env.deployments.getNetworkName(),
   );
 
-func.tags = ['vault', 'amethyst'];
+func.tags = ['vault', 'liquity_amethyst', 'liquity_amethyst_vault'];
 func.dependencies = ['dev'];
 
 export default func;
