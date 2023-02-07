@@ -3,9 +3,9 @@ pragma solidity =0.8.10;
 
 import {ISwapRouter} from "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
 
-import "./../MockExchange.sol";
+import {MockExchange} from "../MockExchange.sol";
 
-contract MockSwapRouter is ISwapRouter {
+contract MockSwapRouter is ISwapRouter, MockExchange {
     function uniswapV3SwapCallback(
         int256 amount0Delta,
         int256 amount1Delta,
@@ -14,7 +14,18 @@ contract MockSwapRouter is ISwapRouter {
 
     function exactInputSingle(
         ExactInputSingleParams calldata params
-    ) external payable override returns (uint256 amountOut) {}
+    ) external payable override returns (uint256 amountOut) {
+        swapTokens(params.tokenIn, params.tokenOut, params.amountIn);
+
+        uint256 amountOut = (params.amountIn *
+            getExchangeRate(params.tokenIn, params.tokenOut)) / 1e18;
+
+        if (params.amountOutMinimum > amountOut) {
+            revert("MockSwapRouter: minimum amount not reached");
+        }
+
+        return amountOut;
+    }
 
     function exactInput(
         ExactInputParams calldata params

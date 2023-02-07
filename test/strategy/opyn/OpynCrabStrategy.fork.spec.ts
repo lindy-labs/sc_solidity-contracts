@@ -117,6 +117,7 @@ describe('Opyn Crab Strategy (mainnet fork tests)', () => {
       CRAB_NETTING,
       UNISWAP_SWAP_ROUTER,
       ORACLE,
+      USDC_WETH_UNISWAP_POOL,
     );
 
     await vault.setStrategy(strategy.address);
@@ -134,11 +135,7 @@ describe('Opyn Crab Strategy (mainnet fork tests)', () => {
       await ForkHelpers.mintToken(usdc, strategy.address, depositAmount);
 
       await strategy.invest();
-      await strategy.flashDepositToCrabStrategy(
-        depositAmount,
-        minEthAmount,
-        ethToBorrow,
-      );
+      await strategy.flashDeposit(depositAmount, minEthAmount, ethToBorrow);
 
       const invested = await strategy.investedAssets();
       expect(invested).to.gt(parseUSDC('9600')); // with fees & slippage taken from 10000
@@ -156,11 +153,7 @@ describe('Opyn Crab Strategy (mainnet fork tests)', () => {
 
       await strategy.invest();
 
-      await strategy.flashDepositToCrabStrategy(
-        depositAmount,
-        minEthAmount,
-        ethToBorrow,
-      );
+      await strategy.flashDeposit(depositAmount, minEthAmount, ethToBorrow);
 
       const x = await crabStrategyV2.getVaultDetails();
       console.log('x', x);
@@ -189,7 +182,7 @@ describe('Opyn Crab Strategy (mainnet fork tests)', () => {
       const crabNettingOwner = await ethers.getSigner(OWNER_CRAB_NETTING);
       await ForkHelpers.setBalance(OWNER_CRAB_NETTING, parseUnits('1'));
 
-      const fairPrice = await strategy.getCrabFairPrice();
+      const fairPrice = await strategy.getCrabFairPriceInUSDC();
 
       await crabNetting
         .connect(crabNettingOwner)

@@ -95,11 +95,14 @@ contract MockWETH is MockERC20, IWETH {
         _mint(msg.sender, msg.value);
     }
 
-    function withdraw(uint256 wad) external override {
-        _burn(msg.sender, wad);
+    function withdraw(uint256 _amount) external override {
+        _burn(msg.sender, _amount);
 
-        require(address(this).balance >= wad, "MockWETH: insufficient balance");
+        require(
+            address(this).balance >= _amount,
+            "MockWETH: insufficient balance"
+        );
 
-        payable(msg.sender).transfer(wad);
+        payable(msg.sender).transfer(_amount);
     }
 }

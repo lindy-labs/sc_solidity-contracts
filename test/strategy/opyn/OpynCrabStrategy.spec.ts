@@ -15,6 +15,7 @@ import {
   MockCrabNetting,
   MockSwapRouter,
   MockOracle,
+  MockV3Pool,
 } from '../../../typechain';
 
 import {
@@ -43,6 +44,7 @@ describe('OpynCrabStrategy', () => {
   let crabNetting: MockCrabNetting;
   let swapRouter: MockSwapRouter;
   let oracle: MockOracle;
+  let usdcWethPool: MockV3Pool;
 
   let CrabStrategyFactory: OpynCrabStrategy__factory;
 
@@ -68,6 +70,7 @@ describe('OpynCrabStrategy', () => {
 
     const MockWETH = await ethers.getContractFactory('MockWETH');
     weth = await MockWETH.deploy(parseUnits('1000000000'));
+    await setBalance(weth.address, parseUnits('1000000000'));
 
     const MockOSQTH = await ethers.getContractFactory('MockOSQTH');
     oSqth = await MockOSQTH.deploy(parseUnits('1000000000'));
@@ -84,8 +87,8 @@ describe('OpynCrabStrategy', () => {
     );
 
     const MockV3Pool = await ethers.getContractFactory('MockV3Pool');
-    const wethOsqthPool = await MockV3Pool.deploy();
-    const usdcWethPool = await MockV3Pool.deploy();
+    // wethOsqthPool = await MockV3Pool.deploy();
+    usdcWethPool = await MockV3Pool.deploy();
 
     const MockSwapRouter = await ethers.getContractFactory('MockSwapRouter');
     swapRouter = await MockSwapRouter.deploy();
@@ -120,6 +123,7 @@ describe('OpynCrabStrategy', () => {
       crabNetting.address,
       swapRouter.address,
       oracle.address,
+      usdcWethPool.address,
     );
 
     await vault.setStrategy(strategy.address);
@@ -148,6 +152,7 @@ describe('OpynCrabStrategy', () => {
           crabNetting.address,
           swapRouter.address,
           oracle.address,
+          usdcWethPool.address,
         ),
       ).to.be.revertedWith('StrategyKeeperCannotBe0Address');
     });
@@ -165,6 +170,7 @@ describe('OpynCrabStrategy', () => {
           crabNetting.address,
           swapRouter.address,
           oracle.address,
+          usdcWethPool.address,
         ),
       ).to.be.revertedWith('StrategyWethCannotBe0Address');
     });
@@ -182,6 +188,7 @@ describe('OpynCrabStrategy', () => {
           crabNetting.address,
           swapRouter.address,
           oracle.address,
+          usdcWethPool.address,
         ),
       ).to.be.revertedWith('StrategySqueethCannotBe0Address');
     });
@@ -199,6 +206,7 @@ describe('OpynCrabStrategy', () => {
           crabNetting.address,
           swapRouter.address,
           oracle.address,
+          usdcWethPool.address,
         ),
       ).to.be.revertedWith('StrategyCrabStrategyCannotBe0Address');
     });
@@ -216,6 +224,7 @@ describe('OpynCrabStrategy', () => {
           constants.AddressZero, // crabNetting
           swapRouter.address,
           oracle.address,
+          usdcWethPool.address,
         ),
       ).to.be.revertedWith('StrategyCrabNettingCannotBe0Address');
     });
@@ -233,6 +242,7 @@ describe('OpynCrabStrategy', () => {
           crabNetting.address,
           constants.AddressZero, // swapRouter
           oracle.address,
+          usdcWethPool.address,
         ),
       ).to.be.revertedWith('StrategySwapRouterCannotBe0Address');
     });
@@ -250,8 +260,27 @@ describe('OpynCrabStrategy', () => {
           crabNetting.address,
           swapRouter.address,
           constants.AddressZero, // oracle
+          usdcWethPool.address,
         ),
       ).to.be.revertedWith('StrategyOracleCannotBe0Address');
+    });
+
+    it('reverts if the usdc-weth pool is address(0)', async () => {
+      await expect(
+        CrabStrategyFactory.deploy(
+          vault.address,
+          admin.address,
+          keeper.address,
+          underlying.address,
+          weth.address,
+          oSqth.address,
+          crabStrategyV2.address,
+          crabNetting.address,
+          swapRouter.address,
+          oracle.address,
+          constants.AddressZero, // usdcWethPool
+        ),
+      ).to.be.revertedWith('StrategyUsdcWethPoolCannotBe0Address');
     });
 
     it('sets correct values', async () => {
@@ -263,8 +292,15 @@ describe('OpynCrabStrategy', () => {
       expect(await strategy.crabNetting()).to.eq(crabNetting.address);
       expect(await strategy.swapRouter()).to.eq(swapRouter.address);
       expect(await strategy.oracle()).to.eq(oracle.address);
+      expect(await strategy.usdcWethPool()).to.eq(usdcWethPool.address);
 
       expect(await strategy.hasRole(KEEPER_ROLE, keeper.address)).to.be.true;
+    });
+  });
+
+  describe('#isSync', () => {
+    it('returns true', async () => {
+      expect(await strategy.isSync()).to.be.true;
     });
   });
 
@@ -440,14 +476,20 @@ describe('OpynCrabStrategy', () => {
     });
   });
 
-  describe('#flashDepositToCrabStrategy', () => {
+  describe('#swapUsdcForEth', () => {
+    it('reverts if the caller is not keeper', async () => {
+      await expect(
+        strategy
+          .connect(admin)
+          .swapUsdcForEth(parseUSDC('1000'), parseUnits('1')),
+      ).to.be.revertedWith('StrategyCallerNotKeeper');
+    });
+
     it('reverts if the usdc balance is 0', async () => {
       await expect(
-        strategy.flashDepositToCrabStrategy(
-          parseUSDC('1000'),
-          parseUnits('1'),
-          parseUnits('1'),
-        ),
+        strategy
+          .connect(keeper)
+          .swapUsdcForEth(parseUSDC('1000'), parseUnits('1')),
       ).to.be.revertedWith('StrategyNoUnderlying');
     });
 
@@ -455,9 +497,8 @@ describe('OpynCrabStrategy', () => {
       await underlying.mint(strategy.address, parseUSDC('10000'));
 
       await expect(
-        strategy.flashDepositToCrabStrategy(
+        strategy.connect(keeper).swapUsdcForEth(
           0, // amount
-          parseUnits('1'),
           parseUnits('1'),
         ),
       ).to.be.revertedWith('StrategyAmountZero');
@@ -468,12 +509,77 @@ describe('OpynCrabStrategy', () => {
       const amount = await underlying.balanceOf(strategy.address);
 
       await expect(
-        strategy.flashDepositToCrabStrategy(
+        strategy.connect(keeper).swapUsdcForEth(
           amount.add(1), // > balance
-          parseUnits('1'),
           parseUnits('1'),
         ),
       ).to.be.revertedWith('StrategyAmountTooHigh');
+    });
+
+    it('executes the swap', async () => {
+      await underlying.mint(strategy.address, parseUSDC('10000'));
+
+      await swapRouter.setExchageRate(
+        underlying.address,
+        weth.address,
+        parseUnits('0.001', '30'), // account for 12 decimals difference between USDC and ETH
+      );
+
+      await strategy
+        .connect(keeper)
+        .swapUsdcForEth(parseUSDC('1000'), parseUnits('1'));
+
+      expect(await underlying.balanceOf(strategy.address)).to.eq(
+        parseUSDC('9000'),
+      );
+      expect(await strategy.investedAssets()).to.eq(parseUSDC('9000'));
+      expect(await getETHBalance(strategy.address)).to.eq(parseUnits('1'));
+    });
+
+    it('reverts if the amount out is less than min expeected', async () => {
+      await underlying.mint(strategy.address, parseUSDC('10000'));
+
+      await swapRouter.setExchageRate(
+        underlying.address,
+        weth.address,
+        parseUnits('0.001', '30'), // account for 12 decimals difference between USDC and ETH
+      );
+
+      await expect(
+        strategy
+          .connect(keeper)
+          .swapUsdcForEth(parseUSDC('1000'), parseUnits('1').add('1')),
+      ).to.be.reverted;
+    });
+  });
+
+  describe('#flashDeposit', () => {
+    it('reverts if the caller is not keeper', async () => {
+      await expect(
+        strategy.connect(admin).flashDeposit(parseUnits('1')),
+      ).to.be.revertedWith('StrategyCallerNotKeeper');
+    });
+  });
+
+  describe('#flashWithdraw', () => {
+    it('reverts if the caller is not keeper', async () => {
+      await expect(
+        strategy.connect(admin).flashWithdraw(parseUnits('1'), parseUnits('1')),
+      ).to.be.revertedWith('StrategyCallerNotKeeper');
+    });
+
+    it('reverts if the amount is 0', async () => {
+      await expect(
+        strategy.connect(keeper).flashWithdraw(0, parseUnits('1')),
+      ).to.be.revertedWith('StrategyAmountZero');
+    });
+
+    it('reverts if the crab balance is 0', async () => {
+      await expect(
+        strategy
+          .connect(keeper)
+          .flashWithdraw(parseUnits('1'), parseUnits('1')),
+      ).to.be.revertedWith('StrategyNotEnoughShares');
     });
   });
 });
