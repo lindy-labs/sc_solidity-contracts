@@ -166,7 +166,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   }
 };
 
-func.tags = ['strategy', 'custom_liquity'];
+func.tags = ['strategy', 'amethyst'];
 func.dependencies = ['vault'];
 
 func.skip = async (env: HardhatRuntimeEnvironment) =>
