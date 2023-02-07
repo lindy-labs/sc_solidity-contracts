@@ -141,6 +141,14 @@ describe('CurveSwapper', () => {
       expect(amountAfter).to.eq(amountBefore);
     });
 
+    it('works when amount out min is 0', async () => {
+      const input = parseUnits('100', decimals.usdt);
+
+      const action = () =>
+        swapper.test_swapIntoUnderlying(usdt.address, input, 0);
+      await validateSwap(action, swapper, usdt, ust, '100');
+    });
+
     it('fails when slippage is too high', async () => {
       const input = parseUnits('100', decimals.usdt);
       const amountOutMin = calcAmountOutMin(
