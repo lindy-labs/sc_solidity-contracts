@@ -44,7 +44,7 @@ contract LiquityStrategy is
     error StrategySwapTargetNotAllowed();
     error StrategyInsufficientOutputAmount();
     error StrategyYieldTokenCannotBe0Address();
-    error StrategyMinimumPrincipalProtection();
+    error StrategyMinimumAssetsProtection();
 
     event StrategyReinvested(uint256 amountInLUSD);
 
@@ -52,8 +52,8 @@ contract LiquityStrategy is
         0xD51a44d3FaE010294C616388b506AcdA1bfAAE46;
     address public constant LUSD_CURVE_POOL =
         0xEd279fDD11cA84bEef15AF5D39BB4d4bEE23F0cA;
-    // address public constant CURVE_ROUTER =
-    //     0x81C46fECa27B31F3ADC2b91eE4be9717d1cd3DD7;
+    address public constant CURVE_ROUTER =
+        0x81C46fECa27B31F3ADC2b91eE4be9717d1cd3DD7;
     address public constant WETH = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
     address public constant USDT = 0xdAC17F958D2ee523a2206206994597C13D831ec7;
 
@@ -68,21 +68,21 @@ contract LiquityStrategy is
     /// @inheritdoc IStrategy
     address public override(IStrategy) vault;
     IStabilityPool public stabilityPool;
-    ICurveExchange public curveExchange;
     IERC20 public lqty; // reward token
     mapping(address => bool) public allowedSwapTargets; // whitelist of swap targets
+    ICurveExchange public curveExchange;
 
     /**
-     * A percentage that specifies the minimum amount of principal to protect plus the sponsored amount.
-     * This value acts as a threshold and is applied only when the total underlying assets are grater tha the minimum amount of principal to protect.
-     * The protected principal is kept in LUSD.
+     * A percentage that specifies the minimum amount of assets to protect in the strategy.
+     * Protected assets are kept in LUSD and include principal, sponsored and accumulated performance fees.
+     * This value acts as a threshold and is applied only when the total underlying assets are grater than the minimum protected assets.
      *
-     * For instance, if the minimum protected principal is 150%, the total
-     * principal is 100 LUSD, and the total yield is 100 LUSD. When the backend
-     * rebalances the strategy, it has to ensure that at least 50 ETH+LQTY is
-     * converted to LUSD to maintain a 150% minimum protected principal.
+     * For instance, the minimum protected assets percentage is 150%, the total principal is 100 LUSD,
+     * sponsored and perf fees are both 0, and the total yield is 100 LUSD. When the backend
+     * rebalances the strategy (calls #reinvest), it has to ensure that at least 50 ETH+LQTY is
+     * converted to LUSD to maintain a 150% minimum protected assets (150 LUSD).
      */
-    uint16 public minPrincipalProtectionPct;
+    uint16 public minProtectedAssetsPct;
 
     //
     // Modifiers
@@ -122,7 +122,7 @@ contract LiquityStrategy is
         address _lqty,
         address _underlying,
         address _keeper,
-        uint16 _principalProtectionPct,
+        uint16 _minProtectedAssetsPct,
         address _curveExchange
     ) public initializer {
         __AccessControl_init();
@@ -151,18 +151,18 @@ contract LiquityStrategy is
         stabilityPool = IStabilityPool(_stabilityPool);
         curveExchange = ICurveExchange(_curveExchange);
         lqty = IERC20(_lqty);
-        minPrincipalProtectionPct = _principalProtectionPct;
+        minProtectedAssetsPct = _minProtectedAssetsPct;
 
         underlying.approve(_stabilityPool, type(uint256).max);
     }
 
     /**
-     * Set the minimum principal protection percentage.
+     * Set the minimum protected assets percentage.
      *
-     * @param _pct The new minimum principal protection percentage.
+     * @param _pct The new minimum assets protection percentage.
      */
-    function setMinPrincipalProtectionPct(uint16 _pct) external onlySettings {
-        minPrincipalProtectionPct = _pct;
+    function setMinProtectedAssetsPct(uint16 _pct) external onlySettings {
+        minProtectedAssetsPct = _pct;
     }
 
     /**
@@ -335,7 +335,7 @@ contract LiquityStrategy is
         uint256 _amountOutMin
     ) external virtual onlyKeeper {
         _checkSwapTarget(_swapTarget);
-        _checkMinPrincipalProtectionRequirement(_amountOutMin);
+        _checkMinAssetsProtectionRequirement(_amountOutMin);
 
         _swapLQTYtoLUSD(_swapTarget, _lqtyAmount, _lqtySwapData);
         _swapETHtoLUSD(_swapTarget, _ethAmount, _ethSwapData);
@@ -350,9 +350,9 @@ contract LiquityStrategy is
             revert StrategyInsufficientOutputAmount();
         }
 
-        emit StrategyReinvested(balance);
-
         stabilityPool.provideToSP(balance, address(0));
+
+        emit StrategyReinvested(balance);
     }
 
     /// @inheritdoc IStrategy
@@ -367,30 +367,32 @@ contract LiquityStrategy is
     }
 
     /**
-     * Checks if the minimum principal protection requirement is met.
+     * Checks if the minimum assets protection requirement is met.
+     * The minimum assets protection requirement is the minimum amount of LUSD that needs to be available after reinvesting.
+     * Assets that are protected are the principal (user deposits), the sponsored amount and the accumulated performance fee.
      *
      * @param _amountOutMin the minimum amount of LUSD to be received after the ETH & LQTY -> LUSD swap.
      */
-    function _checkMinPrincipalProtectionRequirement(uint256 _amountOutMin)
+    function _checkMinAssetsProtectionRequirement(uint256 _amountOutMin)
         internal
         view
     {
-        uint256 totalDeposited = IVault(vault).totalPrincipal() +
-            IVaultSponsoring(vault).totalSponsored();
+        uint256 minAssetsToProtect = (IVault(vault).totalPrincipal() +
+            IVaultSponsoring(vault).totalSponsored() +
+            IVault(vault).accumulatedPerfFee()).pctOf(minProtectedAssetsPct);
 
-        // check if the amountOutMin is enough to protect the principal plus sponsored
+        // the protection does not make sense if total underlying (assets held in the vault + assets invected in the strategy) is less than what is ment to be protected
+        if (IVault(vault).totalUnderlying() < minAssetsToProtect) return;
+
+        // check if the amountOutMin is large enough that total LUSD after reinvesting is greater than the amount that needs to be protected
         if (
-            totalDeposited.pctOf(minPrincipalProtectionPct) <=
-            totalDeposited + _amountOutMin
+            stabilityPool.getCompoundedLUSDDeposit(address(this)) +
+                underlying.balanceOf(vault) +
+                _amountOutMin >=
+            minAssetsToProtect
         ) return;
 
-        // minimum principal protection does not apply when total underlying value is less than min protected principal plus sponsored amount
-        if (
-            IVault(vault).totalUnderlying() <
-            totalDeposited.pctOf(minPrincipalProtectionPct)
-        ) return;
-
-        revert StrategyMinimumPrincipalProtection();
+        revert StrategyMinimumAssetsProtection();
     }
 
     /**

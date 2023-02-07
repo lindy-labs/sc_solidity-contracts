@@ -30,11 +30,12 @@ jobs:
     - run: yarn run hardhat compile
 
     - name: Run Slither
-      uses: crytic/slither-action@v0.1.0
+      uses: crytic/slither-action@v0.2.0
       continue-on-error: true
       id: slither
       with:
         ignore-compile: true
+        slither-version: dev-workaround-action-48
         sarif: results.sarif
 
     - name: Upload SARIF file

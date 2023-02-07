@@ -521,6 +521,38 @@ describe('Vault', () => {
     });
   });
 
+  describe('#setMinLockPeriod', () => {
+    it('reverts if the caller does not have settings role', async () => {
+      await expect(
+        vault.connect(alice).setMinLockPeriod(100),
+      ).to.be.revertedWith('VaultCallerNotSettings');
+    });
+
+    it('change minLockPeriod and emit MinLockPeriodUpdated event', async () => {
+      const newMinLockPeriod = 100;
+      const tx = await vault.connect(admin).setMinLockPeriod(newMinLockPeriod);
+
+      await expect(tx)
+        .emit(vault, 'MinLockPeriodUpdated')
+        .withArgs(newMinLockPeriod);
+      expect(await vault.minLockPeriod()).to.be.equal(newMinLockPeriod);
+    });
+
+    it('reverts if min lock period is greater than max lock period', async () => {
+      await expect(
+        vault
+          .connect(admin)
+          .setMinLockPeriod((await vault.MAX_DEPOSIT_LOCK_DURATION()).add(1)),
+      ).to.be.revertedWith('VaultInvalidMinLockPeriod');
+    });
+
+    it('reverts if min lock period is 0', async () => {
+      await expect(
+        vault.connect(admin).setMinLockPeriod('0'),
+      ).to.be.revertedWith('VaultInvalidMinLockPeriod');
+    });
+  });
+
   describe('totalUnderlyingMinusSponsored', async () => {
     it('returns 0 when the total underlying is less than total sponsored + accumulated performance fee', async () => {
       await addUnderlyingBalance(admin, '500');
@@ -2264,13 +2296,13 @@ describe('Vault', () => {
 
       await vault.connect(alice).deposit(params);
 
-      const claimer1 = await vault.claimer(bob.address);
+      const claimer1 = await vault.claimers(bob.address);
       expect(claimer1.totalShares).to.be.equal(
         parseUnits('0.4').mul(SHARES_MULTIPLIER),
       );
       expect(claimer1.totalPrincipal).to.be.equal(parseUnits('0.4'));
 
-      const claimer2 = await vault.claimer(carol.address);
+      const claimer2 = await vault.claimers(carol.address);
       expect(claimer2.totalShares).to.be.equal(
         parseUnits('0.6').mul(SHARES_MULTIPLIER),
       );
@@ -2304,13 +2336,13 @@ describe('Vault', () => {
 
       await vault.connect(alice).deposit(params2);
 
-      const claimer1 = await vault.claimer(bob.address);
+      const claimer1 = await vault.claimers(bob.address);
       expect(claimer1.totalShares).to.be.equal(
         parseUnits('10.4').mul(SHARES_MULTIPLIER),
       );
       expect(claimer1.totalPrincipal).to.be.equal(parseUnits('10.4'));
 
-      const claimer2 = await vault.claimer(carol.address);
+      const claimer2 = await vault.claimers(carol.address);
       expect(claimer2.totalShares).to.be.equal(
         parseUnits('0.6').mul(SHARES_MULTIPLIER),
       );
@@ -2804,7 +2836,7 @@ describe('Vault', () => {
         .connect(alice)
         .partialWithdraw(alice.address, [2], [parseUnits('30')]);
 
-      const deposit = await vault.claimer(bob.address);
+      const deposit = await vault.claimers(bob.address);
       expect(deposit.totalPrincipal).to.eq(parseUnits('20'));
       expect(deposit.totalShares).to.eq(
         parseUnits('35').mul(SHARES_MULTIPLIER),

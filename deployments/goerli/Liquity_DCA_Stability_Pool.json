@@ -1,0 +1,301 @@
+{
+  "address": "0x8981BFECe0b2bF08a7d03Fefc27eF61b851b228F",
+  "abi": [
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_lusd",
+          "type": "address"
+        },
+        {
+          "internalType": "address",
+          "name": "_priceFeed",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "nonpayable",
+      "type": "constructor"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": true,
+          "internalType": "address",
+          "name": "_depositor",
+          "type": "address"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "_ETH",
+          "type": "uint256"
+        },
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "_LUSDLoss",
+          "type": "uint256"
+        }
+      ],
+      "name": "ETHGainWithdrawn",
+      "type": "event"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "_newBalance",
+          "type": "uint256"
+        }
+      ],
+      "name": "StabilityPoolETHBalanceUpdated",
+      "type": "event"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "balances",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "_depositor",
+          "type": "address"
+        }
+      ],
+      "name": "getCompoundedLUSDDeposit",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "getDepositorETHGain",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "getDepositorLQTYGain",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "lusd",
+      "outputs": [
+        {
+          "internalType": "contract IERC20",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_debtToOffset",
+          "type": "uint256"
+        },
+        {
+          "internalType": "uint256",
+          "name": "_collToAdd",
+          "type": "uint256"
+        }
+      ],
+      "name": "offset",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "priceFeed",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_amount",
+          "type": "uint256"
+        },
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "name": "provideToSP",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "troveManager",
+      "outputs": [
+        {
+          "internalType": "address",
+          "name": "",
+          "type": "address"
+        }
+      ],
+      "stateMutability": "pure",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "_amount",
+          "type": "uint256"
+        }
+      ],
+      "name": "withdrawFromSP",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "stateMutability": "payable",
+      "type": "receive"
+    }
+  ],
+  "transactionHash": "0xf37e6b925d63ed9325ef06e41ba282a0b25e27271fa74fc9dad554d1e071b9f5",
+  "receipt": {
+    "to": null,
+    "from": "0xCfF577D4072BF126Cdd73CDC7353637A1Fa5f4CE",
+    "contractAddress": "0x8981BFECe0b2bF08a7d03Fefc27eF61b851b228F",
+    "transactionIndex": 77,
+    "gasUsed": "402482",
+    "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "blockHash": "0x93f5cb7f5e4ba9f2ee1fd89c584ce66e5a508c08d260b94669c6e13d6740fdc5",
+    "transactionHash": "0xf37e6b925d63ed9325ef06e41ba282a0b25e27271fa74fc9dad554d1e071b9f5",
+    "logs": [],
+    "blockNumber": 8444194,
+    "cumulativeGasUsed": "25771663",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": [
+    "0xb6C0754530B89C80A2eb5068589ea0A8c854D636",
+    "0xa5D42FBF2Fc632C6201B94BA4fb7e92f09D2A8ce"
+  ],
+  "numDeployments": 1,
+  "solcInputHash": "d3836542e048a56ea51940fa540e4d27",
+  "metadata": "{\"compiler\":{\"version\":\"0.8.10+commit.fc410830\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_lusd\",\"type\":\"address\"},{\"internalType\":\"address\",\"name\":\"_priceFeed\",\"type\":\"address\"}],\"stateMutability\":\"nonpayable\",\"type\":\"constructor\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":true,\"internalType\":\"address\",\"name\":\"_depositor\",\"type\":\"address\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_ETH\",\"type\":\"uint256\"},{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_LUSDLoss\",\"type\":\"uint256\"}],\"name\":\"ETHGainWithdrawn\",\"type\":\"event\"},{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_newBalance\",\"type\":\"uint256\"}],\"name\":\"StabilityPoolETHBalanceUpdated\",\"type\":\"event\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"balances\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"_depositor\",\"type\":\"address\"}],\"name\":\"getCompoundedLUSDDeposit\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"getDepositorETHGain\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"getDepositorLQTYGain\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"lusd\",\"outputs\":[{\"internalType\":\"contract IERC20\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_debtToOffset\",\"type\":\"uint256\"},{\"internalType\":\"uint256\",\"name\":\"_collToAdd\",\"type\":\"uint256\"}],\"name\":\"offset\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"priceFeed\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"},{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"name\":\"provideToSP\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"troveManager\",\"outputs\":[{\"internalType\":\"address\",\"name\":\"\",\"type\":\"address\"}],\"stateMutability\":\"pure\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"_amount\",\"type\":\"uint256\"}],\"name\":\"withdrawFromSP\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"},{\"stateMutability\":\"payable\",\"type\":\"receive\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/mock/liquity/MockStabilityPool.sol\":\"MockStabilityPool\"},\"evmVersion\":\"london\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":1000},\"remappings\":[]},\"sources\":{\"@openzeppelin/contracts/token/ERC20/IERC20.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\n// OpenZeppelin Contracts (last updated v4.6.0) (token/ERC20/IERC20.sol)\\n\\npragma solidity ^0.8.0;\\n\\n/**\\n * @dev Interface of the ERC20 standard as defined in the EIP.\\n */\\ninterface IERC20 {\\n    /**\\n     * @dev Emitted when `value` tokens are moved from one account (`from`) to\\n     * another (`to`).\\n     *\\n     * Note that `value` may be zero.\\n     */\\n    event Transfer(address indexed from, address indexed to, uint256 value);\\n\\n    /**\\n     * @dev Emitted when the allowance of a `spender` for an `owner` is set by\\n     * a call to {approve}. `value` is the new allowance.\\n     */\\n    event Approval(address indexed owner, address indexed spender, uint256 value);\\n\\n    /**\\n     * @dev Returns the amount of tokens in existence.\\n     */\\n    function totalSupply() external view returns (uint256);\\n\\n    /**\\n     * @dev Returns the amount of tokens owned by `account`.\\n     */\\n    function balanceOf(address account) external view returns (uint256);\\n\\n    /**\\n     * @dev Moves `amount` tokens from the caller's account to `to`.\\n     *\\n     * Returns a boolean value indicating whether the operation succeeded.\\n     *\\n     * Emits a {Transfer} event.\\n     */\\n    function transfer(address to, uint256 amount) external returns (bool);\\n\\n    /**\\n     * @dev Returns the remaining number of tokens that `spender` will be\\n     * allowed to spend on behalf of `owner` through {transferFrom}. This is\\n     * zero by default.\\n     *\\n     * This value changes when {approve} or {transferFrom} are called.\\n     */\\n    function allowance(address owner, address spender) external view returns (uint256);\\n\\n    /**\\n     * @dev Sets `amount` as the allowance of `spender` over the caller's tokens.\\n     *\\n     * Returns a boolean value indicating whether the operation succeeded.\\n     *\\n     * IMPORTANT: Beware that changing an allowance with this method brings the risk\\n     * that someone may use both the old and the new allowance by unfortunate\\n     * transaction ordering. One possible solution to mitigate this race\\n     * condition is to first reduce the spender's allowance to 0 and set the\\n     * desired value afterwards:\\n     * https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729\\n     *\\n     * Emits an {Approval} event.\\n     */\\n    function approve(address spender, uint256 amount) external returns (bool);\\n\\n    /**\\n     * @dev Moves `amount` tokens from `from` to `to` using the\\n     * allowance mechanism. `amount` is then deducted from the caller's\\n     * allowance.\\n     *\\n     * Returns a boolean value indicating whether the operation succeeded.\\n     *\\n     * Emits a {Transfer} event.\\n     */\\n    function transferFrom(\\n        address from,\\n        address to,\\n        uint256 amount\\n    ) external returns (bool);\\n}\\n\",\"keccak256\":\"0x9750c6b834f7b43000631af5cc30001c5f547b3ceb3635488f140f60e897ea6b\",\"license\":\"MIT\"},\"contracts/interfaces/liquity/IStabilityPool.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity =0.8.10;\\n\\ninterface IStabilityPool {\\n    /*  provideToSP():\\n     *\\n     * - Triggers a LQTY issuance, based on time passed since the last issuance. The LQTY issuance is shared between *all* depositors and front ends\\n     * - Tags the deposit with the provided front end tag param, if it's a new deposit\\n     * - Sends depositor's accumulated gains (LQTY, ETH) to depositor\\n     * - Sends the tagged front end's accumulated LQTY gains to the tagged front end\\n     * - Increases deposit and tagged front end's stake, and takes new snapshots for each.\\n     */\\n    function provideToSP(uint256 _amount, address _frontEndTag) external;\\n\\n    /*  withdrawFromSP():\\n     *\\n     * - Triggers a LQTY issuance, based on time passed since the last issuance. The LQTY issuance is shared between *all* depositors and front ends\\n     * - Removes the deposit's front end tag if it is a full withdrawal\\n     * - Sends all depositor's accumulated gains (LQTY, ETH) to depositor\\n     * - Sends the tagged front end's accumulated LQTY gains to the tagged front end\\n     * - Decreases deposit and tagged front end's stake, and takes new snapshots for each.\\n     *\\n     * If _amount > userDeposit, the user withdraws all of their compounded deposit.\\n     */\\n    function withdrawFromSP(uint256 _amount) external;\\n\\n    /* Calculates the ETH gain earned by the deposit since its last snapshots were taken.\\n     * Given by the formula:  E = d0 * (S - S(0))/P(0)\\n     * where S(0) and P(0) are the depositor's snapshots of the sum S and product P, respectively.\\n     * d0 is the last recorded deposit value.\\n     */\\n    function getDepositorETHGain(address _depositor)\\n        external\\n        view\\n        returns (uint256);\\n\\n    /*\\n     * Calculate the LQTY gain earned by a deposit since its last snapshots were taken.\\n     * Given by the formula:  LQTY = d0 * (G - G(0))/P(0)\\n     * where G(0) and P(0) are the depositor's snapshots of the sum G and product P, respectively.\\n     * d0 is the last recorded deposit value.\\n     */\\n    function getDepositorLQTYGain(address _depositor)\\n        external\\n        view\\n        returns (uint256);\\n\\n    /*\\n     * Return the user's compounded deposit. Given by the formula:  d = d0 * P/P(0)\\n     * where P(0) is the depositor's snapshot of the product P, taken when they last updated their deposit.\\n     */\\n    function getCompoundedLUSDDeposit(address _depositor)\\n        external\\n        view\\n        returns (uint256);\\n\\n    /*\\n     * Cancels out the specified debt against the LUSD contained in the Stability Pool (as far as possible)\\n     * and transfers the Trove's ETH collateral from ActivePool to StabilityPool.\\n     * Only called by liquidation functions in the TroveManager.\\n     */\\n    function offset(uint256 _debtToOffset, uint256 _collToAdd) external;\\n\\n    /*\\n     * Address of the TroveManager contract.\\n     */\\n    function troveManager() external view returns (address);\\n}\\n\",\"keccak256\":\"0x8feac9fb944137b74364d00b6d2ce92aebdbecd78ff85037df11db86766b3d7a\",\"license\":\"MIT\"},\"contracts/mock/liquity/MockStabilityPool.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity =0.8.10;\\n\\nimport {IStabilityPool} from \\\"../../interfaces/liquity/IStabilityPool.sol\\\";\\nimport {IERC20} from \\\"@openzeppelin/contracts/token/ERC20/IERC20.sol\\\";\\n\\ncontract MockStabilityPool is IStabilityPool {\\n    IERC20 public immutable lusd;\\n\\n    event StabilityPoolETHBalanceUpdated(uint _newBalance);\\n    event ETHGainWithdrawn(address indexed _depositor, uint _ETH, uint _LUSDLoss);\\n\\n    constructor(address _lusd, address _priceFeed) {\\n        lusd = IERC20(_lusd);\\n        priceFeed = _priceFeed;\\n    }\\n\\n    mapping(address => uint256) public balances;\\n\\n    address public priceFeed;\\n\\n    function provideToSP(\\n        uint256 _amount,\\n        address /* _frontEndTag */\\n    ) external {\\n        // transfers lusd from the depositor to this contract and updates the balance\\n        // the balance must appear on getCompoundedLUSDDeposit\\n        lusd.transferFrom(msg.sender, address(this), _amount);\\n        balances[msg.sender] += _amount;\\n    }\\n\\n    function withdrawFromSP(uint256 _amount) external {\\n        // withdraws the LUSD of the user from this contract\\n        // and updates the balance\\n        uint256 bal = balances[msg.sender];\\n\\n        if (_amount > bal) _amount = bal;\\n\\n        balances[msg.sender] -= _amount;\\n\\n        lusd.transfer(msg.sender, _amount);\\n\\n        uint256 ethBal = address(this).balance;\\n\\n        payable(msg.sender).transfer(ethBal);\\n        emit ETHGainWithdrawn(msg.sender, ethBal, 0);\\n    }\\n\\n    function getDepositorETHGain(\\n        address /* _depositor */\\n    ) external view returns (uint256) {\\n        return address(this).balance;\\n    }\\n\\n    function getDepositorLQTYGain(\\n        address /* _depositor */\\n    ) external pure returns (uint256) {\\n        return 0;\\n    }\\n\\n    function getCompoundedLUSDDeposit(address _depositor)\\n        external\\n        view\\n        returns (uint256)\\n    {\\n        return balances[_depositor];\\n    }\\n\\n    function offset(uint256 _debtToOffset, uint256 _collToAdd) external {}\\n\\n    function troveManager() public pure returns (address) {\\n        return address(0);\\n    }\\n\\n    receive() external payable {}\\n}\\n\",\"keccak256\":\"0x7eefd911de6ab10e70dd4fd711636ef5c8d30bb5585853db07016e223f593367\",\"license\":\"MIT\"}},\"version\":1}",
+  "bytecode": "0x60a060405234801561001057600080fd5b506040516106b33803806106b383398101604081905261002f91610073565b6001600160a01b03918216608052600180546001600160a01b031916919092161790556100a6565b80516001600160a01b038116811461006e57600080fd5b919050565b6000806040838503121561008657600080fd5b61008f83610057565b915061009d60208401610057565b90509250929050565b6080516105e46100cf60003960008181610212015281816102ca01526103eb01526105e46000f3fe6080604052600436106100b55760003560e01c80633d83908a11610069578063741bef1a1161004e578063741bef1a146101e057806399ad68a714610200578063f5f1595d1461023457600080fd5b80633d83908a146101985780635f788d65146101c057600080fd5b80632e54bf951161009a5780632e54bf9514610137578063335525ad14610159578063389e92a51461017857600080fd5b80631cdc4700146100c157806327e235e31461010a57600080fd5b366100bc57005b600080fd5b3480156100cd57600080fd5b506100f76100dc3660046104a5565b6001600160a01b031660009081526020819052604090205490565b6040519081526020015b60405180910390f35b34801561011657600080fd5b506100f76101253660046104a5565b60006020819052908152604090205481565b34801561014357600080fd5b506101576101523660046104c7565b610255565b005b34801561016557600080fd5b506101576101743660046104e0565b5050565b34801561018457600080fd5b506100f76101933660046104a5565b504790565b3480156101a457600080fd5b5060005b6040516001600160a01b039091168152602001610101565b3480156101cc57600080fd5b506101576101db366004610502565b6103b0565b3480156101ec57600080fd5b506001546101a8906001600160a01b031681565b34801561020c57600080fd5b506101a87f000000000000000000000000000000000000000000000000000000000000000081565b34801561024057600080fd5b506100f761024f3660046104a5565b50600090565b3360009081526020819052604090205480821115610271578091505b336000908152602081905260408120805484929061029090849061055d565b90915550506040517fa9059cbb000000000000000000000000000000000000000000000000000000008152336004820152602481018390527f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03169063a9059cbb906044016020604051808303816000875af115801561031b573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061033f9190610574565b506040514790339082156108fc029083906000818181858888f1935050505015801561036f573d6000803e3d6000fd5b50604080518281526000602082015233917f51457222ebca92c335c9c86e2baa1cc0e40ffaa9084a51452980d5ba8dec2f63910160405180910390a2505050565b6040517f23b872dd000000000000000000000000000000000000000000000000000000008152336004820152306024820152604481018390527f00000000000000000000000000000000000000000000000000000000000000006001600160a01b0316906323b872dd906064016020604051808303816000875af115801561043c573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906104609190610574565b503360009081526020819052604081208054849290610480908490610596565b90915550505050565b80356001600160a01b03811681146104a057600080fd5b919050565b6000602082840312156104b757600080fd5b6104c082610489565b9392505050565b6000602082840312156104d957600080fd5b5035919050565b600080604083850312156104f357600080fd5b50508035926020909101359150565b6000806040838503121561051557600080fd5b8235915061052560208401610489565b90509250929050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052601160045260246000fd5b60008282101561056f5761056f61052e565b500390565b60006020828403121561058657600080fd5b815180151581146104c057600080fd5b600082198211156105a9576105a961052e565b50019056fea264697066735822122046edba6ceecbd4adf5a92134b7bc5757cb69e3aeee0ca098a788f7c5b8dbc3b164736f6c634300080a0033",
+  "deployedBytecode": "0x6080604052600436106100b55760003560e01c80633d83908a11610069578063741bef1a1161004e578063741bef1a146101e057806399ad68a714610200578063f5f1595d1461023457600080fd5b80633d83908a146101985780635f788d65146101c057600080fd5b80632e54bf951161009a5780632e54bf9514610137578063335525ad14610159578063389e92a51461017857600080fd5b80631cdc4700146100c157806327e235e31461010a57600080fd5b366100bc57005b600080fd5b3480156100cd57600080fd5b506100f76100dc3660046104a5565b6001600160a01b031660009081526020819052604090205490565b6040519081526020015b60405180910390f35b34801561011657600080fd5b506100f76101253660046104a5565b60006020819052908152604090205481565b34801561014357600080fd5b506101576101523660046104c7565b610255565b005b34801561016557600080fd5b506101576101743660046104e0565b5050565b34801561018457600080fd5b506100f76101933660046104a5565b504790565b3480156101a457600080fd5b5060005b6040516001600160a01b039091168152602001610101565b3480156101cc57600080fd5b506101576101db366004610502565b6103b0565b3480156101ec57600080fd5b506001546101a8906001600160a01b031681565b34801561020c57600080fd5b506101a87f000000000000000000000000000000000000000000000000000000000000000081565b34801561024057600080fd5b506100f761024f3660046104a5565b50600090565b3360009081526020819052604090205480821115610271578091505b336000908152602081905260408120805484929061029090849061055d565b90915550506040517fa9059cbb000000000000000000000000000000000000000000000000000000008152336004820152602481018390527f00000000000000000000000000000000000000000000000000000000000000006001600160a01b03169063a9059cbb906044016020604051808303816000875af115801561031b573d6000803e3d6000fd5b505050506040513d601f19601f8201168201806040525081019061033f9190610574565b506040514790339082156108fc029083906000818181858888f1935050505015801561036f573d6000803e3d6000fd5b50604080518281526000602082015233917f51457222ebca92c335c9c86e2baa1cc0e40ffaa9084a51452980d5ba8dec2f63910160405180910390a2505050565b6040517f23b872dd000000000000000000000000000000000000000000000000000000008152336004820152306024820152604481018390527f00000000000000000000000000000000000000000000000000000000000000006001600160a01b0316906323b872dd906064016020604051808303816000875af115801561043c573d6000803e3d6000fd5b505050506040513d601f19601f820116820180604052508101906104609190610574565b503360009081526020819052604081208054849290610480908490610596565b90915550505050565b80356001600160a01b03811681146104a057600080fd5b919050565b6000602082840312156104b757600080fd5b6104c082610489565b9392505050565b6000602082840312156104d957600080fd5b5035919050565b600080604083850312156104f357600080fd5b50508035926020909101359150565b6000806040838503121561051557600080fd5b8235915061052560208401610489565b90509250929050565b7f4e487b7100000000000000000000000000000000000000000000000000000000600052601160045260246000fd5b60008282101561056f5761056f61052e565b500390565b60006020828403121561058657600080fd5b815180151581146104c057600080fd5b600082198211156105a9576105a961052e565b50019056fea264697066735822122046edba6ceecbd4adf5a92134b7bc5757cb69e3aeee0ca098a788f7c5b8dbc3b164736f6c634300080a0033",
+  "devdoc": {
+    "kind": "dev",
+    "methods": {},
+    "version": 1
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {},
+    "version": 1
+  },
+  "storageLayout": {
+    "storage": [
+      {
+        "astId": 14681,
+        "contract": "contracts/mock/liquity/MockStabilityPool.sol:MockStabilityPool",
+        "label": "balances",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_mapping(t_address,t_uint256)"
+      },
+      {
+        "astId": 14683,
+        "contract": "contracts/mock/liquity/MockStabilityPool.sol:MockStabilityPool",
+        "label": "priceFeed",
+        "offset": 0,
+        "slot": "1",
+        "type": "t_address"
+      }
+    ],
+    "types": {
+      "t_address": {
+        "encoding": "inplace",
+        "label": "address",
+        "numberOfBytes": "20"
+      },
+      "t_mapping(t_address,t_uint256)": {
+        "encoding": "mapping",
+        "key": "t_address",
+        "label": "mapping(address => uint256)",
+        "numberOfBytes": "32",
+        "value": "t_uint256"
+      },
+      "t_uint256": {
+        "encoding": "inplace",
+        "label": "uint256",
+        "numberOfBytes": "32"
+      }
+    }
+  }
+}

@@ -8,6 +8,7 @@ export function createVault(): Vault {
   if (vault == null) {
     vault = new Vault('0');
     vault.totalShares = BigInt.fromString('0');
+    vault.amountClaimed = BigInt.fromString('0');
     vault.save();
   }
 

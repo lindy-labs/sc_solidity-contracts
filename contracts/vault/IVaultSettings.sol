@@ -59,4 +59,11 @@ interface IVaultSettings {
      * @param _pct the new investment fee estimated percentage.
      */
     function setLossTolerancePct(uint16 _pct) external;
+
+    /**
+     * Sets the minimum lock period for deposits.
+     *
+     * @param _minLockPeriod Minimum lock period in seconds
+     */
+    function setMinLockPeriod(uint64 _minLockPeriod) external;
 }
