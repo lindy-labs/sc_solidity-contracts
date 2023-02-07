@@ -11,7 +11,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
   // Deploy and gather needed mock contracts
 
-  const liquityPriceFeedDeployment = await get('LiquityPriceFeed');
+  const liquityPriceFeedDeployment = await get('Liquity_Amethyst_Price_Feed');
   const liquityPriceFeed = await ethers.getContractAt(
     'MockLiquityPriceFeed',
     liquityPriceFeedDeployment.address,
@@ -19,19 +19,19 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
   await liquityPriceFeed.setPrice(parseUnits('1700', 18));
 
-  const stabilityPoolDeployment = await get('LiquityStabilityPool');
+  const stabilityPoolDeployment = await get('Liquity_Amethyst_Stability_Pool');
   const stabilityPool = await ethers.getContractAt(
     'MockStabilityPool',
     stabilityPoolDeployment.address,
   );
 
-  const troveManagerDeployment = await get('TroveManager');
+  const troveManagerDeployment = await get('Liquity_Amethyst_Trove_Manager');
   const troveManager = await ethers.getContractAt(
     'MockTroveManager',
     troveManagerDeployment.address,
   );
 
-  const vaultDeployment = await get('Vault_Liquity');
+  const vaultDeployment = await get('Liquity_Amethyst_Vault');
   const vault = await ethers.getContractAt('Vault', vaultDeployment.address);
 
   const liquityStrategy = await ethers.getContractAt(
@@ -77,7 +77,6 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
   // Move time forward 12 days
   await ethers.provider.send('evm_increaseTime', [1.037e6]);
-  // await ethers.provider.send('evm_mine', []);
   await mineNBlocks(75);
 
   await troveManager.liquidation(

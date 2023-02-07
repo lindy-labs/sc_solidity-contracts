@@ -3,6 +3,8 @@ import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { includes } from 'lodash';
 import { ethers } from 'hardhat';
 import { utils } from 'ethers';
+
+import verify from './helpers/verify';
 import { getCurrentNetworkConfig } from '../scripts/deployConfigs';
 
 const func = async function (env: HardhatRuntimeEnvironment) {
@@ -46,14 +48,10 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   );
 
   if (getNetworkName() !== 'hardhat' && getNetworkName() !== 'docker') {
-    try {
-      await env.run('verify:verify', {
-        address: yearnStrategy.address,
-        constructorArguments: args,
-      });
-    } catch (e) {
-      console.error((e as Error).message);
-    }
+    verify(env, {
+      address: yearnStrategy.address,
+      constructorArguments: args,
+    });
 
     await env.tenderly.persistArtifacts({
       name: 'YearnStrategy',

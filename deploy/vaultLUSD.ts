@@ -5,6 +5,7 @@ import { includes } from 'lodash';
 
 import { getCurrentNetworkConfig } from '../scripts/deployConfigs';
 import deployMockCurvePool from './helpers/mockPool';
+import verify from './helpers/verify';
 
 const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   const { deployer } = await env.getNamedAccounts();
@@ -67,14 +68,10 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   });
 
   if (getNetworkName() !== 'hardhat' && getNetworkName() !== 'docker') {
-    try {
-      await env.run('verify:verify', {
-        address: vaultDeployment.address,
-        constructorArguments: args,
-      });
-    } catch (e) {
-      console.error((e as Error).message);
-    }
+    await verify(env, {
+      address: vaultDeployment.address,
+      constructorArguments: args,
+    });
 
     await env.tenderly.persistArtifacts({
       name: 'Vault_LUSD',

@@ -16,7 +16,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   const lusd = await get('LUSD');
   const vaults = {
     yearn: await get('Vault_LUSD'),
-    liquity: await get('Vault_Liquity'),
+    liquity: await get('Liquity_Amethyst_Vault'),
   };
 
   for (const vaultKey in vaults) {

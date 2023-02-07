@@ -1,10 +1,14 @@
 import type { HardhatRuntimeEnvironment } from 'hardhat/types';
-
 import { includes } from 'lodash';
 import { ethers } from 'hardhat';
 import { utils } from 'ethers';
+
 import { getCurrentNetworkConfig } from '../scripts/deployConfigs';
+import initCurveRouter from './helpers/initCurveRouter';
+import init0x from './helpers/init0x';
+import verify from './helpers/verify';
 import liquityMocks from './helpers/liquityMocks';
+import transferOwnershipToMultisig from './helpers/transferOwnership';
 
 const func = async function (env: HardhatRuntimeEnvironment) {
   const { deployer } = await env.getNamedAccounts();
@@ -12,25 +16,31 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   const { multisig } = await getCurrentNetworkConfig();
   const [owner] = await ethers.getSigners();
 
-  const vaultAddress = (await get('Vault_Liquity')).address;
+  const vaultAddress = (await get('Liquity_Amethyst_Vault')).address;
   const vault = await ethers.getContractAt('Vault', vaultAddress);
 
   const LUSDDeployment = await get('LUSD');
 
-  let address0x;
+  console.log('Initializing Curve Router');
+  const curveRouter = await initCurveRouter(env);
 
-  let liquityStrategyContract = 'LiquityStrategy';
-  if (getNetworkName() === 'hardhat' || getNetworkName() === 'docker') {
-    liquityStrategyContract = 'MockLiquityStrategyV3';
-  }
-  const liquityStrategyDeployment = await deploy('LiquityStrategy', {
+  console.log('Initializing 0x');
+  const swapTarget0x = await init0x(env);
+
+  let liquityStrategyContract = includes(
+    ['hardhat', 'docker'],
+    getNetworkName(),
+  )
+    ? 'MockLiquityStrategyV3'
+    : 'LiquityStrategy';
+
+  console.log('Deploying Amethyst LiquityStrategy');
+  const liquityStrategyDeployment = await deploy('Liquity_Amethyst_Strategy', {
     contract: liquityStrategyContract,
     from: deployer,
     args: [],
     log: true,
   });
-
-  let curveRouter = '0x81C46fECa27B31F3ADC2b91eE4be9717d1cd3DD7';
 
   const liquityStrategy = await ethers.getContractAt(
     'LiquityStrategy',
@@ -38,97 +48,21 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   );
 
   if (getNetworkName() !== 'hardhat' && getNetworkName() !== 'docker') {
-    await env
-      .run('verify:verify', {
-        address: liquityStrategy.address,
-        constructorArguments: [],
-      })
-      .catch((e) => console.error((e as Error).message));
+    await verify(env, {
+      address: liquityStrategy.address,
+      constructorArguments: [],
+    });
 
     await env.tenderly.persistArtifacts({
-      name: 'LiquityStrategy',
+      name: 'Liquity_Amethyst_Strategy',
       address: liquityStrategy.address,
     });
   }
 
-  if (getNetworkName() !== 'mainnet') {
-    const mockLiquityPriceFeedDeployment = await deploy('LiquityPriceFeed', {
-      contract: 'MockLiquityPriceFeed',
-      from: deployer,
-      log: true,
-      args: [],
-    });
+  if (getNetworkName() !== 'mainnet')
+    await liquityMocks(env, 'Liquity_Amethyst');
 
-    const liquityStabilityPoolArgs = [
-      LUSDDeployment.address,
-      mockLiquityPriceFeedDeployment.address,
-    ];
-    const mockLiquityStabilityPool = await deploy('LiquityStabilityPool', {
-      contract: 'MockStabilityPool',
-      from: deployer,
-      args: liquityStabilityPoolArgs,
-      log: true,
-    });
-
-    const troveManagerDeploymentArgs = [
-      mockLiquityStabilityPool.address,
-      mockLiquityPriceFeedDeployment.address,
-    ];
-    const troveManagerDeployment = await deploy('TroveManager', {
-      contract: 'MockTroveManager',
-      from: deployer,
-      log: true,
-      args: troveManagerDeploymentArgs,
-    });
-
-    const mock0x = await deploy('Mock0x', {
-      contract: 'Mock0x',
-      from: deployer,
-      args: [],
-      log: true,
-    });
-
-    address0x = mock0x.address;
-
-    if (getNetworkName() !== 'hardhat' && getNetworkName() !== 'docker') {
-      const priceFeedVerification = env.run('verify:verify', {
-        address: mockLiquityPriceFeedDeployment.address,
-        constructorArguments: [],
-      });
-
-      const troveManagerVerification = env.run('verify:verify', {
-        address: troveManagerDeployment.address,
-        constructorArguments: troveManagerDeploymentArgs,
-      });
-
-      const stabilityPoolVerification = env.run('verify:verify', {
-        address: mockLiquityStabilityPool.address,
-        constructorArguments: liquityStabilityPoolArgs,
-      });
-
-      const mock0xVerification = env.run('verify:verify', {
-        address: mock0x.address,
-        constructorArguments: [],
-      });
-
-      const promises = [
-        priceFeedVerification,
-        troveManagerVerification,
-        stabilityPoolVerification,
-        mock0xVerification,
-      ];
-
-      await Promise.allSettled(promises).then((results) =>
-        results.forEach((result) => {
-          if (result.status === 'rejected') {
-            console.error((result.reason as Error).message);
-          }
-        }),
-      );
-    }
-  }
-
-  const stabilityPool = await get('LiquityStabilityPool');
+  const stabilityPool = await get('Liquity_Amethyst_Stability_Pool');
   const LQTYDeployment = await get('LQTY');
 
   // initialize strategy
@@ -147,23 +81,27 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
   console.log('LquityStrategy initialized');
 
-  await vault.connect(owner).setStrategy(liquityStrategy.address);
-  console.log('strategy set to vault');
+  console.log('Granting MANAGER_ROLE to owner');
+  await liquityStrategy
+    .connect(owner)
+    .grantRole(
+      utils.keccak256(utils.toUtf8Bytes('MANAGER_ROLE')),
+      owner.address,
+    );
 
-  // get 0x contract
-  if (!address0x) address0x = '0xdef1c0ded9bec7f1a1670819833240f027b25eff';
-
-  await liquityStrategy.connect(owner).allowSwapTarget(address0x);
-
-  if (owner.address !== multisig) {
-    await (await vault.connect(owner).transferAdminRights(multisig)).wait();
-    console.log('vault ownership transfered to multisig');
-
-    await (
-      await liquityStrategy.connect(owner).transferAdminRights(multisig)
-    ).wait();
-    console.log('strategy ownership transfered to multisig');
+  if ((await vault.strategy()) !== liquityStrategy.address) {
+    console.log('Setting strategy in vault');
+    await vault.connect(owner).setStrategy(liquityStrategy.address);
   }
+
+  console.log('Allowing swapTarget', swapTarget0x);
+  await liquityStrategy.connect(owner).allowSwapTarget(swapTarget0x);
+
+  console.log('Transferring vault to multisig');
+  await transferOwnershipToMultisig(vault);
+
+  console.log('Transferring strategy to multisig');
+  await transferOwnershipToMultisig(liquityStrategy);
 };
 
 func.tags = ['strategy', 'amethyst'];

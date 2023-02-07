@@ -5,12 +5,12 @@ import { ethers } from 'hardhat';
 import { utils } from 'ethers';
 
 import { getCurrentNetworkConfig } from '../scripts/deployConfigs';
-import { LiquityStrategy, Vault } from '@root/typechain';
 
 import init0x from './helpers/init0x';
 import initCurveRouter from './helpers/initCurveRouter';
 import liquityMocks from './helpers/liquityMocks';
 import verify from './helpers/verify';
+import transferOwnershipToMultisig from './helpers/transferOwnership';
 
 const func = async function (env: HardhatRuntimeEnvironment) {
   const { deployer } = await env.getNamedAccounts();
@@ -100,26 +100,12 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   console.log('Allowing swapTarget', swapTarget0x);
   await liquityStrategy.connect(owner).allowSwapTarget(swapTarget0x);
 
-  await transferOwnershipToMultisig(vault, liquityStrategy);
-};
-
-async function transferOwnershipToMultisig(
-  vault: Vault,
-  liquityStrategy: LiquityStrategy,
-) {
-  const [owner] = await ethers.getSigners();
-  const { multisig } = await getCurrentNetworkConfig();
-
-  if (owner.address === multisig) return;
-
   console.log('Transferring vault to multisig');
-  await (await vault.connect(owner).transferAdminRights(multisig)).wait();
+  await transferOwnershipToMultisig(vault);
 
   console.log('Transferring strategy to multisig');
-  await (
-    await liquityStrategy.connect(owner).transferAdminRights(multisig)
-  ).wait();
-}
+  await transferOwnershipToMultisig(liquityStrategy);
+};
 
 func.tags = ['liquity_dca_strategy'];
 func.dependencies = ['liquity_dca_vault'];
