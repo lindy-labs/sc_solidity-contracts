@@ -2,43 +2,31 @@
 pragma solidity =0.8.10;
 
 import {ICrabStrategyV2} from "../../interfaces/opyn/ICrabStrategyV2.sol";
+import {MockERC20} from "../MockERC20.sol";
 
-contract MockCrabStrategyV2 is ICrabStrategyV2 {
-    function totalSupply() external pure override returns (uint256) {
-        return 1e18;
+contract MockCrabStrategyV2 is ICrabStrategyV2, MockERC20 {
+    uint256 public totalCollateral;
+    uint256 public totalDebt;
+
+    constructor() MockERC20("Mock CRAB", "mockCRAB", 18, 0) {}
+
+    function mintCrab(address _user, uint256 _amount) public {
+        _mint(_user, _amount);
+        totalDebt += _amount;
     }
 
-    function balanceOf(
-        address account
-    ) external view override returns (uint256) {}
-
-    function transfer(
-        address to,
-        uint256 amount
-    ) external override returns (bool) {}
-
-    function allowance(
-        address owner,
-        address spender
-    ) external view override returns (uint256) {}
-
-    function approve(
-        address spender,
-        uint256 amount
-    ) external override returns (bool) {}
-
-    function transferFrom(
-        address from,
-        address to,
-        uint256 amount
-    ) external override returns (bool) {}
+    function setCollateral() external payable {
+        totalCollateral += msg.value;
+    }
 
     function getVaultDetails()
         external
         view
         override
         returns (address, uint256, uint256, uint256)
-    {}
+    {
+        return (address(0), 0, totalCollateral, totalDebt);
+    }
 
     function flashDeposit(
         uint256 _ethToDeposit,
@@ -56,4 +44,6 @@ contract MockCrabStrategyV2 is ICrabStrategyV2 {
     function getWsqueethFromCrabAmount(
         uint256 _crabAmount
     ) external view override returns (uint256) {}
+
+    receive() external payable {}
 }

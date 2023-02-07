@@ -30,6 +30,7 @@ contract OpynCrabStrategy is BaseStrategy {
     error StrategyCrabNettingCannotBe0Address();
     error StrategySwapRouterCannotBe0Address();
     error StrategyOracleCannotBe0Address();
+    error StrategyAmountTooHigh();
 
     /**
      * Emmited when #invest is called by the vault.
@@ -113,7 +114,7 @@ contract OpynCrabStrategy is BaseStrategy {
         returns (bool)
     {
         return
-            underlying.balanceOf(address(this)) > 0 ||
+            getUsdcBalance() > 0 ||
             crabStrategyV2.balanceOf(address(this)) > 0 ||
             crabNetting.usdBalance(address(this)) > 0 ||
             crabNetting.crabBalance(address(this)) > 0;
@@ -127,26 +128,23 @@ contract OpynCrabStrategy is BaseStrategy {
         override(IStrategy)
         returns (uint256)
     {
-        console.log("\n### INVESTED ASSETS ###\n");
-
-        uint256 usdcBalance = underlying.balanceOf(address(this));
+        uint256 usdcBalance = getUsdcBalance();
         uint256 crabBalance = crabStrategyV2.balanceOf(address(this));
         uint256 usdcPendingDeposit = crabNetting.usdBalance(address(this));
         uint256 crabPendingWithdraw = crabNetting.crabBalance(address(this));
 
+        if (crabBalance == 0 && crabPendingWithdraw == 0)
+            return usdcBalance + usdcPendingDeposit;
+
         uint256 amountInCrab = ((crabBalance + crabPendingWithdraw) *
-            getCrabFairPrice()) / 1e18;
+            getCrabFairPriceInUSDC()) / 1e18;
 
-        uint256 invested = usdcBalance + usdcPendingDeposit + amountInCrab;
-
-        return invested;
+        return usdcBalance + usdcPendingDeposit + amountInCrab;
     }
 
     /// @inheritdoc IStrategy
     function invest() external virtual override(IStrategy) onlyManager {
-        console.log("\n### INVEST ###\n");
-
-        emit StrategyDeposited(underlying.balanceOf(address(this)));
+        emit StrategyDeposited(getUsdcBalance());
     }
 
     /// @inheritdoc IStrategy
@@ -158,7 +156,7 @@ contract OpynCrabStrategy is BaseStrategy {
         if (_amount == 0) revert StrategyAmountZero();
         // TODO: check if amount could be deducted from usdc balance & crab netting
 
-        uint256 usdcBalance = underlying.balanceOf(address(this));
+        uint256 usdcBalance = getUsdcBalance();
         uint256 amountInUsdcToWithdrawFromCrab;
         if (_amount <= usdcBalance) {
             // withdraw immediately from usdc balance
@@ -172,7 +170,7 @@ contract OpynCrabStrategy is BaseStrategy {
         uint256 crabBalance = crabStrategyV2.balanceOf(address(this));
 
         uint256 crabToWithdraw = (amountInUsdcToWithdrawFromCrab * 1e18) /
-            getCrabFairPrice();
+            getCrabFairPriceInUSDC();
 
         if (crabToWithdraw > crabBalance) crabToWithdraw = crabBalance;
 
@@ -197,7 +195,7 @@ contract OpynCrabStrategy is BaseStrategy {
         console.log("usdcBalance\t\t", usdcBalance);
         console.log("crabBalance\t\t", crabBalance);
         console.log("crabToWithdraw\t\t", crabToWithdraw);
-        console.log("crabFairPrice\t\t", getCrabFairPrice());
+        console.log("crabFairPrice\t\t", getCrabFairPriceInUSDC());
         console.log("squeethDebtToPay\t\t", squeethDebtToPay);
         console.log("debtCostInEth\t\t", debtCostInEth);
         console.log("maxEthToPayDebt\t", maxEthToPayDebt);
@@ -226,8 +224,8 @@ contract OpynCrabStrategy is BaseStrategy {
 
     /// @inheritdoc IStrategy
     function transferYield(
-        address,
-        uint256
+        address, // _to
+        uint256 // _amount
     ) external virtual override(BaseStrategy) onlyManager returns (uint256) {
         return 0;
     }
@@ -235,6 +233,10 @@ contract OpynCrabStrategy is BaseStrategy {
     //
     // External API
     //
+
+    function getUsdcBalance() public view returns (uint256) {
+        return underlying.balanceOf(address(this));
+    }
 
     // TODO: onlyKeeper
     // @param _ethAmount amount of eth to send as msg.value in falshDeposit call
@@ -245,7 +247,13 @@ contract OpynCrabStrategy is BaseStrategy {
         uint256 _ethAmountToBorrow
     ) public {
         // TODO: check the crab strategy collateral cap
-        // uint256 balance = underlying.balanceOf(address(this));
+        if (_usdcAmount == 0) revert StrategyAmountZero();
+
+        uint256 usdcBalance = getUsdcBalance();
+
+        if (usdcBalance == 0) revert StrategyNoUnderlying();
+        if (_usdcAmount > usdcBalance) revert StrategyAmountTooHigh();
+
         swapUsdcToEth(_usdcAmount, _ethAmountOutMin);
 
         uint256 ethBalance = address(this).balance;
@@ -305,7 +313,7 @@ contract OpynCrabStrategy is BaseStrategy {
 
     // TODO: onlyKeeper
     function depositUsdcToNetting(uint256 _usdcAmount) external {
-        uint256 usdcBalance = underlying.balanceOf(address(this));
+        uint256 usdcBalance = getUsdcBalance();
 
         if (_usdcAmount > usdcBalance) {
             _usdcAmount = usdcBalance;
@@ -349,16 +357,24 @@ contract OpynCrabStrategy is BaseStrategy {
         crabNetting.dequeueCrab(_crabAmount, true);
     }
 
-    function getCrabFairPrice() public view returns (uint256) {
+    function getCrabFairPriceInUSDC() public view returns (uint256) {
         // Get twap
-        uint256 squeethEthPrice = getOraclePrice(WETH_OSQTH_POOL, oSqth, weth);
-        uint256 usdcEthPrice = getOraclePrice(USDC_WETH_POOL, weth, underlying);
+        uint256 squeethPriceInEth = getOraclePrice(
+            WETH_OSQTH_POOL,
+            oSqth,
+            weth
+        );
+        uint256 ethPriceInUsd = getOraclePrice(
+            USDC_WETH_POOL,
+            weth,
+            underlying
+        );
 
         (, , uint256 collateral, uint256 squeethDebt) = crabStrategyV2
             .getVaultDetails();
 
         uint256 crabFairPrice = ((collateral -
-            ((squeethDebt * squeethEthPrice) / 1e18)) * usdcEthPrice) /
+            ((squeethDebt * squeethPriceInEth) / 1e18)) * ethPriceInUsd) /
             crabStrategyV2.totalSupply();
 
         return crabFairPrice / 1e12; // account for usdc decimals

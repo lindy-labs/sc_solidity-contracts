@@ -3,18 +3,45 @@ pragma solidity =0.8.10;
 
 import {ICrabNetting} from "../../interfaces/opyn/ICrabStrategyV2.sol";
 
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+
 contract MockCrabNetting is ICrabNetting {
-    function depositUSDC(uint256 _amount) external override {}
+    mapping(address => uint256) public usdBalances;
+    mapping(address => uint256) public crabBalances;
+
+    ERC20 public usdc;
+    ERC20 public crab;
+
+    constructor(ERC20 _usdc, ERC20 _crab) {
+        usdc = _usdc;
+        crab = _crab;
+    }
+
+    function depositUSDC(uint256 _amount) external override {
+        usdBalances[msg.sender] += _amount;
+        usdc.transferFrom(msg.sender, address(this), _amount);
+    }
 
     function withdrawUSDC(uint256 _amount, bool _force) external override {}
 
-    function queueCrabForWithdrawal(uint256 _amount) external override {}
+    function queueCrabForWithdrawal(uint256 _amount) external override {
+        crabBalances[msg.sender] += _amount;
+        crab.transferFrom(msg.sender, address(this), _amount);
+    }
 
     function dequeueCrab(uint256 _amount, bool _force) external override {}
 
-    function usdBalance(address) external view override returns (uint256) {}
+    function usdBalance(
+        address _account
+    ) external view override returns (uint256) {
+        return usdBalances[_account];
+    }
 
-    function crabBalance(address) external view override returns (uint256) {}
+    function crabBalance(
+        address _account
+    ) external view override returns (uint256) {
+        return crabBalances[_account];
+    }
 
     function depositsQueued() external view override returns (uint256) {}
 

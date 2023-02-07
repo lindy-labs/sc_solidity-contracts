@@ -17,7 +17,12 @@ import {
   MockOracle,
 } from '../../../typechain';
 
-import { generateNewAddress, getETHBalance, parseUSDC } from '../../shared/';
+import {
+  ForkHelpers,
+  generateNewAddress,
+  getETHBalance,
+  parseUSDC,
+} from '../../shared/';
 import { depositParams, claimParams } from '../../shared/factories';
 import { setBalance } from '../../shared/forkHelpers';
 import createVaultHelpers from '../../shared/vault';
@@ -28,7 +33,6 @@ describe('OpynCrabStrategy', () => {
   let admin: SignerWithAddress;
   let alice: SignerWithAddress;
   let bob: SignerWithAddress;
-  let manager: SignerWithAddress;
   let keeper: SignerWithAddress;
   let vault: Vault;
   let strategy: OpynCrabStrategy;
@@ -53,13 +57,11 @@ describe('OpynCrabStrategy', () => {
   const INVEST_PCT = BigNumber.from('10000');
   const INVESTMENT_FEE_PCT = BigNumber.from('200');
 
-  const DEFAULT_ADMIN_ROLE = constants.HashZero;
   const MANAGER_ROLE = utils.keccak256(utils.toUtf8Bytes('MANAGER_ROLE'));
   const KEEPER_ROLE = utils.keccak256(utils.toUtf8Bytes('KEEPER_ROLE'));
-  const SETTINGS_ROLE = utils.keccak256(utils.toUtf8Bytes('SETTINGS_ROLE'));
 
   beforeEach(async () => {
-    [admin, alice, bob, manager, keeper] = await ethers.getSigners();
+    [admin, alice, bob, keeper] = await ethers.getSigners();
 
     const MockUSDC = await ethers.getContractFactory('MockUSDC');
     underlying = await MockUSDC.deploy(parseUSDC('1000000000'));
@@ -76,7 +78,10 @@ describe('OpynCrabStrategy', () => {
     crabStrategyV2 = await MockCrabStrategyV2.deploy();
 
     const MockCrabNetting = await ethers.getContractFactory('MockCrabNetting');
-    crabNetting = await MockCrabNetting.deploy();
+    crabNetting = await MockCrabNetting.deploy(
+      underlying.address,
+      crabStrategyV2.address,
+    );
 
     const MockV3Pool = await ethers.getContractFactory('MockV3Pool');
     const wethOsqthPool = await MockV3Pool.deploy();
@@ -250,20 +255,26 @@ describe('OpynCrabStrategy', () => {
     });
 
     it('sets correct values', async () => {
-      expect(await strategy.vault()).to.equal(vault.address);
-      expect(await strategy.underlying()).to.equal(underlying.address);
-      expect(await strategy.weth()).to.equal(weth.address);
-      expect(await strategy.oSqth()).to.equal(oSqth.address);
-      expect(await strategy.crabStrategyV2()).to.equal(crabStrategyV2.address);
-      expect(await strategy.crabNetting()).to.equal(crabNetting.address);
-      expect(await strategy.swapRouter()).to.equal(swapRouter.address);
-      expect(await strategy.oracle()).to.equal(oracle.address);
+      expect(await strategy.vault()).to.eq(vault.address);
+      expect(await strategy.underlying()).to.eq(underlying.address);
+      expect(await strategy.weth()).to.eq(weth.address);
+      expect(await strategy.oSqth()).to.eq(oSqth.address);
+      expect(await strategy.crabStrategyV2()).to.eq(crabStrategyV2.address);
+      expect(await strategy.crabNetting()).to.eq(crabNetting.address);
+      expect(await strategy.swapRouter()).to.eq(swapRouter.address);
+      expect(await strategy.oracle()).to.eq(oracle.address);
 
       expect(await strategy.hasRole(KEEPER_ROLE, keeper.address)).to.be.true;
     });
   });
 
   describe('#invest', () => {
+    it('reverts if caller is not manager', async () => {
+      await expect(strategy.connect(admin).invest()).to.be.revertedWith(
+        'StrategyCallerNotManager',
+      );
+    });
+
     it('emits StrategyDeposited event', async () => {
       let amount = parseUSDC('10000');
       await vault.connect(admin).deposit(
@@ -274,12 +285,195 @@ describe('OpynCrabStrategy', () => {
         }),
       );
 
-      expect(await underlying.balanceOf(strategy.address)).to.equal(0);
+      expect(await underlying.balanceOf(strategy.address)).to.eq(0);
 
       const tx = await vault.connect(admin).updateInvested(); // calls #invest
 
-      expect(await underlying.balanceOf(strategy.address)).to.equal(amount);
+      expect(await underlying.balanceOf(strategy.address)).to.eq(amount);
       await expect(tx).to.emit(strategy, 'StrategyDeposited').withArgs(amount);
+    });
+  });
+
+  describe('#investedAssets', () => {
+    it('returns 0 if no assets are invested', async () => {
+      expect(await strategy.investedAssets()).to.eq('0');
+    });
+
+    it('accounts for strategy usdc balance', async () => {
+      let balance = parseUSDC('100');
+      await underlying.mint(strategy.address, balance);
+
+      expect(await strategy.investedAssets()).to.eq(balance);
+    });
+
+    it('accounts for strategy crab balance', async () => {
+      let crabBalance = parseUnits('50');
+      let ethCollateral = parseUnits('100');
+
+      await crabStrategyV2.mintCrab(strategy.address, crabBalance);
+      await crabStrategyV2.setCollateral({
+        value: ethCollateral,
+      });
+
+      expect(await strategy.investedAssets()).to.eq(parseUSDC('50'));
+      expect(await underlying.balanceOf(strategy.address)).to.eq(0);
+    });
+
+    it('accounts for queued usdc on netting contract', async () => {
+      let balance = parseUSDC('100');
+      await underlying.mint(strategy.address, balance);
+
+      await strategy.depositUsdcToNetting(balance);
+
+      expect(await strategy.investedAssets()).to.eq(balance);
+      expect(await underlying.balanceOf(strategy.address)).to.eq(0);
+    });
+
+    it('accounts for queued crab for withdraw on netting contract', async () => {
+      let crabBalance = parseUnits('50');
+      let ethCollateral = parseUnits('100');
+
+      await crabStrategyV2.mintCrab(strategy.address, crabBalance);
+      await crabStrategyV2.setCollateral({
+        value: ethCollateral,
+      });
+
+      await strategy.queueCrabForWithdrawal(crabBalance);
+
+      expect(await strategy.investedAssets()).to.eq(parseUSDC('50'));
+      expect(await underlying.balanceOf(strategy.address)).to.eq(0);
+      expect(await crabStrategyV2.balanceOf(strategy.address)).to.eq('0');
+    });
+
+    it('sums up amounts from balances and queued assets', async () => {
+      let balance = parseUSDC('100');
+      await underlying.mint(strategy.address, balance);
+
+      await strategy.depositUsdcToNetting(balance.div(2));
+
+      let crabBalance = parseUnits('50');
+      let ethCollateral = parseUnits('100');
+
+      await crabStrategyV2.mintCrab(strategy.address, crabBalance);
+      await crabStrategyV2.setCollateral({
+        value: ethCollateral,
+      });
+
+      await strategy.queueCrabForWithdrawal(crabBalance.div(2));
+
+      expect(await crabStrategyV2.balanceOf(strategy.address)).to.eq(
+        parseUnits('25'),
+      );
+      expect(await crabNetting.crabBalance(strategy.address)).to.eq(
+        parseUnits('25'),
+      );
+      expect(await underlying.balanceOf(strategy.address)).to.eq(
+        parseUSDC('50'),
+      );
+      expect(await crabNetting.usdBalance(strategy.address)).to.eq(
+        parseUSDC('50'),
+      );
+      expect(await strategy.investedAssets()).to.eq(parseUSDC('150'));
+    });
+  });
+
+  describe('#hasAssets', () => {
+    it('returns false if no assets are invested', async () => {
+      expect(await strategy.hasAssets()).to.be.false;
+    });
+
+    it('returns true if usdc balance > 0', async () => {
+      await underlying.mint(strategy.address, parseUSDC('100'));
+
+      expect(await strategy.hasAssets()).to.be.true;
+    });
+
+    it('returns true if crab balance > 0', async () => {
+      let crabBalance = parseUnits('50');
+      let ethCollateral = parseUnits('100');
+
+      await crabStrategyV2.mintCrab(strategy.address, crabBalance);
+      await crabStrategyV2.setCollateral({
+        value: ethCollateral,
+      });
+
+      expect(await strategy.hasAssets()).to.be.true;
+    });
+
+    it('returns true if queued usdc > 0', async () => {
+      let balance = parseUSDC('100');
+      await underlying.mint(strategy.address, balance);
+
+      await strategy.depositUsdcToNetting(balance);
+
+      expect(await strategy.hasAssets()).to.be.true;
+    });
+
+    it('returns true if queued crab > 0', async () => {
+      let crabBalance = parseUnits('50');
+      let ethCollateral = parseUnits('100');
+
+      await crabStrategyV2.mintCrab(strategy.address, crabBalance);
+      await crabStrategyV2.setCollateral({
+        value: ethCollateral,
+      });
+
+      await strategy.queueCrabForWithdrawal(crabBalance);
+
+      expect(await strategy.hasAssets()).to.be.true;
+    });
+  });
+
+  describe('#transferYield', () => {
+    it("doesn't affect usdc balance", async () => {
+      let initialBalance = parseUSDC('10000');
+      await underlying.mint(strategy.address, initialBalance);
+
+      await strategy.grantRole(MANAGER_ROLE, admin.address);
+
+      await strategy.transferYield(admin.address, parseUSDC('1000'));
+
+      expect(await underlying.balanceOf(strategy.address)).to.eq(
+        initialBalance,
+      );
+      expect(await strategy.investedAssets()).to.eq(initialBalance);
+    });
+  });
+
+  describe('#flashDepositToCrabStrategy', () => {
+    it('reverts if the usdc balance is 0', async () => {
+      await expect(
+        strategy.flashDepositToCrabStrategy(
+          parseUSDC('1000'),
+          parseUnits('1'),
+          parseUnits('1'),
+        ),
+      ).to.be.revertedWith('StrategyNoUnderlying');
+    });
+
+    it('reverts if the usdc amount is 0', async () => {
+      await underlying.mint(strategy.address, parseUSDC('10000'));
+
+      await expect(
+        strategy.flashDepositToCrabStrategy(
+          0, // amount
+          parseUnits('1'),
+          parseUnits('1'),
+        ),
+      ).to.be.revertedWith('StrategyAmountZero');
+    });
+
+    it('reverts if the usdc amount is greater than balance', async () => {
+      await underlying.mint(strategy.address, parseUSDC('10000'));
+      const amount = await underlying.balanceOf(strategy.address);
+
+      await expect(
+        strategy.flashDepositToCrabStrategy(
+          amount.add(1), // > balance
+          parseUnits('1'),
+          parseUnits('1'),
+        ),
+      ).to.be.revertedWith('StrategyAmountTooHigh');
     });
   });
 });
