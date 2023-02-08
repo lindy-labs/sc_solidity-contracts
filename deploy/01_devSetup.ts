@@ -45,6 +45,7 @@ async function deployDevToken(
     await verify(env, {
       address: deployment.address,
       constructorArguments: [0],
+      contract: `contracts/mock/MockERC20.sol:${contract}`,
     });
   }
 

@@ -5,7 +5,7 @@ import { includes } from 'lodash';
 
 import { getCurrentNetworkConfig } from '../scripts/deployConfigs';
 import deployMockCurvePool from './helpers/mockPool';
-import verify, { verifyContracts } from './helpers/verify';
+import verify from './helpers/verify';
 
 const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   const { deployer } = await env.getNamedAccounts();
@@ -14,10 +14,6 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   const lusd = await get('LUSD');
   const dai = await get('DAI');
   const usdc = await get('USDC');
-
-  if (getNetworkName() === 'goerli') {
-    await verifyContracts(env, [lusd, dai, usdc]);
-  }
 
   if (getNetworkName() !== 'mainnet') {
     await deployMockCurvePool(env, 'CurvePool-LUSD-3CRV', 'LUSD', [
@@ -70,6 +66,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
     log: true,
     args,
   });
+  console.log('vault deployed');
 
   if (getNetworkName() !== 'hardhat' && getNetworkName() !== 'docker') {
     await verify(env, {
