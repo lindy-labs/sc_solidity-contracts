@@ -1,0 +1,27 @@
+{
+  "vault": {
+    "network": "goerli",
+    "startBlock": 8456966,
+    "address": "0x8F9dB65D15Ec0A43df459E930bE5210B895f46A8"
+  },
+  "strategy": {
+    "network": "goerli",
+    "startBlock": 8456966,
+    "address": "0xC42CcecF6CEC5377f206706482B0fe0871d0626f"
+  },
+  "liquityTrove": {
+    "network": "goerli",
+    "startBlock": 8456966,
+    "address": "0x70b2e7F0f50eD9b3b6BbC9063bB52aEA1224FE70"
+  },
+  "liquityPool": {
+    "network": "goerli",
+    "startBlock": 8456966,
+    "address": "0xad9D1777A6aCfABfc8468C97452C357c0eE69a00"
+  },
+  "liquityPriceFeed": {
+    "network": "goerli",
+    "startBlock": 8456966,
+    "address": "0xd3A6e74d75c45819016718551C995041aa9B21ec"
+  }
+}
