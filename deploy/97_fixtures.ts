@@ -76,7 +76,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
         },
       ],
       name: "Alice's Foundation 1",
-      slippage: BigNumber.from(500),
+      amountOutMin: parseUnits('990', 18),
     });
 
     console.log(
@@ -99,7 +99,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
         },
       ],
       name: "Bob's Foundation 1",
-      slippage: BigNumber.from(500),
+      amountOutMin: parseUnits('990', 18),
     });
 
     console.log('2000 yield is generated');
