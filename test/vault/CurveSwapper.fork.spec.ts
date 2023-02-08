@@ -10,11 +10,12 @@ import {
   ICurve__factory,
   ERC20__factory,
 } from '../../typechain';
-import { CURVE_SLIPPAGE, ForkHelpers } from '../shared';
-import { BigNumber } from 'ethers';
+import { ForkHelpers } from '../shared';
+import { BigNumber, constants } from 'ethers';
 
-const { formatUnits, parseUnits, getAddress } = ethers.utils;
-const { MaxUint256, AddressZero } = ethers.constants;
+const { parseUnits, getAddress } = ethers.utils;
+
+const DEFAULT_SLIPPAGE = 100; // 1%
 
 const FORK_BLOCK = 14449700;
 const UST_ADDRESS = '0xa47c8bf37f92abed4a126bda807a7b7498661acd';
@@ -89,57 +90,182 @@ describe('CurveSwapper', () => {
   describe('swapToUnderlying', function () {
     it('swaps 100DAI for approximately 100UST', async () => {
       const input = parseUnits('100', decimals.dai);
+      const amountOutMin = calcAmountOutMin(
+        input,
+        decimals.dai,
+        decimals.ust,
+        DEFAULT_SLIPPAGE, // 1%
+      );
+
       const action = () =>
-        swapper.test_swapIntoUnderlying(dai.address, input, CURVE_SLIPPAGE);
+        swapper.test_swapIntoUnderlying(dai.address, input, amountOutMin);
       await validateSwap(action, swapper, dai, ust, '100');
     });
 
     it('swaps 100USDC for approximately 100UST', async () => {
       const input = parseUnits('100', decimals.usdc);
+      const amountOutMin = calcAmountOutMin(
+        input,
+        decimals.usdc,
+        decimals.ust,
+        DEFAULT_SLIPPAGE, // 1%
+      );
+
       const action = () =>
-        swapper.test_swapIntoUnderlying(usdc.address, input, CURVE_SLIPPAGE);
+        swapper.test_swapIntoUnderlying(usdc.address, input, amountOutMin);
       await validateSwap(action, swapper, usdc, ust, '100');
     });
 
     it('swaps 100USDT for approximately 100UST', async () => {
       const input = parseUnits('100', decimals.usdt);
+      const amountOutMin = calcAmountOutMin(
+        input,
+        decimals.usdt,
+        decimals.ust,
+        DEFAULT_SLIPPAGE, // 1%
+      );
+
       const action = () =>
-        swapper.test_swapIntoUnderlying(usdt.address, input, CURVE_SLIPPAGE);
+        swapper.test_swapIntoUnderlying(usdt.address, input, amountOutMin);
       await validateSwap(action, swapper, usdt, ust, '100');
+    });
+
+    it('swaps 100USDC for exactly 100USDC', async () => {
+      const input = parseUnits('100', decimals.ust);
+      const amountBefore = await ust.balanceOf(swapper.address);
+
+      swapper.test_swapIntoUnderlying(ust.address, input, input);
+
+      const amountAfter = await ust.balanceOf(swapper.address);
+
+      expect(amountAfter).to.eq(amountBefore);
+    });
+
+    it('works when amount out min is 0', async () => {
+      const input = parseUnits('100', decimals.usdt);
+
+      const action = () =>
+        swapper.test_swapIntoUnderlying(usdt.address, input, 0);
+      await validateSwap(action, swapper, usdt, ust, '100');
+    });
+
+    it('fails when slippage is too high', async () => {
+      const input = parseUnits('100', decimals.usdt);
+      const amountOutMin = calcAmountOutMin(
+        input,
+        decimals.usdt,
+        decimals.ust,
+        10, // 0.1%
+      );
+
+      await expect(
+        swapper.test_swapIntoUnderlying(usdt.address, input, amountOutMin),
+      ).to.be.reverted;
+    });
+
+    it('fails when the pool does not exist', async () => {
+      const input = parseUnits('100', decimals.usdt);
+      const amountOutMin = calcAmountOutMin(
+        input,
+        decimals.usdt,
+        decimals.ust,
+        DEFAULT_SLIPPAGE,
+      );
+
+      await expect(
+        swapper.test_swapIntoUnderlying(
+          constants.AddressZero,
+          input,
+          amountOutMin,
+        ),
+      ).to.be.revertedWith('SwapperPoolDoesNotExist');
     });
   });
 
   describe('swapFromUnderlying', function () {
     it('swaps 100UST for approximately 100DAI', async () => {
       const input = parseUnits('100', decimals.ust);
+      const amountOutMin = calcAmountOutMin(
+        input,
+        decimals.ust,
+        decimals.dai,
+        DEFAULT_SLIPPAGE, // 1%
+      );
+
       const action = () =>
-        swapper.test_swapFromUnderlying(dai.address, input, CURVE_SLIPPAGE);
+        swapper.test_swapFromUnderlying(dai.address, input, amountOutMin);
       await validateSwap(action, swapper, ust, dai, '100');
     });
 
     it('swaps 100UST for approximately 100USDC', async () => {
       const input = parseUnits('100', decimals.ust);
+      const amountOutMin = calcAmountOutMin(
+        input,
+        decimals.ust,
+        decimals.usdc,
+        DEFAULT_SLIPPAGE, // 1%
+      );
+
       const action = () =>
-        swapper.test_swapFromUnderlying(usdc.address, input, CURVE_SLIPPAGE);
+        swapper.test_swapFromUnderlying(usdc.address, input, amountOutMin);
       await validateSwap(action, swapper, ust, usdc, '100');
     });
 
     it('swaps 100UST for approximately 100USDT', async () => {
       const input = parseUnits('100', decimals.ust);
+      const amountOutMin = calcAmountOutMin(
+        input,
+        decimals.ust,
+        decimals.usdt,
+        DEFAULT_SLIPPAGE, // 1%
+      );
+
       const action = () =>
-        swapper.test_swapFromUnderlying(usdt.address, input, CURVE_SLIPPAGE);
+        swapper.test_swapFromUnderlying(usdt.address, input, amountOutMin);
       await validateSwap(action, swapper, ust, usdt, '100');
     });
 
-    it('swaps 100UST for 100UST', async () => {
+    it('swaps 100UST for exactly 100UST', async () => {
       const input = parseUnits('100', decimals.ust);
       const amountBefore = await ust.balanceOf(swapper.address);
 
-      swapper.test_swapFromUnderlying(ust.address, input, CURVE_SLIPPAGE);
+      swapper.test_swapFromUnderlying(ust.address, input, input);
 
       const amountAfter = await ust.balanceOf(swapper.address);
 
       expect(amountAfter).to.eq(amountBefore);
+    });
+
+    it('fails when slippage is too high', async () => {
+      const input = parseUnits('100', decimals.usdt);
+      const amountOutMin = calcAmountOutMin(
+        input,
+        decimals.usdt,
+        decimals.ust,
+        10, // 0.1%
+      );
+
+      await expect(
+        swapper.test_swapFromUnderlying(usdt.address, input, amountOutMin),
+      ).to.be.reverted;
+    });
+
+    it('fails when the pool does not exist', async () => {
+      const input = parseUnits('100', decimals.usdt);
+      const amountOutMin = calcAmountOutMin(
+        input,
+        decimals.usdt,
+        decimals.ust,
+        DEFAULT_SLIPPAGE,
+      );
+
+      await expect(
+        swapper.test_swapFromUnderlying(
+          constants.AddressZero,
+          input,
+          amountOutMin,
+        ),
+      ).to.be.revertedWith('SwapperPoolDoesNotExist');
     });
   });
 
@@ -153,7 +279,13 @@ describe('CurveSwapper', () => {
 
       const pool = await swapper.swappers(usdt.address);
 
-      expect(pool[0]).to.equal(AddressZero);
+      expect(pool[0]).to.equal(constants.AddressZero);
+    });
+
+    it('fails for a non-existing pool', async () => {
+      const action = swapper.test_removePool(constants.AddressZero);
+
+      await expect(action).to.be.revertedWith('SwapperPoolDoesNotExist');
     });
   });
 
@@ -190,7 +322,20 @@ describe('CurveSwapper', () => {
         underlyingI: curveIndexes.ust,
       });
 
-      await expect(action).to.be.revertedWith('token already has a swap pool');
+      await expect(action).to.be.revertedWith('SwapperPoolAlreadyExists');
+    });
+
+    it('fails to add a pool when _underlyingI does not match underlying', async () => {
+      await swapper.test_removePool(usdt.address);
+
+      const action = swapper.test_addPool({
+        token: usdt.address,
+        pool: curvePool.address,
+        tokenI: curveIndexes.usdt,
+        underlyingI: curveIndexes.dai,
+      });
+
+      await expect(action).to.be.revertedWith('SwapperUnderlyingIndexMismatch');
     });
   });
 
@@ -218,5 +363,18 @@ describe('CurveSwapper', () => {
       toBalanceBefore.add(deltaTo),
       deltaToMargin as unknown as number,
     );
+  }
+
+  function calcAmountOutMin(
+    amountIn: BigNumber,
+    inputTokenDecimals: number,
+    outputTokenDecimals: number,
+    slippage: number,
+  ) {
+    return amountIn
+      .mul(BigNumber.from('10').pow(outputTokenDecimals))
+      .div(BigNumber.from('10').pow(inputTokenDecimals))
+      .mul(10000 - slippage)
+      .div(10000);
   }
 });
