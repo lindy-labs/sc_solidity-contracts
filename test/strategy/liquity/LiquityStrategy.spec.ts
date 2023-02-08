@@ -15,11 +15,7 @@ import {
   ERC20,
 } from '../../../typechain';
 
-import {
-  generateNewAddress,
-  getETHBalance,
-  CURVE_SLIPPAGE,
-} from '../../shared/';
+import { generateNewAddress, getETHBalance } from '../../shared/';
 import { depositParams, claimParams } from '../../shared/factories';
 import { setBalance } from '../../shared/forkHelpers';
 import createVaultHelpers from '../../shared/vault';
