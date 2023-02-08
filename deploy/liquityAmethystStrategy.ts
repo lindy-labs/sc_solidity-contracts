@@ -1,15 +1,13 @@
 import type { HardhatRuntimeEnvironment } from 'hardhat/types';
-
 import { includes } from 'lodash';
 import { ethers } from 'hardhat';
 import { utils } from 'ethers';
 
 import { getCurrentNetworkConfig } from '../scripts/deployConfigs';
-
-import init0x from './helpers/init0x';
 import initCurveRouter from './helpers/initCurveRouter';
-import liquityMocks from './helpers/liquityMocks';
+import init0x from './helpers/init0x';
 import verify from './helpers/verify';
+import liquityMocks from './helpers/liquityMocks';
 import transferOwnershipToMultisig from './helpers/transferOwnership';
 
 const func = async function (env: HardhatRuntimeEnvironment) {
@@ -18,7 +16,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   const { multisig } = await getCurrentNetworkConfig();
   const [owner] = await ethers.getSigners();
 
-  const vaultAddress = (await get('Liquity_DCA_Vault')).address;
+  const vaultAddress = (await get('Liquity_Amethyst_Vault')).address;
   const vault = await ethers.getContractAt('Vault', vaultAddress);
 
   const LUSDDeployment = await get('LUSD');
@@ -34,10 +32,10 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     getNetworkName(),
   )
     ? 'MockLiquityStrategyV3'
-    : 'LiquityDCAStrategy';
+    : 'LiquityStrategy';
 
-  console.log('Deploying Liquity DCA Strategy');
-  const liquityStrategyDeployment = await deploy('Liquity_DCA_Strategy', {
+  console.log('Deploying Amethyst LiquityStrategy');
+  const liquityStrategyDeployment = await deploy('Liquity_Amethyst_Strategy', {
     contract: liquityStrategyContract,
     from: deployer,
     args: [],
@@ -56,33 +54,32 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     });
 
     await env.tenderly.persistArtifacts({
-      name: 'Liquity_DCA_Strategy',
+      name: 'Liquity_Amethyst_Strategy',
       address: liquityStrategy.address,
     });
   }
 
-  if (getNetworkName() !== 'mainnet') await liquityMocks(env, 'Liquity_DCA');
+  if (getNetworkName() !== 'mainnet')
+    await liquityMocks(env, 'Liquity_Amethyst');
 
-  const stabilityPool = await get('Liquity_DCA_Stability_Pool');
+  const stabilityPool = await get('Liquity_Amethyst_Stability_Pool');
   const LQTYDeployment = await get('LQTY');
 
-  try {
-    console.log('Initializing strategy');
-    await (
-      await liquityStrategy.initialize(
-        vault.address,
-        owner.address,
-        stabilityPool.address,
-        LQTYDeployment.address,
-        LUSDDeployment.address,
-        multisig,
-        0,
-        curveRouter,
-      )
-    ).wait();
-  } catch (e) {
-    console.log('Liquity_DCA_Strategy already initialized');
-  }
+  // initialize strategy
+  await (
+    await liquityStrategy.initialize(
+      vault.address,
+      owner.address,
+      stabilityPool.address,
+      LQTYDeployment.address,
+      LUSDDeployment.address,
+      multisig,
+      0,
+      curveRouter,
+    )
+  ).wait();
+
+  console.log('LquityStrategy initialized');
 
   console.log('Granting MANAGER_ROLE to owner');
   await liquityStrategy
@@ -107,8 +104,8 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   await transferOwnershipToMultisig(liquityStrategy);
 };
 
-func.tags = ['liquity_dca_strategy'];
-func.dependencies = ['liquity_dca_vault'];
+func.tags = ['strategy', 'amethyst', 'liquity_amethyst_strategy'];
+func.dependencies = ['liquity_amethyst_vault'];
 
 func.skip = async (env: HardhatRuntimeEnvironment) =>
   !includes(

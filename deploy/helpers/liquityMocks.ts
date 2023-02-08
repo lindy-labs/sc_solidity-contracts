@@ -2,7 +2,7 @@ import { HardhatRuntimeEnvironment } from 'hardhat/types';
 
 import verify from './verify';
 
-export default async function (env: HardhatRuntimeEnvironment, prefix: string) {
+async function liquityMocks(env: HardhatRuntimeEnvironment, prefix: string) {
   const { get, deploy, getNetworkName } = env.deployments;
   const { deployer } = await env.getNamedAccounts();
 
@@ -68,3 +68,7 @@ export default async function (env: HardhatRuntimeEnvironment, prefix: string) {
     );
   }
 }
+
+liquityMocks.skip = async (hre: HardhatRuntimeEnvironment) => true;
+
+export default liquityMocks;

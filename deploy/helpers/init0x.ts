@@ -3,7 +3,7 @@ import verify from './verify';
 
 const MAINNET_0X_SWAP_TARGET = '0xdef1c0ded9bec7f1a1670819833240f027b25eff';
 
-export default async function init0x(env: HardhatRuntimeEnvironment) {
+async function init0x(env: HardhatRuntimeEnvironment) {
   const { deploy, getNetworkName } = env.deployments;
 
   if (getNetworkName() === 'mainnet') return MAINNET_0X_SWAP_TARGET;
@@ -25,4 +25,8 @@ export default async function init0x(env: HardhatRuntimeEnvironment) {
   }
 
   return mock0x.address;
-}
+};
+
+init0x.skip = async (hre: HardhatRuntimeEnvironment) => true;
+
+export default init0x;

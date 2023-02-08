@@ -1,0 +1,121 @@
+{
+  "address": "0xd3A6e74d75c45819016718551C995041aa9B21ec",
+  "abi": [
+    {
+      "anonymous": false,
+      "inputs": [
+        {
+          "indexed": false,
+          "internalType": "uint256",
+          "name": "_lastGoodPrice",
+          "type": "uint256"
+        }
+      ],
+      "name": "LastGoodPriceUpdated",
+      "type": "event"
+    },
+    {
+      "inputs": [],
+      "name": "NAME",
+      "outputs": [
+        {
+          "internalType": "string",
+          "name": "",
+          "type": "string"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "fetchPrice",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "lastGoodPrice",
+      "outputs": [
+        {
+          "internalType": "uint256",
+          "name": "",
+          "type": "uint256"
+        }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        {
+          "internalType": "uint256",
+          "name": "price",
+          "type": "uint256"
+        }
+      ],
+      "name": "setPrice",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    }
+  ],
+  "transactionHash": "0x00141a9fe891865735d5bf5e390098e0e22981837c0cf906699ed2b3eabe06f6",
+  "receipt": {
+    "to": null,
+    "from": "0xCfF577D4072BF126Cdd73CDC7353637A1Fa5f4CE",
+    "contractAddress": "0xd3A6e74d75c45819016718551C995041aa9B21ec",
+    "transactionIndex": 5,
+    "gasUsed": "146731",
+    "logsBloom": "0x00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+    "blockHash": "0x2a19eba0bfc9a6058f9618f4e180e2f7633cfc826cf6b14072567c37c01f0579",
+    "transactionHash": "0x00141a9fe891865735d5bf5e390098e0e22981837c0cf906699ed2b3eabe06f6",
+    "logs": [],
+    "blockNumber": 8456293,
+    "cumulativeGasUsed": "5575077",
+    "status": 1,
+    "byzantium": true
+  },
+  "args": [],
+  "numDeployments": 1,
+  "solcInputHash": "a3343b7165974e76f11bf1a7e106ed01",
+  "metadata": "{\"compiler\":{\"version\":\"0.8.10+commit.fc410830\"},\"language\":\"Solidity\",\"output\":{\"abi\":[{\"anonymous\":false,\"inputs\":[{\"indexed\":false,\"internalType\":\"uint256\",\"name\":\"_lastGoodPrice\",\"type\":\"uint256\"}],\"name\":\"LastGoodPriceUpdated\",\"type\":\"event\"},{\"inputs\":[],\"name\":\"NAME\",\"outputs\":[{\"internalType\":\"string\",\"name\":\"\",\"type\":\"string\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"fetchPrice\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[],\"name\":\"lastGoodPrice\",\"outputs\":[{\"internalType\":\"uint256\",\"name\":\"\",\"type\":\"uint256\"}],\"stateMutability\":\"view\",\"type\":\"function\"},{\"inputs\":[{\"internalType\":\"uint256\",\"name\":\"price\",\"type\":\"uint256\"}],\"name\":\"setPrice\",\"outputs\":[],\"stateMutability\":\"nonpayable\",\"type\":\"function\"}],\"devdoc\":{\"kind\":\"dev\",\"methods\":{},\"version\":1},\"userdoc\":{\"kind\":\"user\",\"methods\":{},\"version\":1}},\"settings\":{\"compilationTarget\":{\"contracts/mock/liquity/MockLiquityPriceFeed.sol\":\"MockLiquityPriceFeed\"},\"evmVersion\":\"london\",\"libraries\":{},\"metadata\":{\"bytecodeHash\":\"ipfs\",\"useLiteralContent\":true},\"optimizer\":{\"enabled\":true,\"runs\":1000},\"remappings\":[]},\"sources\":{\"contracts/interfaces/liquity/IPriceFeed.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity =0.8.10;\\n\\ninterface IPriceFeed {\\n\\n    // --- Events ---\\n    event LastGoodPriceUpdated(uint _lastGoodPrice);\\n\\n    // --- Function ---\\n    function fetchPrice() external returns (uint);\\n}\\n\",\"keccak256\":\"0xcd2f65f6d7d3ad93ee5d51aaed4cad6611f52f0be294dc87ce38484b4d8a3849\",\"license\":\"MIT\"},\"contracts/mock/liquity/MockLiquityPriceFeed.sol\":{\"content\":\"// SPDX-License-Identifier: MIT\\npragma solidity =0.8.10;\\n\\nimport \\\"../../interfaces/liquity/IPriceFeed.sol\\\";\\n\\ncontract MockLiquityPriceFeed is IPriceFeed {\\n    string constant public NAME = \\\"PriceFeed\\\";\\n\\n    uint public lastGoodPrice;\\n\\n    function fetchPrice() external view override returns (uint) {\\n        return lastGoodPrice;\\n    }\\n\\n    function setPrice(uint price) external {\\n        lastGoodPrice = price;\\n\\n        emit LastGoodPriceUpdated(lastGoodPrice);\\n    }\\n}\\n\",\"keccak256\":\"0x089dc74a9461b54acd9c6e055c53327fe214ff0264647f0af141ee0ce9b7bb07\",\"license\":\"MIT\"}},\"version\":1}",
+  "bytecode": "0x608060405234801561001057600080fd5b506101b2806100206000396000f3fe608060405234801561001057600080fd5b506004361061004c5760003560e01c80630490be83146100515780630fdb11cf1461006d57806391b7f5ed14610075578063a3f4df7e1461008a575b600080fd5b61005a60005481565b6040519081526020015b60405180910390f35b60005461005a565b61008861008336600461010e565b6100d3565b005b6100c66040518060400160405280600981526020017f507269636546656564000000000000000000000000000000000000000000000081525081565b6040516100649190610127565b60008190556040518181527f4d29de21de555af78a62fc82dd4bc05e9ae5b0660a37f04729527e0f22780cd39060200160405180910390a150565b60006020828403121561012057600080fd5b5035919050565b600060208083528351808285015260005b8181101561015457858101830151858201604001528201610138565b81811115610166576000604083870101525b50601f01601f191692909201604001939250505056fea2646970667358221220c697fe05390d6cc9db633abddeb059ae70258bd14bfca9d5e5f443345ffa25e864736f6c634300080a0033",
+  "deployedBytecode": "0x608060405234801561001057600080fd5b506004361061004c5760003560e01c80630490be83146100515780630fdb11cf1461006d57806391b7f5ed14610075578063a3f4df7e1461008a575b600080fd5b61005a60005481565b6040519081526020015b60405180910390f35b60005461005a565b61008861008336600461010e565b6100d3565b005b6100c66040518060400160405280600981526020017f507269636546656564000000000000000000000000000000000000000000000081525081565b6040516100649190610127565b60008190556040518181527f4d29de21de555af78a62fc82dd4bc05e9ae5b0660a37f04729527e0f22780cd39060200160405180910390a150565b60006020828403121561012057600080fd5b5035919050565b600060208083528351808285015260005b8181101561015457858101830151858201604001528201610138565b81811115610166576000604083870101525b50601f01601f191692909201604001939250505056fea2646970667358221220c697fe05390d6cc9db633abddeb059ae70258bd14bfca9d5e5f443345ffa25e864736f6c634300080a0033",
+  "devdoc": {
+    "kind": "dev",
+    "methods": {},
+    "version": 1
+  },
+  "userdoc": {
+    "kind": "user",
+    "methods": {},
+    "version": 1
+  },
+  "storageLayout": {
+    "storage": [
+      {
+        "astId": 16386,
+        "contract": "contracts/mock/liquity/MockLiquityPriceFeed.sol:MockLiquityPriceFeed",
+        "label": "lastGoodPrice",
+        "offset": 0,
+        "slot": "0",
+        "type": "t_uint256"
+      }
+    ],
+    "types": {
+      "t_uint256": {
+        "encoding": "inplace",
+        "label": "uint256",
+        "numberOfBytes": "32"
+      }
+    }
+  }
+}
