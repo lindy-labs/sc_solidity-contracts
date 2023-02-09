@@ -118,6 +118,7 @@ describe('Opyn Crab Strategy (mainnet fork tests)', () => {
       UNISWAP_SWAP_ROUTER,
       ORACLE,
       USDC_WETH_UNISWAP_POOL,
+      WETH_oSQTH_UNISWAP_POOL,
     );
 
     await vault.setStrategy(strategy.address);
@@ -135,7 +136,11 @@ describe('Opyn Crab Strategy (mainnet fork tests)', () => {
       await ForkHelpers.mintToken(usdc, strategy.address, depositAmount);
 
       await strategy.invest();
-      await strategy.flashDeposit(depositAmount, minEthAmount, ethToBorrow);
+      await strategy.swapAndFlashDeposit(
+        depositAmount,
+        minEthAmount,
+        ethToBorrow,
+      );
 
       const invested = await strategy.investedAssets();
       expect(invested).to.gt(parseUSDC('9600')); // with fees & slippage taken from 10000
@@ -153,7 +158,11 @@ describe('Opyn Crab Strategy (mainnet fork tests)', () => {
 
       await strategy.invest();
 
-      await strategy.flashDeposit(depositAmount, minEthAmount, ethToBorrow);
+      await strategy.swapAndFlashDeposit(
+        depositAmount,
+        minEthAmount,
+        ethToBorrow,
+      );
 
       const x = await crabStrategyV2.getVaultDetails();
       console.log('x', x);
@@ -169,7 +178,7 @@ describe('Opyn Crab Strategy (mainnet fork tests)', () => {
       const depositAmount = parseUSDC('10000');
       await ForkHelpers.mintToken(usdc, strategy.address, depositAmount);
 
-      await strategy.depositUsdcToNetting(depositAmount);
+      await strategy.queueUSDC(depositAmount);
 
       const deposited = await crabNetting.usdBalance(strategy.address);
 

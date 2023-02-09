@@ -22,7 +22,10 @@ contract MockCrabNetting is ICrabNetting {
         usdc.transferFrom(msg.sender, address(this), _amount);
     }
 
-    function withdrawUSDC(uint256 _amount, bool _force) external override {}
+    function withdrawUSDC(uint256 _amount, bool _force) external override {
+        usdBalances[msg.sender] -= _amount;
+        usdc.transfer(msg.sender, _amount);
+    }
 
     function queueCrabForWithdrawal(uint256 _amount) external override {
         crabBalances[msg.sender] += _amount;
