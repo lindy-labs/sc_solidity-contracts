@@ -3,8 +3,9 @@ import type { DeployFunction } from 'hardhat-deploy/types';
 
 import { includes } from 'lodash';
 
-import { getCurrentNetworkConfig } from '../scripts/deployConfigs';
 import deployMockCurvePool from './helpers/mockPool';
+import verify from './helpers/verify';
+import { getCurrentNetworkConfig } from '../scripts/deployConfigs';
 
 const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   const { deployer } = await env.getNamedAccounts();
@@ -59,7 +60,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
     0,
   ];
 
-  const vaultDeployment = await deploy('Vault_Liquity', {
+  const vaultDeployment = await deploy('Liquity_DCA_Vault', {
     contract: 'Vault',
     from: deployer,
     log: true,
@@ -67,17 +68,13 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   });
 
   if (getNetworkName() !== 'hardhat' && getNetworkName() !== 'docker') {
-    try {
-      await env.run('verify:verify', {
-        address: vaultDeployment.address,
-        constructorArguments: args,
-      });
-    } catch (e) {
-      console.error((e as Error).message);
-    }
+    await verify(env, {
+      address: vaultDeployment.address,
+      constructorArguments: args,
+    });
 
     await env.tenderly.persistArtifacts({
-      name: 'Vault_Liquity',
+      name: 'Liquity_DCA_Vault',
       address: vaultDeployment.address,
     });
   }
@@ -89,7 +86,7 @@ func.skip = async (env: HardhatRuntimeEnvironment) =>
     env.deployments.getNetworkName(),
   );
 
-func.tags = ['vault', 'custom_liquity'];
+func.tags = ['liquity_dca_vault'];
 func.dependencies = ['dev'];
 
 export default func;

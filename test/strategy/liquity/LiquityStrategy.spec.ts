@@ -15,11 +15,7 @@ import {
   ERC20,
 } from '../../../typechain';
 
-import {
-  generateNewAddress,
-  getETHBalance,
-  CURVE_SLIPPAGE,
-} from '../../shared/';
+import { generateNewAddress, getETHBalance } from '../../shared/';
 import { depositParams, claimParams } from '../../shared/factories';
 import { setBalance } from '../../shared/forkHelpers';
 import createVaultHelpers from '../../shared/vault';
@@ -44,8 +40,10 @@ describe('LiquityStrategy', () => {
 
   let addUnderlyingBalance: (
     account: SignerWithAddress,
-    amount: string,
+    amount: string | BigNumber,
   ) => Promise<void>;
+
+  let addYieldToVault: (amount: string | BigNumber) => Promise<BigNumber>;
 
   const TREASURY = generateNewAddress();
   const MIN_LOCK_PERIOD = BigNumber.from(time.duration.weeks(2).toNumber());
@@ -137,7 +135,7 @@ describe('LiquityStrategy', () => {
       .connect(admin)
       .approve(vault.address, constants.MaxUint256);
 
-    ({ addUnderlyingBalance } = createVaultHelpers({
+    ({ addUnderlyingBalance, addYieldToVault } = createVaultHelpers({
       vault,
       underlying,
     }));
@@ -315,28 +313,28 @@ describe('LiquityStrategy', () => {
     });
   });
 
-  describe('setMinPrincipalProtectionPct', () => {
+  describe('#setMinProtectedAssetsPct', () => {
     it('changes the percentage of principal to protect', async () => {
-      await strategy.setMinPrincipalProtectionPct(5000);
+      await strategy.setMinProtectedAssetsPct(5000);
 
-      expect(await strategy.minPrincipalProtectionPct()).to.eq(5000);
+      expect(await strategy.minProtectedAssetsPct()).to.eq(5000);
     });
 
     it('allows for percentages above 0', async () => {
-      await strategy.setMinPrincipalProtectionPct(12000);
+      await strategy.setMinProtectedAssetsPct(12000);
 
-      expect(await strategy.minPrincipalProtectionPct()).to.eq(12000);
+      expect(await strategy.minProtectedAssetsPct()).to.eq(12000);
     });
 
     it('allows for a percentage of 0', async () => {
-      await strategy.setMinPrincipalProtectionPct(0);
+      await strategy.setMinProtectedAssetsPct(0);
 
-      expect(await strategy.minPrincipalProtectionPct()).to.eq(0);
+      expect(await strategy.minProtectedAssetsPct()).to.eq(0);
     });
 
     it('reverts if caller is not settings', async () => {
       await expect(
-        strategy.connect(manager).setMinPrincipalProtectionPct(5000),
+        strategy.connect(manager).setMinProtectedAssetsPct(5000),
       ).to.be.revertedWith('StrategyCallerNotSettings');
     });
   });
@@ -562,108 +560,205 @@ describe('LiquityStrategy', () => {
       ).to.be.revertedWith('StrategyNothingToReinvest');
     });
 
-    it('protects the principal by reverting when the reinvested amount is not enough to cover the principal', async () => {
-      await strategy.setMinPrincipalProtectionPct('11000'); // 110%
-      await addUnderlyingBalance(alice, '10000');
-      await depositToVault(alice, '10000');
+    it('protects principal by reverting when the reinvested amount is not enough to cover the principal', async () => {
+      const depositAmount = parseUnits('10000');
+      const protectedPct = '10500'; // 105%
+      const protectedAmount = depositAmount.mul(protectedPct).div(10000);
+      await strategy.setMinProtectedAssetsPct(protectedPct);
+
+      // deposit
+      await addUnderlyingBalance(alice, depositAmount);
+      await depositToVault(alice, depositAmount);
+
+      await vault.setInvestPct('9000'); // 90%
       await vault.updateInvested();
 
-      const ethAmount = parseUnits('2000');
-      await setBalance(strategy.address, ethAmount);
-
-      // total underlying > min protected principal
-      expect(await vault.totalUnderlying()).to.eq(parseUnits('12000'));
-
-      // amount out min + principal < min protected principal
-      const amountOutMin = parseUnits('500').sub(1);
-
-      await expect(
-        strategy
-          .connect(keeper)
-          .reinvest(mock0x.address, 0, [], ethAmount, [], amountOutMin),
-      ).to.be.revertedWith('StrategyMinimumPrincipalProtection');
-    });
-
-    it('protects the principal + sponsored amount', async () => {
-      await strategy.setMinPrincipalProtectionPct('11000'); // 110%
-      await addUnderlyingBalance(alice, '10000');
-      await depositToVault(alice, '10000');
-
-      await addUnderlyingBalance(admin, '10000');
-      await vault
-        .connect(admin)
-        .sponsor(
-          underlying.address,
-          parseUnits('10000'),
-          MIN_LOCK_PERIOD,
-          CURVE_SLIPPAGE,
-        );
-
-      await vault.updateInvested();
-
-      const ethAmount = parseUnits('3000');
-      await setBalance(strategy.address, ethAmount);
-
-      // total underlying > min protected principal + sponsored (23000 > 22000)
-      expect(await vault.totalUnderlying()).to.eq(parseUnits('23000'));
-
-      // amount out min + principal < min protected principal
-      const amountOutMin = parseUnits('1500').sub(1);
-
-      await expect(
-        strategy
-          .connect(keeper)
-          .reinvest(mock0x.address, 0, [], ethAmount, [], amountOutMin),
-      ).to.be.revertedWith('StrategyMinimumPrincipalProtection');
-    });
-
-    it('bypasses principal protection when total underlying assets are less than min protected principal', async () => {
-      await strategy.setMinPrincipalProtectionPct('12000'); // 120%
-      await addUnderlyingBalance(alice, '10000');
-      await depositToVault(alice, '10000');
-      await vault.updateInvested();
-
-      const ethAmount = parseUnits('1000');
-      await setBalance(strategy.address, ethAmount);
-      const ethSwapData = getSwapData(
-        constants.AddressZero,
-        underlying,
-        ethAmount,
+      // burn lusd and add eth reward
+      await stabilityPool.reduceDepositorLUSDBalance(
+        strategy.address,
+        parseUnits('5000'),
       );
+      const ethAmount = parseUnits('6000');
+      await setBalance(strategy.address, ethAmount);
 
-      // total underlying < min protected principal
+      expect(await vault.totalUnderlying()).to.gt(protectedAmount);
       expect(await vault.totalUnderlying()).to.eq(parseUnits('11000'));
+      expect(await strategy.investedAssets()).to.eq(parseUnits('10000'));
 
-      // amount out min + principal < min protected principal
-      const amountOutMin = parseUnits('1000');
+      // deposited = 10000
+      // vault underlying = 1000
+      // lusd invested = 4000
+      // eth reward = 6000
+      // strategy invested assets = 10000
+      // protected amount = 10000 * 105% = 10500
+      // => amountOutMin has to be at least 10500 - 1000 - 4000 = 5500
+      const insufficientAmountOutMin = parseUnits('5499');
 
-      await strategy
-        .connect(keeper)
-        .reinvest(mock0x.address, 0, [], ethAmount, ethSwapData, amountOutMin);
-
-      // assert no funds remain held by the strategy
-      expect(await underlying.balanceOf(strategy.address)).to.eq('0');
-      expect(await getETHBalance(strategy.address)).to.eq('0');
+      await expect(
+        strategy
+          .connect(keeper)
+          .reinvest(
+            mock0x.address,
+            0,
+            [],
+            ethAmount,
+            [],
+            insufficientAmountOutMin,
+          ),
+      ).to.be.revertedWith('StrategyMinimumAssetsProtection');
     });
 
-    it('bypasses principal protection when total underlying assets are less than min protected principal + sponsored amount', async () => {
-      await strategy.setMinPrincipalProtectionPct('12000'); // 120%
-      await addUnderlyingBalance(alice, '10000');
-      await depositToVault(alice, '10000');
+    it('protects principal + the sponsored amount', async () => {
+      const depositAmount = parseUnits('5000');
+      const sponsorAmount = parseUnits('5000');
+      const protectedPct = '10500'; // 105%
+      const protectedAmount = depositAmount
+        .add(sponsorAmount)
+        .mul(protectedPct)
+        .div(10000);
+      await strategy.setMinProtectedAssetsPct(protectedPct);
 
-      await addUnderlyingBalance(admin, '10000');
-      await vault
-        .connect(admin)
-        .sponsor(
-          underlying.address,
-          parseUnits('10000'),
-          MIN_LOCK_PERIOD,
-          CURVE_SLIPPAGE,
-        );
+      // deposit
+      await addUnderlyingBalance(alice, depositAmount);
+      await depositToVault(alice, depositAmount);
 
+      // sponsor
+      await addUnderlyingBalance(admin, sponsorAmount);
+      await vault.sponsor(
+        underlying.address,
+        sponsorAmount,
+        MIN_LOCK_PERIOD,
+        '99000',
+      );
+
+      await vault.setInvestPct('9000'); // 90%
       await vault.updateInvested();
 
-      const ethAmount = parseUnits('2000');
+      // burn lusd and add eth reward
+      await stabilityPool.reduceDepositorLUSDBalance(
+        strategy.address,
+        parseUnits('5000'),
+      );
+      const ethAmount = parseUnits('6000');
+      await setBalance(strategy.address, ethAmount);
+
+      expect(await vault.totalUnderlying()).to.gt(protectedAmount);
+      expect(await vault.totalUnderlying()).to.eq(parseUnits('11000'));
+      expect(await strategy.investedAssets()).to.eq(parseUnits('10000'));
+
+      // deposited = 10000 (5000 + 5000)
+      // vault underlying = 1000
+      // lusd invested = 4000
+      // eth reward = 6000
+      // strategy invested assets = 10000
+      // protected amount = (5000 + 5000) * 105% = 10500
+      // => amountOutMin has to be at least 10500 - 1000 - 4000 = 5500
+      const insufficientAmountOutMin = parseUnits('5499');
+
+      await expect(
+        strategy
+          .connect(keeper)
+          .reinvest(
+            mock0x.address,
+            0,
+            [],
+            ethAmount,
+            [],
+            insufficientAmountOutMin,
+          ),
+      ).to.be.revertedWith('StrategyMinimumAssetsProtection');
+    });
+
+    it('protects principal + sponsored amount + accumulated perf fee', async () => {
+      const depositAmount = parseUnits('5000');
+      const sponsorAmount = parseUnits('5000');
+      const performanceFee = parseUnits('1000');
+      const protectedPct = '10500'; // 105%
+      const protectedAmount = depositAmount
+        .add(sponsorAmount)
+        .add(performanceFee)
+        .mul(protectedPct)
+        .div(10000);
+      await strategy.setMinProtectedAssetsPct(protectedPct);
+
+      // deposit
+      await addUnderlyingBalance(alice, depositAmount);
+      await depositToVault(alice, depositAmount);
+
+      // sponsor
+      await addUnderlyingBalance(admin, sponsorAmount);
+      await vault.sponsor(
+        underlying.address,
+        sponsorAmount,
+        MIN_LOCK_PERIOD,
+        '99000',
+      );
+
+      await vault.setInvestPct('9000'); // 90%
+      await vault.updateInvested();
+
+      // add performance fee
+      await vault.setPerfFeePct('5000'); // 50%
+      await addYieldToVault(performanceFee.mul(2));
+      await vault.connect(alice).claimYield(alice.address);
+
+      expect(await vault.accumulatedPerfFee()).to.eq(performanceFee.sub(1)); // sub 1 wei to avoid rounding errors
+
+      // burn lusd and add eth reward
+      await stabilityPool.reduceDepositorLUSDBalance(
+        strategy.address,
+        parseUnits('5000'),
+      );
+      const ethAmount = parseUnits('6000');
+      await setBalance(strategy.address, ethAmount);
+
+      expect(await vault.totalUnderlying()).to.gt(protectedAmount);
+      expect(await vault.totalUnderlying()).to.eq(parseUnits('12000'));
+      expect(await strategy.investedAssets()).to.eq(parseUnits('10000'));
+
+      // deposited = 10000
+      // vault underlying = 1000 + 1000 (perf fee)
+      // lusd invested = 4000
+      // eth reward = 6000
+      // strategy invested assets = 10000
+      // protected amount = (10000 + 1000)* 105% = 11550
+      // => amountOutMin has to be at least 11150 - 2000 - 4000 = 5150
+      const insufficientAmountOutMin = parseUnits('5149');
+
+      await expect(
+        strategy
+          .connect(keeper)
+          .reinvest(
+            mock0x.address,
+            0,
+            [],
+            ethAmount,
+            [],
+            insufficientAmountOutMin,
+          ),
+      ).to.be.revertedWith('StrategyMinimumAssetsProtection');
+    });
+
+    it('bypasses min assets protection when total underlying assets are less than principal', async () => {
+      const depositAmount = parseUnits('10000');
+      const protectedPct = '11500'; // 115%
+      const protectedAmount = depositAmount.mul(protectedPct).div(10000);
+      await strategy.setMinProtectedAssetsPct(protectedPct);
+
+      // deposit
+      await addUnderlyingBalance(alice, depositAmount);
+      await depositToVault(alice, depositAmount);
+
+      // sposnor
+      await vault.setInvestPct('9000'); // 90%
+      await vault.updateInvested();
+
+      // burn lusd and add eth reward
+      await stabilityPool.reduceDepositorLUSDBalance(
+        strategy.address,
+        parseUnits('5000'),
+      );
+      const ethAmount = parseUnits('6000');
       await setBalance(strategy.address, ethAmount);
       const ethSwapData = getSwapData(
         constants.AddressZero,
@@ -671,59 +766,112 @@ describe('LiquityStrategy', () => {
         ethAmount,
       );
 
-      // total underlying < min protected principal + sponsored (22000 < 24000)
-      expect(await vault.totalUnderlying()).to.eq(parseUnits('22000'));
+      expect(await vault.totalUnderlying()).to.lt(protectedAmount);
+      expect(await vault.totalUnderlying()).to.eq(parseUnits('11000'));
+      expect(await strategy.investedAssets()).to.eq(parseUnits('10000'));
 
-      // amount out min + principal < min protected principal
-      const amountOutMin = parseUnits('1000');
+      // deposited = 10000
+      // vault underlying = 1000
+      // lusd invested = 4000
+      // eth reward = 6000
+      // strategy invested assets = 10000
+      // min protected amount = 10000 * 115% = 11500
+      // => amountOutMin has to be at least 11500 - 1000 - 4000 = 6500
+      const insufficientAmountOutMin = parseUnits('6000');
 
       await strategy
         .connect(keeper)
-        .reinvest(mock0x.address, 0, [], ethAmount, ethSwapData, amountOutMin);
+        .reinvest(
+          mock0x.address,
+          0,
+          [],
+          ethAmount,
+          ethSwapData,
+          insufficientAmountOutMin,
+        );
 
-      // assert no funds remain held by the strategy
       expect(await underlying.balanceOf(strategy.address)).to.eq('0');
       expect(await getETHBalance(strategy.address)).to.eq('0');
     });
 
-    it('works when selling and reinvesting all of LQTY and ETH', async () => {
-      await underlying.mint(strategy.address, parseUnits('10000'));
-      await strategy.connect(manager).invest();
+    it('bypasses min assets protection when total underlying assets are less than principal + sponsored amount + perf fee', async () => {
+      const depositAmount = parseUnits('5000');
+      const sponsorAmount = parseUnits('5000');
+      const performanceFee = parseUnits('1000');
+      const protectedPct = '11500'; // 115%
+      const protectedAmount = depositAmount
+        .add(sponsorAmount)
+        .add(performanceFee)
+        .mul(protectedPct)
+        .div(10000);
+      await strategy.setMinProtectedAssetsPct(protectedPct);
 
-      const lqtyAmount = parseUnits('500');
-      await lqty.mint(strategy.address, lqtyAmount);
-      await setLqtyToUnderlyingExchageRate(parseUnits('2'));
-      const lqtySwapData = getSwapData(lqty, underlying, lqtyAmount);
+      // deposit
+      await addUnderlyingBalance(alice, depositAmount);
+      await depositToVault(alice, depositAmount);
 
-      const ethAmount = parseUnits('1');
+      // sponsor
+      await addUnderlyingBalance(admin, sponsorAmount);
+      await vault.sponsor(
+        underlying.address,
+        sponsorAmount,
+        MIN_LOCK_PERIOD,
+        '99000',
+      );
+
+      await vault.setInvestPct('9000'); // 90%
+      await vault.updateInvested();
+
+      // add performance fee
+      await vault.setPerfFeePct('5000'); // 50%
+      await addYieldToVault(performanceFee.mul(2));
+      await vault.connect(alice).claimYield(alice.address);
+      expect(await vault.accumulatedPerfFee()).to.eq(performanceFee.sub(1)); // sub 1 wei to avoid rounding errors
+
+      // burn lusd and add eth reward
+      await stabilityPool.reduceDepositorLUSDBalance(
+        strategy.address,
+        parseUnits('5000'),
+      );
+      const ethAmount = parseUnits('6500');
       await setBalance(strategy.address, ethAmount);
-      await setEthToUnderlyingExchageRate(parseUnits('1000'));
       const ethSwapData = getSwapData(
         constants.AddressZero,
         underlying,
         ethAmount,
       );
 
-      await strategy.connect(keeper).reinvest(
-        mock0x.address,
-        lqtyAmount,
-        lqtySwapData,
-        ethAmount,
-        ethSwapData,
-        parseUnits('2000'), // 500LQTY * 2 + 1ETH * 1000
-      );
+      expect(await vault.totalUnderlying()).to.lt(protectedAmount);
+      expect(await vault.totalUnderlying()).to.eq(parseUnits('12500'));
+      expect(await strategy.investedAssets()).to.eq(parseUnits('10500'));
 
-      // assert no funds remain held by the strategy
+      // deposited = 10000
+      // vault underlying = 1000 + 1000 (perf fee)
+      // lusd invested = 4000
+      // eth reward = 6000
+      // strategy invested assets = 10000
+      // protected amount = (10000 + 1000)* 115% = 12650
+      // => amountOutMin has to be at least 12650 - 2000 - 4000 = 6650
+      const insufficientAmountOutMin = parseUnits('6500');
+
+      await strategy
+        .connect(keeper)
+        .reinvest(
+          mock0x.address,
+          0,
+          [],
+          ethAmount,
+          ethSwapData,
+          insufficientAmountOutMin,
+        );
+
       expect(await underlying.balanceOf(strategy.address)).to.eq('0');
-      expect(await lqty.balanceOf(strategy.address)).to.eq('0');
       expect(await getETHBalance(strategy.address)).to.eq('0');
-
-      expect(await strategy.investedAssets()).to.eq(parseUnits('12000'));
     });
 
-    it('works if LQTY + ETH amount sold is enough to protect the principal', async () => {
+    it('works if LQTY + ETH amount sold is enough to cover min protected assets amount', async () => {
       await vault.setInvestPct('5000'); // 50%
-      await strategy.setMinPrincipalProtectionPct('11000'); // 110%
+      await strategy.setMinProtectedAssetsPct('11000'); // 110%
       await addUnderlyingBalance(alice, '20000');
 
       const params = depositParams.build({
@@ -770,9 +918,9 @@ describe('LiquityStrategy', () => {
       expect(await strategy.investedAssets()).to.eq(parseUnits('12100'));
     });
 
-    it('fails if LQTY + ETH amount sold is not enough to protect the principal', async () => {
+    it('fails if LQTY + ETH amount sold is not enough to cover protected assets amount', async () => {
       await vault.setInvestPct('9000'); // 90%
-      await strategy.setMinPrincipalProtectionPct('12000'); // 120%
+      await strategy.setMinProtectedAssetsPct('12000'); // 120%
       await addUnderlyingBalance(alice, '10000');
 
       const params = depositParams.build({
@@ -808,7 +956,42 @@ describe('LiquityStrategy', () => {
           ethSwapData,
           parseUnits('1999'), // amountOutMin
         ),
-      ).to.be.revertedWith('StrategyMinimumPrincipalProtection');
+      ).to.be.revertedWith('StrategyMinimumAssetsProtection');
+    });
+
+    it('works when selling and reinvesting all of LQTY and ETH', async () => {
+      await underlying.mint(strategy.address, parseUnits('10000'));
+      await strategy.connect(manager).invest();
+
+      const lqtyAmount = parseUnits('500');
+      await lqty.mint(strategy.address, lqtyAmount);
+      await setLqtyToUnderlyingExchageRate(parseUnits('2'));
+      const lqtySwapData = getSwapData(lqty, underlying, lqtyAmount);
+
+      const ethAmount = parseUnits('1');
+      await setBalance(strategy.address, ethAmount);
+      await setEthToUnderlyingExchageRate(parseUnits('1000'));
+      const ethSwapData = getSwapData(
+        constants.AddressZero,
+        underlying,
+        ethAmount,
+      );
+
+      await strategy.connect(keeper).reinvest(
+        mock0x.address,
+        lqtyAmount,
+        lqtySwapData,
+        ethAmount,
+        ethSwapData,
+        parseUnits('2000'), // 500LQTY * 2 + 1ETH * 1000
+      );
+
+      // assert no funds remain held by the strategy
+      expect(await underlying.balanceOf(strategy.address)).to.eq('0');
+      expect(await lqty.balanceOf(strategy.address)).to.eq('0');
+      expect(await getETHBalance(strategy.address)).to.eq('0');
+
+      expect(await strategy.investedAssets()).to.eq(parseUnits('12000'));
     });
   });
 

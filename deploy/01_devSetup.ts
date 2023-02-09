@@ -1,7 +1,8 @@
 import type { HardhatRuntimeEnvironment } from 'hardhat/types';
-
 import { includes } from 'lodash';
 import { ethers } from 'hardhat';
+
+import verify from './helpers/verify';
 
 const { parseUnits } = ethers.utils;
 
@@ -12,9 +13,8 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     await deployDevToken(env, 'DAI', 'MockDAI');
     await deployDevToken(env, 'USDC', 'MockUSDC');
     await deployDevToken(env, 'LQTY', 'MockLQTY');
+    await deployDevToken(env, 'LUSD', 'MockLUSD');
   }
-
-  await deployDevToken(env, 'LUSD', 'MockLUSD');
 };
 
 async function deployDevToken(
@@ -40,6 +40,12 @@ async function deployDevToken(
     await env.tenderly.persistArtifacts({
       name,
       address: deployment.address,
+    });
+
+    await verify(env, {
+      address: deployment.address,
+      constructorArguments: [0],
+      contract: `contracts/mock/MockERC20.sol:${contract}`,
     });
   }
 

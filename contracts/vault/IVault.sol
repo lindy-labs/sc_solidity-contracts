@@ -20,7 +20,7 @@ interface IVault {
         uint256 amount;
         ClaimParams[] claims;
         string name;
-        uint256 slippage;
+        uint256 amountOutMin;
     }
 
     struct Deposit {
@@ -80,6 +80,8 @@ interface IVault {
 
     event FeeWithdrawn(uint256 amount);
 
+    event MinLockPeriodUpdated(uint64 newMinLockPeriod);
+
     //
     // Public API
     //
@@ -88,6 +90,11 @@ interface IVault {
      * Total amount of principal.
      */
     function totalPrincipal() external view returns (uint256);
+
+    /**
+     * The accumulated performance fee amount.
+     */
+    function accumulatedPerfFee() external view returns (uint256);
 
     /**
      * Update the invested amount;

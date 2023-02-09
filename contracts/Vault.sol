@@ -81,7 +81,7 @@ contract Vault is
     uint16 public override(IVault) investPct;
 
     /// @inheritdoc IVault
-    uint64 public immutable override(IVault) minLockPeriod;
+    uint64 public override(IVault) minLockPeriod;
 
     /// @inheritdoc IVaultSponsoring
     uint256 public override(IVaultSponsoring) totalSponsored;
@@ -118,7 +118,7 @@ contract Vault is
     uint16 public perfFeePct;
 
     /// Current accumulated performance fee;
-    uint256 public accumulatedPerfFee;
+    uint256 public override(IVault) accumulatedPerfFee;
 
     /// Loss tolerance pct
     uint16 public lossTolerancePct;
@@ -156,8 +156,7 @@ contract Vault is
             revert VaultUnderlyingCannotBe0Address();
         if (_treasury == address(0x0)) revert VaultTreasuryCannotBe0Address();
         if (_admin == address(0x0)) revert VaultAdminCannotBe0Address();
-        if (_minLockPeriod == 0 || _minLockPeriod > MAX_DEPOSIT_LOCK_DURATION)
-            revert VaultInvalidMinLockPeriod();
+        _checkMinLockPeriod(_minLockPeriod);
 
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
         _grantRole(KEEPER_ROLE, _admin);
@@ -336,7 +335,7 @@ contract Vault is
         uint256 newUnderlyingAmount = _swapIntoUnderlying(
             _params.inputToken,
             _params.amount,
-            _params.slippage
+            _params.amountOutMin
         );
 
         uint64 lockedUntil = _params.lockDuration + _blockTimestamp();
@@ -504,7 +503,7 @@ contract Vault is
         address _inputToken,
         uint256 _amount,
         uint256 _lockDuration,
-        uint256 _slippage
+        uint256 _amountOutMin
     )
         external
         override(IVaultSponsoring)
@@ -527,7 +526,7 @@ contract Vault is
         uint256 underlyingAmount = _swapIntoUnderlying(
             _inputToken,
             _amount,
-            _slippage
+            _amountOutMin
         );
 
         deposits[tokenId] = Deposit(
@@ -660,15 +659,37 @@ contract Vault is
     }
 
     /// @inheritdoc IVaultSettings
-    function setLossTolerancePct(uint16 pct)
+    function setLossTolerancePct(uint16 _pct)
         external
         override(IVaultSettings)
         onlySettings
     {
-        if (!pct.validPct()) revert VaultInvalidLossTolerance();
+        if (!_pct.validPct()) revert VaultInvalidLossTolerance();
 
-        lossTolerancePct = pct;
-        emit LossTolerancePctUpdated(pct);
+        lossTolerancePct = _pct;
+        emit LossTolerancePctUpdated(_pct);
+    }
+
+    /// @inheritdoc IVaultSettings
+    function setMinLockPeriod(uint64 _minLockPeriod)
+        external
+        override(IVaultSettings)
+        onlySettings
+    {
+        _checkMinLockPeriod(_minLockPeriod);
+
+        minLockPeriod = _minLockPeriod;
+        emit MinLockPeriodUpdated(_minLockPeriod);
+    }
+
+    /**
+     * Checks if the minimum lock period is valid.
+     *
+     * @param _minLockPeriod Minimum lock period in seconds
+     */
+    function _checkMinLockPeriod(uint64 _minLockPeriod) internal pure {
+        if (_minLockPeriod == 0 || _minLockPeriod > MAX_DEPOSIT_LOCK_DURATION)
+            revert VaultInvalidMinLockPeriod();
     }
 
     //
@@ -1018,7 +1039,9 @@ contract Vault is
         // Checks if the user is not already in debt
         if (
             _computeShares(
-                _applyLossTolerance(claimers[_claim.beneficiary].totalPrincipal),
+                _applyLossTolerance(
+                    claimers[_claim.beneficiary].totalPrincipal
+                ),
                 _localTotalShares,
                 _localTotalPrincipal
             ) > claimers[_claim.beneficiary].totalShares

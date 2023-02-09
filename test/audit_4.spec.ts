@@ -13,11 +13,7 @@ import {
   YearnStrategy__factory,
 } from '../typechain';
 
-import {
-  generateNewAddress,
-  moveForwardTwoWeeks,
-  CURVE_SLIPPAGE,
-} from './shared/';
+import { generateNewAddress, moveForwardTwoWeeks } from './shared/';
 import { depositParams, claimParams } from './shared/factories';
 
 let owner: SignerWithAddress;
@@ -137,14 +133,12 @@ describe('Audit Tests 4', () => {
       const underlyingAmount = parseUnits('1000');
       await underlying.mint(owner.address, underlyingAmount);
 
-      await vault
-        .connect(owner)
-        .sponsor(
-          underlying.address,
-          underlyingAmount,
-          TWO_WEEKS,
-          CURVE_SLIPPAGE,
-        );
+      await vault.connect(owner).sponsor(
+        underlying.address,
+        underlyingAmount,
+        TWO_WEEKS,
+        underlyingAmount, // minAmountOut
+      );
       await vault.connect(owner).updateInvested();
       await moveForwardTwoWeeks();
 

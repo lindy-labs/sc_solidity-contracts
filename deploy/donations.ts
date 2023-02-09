@@ -1,6 +1,7 @@
 import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 import type { DeployFunction } from 'hardhat-deploy/types';
 
+import verify from './helpers/verify';
 import { getCurrentNetworkConfig } from '../scripts/deployConfigs';
 
 const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
@@ -29,14 +30,10 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
     env.network.config.chainId === 80001 ||
     env.network.config.chainId === 137
   ) {
-    try {
-      await env.run('verify:verify', {
-        address: donationsDeployment.address,
-        constructorArguments: args,
-      });
-    } catch (e) {
-      console.error((e as Error).message);
-    }
+    await verify(env, {
+      address: donationsDeployment.address,
+      constructorArguments: args,
+    });
   }
 };
 

@@ -18,7 +18,7 @@ const networkConfigs: Record<number, Config> = {
     lossTolerancePct: 200,
     multisig: '0x035F210e5d14054E8AE5A6CFA76d643aA200D56E',
     deploymentAddress: '0x84f67f75DAf6D57Aef500E0c85C77B7b3bBc92A9',
-    minLockPeriod: 60 * 60 * 24 * 90, // 90 days
+    minLockPeriod: 60 * 60 * 24 * 5, // 5 days
   },
 
   // goerli

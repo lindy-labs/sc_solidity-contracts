@@ -20,7 +20,6 @@ import {
   SHARES_MULTIPLIER,
   generateNewAddress,
   arrayFromTo,
-  CURVE_SLIPPAGE,
 } from '../shared';
 
 const { parseUnits } = ethers.utils;
@@ -522,6 +521,38 @@ describe('Vault', () => {
     });
   });
 
+  describe('#setMinLockPeriod', () => {
+    it('reverts if the caller does not have settings role', async () => {
+      await expect(
+        vault.connect(alice).setMinLockPeriod(100),
+      ).to.be.revertedWith('VaultCallerNotSettings');
+    });
+
+    it('change minLockPeriod and emit MinLockPeriodUpdated event', async () => {
+      const newMinLockPeriod = 100;
+      const tx = await vault.connect(admin).setMinLockPeriod(newMinLockPeriod);
+
+      await expect(tx)
+        .emit(vault, 'MinLockPeriodUpdated')
+        .withArgs(newMinLockPeriod);
+      expect(await vault.minLockPeriod()).to.be.equal(newMinLockPeriod);
+    });
+
+    it('reverts if min lock period is greater than max lock period', async () => {
+      await expect(
+        vault
+          .connect(admin)
+          .setMinLockPeriod((await vault.MAX_DEPOSIT_LOCK_DURATION()).add(1)),
+      ).to.be.revertedWith('VaultInvalidMinLockPeriod');
+    });
+
+    it('reverts if min lock period is 0', async () => {
+      await expect(
+        vault.connect(admin).setMinLockPeriod('0'),
+      ).to.be.revertedWith('VaultInvalidMinLockPeriod');
+    });
+  });
+
   describe('totalUnderlyingMinusSponsored', async () => {
     it('returns 0 when the total underlying is less than total sponsored + accumulated performance fee', async () => {
       await addUnderlyingBalance(admin, '500');
@@ -531,7 +562,7 @@ describe('Vault', () => {
           underlying.address,
           parseUnits('500'),
           TWO_WEEKS,
-          CURVE_SLIPPAGE,
+          parseUnits('500'),
         );
 
       // force total underlying minus sponsored to be 0
@@ -872,7 +903,7 @@ describe('Vault', () => {
           underlying.address,
           parseUnits('500'),
           TWO_WEEKS,
-          CURVE_SLIPPAGE,
+          parseUnits('500'),
         );
 
       await expect(tx).to.be.revertedWith('VaultAmountDoesNotMatchParams');
@@ -887,7 +918,7 @@ describe('Vault', () => {
             underlying.address,
             parseUnits('500'),
             TWO_WEEKS,
-            CURVE_SLIPPAGE,
+            parseUnits('500'),
           ),
       ).to.be.revertedWith('Pausable: paused');
       await vault.connect(admin).unpause();
@@ -900,7 +931,7 @@ describe('Vault', () => {
             underlying.address,
             parseUnits('500'),
             TWO_WEEKS,
-            CURVE_SLIPPAGE,
+            parseUnits('500'),
           ),
       ).to.be.revertedWith('VaultCallerNotSponsor');
     });
@@ -914,7 +945,7 @@ describe('Vault', () => {
           underlying.address,
           parseUnits('500'),
           TWO_WEEKS,
-          CURVE_SLIPPAGE,
+          parseUnits('500'),
         );
       await vault
         .connect(admin)
@@ -922,7 +953,7 @@ describe('Vault', () => {
           underlying.address,
           parseUnits('500'),
           TWO_WEEKS,
-          CURVE_SLIPPAGE,
+          parseUnits('500'),
         );
 
       expect(await vault.totalSponsored()).to.eq(parseUnits('1000'));
@@ -938,7 +969,7 @@ describe('Vault', () => {
           underlying.address,
           parseUnits('500'),
           TWO_WEEKS,
-          CURVE_SLIPPAGE,
+          parseUnits('500'),
         );
       await vault
         .connect(bob)
@@ -946,7 +977,7 @@ describe('Vault', () => {
           underlying.address,
           parseUnits('500'),
           TWO_WEEKS,
-          CURVE_SLIPPAGE,
+          parseUnits('500'),
         );
       expect(await vault.totalSponsored()).to.eq(parseUnits('1000'));
 
@@ -962,7 +993,7 @@ describe('Vault', () => {
           underlying.address,
           parseUnits('500'),
           TWO_WEEKS,
-          CURVE_SLIPPAGE,
+          parseUnits('500'),
         );
 
       await expect(tx)
@@ -981,7 +1012,7 @@ describe('Vault', () => {
       await expect(
         vault
           .connect(admin)
-          .sponsor(underlying.address, parseUnits('500'), 0, CURVE_SLIPPAGE),
+          .sponsor(underlying.address, parseUnits('500'), 0, parseUnits('500')),
       ).to.be.revertedWith('VaultInvalidLockPeriod');
     });
 
@@ -996,7 +1027,7 @@ describe('Vault', () => {
             underlying.address,
             parseUnits('500'),
             lockDuration,
-            CURVE_SLIPPAGE,
+            parseUnits('500'),
           ),
       ).to.be.revertedWith('VaultInvalidLockPeriod');
     });
@@ -1012,7 +1043,7 @@ describe('Vault', () => {
             underlying.address,
             parseUnits('500'),
             lockDuration,
-            CURVE_SLIPPAGE,
+            parseUnits('500'),
           ),
       ).to.be.revertedWith('VaultInvalidLockPeriod');
     });
@@ -1028,7 +1059,7 @@ describe('Vault', () => {
             underlying.address,
             parseUnits('0'),
             lockDuration,
-            CURVE_SLIPPAGE,
+            parseUnits('500'),
           ),
       ).to.be.revertedWith('VaultCannotSponsor0');
     });
@@ -1042,7 +1073,7 @@ describe('Vault', () => {
           underlying.address,
           parseUnits('500'),
           TWO_WEEKS,
-          CURVE_SLIPPAGE,
+          parseUnits('500'),
         );
 
       const deposit = await vault.deposits(1);
@@ -1058,7 +1089,7 @@ describe('Vault', () => {
           underlying.address,
           parseUnits('500'),
           TWO_WEEKS,
-          CURVE_SLIPPAGE,
+          parseUnits('500'),
         );
 
       const currentTime = await getLastBlockTimestamp();
@@ -1077,7 +1108,7 @@ describe('Vault', () => {
           underlying.address,
           parseUnits('400'),
           TWO_WEEKS,
-          CURVE_SLIPPAGE,
+          parseUnits('400'),
         );
 
       expect(await vault.totalUnderlying()).to.equal(parseUnits('400'));
@@ -1100,7 +1131,7 @@ describe('Vault', () => {
           underlying.address,
           parseUnits('500'),
           TWO_WEEKS,
-          CURVE_SLIPPAGE,
+          parseUnits('500'),
         );
       await vault
         .connect(admin)
@@ -1108,7 +1139,7 @@ describe('Vault', () => {
           underlying.address,
           parseUnits('500'),
           TWO_WEEKS,
-          CURVE_SLIPPAGE,
+          parseUnits('500'),
         );
 
       await moveForwardTwoWeeks();
@@ -1137,7 +1168,7 @@ describe('Vault', () => {
           underlying.address,
           parseUnits('500'),
           TWO_WEEKS,
-          CURVE_SLIPPAGE,
+          parseUnits('500'),
         );
       await vault
         .connect(admin)
@@ -1145,7 +1176,7 @@ describe('Vault', () => {
           underlying.address,
           parseUnits('500'),
           TWO_WEEKS,
-          CURVE_SLIPPAGE,
+          parseUnits('500'),
         );
 
       await moveForwardTwoWeeks();
@@ -1176,7 +1207,7 @@ describe('Vault', () => {
           underlying.address,
           parseUnits('1000'),
           TWO_WEEKS,
-          CURVE_SLIPPAGE,
+          parseUnits('1000'),
         );
 
       await moveForwardTwoWeeks();
@@ -1197,7 +1228,7 @@ describe('Vault', () => {
           underlying.address,
           parseUnits('1000'),
           TWO_WEEKS,
-          CURVE_SLIPPAGE,
+          parseUnits('1000'),
         );
 
       await moveForwardTwoWeeks();
@@ -1219,7 +1250,7 @@ describe('Vault', () => {
           underlying.address,
           parseUnits('1000'),
           TWO_WEEKS,
-          CURVE_SLIPPAGE,
+          parseUnits('1000'),
         );
 
       await moveForwardTwoWeeks();
@@ -1241,7 +1272,7 @@ describe('Vault', () => {
           underlying.address,
           parseUnits('1000'),
           TWO_WEEKS,
-          CURVE_SLIPPAGE,
+          parseUnits('1000'),
         );
 
       await vault.connect(admin).grantRole(SPONSOR_ROLE, bob.address);
@@ -1261,7 +1292,7 @@ describe('Vault', () => {
           underlying.address,
           parseUnits('1000'),
           TWO_WEEKS,
-          CURVE_SLIPPAGE,
+          parseUnits('1000'),
         );
 
       await expect(
@@ -1280,7 +1311,7 @@ describe('Vault', () => {
           underlying.address,
           parseUnits('1000'),
           TWO_WEEKS,
-          CURVE_SLIPPAGE,
+          parseUnits('1000'),
         );
 
       await expect(
@@ -1307,7 +1338,7 @@ describe('Vault', () => {
           underlying.address,
           parseUnits('500'),
           TWO_WEEKS,
-          CURVE_SLIPPAGE,
+          parseUnits('1000'),
         );
 
       await moveForwardTwoWeeks();
@@ -1332,7 +1363,7 @@ describe('Vault', () => {
           underlying.address,
           parseUnits('1000'),
           TWO_WEEKS,
-          CURVE_SLIPPAGE,
+          parseUnits('1000'),
         );
       await moveForwardTwoWeeks();
 
@@ -1354,7 +1385,7 @@ describe('Vault', () => {
           underlying.address,
           parseUnits('1000'),
           TWO_WEEKS,
-          CURVE_SLIPPAGE,
+          parseUnits('1000'),
         );
 
       await moveForwardTwoWeeks();
@@ -1379,7 +1410,7 @@ describe('Vault', () => {
           underlying.address,
           parseUnits('1000'),
           TWO_WEEKS,
-          CURVE_SLIPPAGE,
+          parseUnits('1000'),
         );
       await vault.connect(admin).updateInvested();
       await moveForwardTwoWeeks();
@@ -1411,7 +1442,7 @@ describe('Vault', () => {
           underlying.address,
           parseUnits('500'),
           TWO_WEEKS,
-          CURVE_SLIPPAGE,
+          parseUnits('500'),
         );
       await vault
         .connect(admin)
@@ -1419,7 +1450,7 @@ describe('Vault', () => {
           underlying.address,
           parseUnits('500'),
           TWO_WEEKS,
-          CURVE_SLIPPAGE,
+          parseUnits('500'),
         );
 
       await moveForwardTwoWeeks();
@@ -1440,7 +1471,7 @@ describe('Vault', () => {
           underlying.address,
           parseUnits('500'),
           TWO_WEEKS,
-          CURVE_SLIPPAGE,
+          parseUnits('500'),
         );
 
       await moveForwardTwoWeeks();
@@ -1460,7 +1491,7 @@ describe('Vault', () => {
           underlying.address,
           parseUnits('500'),
           TWO_WEEKS,
-          CURVE_SLIPPAGE,
+          parseUnits('500'),
         );
 
       await vault.connect(admin).grantRole(SPONSOR_ROLE, bob.address);
@@ -1480,7 +1511,7 @@ describe('Vault', () => {
           underlying.address,
           parseUnits('500'),
           TWO_WEEKS,
-          CURVE_SLIPPAGE,
+          parseUnits('500'),
         );
 
       await expect(
@@ -1499,7 +1530,7 @@ describe('Vault', () => {
           underlying.address,
           parseUnits('500'),
           TWO_WEEKS,
-          CURVE_SLIPPAGE,
+          parseUnits('500'),
         );
 
       await expect(
@@ -1524,7 +1555,7 @@ describe('Vault', () => {
           underlying.address,
           parseUnits('500'),
           TWO_WEEKS,
-          CURVE_SLIPPAGE,
+          parseUnits('500'),
         );
 
       await moveForwardTwoWeeks();
@@ -1543,7 +1574,7 @@ describe('Vault', () => {
           underlying.address,
           parseUnits('1000'),
           TWO_WEEKS,
-          CURVE_SLIPPAGE,
+          parseUnits('1000'),
         );
       await moveForwardTwoWeeks();
 
@@ -1563,7 +1594,7 @@ describe('Vault', () => {
           underlying.address,
           parseUnits('500'),
           TWO_WEEKS,
-          CURVE_SLIPPAGE,
+          parseUnits('500'),
         );
 
       await moveForwardTwoWeeks();
@@ -2649,7 +2680,7 @@ describe('Vault', () => {
             underlying.address,
             parseUnits('500'),
             TWO_WEEKS,
-            CURVE_SLIPPAGE,
+            parseUnits('500'),
           );
 
         await moveForwardTwoWeeks();
@@ -2916,7 +2947,7 @@ describe('Vault', () => {
           underlying.address,
           parseUnits('500'),
           TWO_WEEKS,
-          CURVE_SLIPPAGE,
+          parseUnits('500'),
         );
 
       const params = depositParams.build({

@@ -18,9 +18,7 @@ async function deployMockCurvePool(
     'decimals',
   );
 
-  if (await getOrNull(name)) {
-    return;
-  }
+  if (await getOrNull(name)) return;
 
   const deployment = await deploy(name, {
     contract: 'MockCurve',
@@ -36,8 +34,8 @@ async function deployMockCurvePool(
 
   await execute(name, { from: deployer }, 'addToken', 0, underlying.address);
 
-  for (let i = 1; i < otherUnderlyings.length; i++) {
-    const tokenName = otherUnderlyings[i];
+  for (let i = 1; i <= otherUnderlyings.length; i++) {
+    const tokenName = otherUnderlyings[i - 1];
     const token = await get(tokenName);
     const tokenDecimals = await read(tokenName, { from: deployer }, 'decimals');
 

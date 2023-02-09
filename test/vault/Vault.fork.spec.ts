@@ -38,7 +38,7 @@ const curveIndexes = {
 };
 
 describe('Vault (fork tests)', () => {
-  let owner: SignerWithAddress;
+  let admin: SignerWithAddress;
   let alice: SignerWithAddress;
   let bob: SignerWithAddress;
 
@@ -50,19 +50,19 @@ describe('Vault (fork tests)', () => {
 
   beforeEach(async () => {
     await ForkHelpers.forkToMainnet(FORK_BLOCK);
-    [owner, alice, bob] = await ethers.getSigners();
+    [admin, alice, bob] = await ethers.getSigners();
 
-    lusd = ERC20__factory.connect(LUSD_ADDRESS, owner);
-    dai = ERC20__factory.connect(DAI_ADDRESS, owner);
-    usdc = ERC20__factory.connect(USDC_ADDRESS, owner);
-    curvePool = ICurve__factory.connect(CURVE_LUSD_3CRV_POOL, owner);
+    lusd = ERC20__factory.connect(LUSD_ADDRESS, admin);
+    dai = ERC20__factory.connect(DAI_ADDRESS, admin);
+    usdc = ERC20__factory.connect(USDC_ADDRESS, admin);
+    curvePool = ICurve__factory.connect(CURVE_LUSD_3CRV_POOL, admin);
 
-    vault = await new Vault__factory(owner).deploy(
+    vault = await new Vault__factory(admin).deploy(
       lusd.address,
       TWO_WEEKS,
       INVEST_PCT,
-      owner.address,
-      owner.address,
+      admin.address,
+      admin.address,
       PERFORMANCE_FEE_PCT,
       INVESTMENT_FEE_PCT,
       [
@@ -120,9 +120,7 @@ describe('Vault (fork tests)', () => {
         underlyingI: curveIndexes.dai,
       });
 
-      await expect(action).to.be.revertedWith(
-        '_underlyingI does not match underlying token',
-      );
+      await expect(action).to.be.revertedWith('SwapperUnderlyingIndexMismatch');
     });
 
     it('is not callable by a non-admin', async () => {
@@ -179,6 +177,34 @@ describe('Vault (fork tests)', () => {
           dai.address,
           lusd.address,
           parseUnits('1000', await dai.decimals()),
+          expectedUnderlyingAmount,
+        );
+
+      expect((await vault.deposits(1)).amount).to.equal(
+        expectedUnderlyingAmount,
+      );
+    });
+  });
+
+  describe('sponsor with DAI', function () {
+    it('automatically swaps into LUSD and deposits that', async () => {
+      // DAI and LUSD both have 18 decimals
+      const sponsorAmount = parseUnits('1000');
+      const amountOutMin = parseUnits('995');
+      const expectedUnderlyingAmount = '995643944707865674480';
+      await ForkHelpers.mintToken(dai, admin, sponsorAmount);
+      await dai.connect(admin).approve(vault.address, MaxUint256);
+
+      const action = vault
+        .connect(admin)
+        .sponsor(dai.address, sponsorAmount, TWO_WEEKS, amountOutMin);
+
+      await expect(action)
+        .to.emit(vault, 'Swap')
+        .withArgs(
+          dai.address,
+          lusd.address,
+          sponsorAmount,
           expectedUnderlyingAmount,
         );
 

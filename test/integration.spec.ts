@@ -18,7 +18,6 @@ import {
   moveForwardTwoWeeks,
   SHARES_MULTIPLIER,
   generateNewAddress,
-  CURVE_SLIPPAGE,
 } from './shared';
 
 const { utils } = ethers;
@@ -106,14 +105,12 @@ describe('Integration', () => {
       await addUnderlyingBalance(bob, '1000');
       await vault.connect(owner).grantRole(SPONSOR_ROLE, bob.address);
 
-      await vault
-        .connect(bob)
-        .sponsor(
-          underlying.address,
-          parseUnits('500'),
-          TWO_WEEKS,
-          CURVE_SLIPPAGE,
-        );
+      await vault.connect(bob).sponsor(
+        underlying.address,
+        parseUnits('500'),
+        TWO_WEEKS,
+        parseUnits('500'), // minAmountOut
+      );
 
       await vault.connect(alice).deposit(
         depositParams.build({
@@ -151,7 +148,7 @@ describe('Integration', () => {
           underlying.address,
           parseUnits('500'),
           TWO_WEEKS,
-          CURVE_SLIPPAGE,
+          parseUnits('500'),
         );
 
       expect(await underlying.balanceOf(bob.address)).to.eq(parseUnits('500'));
@@ -195,7 +192,7 @@ describe('Integration', () => {
           underlying.address,
           parseUnits('500'),
           TWO_WEEKS,
-          CURVE_SLIPPAGE,
+          parseUnits('500'),
         );
 
       await vault.connect(alice).deposit(
@@ -236,7 +233,7 @@ describe('Integration', () => {
           underlying.address,
           parseUnits('500'),
           TWO_WEEKS,
-          CURVE_SLIPPAGE,
+          parseUnits('500'),
         );
       await vault
         .connect(bob)
@@ -244,7 +241,7 @@ describe('Integration', () => {
           underlying.address,
           parseUnits('500'),
           TWO_WEEKS,
-          CURVE_SLIPPAGE,
+          parseUnits('500'),
         );
 
       // alice deposits with yield to herself and to carol

@@ -11,7 +11,7 @@ import {
   MockERC20,
   AnchorStrategy__factory,
 } from '../../../typechain';
-import { CURVE_SLIPPAGE, generateNewAddress } from '../../shared/';
+import { generateNewAddress } from '../../shared/';
 
 describe('AnchorStrategy', () => {
   let admin: SignerWithAddress;
@@ -974,7 +974,7 @@ describe('AnchorStrategy', () => {
       ],
       lockDuration: TWO_WEEKS,
       name: 'Foundation name',
-      slippage: CURVE_SLIPPAGE,
+      amountOutMin: amount, // minAmountOut
     });
   };
 
