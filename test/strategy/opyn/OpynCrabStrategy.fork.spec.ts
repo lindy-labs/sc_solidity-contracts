@@ -129,7 +129,7 @@ describe('Opyn Crab Strategy (mainnet fork tests)', () => {
   });
 
   describe('#invest', () => {
-    it.only('#invest -> #investedAssets -> #withdrawToVault', async () => {
+    it('#invest -> #investedAssets -> #withdrawToVault', async () => {
       const depositAmount = parseUSDC('10000');
       const minEthAmount = '5999366505836873648';
       const ethToBorrow = '6560000000000000000';
@@ -169,12 +169,16 @@ describe('Opyn Crab Strategy (mainnet fork tests)', () => {
 
       await strategy.withdrawToVault(depositAmount.div(2));
 
-      expect(await usdc.balanceOf(strategy.address)).to.gt(
+      console.log(
+        'env investedAssets',
+        (await strategy.investedAssets()).toString(),
+      );
+      expect(await usdc.balanceOf(vault.address)).to.gt(
         parseUSDC('4980'), // fees & slippage included
       );
     });
 
-    it.only('#invest thru netting contract', async () => {
+    it('#invest thru netting contract', async () => {
       const depositAmount = parseUSDC('10000');
       await ForkHelpers.mintToken(usdc, strategy.address, depositAmount);
 
@@ -191,11 +195,11 @@ describe('Opyn Crab Strategy (mainnet fork tests)', () => {
       const crabNettingOwner = await ethers.getSigner(OWNER_CRAB_NETTING);
       await ForkHelpers.setBalance(OWNER_CRAB_NETTING, parseUnits('1'));
 
-      const fairPrice = await strategy.getCrabFairPriceInUSDC();
+      const fairPrice = await strategy.getCrabFairPrice();
 
       await crabNetting
         .connect(crabNettingOwner)
-        .netAtPrice(fairPrice, depositsQueued);
+        .netAtPrice(fairPrice.div(1e12), depositsQueued);
 
       const crabBalance = await crabStrategyV2.balanceOf(strategy.address);
 

@@ -376,11 +376,11 @@ describe('OpynCrabStrategy', () => {
     });
 
     it('accounts for strategy crab balance', async () => {
-      // 1 crab = 1 eth collateral
+      // 1 crab = 2 eth collateral
       const collateral = parseUnits('100');
       const debt = parseUnits('50');
       await crabStrategyV2.initialize(debt, { value: collateral });
-      await crabStrategyV2.transferCrab(strategy.address, parseUnits('100'));
+      await crabStrategyV2.transferCrab(strategy.address, parseUnits('50'));
 
       // total collateral - total debt = 100 - 50 = 50
       expect(await strategy.investedAssets()).to.eq(parseUSDC('50'));
@@ -398,13 +398,13 @@ describe('OpynCrabStrategy', () => {
     });
 
     it('accounts for queued crab for withdraw on netting contract', async () => {
-      // 1 crab = 1 eth collateral
+      // 1 crab = 2 eth collateral
       const collateral = parseUnits('100');
       const debt = parseUnits('50');
       await crabStrategyV2.initialize(debt, { value: collateral });
-      await crabStrategyV2.transferCrab(strategy.address, collateral);
+      await crabStrategyV2.transferCrab(strategy.address, collateral.div(2));
 
-      await strategy.queueCrab(collateral);
+      await strategy.queueCrab(collateral.div(2));
 
       expect(await strategy.investedAssets()).to.eq(parseUSDC('50'));
       expect(await underlying.balanceOf(strategy.address)).to.eq(0);
@@ -416,19 +416,20 @@ describe('OpynCrabStrategy', () => {
       await underlying.mint(strategy.address, usdcBalance);
       await strategy.queueUSDC(usdcBalance.div(2));
 
-      // 1 crab = 1 eth collateral
+      // 1 crab = 2 eth collateral
       const collateral = parseUnits('100');
       const debt = parseUnits('50');
       await crabStrategyV2.initialize(debt, { value: collateral });
-      await crabStrategyV2.transferCrab(strategy.address, collateral);
+      await crabStrategyV2.transferCrab(strategy.address, collateral.div(2));
 
-      await strategy.queueCrab(collateral.div(2));
+      const crabBalance = await crabStrategyV2.balanceOf(strategy.address);
+      await strategy.queueCrab(crabBalance.div(2));
 
       expect(await crabStrategyV2.balanceOf(strategy.address)).to.eq(
-        parseUnits('50'),
+        parseUnits('25'),
       );
       expect(await crabNetting.crabBalance(strategy.address)).to.eq(
-        parseUnits('50'),
+        parseUnits('25'),
       );
       expect(await underlying.balanceOf(strategy.address)).to.eq(
         parseUSDC('50'),
@@ -535,6 +536,37 @@ describe('OpynCrabStrategy', () => {
       expect(await crabNetting.usdBalance(strategy.address)).to.eq(
         parseUSDC('20'),
       );
+    });
+
+    it('withdraws from crab if usdc balance and queued deposit are 0', async () => {
+      await crabStrategyV2.initialize(parseUnits('100'), {
+        value: parseUnits('200'),
+      });
+      await crabStrategyV2.transferCrab(strategy.address, parseUnits('100'));
+
+      await swapRouter.setExchageRate(
+        weth.address,
+        underlying.address,
+        parseUnits('1', '6'), // account for 12 decimals difference between USDC and ETH
+      );
+
+      await strategy.connect(manager).withdrawToVault(parseUSDC('50'));
+
+      expect(await underlying.balanceOf(strategy.address)).to.eq(0);
+      expect(await underlying.balanceOf(vault.address)).to.eq(parseUSDC('50'));
+      expect(await strategy.investedAssets()).to.eq(parseUSDC('50'));
+    });
+  });
+
+  describe('#getCrabFairPrice', async () => {
+    it('returns price of 1 crab in usdc with 18 decimals precision', async () => {
+      await crabStrategyV2.initialize(parseUnits('100'), {
+        value: parseUnits('200'),
+      });
+
+      const crabPrice = await strategy.getCrabFairPrice();
+
+      expect(crabPrice).to.eq(parseUnits('1'));
     });
   });
 
@@ -657,17 +689,9 @@ describe('OpynCrabStrategy', () => {
       await strategy.connect(keeper).flashDeposit(ethBalance, ethToBorrow);
 
       expect(await crabStrategyV2.balanceOf(strategy.address)).to.eq(
-        parseUnits('2'),
+        parseUnits('1'),
       );
       expect(await getETHBalance(strategy.address)).to.eq(0);
-      console.log(
-        'investedAssets',
-        (await strategy.investedAssets()).toString(),
-      );
-      console.log(
-        'crab balance',
-        (await crabStrategyV2.balanceOf(strategy.address)).toString(),
-      );
     });
   });
 
@@ -693,7 +717,6 @@ describe('OpynCrabStrategy', () => {
     });
 
     it('withdraws from the crab strategy', async () => {
-      // initialize with 200% collateralization ratio
       await crabStrategyV2.initialize(parseUnits('5'), {
         value: parseUnits('10'),
       });
@@ -712,18 +735,14 @@ describe('OpynCrabStrategy', () => {
         .flashWithdraw(crabBalance, maxEthToRepayDebt);
 
       expect(await crabStrategyV2.balanceOf(strategy.address)).to.eq(0);
-      expect(await getETHBalance(strategy.address)).to.eq(parseUnits('1'));
+      expect(await underlying.balanceOf(strategy.address)).to.eq(0);
+      expect(await getETHBalance(strategy.address)).to.eq(ethAmount);
     });
 
     it('withdraws more if debt vaule reduces because short oSqth position generates value', async () => {
       await crabStrategyV2.initialize(parseUnits('5'), {
         value: parseUnits('10'),
       });
-
-      console.log(
-        'collateralization ratio',
-        (await crabStrategyV2.getCollateralizationRatio()).toString(),
-      );
 
       const ethAmount = parseUnits('1');
       const ethToBorrow = parseUnits('1');
@@ -735,11 +754,6 @@ describe('OpynCrabStrategy', () => {
       // reduce debt by 20%
       await crabStrategyV2.reduceDebt(totalDebt.div(5));
 
-      console.log(
-        'new collateralization ratio',
-        (await crabStrategyV2.getCollateralizationRatio()).toString(),
-      );
-
       const crabBalance = await crabStrategyV2.balanceOf(strategy.address);
 
       // max eth to repay debt should decerase by 20%
@@ -747,11 +761,6 @@ describe('OpynCrabStrategy', () => {
       await strategy
         .connect(keeper)
         .flashWithdraw(crabBalance, maxEthToRepayDebt);
-
-      console.log(
-        'ETH balance',
-        (await getETHBalance(strategy.address)).toString(),
-      );
     });
   });
 });

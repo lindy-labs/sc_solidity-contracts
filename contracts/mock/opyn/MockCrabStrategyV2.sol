@@ -55,8 +55,8 @@ contract MockCrabStrategyV2 is ICrabStrategyV2, MockERC20 {
         totalDebt += (_totalEthToDeposit * 1e18) / collateralizationRatio;
 
         // crab should represent the share of the collateral
-        // for simplicity we will mint 1 crab for 1 eth
-        uint256 crabToMint = _totalEthToDeposit;
+        // for simplicity we will mint 1 crab for 2 eth
+        uint256 crabToMint = _totalEthToDeposit / 2;
 
         _mint(msg.sender, crabToMint);
     }
@@ -68,7 +68,6 @@ contract MockCrabStrategyV2 is ICrabStrategyV2, MockERC20 {
     ) external override {
         // the intention is to simulate how would the flash withdraw work in the real world
         // collateralization ratio is always preserved
-
         if (_crabAmount > balanceOf(msg.sender)) {
             revert("MockCrabStrategyV2: not enough crab");
         }
@@ -94,7 +93,9 @@ contract MockCrabStrategyV2 is ICrabStrategyV2, MockERC20 {
 
     function getWsqueethFromCrabAmount(
         uint256 _crabAmount
-    ) external view override returns (uint256) {}
+    ) external view override returns (uint256) {
+        return (_crabAmount * totalDebt) / totalSupply();
+    }
 
     function getCollateralizationRatio() public view returns (uint256) {
         // default to 200%
@@ -110,8 +111,8 @@ contract MockCrabStrategyV2 is ICrabStrategyV2, MockERC20 {
         // initialize with 200% collateralization ratio
         totalCollateral = msg.value;
         totalDebt = debt;
-        // mint 1 crab for 1 eth collateral
-        _mint(address(this), msg.value);
+        // mint 1 crab for 2 eth collateral
+        _mint(address(this), msg.value / 2);
     }
 
     function reduceDebt(uint256 _amount) external {
