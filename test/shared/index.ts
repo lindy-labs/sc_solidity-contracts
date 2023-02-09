@@ -5,4 +5,3 @@ export * as ForkHelpers from './forkHelpers';
 export * as EventHelpers from './eventHelpers';
 export * from './contracts';
 export * from './utils';
-export * from './uniswapV3Helpers';

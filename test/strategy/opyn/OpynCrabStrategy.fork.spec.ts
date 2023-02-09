@@ -13,7 +13,6 @@ import {
   depositParams,
   parseUSDC,
   claimParams,
-  getUniswapV3Pool,
 } from '../../shared';
 
 import {
@@ -73,17 +72,6 @@ describe('Opyn Crab Strategy (mainnet fork tests)', () => {
     usdc = ERC20__factory.connect(USDC, admin);
     weth = ERC20__factory.connect(WETH, admin);
     osqth = ERC20__factory.connect(oSQTH, admin);
-
-    wethUsdcUniV3Pool = await getUniswapV3Pool(
-      USDC_WETH_UNISWAP_POOL,
-      usdc,
-      weth,
-    );
-    wethOsqthUniV3Pool = await getUniswapV3Pool(
-      WETH_oSQTH_UNISWAP_POOL,
-      weth,
-      osqth,
-    );
 
     crabStrategyV2 = ICrabStrategyV2__factory.connect(CRAB_STRATEGY_V2, admin);
     crabNetting = ICrabNetting__factory.connect(CRAB_NETTING, admin);
