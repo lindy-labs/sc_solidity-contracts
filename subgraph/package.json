@@ -16,6 +16,8 @@
     "build:manifest:liquity:staging": "mustache ./liquity/staging.json subgraph.template.yaml > subgraph.yaml",
     "build:manifest:liquityDCA:local": "mustache ./liquityDCA/local.json subgraph.template.yaml > subgraph.yaml",
     "build:manifest:liquityDCA:staging": "mustache ./liquityDCA/staging.json subgraph.template.yaml > subgraph.yaml",
+    "build:manifest:liquityAmethyst:local": "mustache ./liquityAmethyst/local.json subgraph.template.yaml > subgraph.yaml",
+    "build:manifest:liquityAmethyst:staging": "mustache ./liquityAmethyst/staging.json subgraph.template.yaml > subgraph.yaml",
     "create:node:local": "graph create --node http://localhost:8020/",
     "deploy": "graph deploy --node https://api.studio.thegraph.com/deploy/",
     "deploy:local": "graph deploy --node http://localhost:8020/ --ipfs http://localhost:5001 --version-label v0.0.1",
