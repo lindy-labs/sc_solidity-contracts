@@ -23,6 +23,8 @@ contract MockCrabNetting is ICrabNetting {
     }
 
     function withdrawUSDC(uint256 _amount, bool _force) external override {
+        require(_force, "MockCrabNetting: !force");
+
         usdBalances[msg.sender] -= _amount;
         usdc.transfer(msg.sender, _amount);
     }
@@ -32,7 +34,12 @@ contract MockCrabNetting is ICrabNetting {
         crab.transferFrom(msg.sender, address(this), _amount);
     }
 
-    function dequeueCrab(uint256 _amount, bool _force) external override {}
+    function dequeueCrab(uint256 _amount, bool _force) external override {
+        require(_force, "MockCrabNetting: !force");
+
+        crabBalances[msg.sender] -= _amount;
+        crab.transfer(msg.sender, _amount);
+    }
 
     function usdBalance(
         address _account

@@ -5,6 +5,8 @@ import {ISwapRouter} from "@uniswap/v3-periphery/contracts/interfaces/ISwapRoute
 
 import {MockExchange} from "../MockExchange.sol";
 
+import "hardhat/console.sol";
+
 contract MockSwapRouter is ISwapRouter, MockExchange {
     function uniswapV3SwapCallback(
         int256 amount0Delta,
@@ -14,7 +16,7 @@ contract MockSwapRouter is ISwapRouter, MockExchange {
 
     function exactInputSingle(
         ExactInputSingleParams calldata params
-    ) external payable override returns (uint256 amountOut) {
+    ) external payable override returns (uint256) {
         swapTokens(params.tokenIn, params.tokenOut, params.amountIn);
 
         uint256 amountOut = (params.amountIn *
