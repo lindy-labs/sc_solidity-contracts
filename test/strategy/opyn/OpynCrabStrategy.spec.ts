@@ -600,7 +600,24 @@ describe('OpynCrabStrategy', () => {
       expect(crabPrice).to.eq(parseUnits('1'));
     });
 
-    // TODO: test with different prices ?
+    it('accounts for eth/usdc price', async () => {
+      // set weth/usdc
+      await oracle.setExchageRate(
+        weth.address,
+        underlying.address,
+        parseUnits('1500'),
+      );
+
+      // mock mits 1 crab per 2 eth
+      // initialize to 15 crab and sqeeth debt in value of 10 eth collateralized with 30 eth
+      await crabStrategyV2.initialize(parseUnits('10'), {
+        value: parseUnits('30'),
+      });
+
+      // since debt vaule is 10 eth, 20 eth is for overcollateralization
+      // expected price is 20 eth / 15 crab = 4/3 eth per crab = 4/3 * 1500 usdc per crab
+      expect(await strategy.getCrabFairPrice()).to.eq(parseUnits('2000'));
+    });
   });
 
   describe('#transferYield', () => {

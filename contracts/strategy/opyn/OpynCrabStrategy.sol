@@ -118,18 +118,18 @@ contract OpynCrabStrategy is BaseStrategy {
     {
         uint256 usdcBalance = _getUsdcBalance();
         uint256 crabBalance = crabStrategyV2.balanceOf(address(this));
-        uint256 usdcPendingDeposit = crabNetting.usdBalance(address(this));
-        uint256 crabPendingWithdraw = crabNetting.crabBalance(address(this));
+        uint256 usdcQueued = crabNetting.usdBalance(address(this));
+        uint256 crabQueued = crabNetting.crabBalance(address(this));
 
-        if (crabBalance == 0 && crabPendingWithdraw == 0)
-            return usdcBalance + usdcPendingDeposit;
+        if (crabBalance == 0 && crabQueued == 0)
+            return usdcBalance + usdcQueued;
 
-        uint256 amountInCrab = ((crabBalance + crabPendingWithdraw) *
+        uint256 amountInCrab = ((crabBalance + crabQueued) *
             getCrabFairPrice()) /
             1e18 /
             1e12; // account for 6 decimals of USDC
 
-        return usdcBalance + usdcPendingDeposit + amountInCrab;
+        return usdcBalance + usdcQueued + amountInCrab;
     }
 
     /// @inheritdoc IStrategy
@@ -144,17 +144,17 @@ contract OpynCrabStrategy is BaseStrategy {
         if (_amount == 0) revert StrategyAmountZero();
         if (_amount > investedAssets()) revert StrategyNotEnoughShares();
 
-        uint256 initialUsdcBalance = _getUsdcBalance();
+        uint256 usdcBalance = _getUsdcBalance();
         uint256 amountRemaining = _amount;
 
-        if (initialUsdcBalance > 0) {
-            if (_amount <= initialUsdcBalance) {
+        if (usdcBalance > 0) {
+            if (_amount <= usdcBalance) {
                 // withdraw immediately from usdc balance
                 _transferUsdcToVault(_amount);
                 return _amount;
             }
 
-            amountRemaining = _amount - initialUsdcBalance;
+            amountRemaining = _amount - usdcBalance;
         }
 
         uint256 queuedDeposit = crabNetting.usdBalance(address(this));
@@ -172,14 +172,14 @@ contract OpynCrabStrategy is BaseStrategy {
             amountRemaining -= queuedDeposit;
         }
 
-        uint256 amountWithdrawnFromCrab = _withdrawFromCrab(amountRemaining);
-        uint256 amountToTransfer = _amount -
+        uint256 amountFromCrab = _withdrawFromCrab(amountRemaining);
+        uint256 endAmountToWithdraw = _amount -
             amountRemaining +
-            amountWithdrawnFromCrab;
+            amountFromCrab;
 
-        _transferUsdcToVault(amountToTransfer);
+        _transferUsdcToVault(endAmountToWithdraw);
 
-        return amountToTransfer;
+        return endAmountToWithdraw;
     }
 
     /// @inheritdoc IStrategy
@@ -222,11 +222,8 @@ contract OpynCrabStrategy is BaseStrategy {
         if (_crabAmount == 0) revert StrategyAmountZero();
 
         uint256 crabBalance = crabStrategyV2.balanceOf(address(this));
-        if (crabBalance == 0) revert StrategyNotEnoughShares();
-
-        if (_crabAmount > crabBalance) {
-            _crabAmount = crabBalance;
-        }
+        if (crabBalance == 0 || crabBalance < _crabAmount)
+            revert StrategyNotEnoughShares();
 
         crabStrategyV2.flashWithdraw(
             _crabAmount,
@@ -239,6 +236,7 @@ contract OpynCrabStrategy is BaseStrategy {
 
     function queueUSDC(uint256 _amount) external onlyKeeper {
         if (_amount == 0) revert StrategyAmountZero();
+
         uint256 usdcBalance = _getUsdcBalance();
 
         if (_amount > usdcBalance) revert StrategyAmountTooHigh();
@@ -249,6 +247,7 @@ contract OpynCrabStrategy is BaseStrategy {
 
     function dequeueUSDC(uint256 _amount) public onlyKeeper {
         if (_amount == 0) revert StrategyAmountZero();
+
         uint256 queuedAmount = crabNetting.usdBalance(address(this));
 
         if (queuedAmount < _amount) revert StrategyAmountTooHigh();
@@ -258,6 +257,7 @@ contract OpynCrabStrategy is BaseStrategy {
 
     function queueCrab(uint256 _amount) external onlyKeeper {
         if (_amount == 0) revert StrategyAmountZero();
+
         uint256 crabBalance = crabStrategyV2.balanceOf(address(this));
 
         if (_amount > crabBalance) revert StrategyAmountTooHigh();
@@ -268,6 +268,7 @@ contract OpynCrabStrategy is BaseStrategy {
 
     function dequeueCrab(uint256 _amount) external onlyKeeper {
         if (_amount == 0) revert StrategyAmountZero();
+
         uint256 queuedAmount = crabNetting.crabBalance(address(this));
 
         if (queuedAmount < _amount) revert StrategyAmountTooHigh();
@@ -276,20 +277,23 @@ contract OpynCrabStrategy is BaseStrategy {
     }
 
     function getCrabFairPrice() public view returns (uint256) {
-        uint256 squeethPriceInEth = getOraclePrice(
+        uint256 squeethPriceInEth = getTwapFromOracle(
             address(wethOSqthPool),
             oSqth,
             weth
         );
-        uint256 ethPriceInUsd = getOraclePrice(
+        uint256 ethPriceInUsd = getTwapFromOracle(
             address(usdcWethPool),
             weth,
             underlying
         );
-
         (, , uint256 collateral, uint256 squeethDebt) = crabStrategyV2
             .getVaultDetails();
 
+        // to determine the fair price of 1 crab in usdc, we need to consider two things:
+        // 1. the amount of eth collateral that is being released for paying off
+        //    the "squeeth debt" (short position) that corresponds to one crab (share)
+        // 2. the value of the released eth collateral in usdc
         uint256 crabFairPrice = ((collateral -
             ((squeethDebt * squeethPriceInEth) / 1e18)) * ethPriceInUsd) /
             crabStrategyV2.totalSupply();
@@ -297,16 +301,16 @@ contract OpynCrabStrategy is BaseStrategy {
         return crabFairPrice;
     }
 
-    function getOraclePrice(
-        address pool,
-        IERC20 base,
-        IERC20 quote
+    function getTwapFromOracle(
+        address _pool,
+        IERC20 _base,
+        IERC20 _quote
     ) public view returns (uint256) {
         return
             oracle.getTwap(
-                pool,
-                address(base),
-                address(quote),
+                _pool,
+                address(_base),
+                address(_quote),
                 TWAP_PERIOD,
                 true // check period
             );
@@ -341,7 +345,7 @@ contract OpynCrabStrategy is BaseStrategy {
         // round down to avoid reverts
         if (crabToWithdraw > crabBalance) crabToWithdraw = crabBalance;
 
-        uint256 squeethPriceInWeth = getOraclePrice(
+        uint256 squeethPriceInWeth = getTwapFromOracle(
             address(wethOSqthPool),
             oSqth,
             weth
