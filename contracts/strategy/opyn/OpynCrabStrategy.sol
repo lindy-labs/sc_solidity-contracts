@@ -2,11 +2,8 @@
 pragma solidity =0.8.10;
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import {IUniswapV3Pool} from "@uniswap/v3-core/contracts/interfaces/IUniswapV3Pool.sol";
 import {ISwapRouter} from "@uniswap/v3-periphery/contracts/interfaces/ISwapRouter.sol";
-import {IQuoter} from "@uniswap/v3-periphery/contracts/interfaces/IQuoter.sol";
 
 import {PercentMath} from "../../lib/PercentMath.sol";
 import {IStrategy} from "../IStrategy.sol";
@@ -15,14 +12,13 @@ import {IVault} from "../../vault/IVault.sol";
 import {ERC165Query} from "../../lib/ERC165Query.sol";
 import {ICurveExchange} from "../../interfaces/curve/ICurveExchange.sol";
 import {IOracle} from "../../interfaces/uniswap/IOracle.sol";
-import {ICrabStrategyV2, ICrabNetting, IWETH} from "../../interfaces/opyn/ICrabStrategyV2.sol";
-
-import "hardhat/console.sol";
+import {ICrabStrategyV2} from "../../interfaces/opyn/ICrabStrategyV2.sol";
+import {ICrabNetting} from "../../interfaces/opyn/ICrabNetting.sol";
+import {IWETH} from "../../interfaces/IWETH.sol";
 
 contract OpynCrabStrategy is BaseStrategy {
     using PercentMath for uint256;
     using ERC165Query for address;
-    using SafeERC20 for IERC20;
 
     error StrategyWethCannotBe0Address();
     error StrategySqueethCannotBe0Address();

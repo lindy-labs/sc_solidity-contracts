@@ -35,12 +35,7 @@ contract MockV3Pool is IUniswapV3Pool {
 
     function feeGrowthGlobal1X128() external view override returns (uint256) {}
 
-    function protocolFees()
-        external
-        view
-        override
-        returns (uint128 token0, uint128 token1)
-    {}
+    function protocolFees() external view override returns (uint128, uint128) {}
 
     function liquidity() external view override returns (uint128) {}
 
@@ -73,7 +68,7 @@ contract MockV3Pool is IUniswapV3Pool {
         view
         override
         returns (
-            uint128 liquidity,
+            uint128, // liquidity,
             uint256 feeGrowthInside0LastX128,
             uint256 feeGrowthInside1LastX128,
             uint128 tokensOwed0,

@@ -5,8 +5,6 @@ import {ISwapRouter} from "@uniswap/v3-periphery/contracts/interfaces/ISwapRoute
 
 import {MockExchange} from "../MockExchange.sol";
 
-import "hardhat/console.sol";
-
 contract MockSwapRouter is ISwapRouter, MockExchange {
     function uniswapV3SwapCallback(
         int256 amount0Delta,

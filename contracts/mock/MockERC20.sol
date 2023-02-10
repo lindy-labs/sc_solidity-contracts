@@ -3,7 +3,7 @@ pragma solidity =0.8.10;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
-import {IWETH} from "../interfaces/opyn/ICrabStrategyV2.sol";
+import {IWETH} from "../interfaces/IWETH.sol";
 
 contract MockERC20 is ERC20 {
     uint8 private decimals_;
