@@ -676,6 +676,22 @@ describe('OpynCrabStrategy', () => {
       ).to.be.revertedWith('StrategyAmountTooHigh');
     });
 
+    it('reverts if the crab strategy collateral cap is reached', async () => {
+      const usdcAmount = parseUSDC('100');
+      const ethAmountOutMin = parseUnits('100');
+      const ethToBorrow = parseUnits('100');
+      await underlying.mint(strategy.address, usdcAmount);
+
+      await crabStrategyV2.setCollateralCap(parseUnits('100'));
+
+      // 200 eth being deposited > 100 collateral cap
+      await expect(
+        strategy
+          .connect(keeper)
+          .flashDeposit(usdcAmount, ethAmountOutMin, ethToBorrow),
+      ).to.be.revertedWith('StrategyCollateralCapReached');
+    });
+
     it('receives crab on sucessfull deposit', async () => {
       const usdcAmount = parseUSDC('100');
       const ethAmountOutMin = parseUnits('100');

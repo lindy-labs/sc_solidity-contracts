@@ -47,6 +47,8 @@ interface ICrabStrategyV2 is IERC20 {
     function getWsqueethFromCrabAmount(
         uint256 _crabAmount
     ) external view returns (uint256);
+
+    function strategyCap() external view returns (uint256);
 }
 
 interface ISqueethController {}

@@ -29,6 +29,7 @@ contract OpynCrabStrategy is BaseStrategy {
     error StrategyUsdcWethPoolCannotBe0Address();
     error StrategyWethOSqthPoolCannotBe0Address();
     error StrategyAmountTooHigh();
+    error StrategyCollateralCapReached();
 
     uint32 public constant TWAP_PERIOD = 420 seconds; // TODO: make configurable
 
@@ -202,10 +203,12 @@ contract OpynCrabStrategy is BaseStrategy {
         uint256 _ethAmountToBorrow
     ) external onlyKeeper {
         uint256 ethAmount = _swapUsdcForEth(_usdcAmount, _ethAmountOutMin);
-        // TODO: check the crab strategy collateral cap
+        uint256 ethToDeposit = ethAmount + _ethAmountToBorrow;
+
+        _checkCrabStrategyCollateralCap(ethToDeposit);
 
         crabStrategyV2.flashDeposit{value: ethAmount}(
-            ethAmount + _ethAmountToBorrow,
+            ethToDeposit,
             wethOSqthPool.fee()
         );
 
@@ -421,5 +424,12 @@ contract OpynCrabStrategy is BaseStrategy {
         weth.withdraw(amountOut);
 
         return amountOut;
+    }
+
+    function _checkCrabStrategyCollateralCap(uint256 _ethAmount) internal view {
+        (, , uint256 collateral, ) = crabStrategyV2.getVaultDetails();
+
+        if (collateral + _ethAmount > crabStrategyV2.strategyCap())
+            revert StrategyCollateralCapReached();
     }
 }

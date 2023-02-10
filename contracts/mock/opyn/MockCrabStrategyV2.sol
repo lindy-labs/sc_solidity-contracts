@@ -11,11 +11,14 @@ contract MockCrabStrategyV2 is ICrabStrategyV2, MockERC20 {
     // total collateral & total debt are expressed in eth for simplicity
     uint256 public totalCollateral;
     uint256 public totalDebt;
+    uint256 public strategyCap;
 
-    constructor() MockERC20("Mock CRAB", "mockCRAB", 18, 0) {}
+    constructor() MockERC20("Mock CRAB", "mockCRAB", 18, 0) {
+        strategyCap = 100000 ether;
+    }
 
-    function setCollateral() external payable {
-        totalCollateral += msg.value;
+    function setCollateralCap(uint256 _ethAmount) external payable {
+        strategyCap = _ethAmount;
     }
 
     function getVaultDetails()
@@ -31,6 +34,10 @@ contract MockCrabStrategyV2 is ICrabStrategyV2, MockERC20 {
         uint256 _totalEthToDeposit,
         uint24 // poolFee
     ) external payable override {
+        if (totalCollateral + _totalEthToDeposit > strategyCap) {
+            revert("MockCrabStrategyV2: cap reached");
+        }
+
         // the intention is to simulate how would the flash deposit work in the real world
         // collateralization ratio is always preserved
         uint256 collateralizationRatio = getCollateralizationRatio();
