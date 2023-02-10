@@ -1,6 +1,6 @@
 import type { SignerWithAddress } from '@nomiclabs/hardhat-ethers/signers';
 import { time } from '@openzeppelin/test-helpers';
-import { ethers, upgrades } from 'hardhat';
+import { ethers } from 'hardhat';
 import { expect } from 'chai';
 import { BigNumber, utils, constants } from 'ethers';
 
@@ -18,22 +18,14 @@ import {
   MockV3Pool,
 } from '../../../typechain';
 
-import {
-  ForkHelpers,
-  generateNewAddress,
-  getETHBalance,
-  parseUSDC,
-} from '../../shared/';
+import { generateNewAddress, getETHBalance, parseUSDC } from '../../shared/';
 import { depositParams, claimParams } from '../../shared/factories';
 import { setBalance } from '../../shared/forkHelpers';
-import createVaultHelpers from '../../shared/vault';
 
 const { parseUnits } = ethers.utils;
 
 describe('OpynCrabStrategy', () => {
   let admin: SignerWithAddress;
-  let alice: SignerWithAddress;
-  let bob: SignerWithAddress;
   let keeper: SignerWithAddress;
   let manager: SignerWithAddress;
   let vault: Vault;
@@ -50,22 +42,11 @@ describe('OpynCrabStrategy', () => {
 
   let CrabStrategyFactory: OpynCrabStrategy__factory;
 
-  let addUnderlyingBalance: (
-    account: SignerWithAddress,
-    amount: string,
-  ) => Promise<void>;
-
-  const TREASURY = generateNewAddress();
-  const MIN_LOCK_PERIOD = BigNumber.from(time.duration.weeks(2).toNumber());
-  const PERFORMANCE_FEE_PCT = BigNumber.from('0');
-  const INVEST_PCT = BigNumber.from('10000');
-  const INVESTMENT_FEE_PCT = BigNumber.from('200');
-
   const MANAGER_ROLE = utils.keccak256(utils.toUtf8Bytes('MANAGER_ROLE'));
   const KEEPER_ROLE = utils.keccak256(utils.toUtf8Bytes('KEEPER_ROLE'));
 
   beforeEach(async () => {
-    [admin, alice, bob, keeper, manager] = await ethers.getSigners();
+    [admin, keeper, manager] = await ethers.getSigners();
 
     const MockUSDC = await ethers.getContractFactory('MockUSDC');
     underlying = await MockUSDC.deploy(parseUSDC('1000000000'));
@@ -114,12 +95,12 @@ describe('OpynCrabStrategy', () => {
 
     vault = await VaultFactory.deploy(
       underlying.address,
-      MIN_LOCK_PERIOD,
-      INVEST_PCT,
-      TREASURY,
+      BigNumber.from(time.duration.weeks(2).toNumber()), // lockPeriod
+      BigNumber.from('10000'), // investPct
+      generateNewAddress(), // treasury
       admin.address,
-      PERFORMANCE_FEE_PCT,
-      INVESTMENT_FEE_PCT,
+      BigNumber.from('0'), // performanceFeePct
+      BigNumber.from('0'), // managementFeePct
       [],
       0,
     );
@@ -146,11 +127,6 @@ describe('OpynCrabStrategy', () => {
     await underlying
       .connect(admin)
       .approve(vault.address, constants.MaxUint256);
-
-    ({ addUnderlyingBalance } = createVaultHelpers({
-      vault,
-      underlying,
-    }));
 
     await strategy.grantRole(MANAGER_ROLE, manager.address);
   });
@@ -356,7 +332,7 @@ describe('OpynCrabStrategy', () => {
       );
     });
 
-    it('emits StrategyDeposited event', async () => {
+    it('emits StrategyInvested event', async () => {
       let amount = parseUSDC('10000');
       await vault.connect(admin).deposit(
         depositParams.build({
@@ -371,7 +347,7 @@ describe('OpynCrabStrategy', () => {
       const tx = await vault.connect(admin).updateInvested(); // calls #invest
 
       expect(await underlying.balanceOf(strategy.address)).to.eq(amount);
-      await expect(tx).to.emit(strategy, 'StrategyDeposited').withArgs(amount);
+      await expect(tx).to.emit(strategy, 'StrategyInvested').withArgs(amount);
     });
   });
 
@@ -504,14 +480,21 @@ describe('OpynCrabStrategy', () => {
       ).to.be.revertedWith('StrategyAmountZero');
     });
 
+    it('reverts if amount is greater than invested assets', async () => {
+      await expect(
+        strategy.connect(manager).withdrawToVault(1),
+      ).to.be.revertedWith('StrategyNotEnoughShares');
+    });
+
     it('withdraws from strategy usdc balance', async () => {
       let balance = parseUSDC('100');
       await underlying.mint(strategy.address, balance);
 
-      await strategy.connect(manager).withdrawToVault(balance);
+      const tx = await strategy.connect(manager).withdrawToVault(balance);
 
       expect(await underlying.balanceOf(strategy.address)).to.eq(0);
       expect(await underlying.balanceOf(vault.address)).to.eq(balance);
+      await expect(tx).to.emit(strategy, 'StrategyWithdrawn').withArgs(balance);
     });
 
     it('withdraws from queued usdc deposit if usdc balance is 0', async () => {
@@ -520,10 +503,11 @@ describe('OpynCrabStrategy', () => {
 
       await strategy.connect(keeper).queueUSDC(balance);
 
-      await strategy.connect(manager).withdrawToVault(balance);
+      const tx = await strategy.connect(manager).withdrawToVault(balance);
 
       expect(await underlying.balanceOf(strategy.address)).to.eq(0);
       expect(await underlying.balanceOf(vault.address)).to.eq(balance);
+      await expect(tx).to.emit(strategy, 'StrategyWithdrawn').withArgs(balance);
     });
 
     it('withdraws the difference from queued usdc deposit if usdc balance < amount to withdraw', async () => {
@@ -541,13 +525,18 @@ describe('OpynCrabStrategy', () => {
 
       // withdraw 50 from balance and 30 from queued deposit
       const amountToWithdraw = parseUSDC('80');
-      await strategy.connect(manager).withdrawToVault(amountToWithdraw);
+      const tx = await strategy
+        .connect(manager)
+        .withdrawToVault(amountToWithdraw);
 
       expect(await underlying.balanceOf(strategy.address)).to.eq(0);
       expect(await underlying.balanceOf(vault.address)).to.eq(amountToWithdraw);
       expect(await crabNetting.usdBalance(strategy.address)).to.eq(
         parseUSDC('20'),
       );
+      await expect(tx)
+        .to.emit(strategy, 'StrategyWithdrawn')
+        .withArgs(amountToWithdraw);
     });
 
     it('withdraws from crab if usdc balance and queued deposit are 0', async () => {
@@ -570,7 +559,7 @@ describe('OpynCrabStrategy', () => {
       await strategy.connect(keeper).queueUSDC(initialBalance.div(4));
       await strategy
         .connect(keeper)
-        .swapAndFlashDeposit(
+        .flashDeposit(
           initialBalance.div(2),
           parseUnits('500'),
           parseUnits('500'),
@@ -598,16 +587,6 @@ describe('OpynCrabStrategy', () => {
         .to.emit(strategy, 'StrategyWithdrawn')
         .withArgs(amountToWithdraw);
     });
-
-    it('emits StrategyWithdrawn event', async () => {});
-  });
-
-  describe('#swapAndFlashDeposit', () => {
-    it('reverts if the caller is not keeper', async () => {
-      await expect(
-        strategy.connect(admin).swapAndFlashDeposit(0, 0, 0),
-      ).to.be.revertedWith('StrategyCallerNotKeeper');
-    });
   });
 
   describe('#getCrabFairPrice', async () => {
@@ -620,6 +599,8 @@ describe('OpynCrabStrategy', () => {
 
       expect(crabPrice).to.eq(parseUnits('1'));
     });
+
+    // TODO: test with different prices ?
   });
 
   describe('#transferYield', () => {
@@ -638,12 +619,10 @@ describe('OpynCrabStrategy', () => {
     });
   });
 
-  describe('#swapUsdcForEth', () => {
+  describe('#flashDeposit', () => {
     it('reverts if the caller is not keeper', async () => {
       await expect(
-        strategy
-          .connect(admin)
-          .swapUsdcForEth(parseUSDC('1000'), parseUnits('1')),
+        strategy.connect(admin).flashDeposit(0, 0, 0),
       ).to.be.revertedWith('StrategyCallerNotKeeper');
     });
 
@@ -651,7 +630,7 @@ describe('OpynCrabStrategy', () => {
       await expect(
         strategy
           .connect(keeper)
-          .swapUsdcForEth(parseUSDC('1000'), parseUnits('1')),
+          .flashDeposit(parseUSDC('1000'), parseUnits('1'), parseUnits('1')),
       ).to.be.revertedWith('StrategyNoUnderlying');
     });
 
@@ -659,8 +638,9 @@ describe('OpynCrabStrategy', () => {
       await underlying.mint(strategy.address, parseUSDC('10000'));
 
       await expect(
-        strategy.connect(keeper).swapUsdcForEth(
+        strategy.connect(keeper).flashDeposit(
           0, // amount
+          parseUnits('1'),
           parseUnits('1'),
         ),
       ).to.be.revertedWith('StrategyAmountZero');
@@ -671,71 +651,46 @@ describe('OpynCrabStrategy', () => {
       const amount = await underlying.balanceOf(strategy.address);
 
       await expect(
-        strategy.connect(keeper).swapUsdcForEth(
+        strategy.connect(keeper).flashDeposit(
           amount.add(1), // > balance
+          parseUnits('1'),
           parseUnits('1'),
         ),
       ).to.be.revertedWith('StrategyAmountTooHigh');
     });
 
-    it('executes the swap', async () => {
-      await underlying.mint(strategy.address, parseUSDC('10000'));
-
-      await swapRouter.setExchageRate(
-        underlying.address,
-        weth.address,
-        parseUnits('0.001', '30'), // account for 12 decimals difference between USDC and ETH
-      );
+    it('receives crab on sucessfull deposit', async () => {
+      const usdcAmount = parseUSDC('100');
+      const ethAmountOutMin = parseUnits('100');
+      const ethToBorrow = parseUnits('100');
+      await underlying.mint(strategy.address, usdcAmount);
 
       await strategy
         .connect(keeper)
-        .swapUsdcForEth(parseUSDC('1000'), parseUnits('1'));
-
-      expect(await underlying.balanceOf(strategy.address)).to.eq(
-        parseUSDC('9000'),
-      );
-      expect(await strategy.investedAssets()).to.eq(parseUSDC('9000'));
-      expect(await getETHBalance(strategy.address)).to.eq(parseUnits('1'));
-    });
-
-    it('reverts if the amount out is less than min expeected', async () => {
-      await underlying.mint(strategy.address, parseUSDC('10000'));
-
-      await expect(
-        strategy
-          .connect(keeper)
-          .swapUsdcForEth(parseUSDC('1'), parseUnits('1').add('1')),
-      ).to.be.reverted;
-    });
-  });
-
-  describe('#flashDeposit', () => {
-    it('reverts if the caller is not keeper', async () => {
-      await expect(
-        strategy.connect(admin).flashDeposit(parseUnits('1'), parseUnits('1')),
-      ).to.be.revertedWith('StrategyCallerNotKeeper');
-    });
-
-    it('reverts if eth amount is greater than eth balance', async () => {
-      const ethBalance = parseUnits('1');
-      await setBalance(strategy.address, ethBalance);
-
-      await expect(
-        strategy
-          .connect(keeper)
-          .flashDeposit(ethBalance.add(1), parseUnits('1')),
-      ).to.be.revertedWith('StrategyEthAmountTooHigh');
-    });
-
-    it('receives crab on sucessfull deposit', async () => {
-      const ethBalance = parseUnits('1');
-      const ethToBorrow = parseUnits('1');
-      await setBalance(strategy.address, ethBalance);
-
-      await strategy.connect(keeper).flashDeposit(ethBalance, ethToBorrow);
+        .flashDeposit(usdcAmount, ethAmountOutMin, ethToBorrow);
 
       expect(await crabStrategyV2.balanceOf(strategy.address)).to.eq(
-        parseUnits('1'),
+        parseUnits('100'),
+      );
+      expect(await getETHBalance(strategy.address)).to.eq(0);
+    });
+
+    it('swaps eth leftovers after flash deposit into usdc', async () => {
+      // with this setup we expect 5 eth leftovers after flash deposit
+      const usdcAmount = parseUSDC('100');
+      const ethAmountOutMin = parseUnits('100');
+      const ethToBorrow = parseUnits('90');
+      await underlying.mint(strategy.address, usdcAmount);
+
+      await strategy
+        .connect(keeper)
+        .flashDeposit(usdcAmount, ethAmountOutMin, ethToBorrow);
+
+      expect(await crabStrategyV2.balanceOf(strategy.address)).to.eq(
+        parseUnits('95'),
+      );
+      expect(await underlying.balanceOf(strategy.address)).to.eq(
+        parseUSDC('5'),
       );
       expect(await getETHBalance(strategy.address)).to.eq(0);
     });
@@ -765,18 +720,20 @@ describe('OpynCrabStrategy', () => {
     });
 
     it('withdraws from the crab strategy', async () => {
-      await crabStrategyV2.initialize(parseUnits('5'), {
-        value: parseUnits('10'),
+      const usdcAmount = parseUSDC('10');
+      const ethAmount = parseUnits('10');
+      const ethToBorrow = parseUnits('10');
+      await underlying.mint(strategy.address, usdcAmount);
+      await crabStrategyV2.initialize(parseUnits('50'), {
+        value: parseUnits('100'),
       });
 
-      const ethAmount = parseUnits('1');
-      const ethToBorrow = parseUnits('1');
-      await setBalance(strategy.address, ethAmount);
-
-      await strategy.connect(keeper).flashDeposit(ethAmount, ethToBorrow);
+      await strategy
+        .connect(keeper)
+        .flashDeposit(usdcAmount, ethAmount, ethToBorrow);
 
       const crabBalance = await crabStrategyV2.balanceOf(strategy.address);
-      const maxEthToRepayDebt = parseUnits('2');
+      const maxEthToRepayDebt = parseUnits('10');
 
       await strategy
         .connect(keeper)
@@ -784,20 +741,22 @@ describe('OpynCrabStrategy', () => {
 
       expect(await crabStrategyV2.balanceOf(strategy.address)).to.eq(0);
       expect(await underlying.balanceOf(strategy.address)).to.eq(
-        parseUSDC('1'),
+        parseUSDC('10'),
       );
     });
 
     it('withdraws more if debt vaule reduces because short oSqth position generates value', async () => {
-      await crabStrategyV2.initialize(parseUnits('5'), {
-        value: parseUnits('10'),
+      const usdcAmount = parseUSDC('10');
+      const ethAmount = parseUnits('10');
+      const ethToBorrow = parseUnits('10');
+      await underlying.mint(strategy.address, usdcAmount);
+      await crabStrategyV2.initialize(parseUnits('50'), {
+        value: parseUnits('100'),
       });
 
-      const ethAmount = parseUnits('1');
-      const ethToBorrow = parseUnits('1');
-      await setBalance(strategy.address, ethAmount);
-
-      await strategy.connect(keeper).flashDeposit(ethAmount, ethToBorrow);
+      await strategy
+        .connect(keeper)
+        .flashDeposit(usdcAmount, ethAmount, ethToBorrow);
 
       const totalDebt = await crabStrategyV2.totalDebt();
       // reduce debt by 20%

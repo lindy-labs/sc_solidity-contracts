@@ -33,14 +33,6 @@ contract OpynCrabStrategy is BaseStrategy {
     error StrategyUsdcWethPoolCannotBe0Address();
     error StrategyWethOSqthPoolCannotBe0Address();
     error StrategyAmountTooHigh();
-    error StrategyEthAmountTooHigh();
-
-    /**
-     * Emmited when #invest is called by the vault.
-     *
-     * @param newBalance The new USDC balance of the strategy.
-     */
-    event StrategyDeposited(uint256 newBalance);
 
     uint32 public constant TWAP_PERIOD = 420 seconds; // TODO: make configurable
 
@@ -67,21 +59,21 @@ contract OpynCrabStrategy is BaseStrategy {
         IUniswapV3Pool _usdcWethPool,
         IUniswapV3Pool _wethOSqthPool
     ) BaseStrategy(_vault, _underlying, _admin) {
-        if (is0Address(_keeper)) revert StrategyKeeperCannotBe0Address();
-        if (is0Address(address(_weth))) revert StrategyWethCannotBe0Address();
-        if (is0Address(address(_oSqth)))
+        if (_is0Address(_keeper)) revert StrategyKeeperCannotBe0Address();
+        if (_is0Address(address(_weth))) revert StrategyWethCannotBe0Address();
+        if (_is0Address(address(_oSqth)))
             revert StrategySqueethCannotBe0Address();
-        if (is0Address(address(_crabStrategy)))
+        if (_is0Address(address(_crabStrategy)))
             revert StrategyCrabStrategyCannotBe0Address();
-        if (is0Address(address(_crabNetting)))
+        if (_is0Address(address(_crabNetting)))
             revert StrategyCrabNettingCannotBe0Address();
-        if (is0Address(address(_swapRouter)))
+        if (_is0Address(address(_swapRouter)))
             revert StrategySwapRouterCannotBe0Address();
-        if (is0Address(address(_oracle)))
+        if (_is0Address(address(_oracle)))
             revert StrategyOracleCannotBe0Address();
-        if (is0Address(address(_usdcWethPool)))
+        if (_is0Address(address(_usdcWethPool)))
             revert StrategyUsdcWethPoolCannotBe0Address();
-        if (is0Address(address(_wethOSqthPool)))
+        if (_is0Address(address(_wethOSqthPool)))
             revert StrategyWethOSqthPoolCannotBe0Address();
 
         _grantRole(KEEPER_ROLE, _keeper);
@@ -94,10 +86,6 @@ contract OpynCrabStrategy is BaseStrategy {
         oracle = _oracle;
         usdcWethPool = _usdcWethPool;
         wethOSqthPool = _wethOSqthPool;
-    }
-
-    function is0Address(address _address) internal pure returns (bool) {
-        return _address == address(0);
     }
 
     //
@@ -118,7 +106,7 @@ contract OpynCrabStrategy is BaseStrategy {
         returns (bool)
     {
         return
-            getUsdcBalance() > 0 ||
+            _getUsdcBalance() > 0 ||
             crabStrategyV2.balanceOf(address(this)) > 0 ||
             crabNetting.usdBalance(address(this)) > 0 ||
             crabNetting.crabBalance(address(this)) > 0;
@@ -132,7 +120,7 @@ contract OpynCrabStrategy is BaseStrategy {
         override(IStrategy)
         returns (uint256)
     {
-        uint256 usdcBalance = getUsdcBalance();
+        uint256 usdcBalance = _getUsdcBalance();
         uint256 crabBalance = crabStrategyV2.balanceOf(address(this));
         uint256 usdcPendingDeposit = crabNetting.usdBalance(address(this));
         uint256 crabPendingWithdraw = crabNetting.crabBalance(address(this));
@@ -150,7 +138,7 @@ contract OpynCrabStrategy is BaseStrategy {
 
     /// @inheritdoc IStrategy
     function invest() external virtual override(IStrategy) onlyManager {
-        emit StrategyDeposited(getUsdcBalance());
+        emit StrategyInvested(_getUsdcBalance());
     }
 
     /// @inheritdoc IStrategy
@@ -158,72 +146,44 @@ contract OpynCrabStrategy is BaseStrategy {
         uint256 _amount
     ) external virtual override(IStrategy) onlyManager returns (uint256) {
         if (_amount == 0) revert StrategyAmountZero();
-        // TODO: check if amount could be deducted from usdc balance & crab netting
+        if (_amount > investedAssets()) revert StrategyNotEnoughShares();
 
-        uint256 initialUsdcBalance = getUsdcBalance();
+        uint256 initialUsdcBalance = _getUsdcBalance();
+        uint256 amountRemaining = _amount;
 
-        if (_amount <= initialUsdcBalance) {
-            // withdraw immediately from usdc balance
-            underlying.transfer(vault, _amount);
-            return _amount;
+        if (initialUsdcBalance > 0) {
+            if (_amount <= initialUsdcBalance) {
+                // withdraw immediately from usdc balance
+                _transferUsdcToVault(_amount);
+                return _amount;
+            }
+
+            amountRemaining = _amount - initialUsdcBalance;
         }
-
-        uint256 amountRemaining = _amount - getUsdcBalance();
 
         uint256 queuedDeposit = crabNetting.usdBalance(address(this));
 
-        if (amountRemaining <= queuedDeposit) {
-            // withdraw immediately from queued deposit
-            crabNetting.withdrawUSDC(amountRemaining, true);
-            underlying.transfer(vault, _amount);
-            return _amount;
-        }
-
-        // withdraw what is possible from queued deposit
         if (queuedDeposit > 0) {
+            if (amountRemaining <= queuedDeposit) {
+                // withdraw immediately from queued deposit
+                crabNetting.withdrawUSDC(amountRemaining, true);
+                _transferUsdcToVault(_amount);
+                return _amount;
+            }
+
+            // withdraw what is possible from queued deposit
             crabNetting.withdrawUSDC(queuedDeposit, true);
             amountRemaining -= queuedDeposit;
         }
 
-        // withdraw remaining amount from the crab strategy
-        uint256 crabBalance = crabStrategyV2.balanceOf(address(this));
-        uint256 crabToWithdraw = (amountRemaining * 1e18 * 1e12) / // account for 12 decimals difference
-            getCrabFairPrice();
-
-        if (crabToWithdraw > crabBalance) crabToWithdraw = crabBalance;
-
-        uint256 squeethPriceInWeth = getOraclePrice(
-            address(wethOSqthPool),
-            oSqth,
-            weth
-        );
-
-        uint256 debtCostInEth = (crabStrategyV2.getWsqueethFromCrabAmount(
-            crabToWithdraw
-        ) * squeethPriceInWeth) / 1e18;
-
-        // max amount of eth to used to repay short squeeth position which has to be done to release collateral in the crab strategy.
-        // this has to be grater than debt cost in eth to account for fees and slippage when swapping eth for squeeth
-        uint256 maxEthToPayDebt = debtCostInEth.pctOf(10100); // 1% more to cover pool fees & slippage
-
-        crabStrategyV2.flashWithdraw(
-            crabToWithdraw,
-            maxEthToPayDebt,
-            wethOSqthPool.fee()
-        );
-
-        uint256 amountWithdrawnFromCrab = swapEthToUSDC(
-            getEthBalance(),
-            amountRemaining.pctOf(9900)
-        );
-
-        uint256 totalUsdcWithdrawn = _amount -
+        uint256 amountWithdrawnFromCrab = _withdrawFromCrab(amountRemaining);
+        uint256 amountToTransfer = _amount -
             amountRemaining +
             amountWithdrawnFromCrab;
-        underlying.transfer(vault, totalUsdcWithdrawn);
-        emit StrategyWithdrawn(totalUsdcWithdrawn);
 
-        return totalUsdcWithdrawn;
+        _transferUsdcToVault(amountToTransfer);
+
+        return amountToTransfer;
     }
 
     /// @inheritdoc IStrategy
@@ -238,53 +198,31 @@ contract OpynCrabStrategy is BaseStrategy {
     // External API
     //
 
-    function getUsdcBalance() public view returns (uint256) {
-        return underlying.balanceOf(address(this));
-    }
-
-    function getEthBalance() public view returns (uint256) {
-        return address(this).balance;
-    }
-
-    function swapAndFlashDeposit(
-        uint256 _usdcAmount,
-        uint256 _ethAmountOutMin, // amount of eth to receive from usdc -> eth swap
-        uint256 _ethAmountToBorrow
-    ) external {
-        swapUsdcForEth(_usdcAmount, _ethAmountOutMin);
-
-        flashDeposit(getEthBalance(), _ethAmountToBorrow);
-    }
-
     // @param _ethAmount amount of eth to send as msg.value in falshDeposit call
     // @param _ethAmountToBorrow amount of eth that will be borrowed in uni v3 flash swap
     function flashDeposit(
-        uint256 _ethAmount,
+        uint256 _usdcAmount,
+        uint256 _ethAmountOutMin, // amount of eth to receive from usdc -> eth swap
         uint256 _ethAmountToBorrow
-    ) public onlyKeeper {
+    ) external onlyKeeper {
+        uint256 ethAmount = _swapUsdcForEth(_usdcAmount, _ethAmountOutMin);
         // TODO: check the crab strategy collateral cap
-        uint256 ethBalance = getEthBalance();
-        if (_ethAmount > ethBalance) revert StrategyEthAmountTooHigh();
 
-        // NOTE: eth amount to borrow is hardcoded since it is impossible to get the precise estimate on-chain
-        // this is because the amount of eth to borrow depends on the amount of squeeth that will be minted (and used to repay the flas swap debt),
-        // which again depends on the total amount of eth to be deposited (borrowed + owned), a catch22 situation.
-        // Because of this, invest cannot directly deposit to the opyn crab strategy, but instead it has to rely on another function that will be called from backend.
-        // The backend must determine the amount of eth to borrow from uni v3 pool, and then call the flashDeposit function
-        crabStrategyV2.flashDeposit{value: _ethAmount}(
-            _ethAmount + _ethAmountToBorrow,
+        crabStrategyV2.flashDeposit{value: ethAmount}(
+            ethAmount + _ethAmountToBorrow,
             wethOSqthPool.fee()
         );
 
-        // swap eth leftovers to usdc
-        swapEthToUSDC(getEthBalance(), 0);
+        // note: it's ok to use 0 as min amount out because we are swapping leftovers
+        _swapEthForUSDC(_getEthBalance(), 0);
+        // TODO: emit event
     }
 
     function flashWithdraw(
         uint256 _crabAmount,
         uint256 _maxEthToPayForDebt,
         uint256 _usdcAmountOutMin
-    ) public onlyKeeper {
+    ) external onlyKeeper {
         if (_crabAmount == 0) revert StrategyAmountZero();
 
         uint256 crabBalance = crabStrategyV2.balanceOf(address(this));
@@ -300,12 +238,12 @@ contract OpynCrabStrategy is BaseStrategy {
             wethOSqthPool.fee()
         );
 
-        swapEthToUSDC(getEthBalance(), _usdcAmountOutMin);
+        _swapEthForUSDC(_getEthBalance(), _usdcAmountOutMin);
     }
 
     function queueUSDC(uint256 _amount) external onlyKeeper {
         if (_amount == 0) revert StrategyAmountZero();
-        uint256 usdcBalance = getUsdcBalance();
+        uint256 usdcBalance = _getUsdcBalance();
 
         if (_amount > usdcBalance) revert StrategyAmountTooHigh();
 
@@ -378,13 +316,89 @@ contract OpynCrabStrategy is BaseStrategy {
             );
     }
 
-    function swapUsdcForEth(
+    receive() external payable {}
+
+    /// Internal functions
+
+    function _is0Address(address _address) internal pure returns (bool) {
+        return _address == address(0);
+    }
+
+    function _getUsdcBalance() internal view returns (uint256) {
+        return underlying.balanceOf(address(this));
+    }
+
+    function _getEthBalance() internal view returns (uint256) {
+        return address(this).balance;
+    }
+
+    function _transferUsdcToVault(uint256 _amount) internal {
+        underlying.transfer(vault, _amount);
+        emit StrategyWithdrawn(_amount);
+    }
+
+    function _withdrawFromCrab(uint256 _amount) internal returns (uint256) {
+        // withdraw remaining amount from the crab strategy
+        uint256 crabBalance = crabStrategyV2.balanceOf(address(this));
+        uint256 crabToWithdraw = (_amount * 1e18 * 1e12) / getCrabFairPrice(); // account for 12 decimals difference
+
+        // round down to avoid reverts
+        if (crabToWithdraw > crabBalance) crabToWithdraw = crabBalance;
+
+        uint256 squeethPriceInWeth = getOraclePrice(
+            address(wethOSqthPool),
+            oSqth,
+            weth
+        );
+
+        uint256 debtCostInEth = (crabStrategyV2.getWsqueethFromCrabAmount(
+            crabToWithdraw
+        ) * squeethPriceInWeth) / 1e18;
+
+        // max amount of eth to used to repay short squeeth position which has to be done to release collateral in the crab strategy.
+        // this has to be grater than debt cost in eth to account for fees and slippage when swapping eth for squeeth
+        uint256 maxEthToPayDebt = debtCostInEth.pctOf(10100); // 1% more to cover pool fees & slippage
+
+        crabStrategyV2.flashWithdraw(
+            crabToWithdraw,
+            maxEthToPayDebt,
+            wethOSqthPool.fee()
+        );
+
+        return _swapEthForUSDC(_getEthBalance(), _amount.pctOf(9900));
+    }
+
+    function _swapEthForUSDC(
+        uint256 _ethAmount,
+        uint256 _usdcAmountOutMin
+    ) internal returns (uint256) {
+        if (_ethAmount == 0) return 0;
+
+        ISwapRouter.ExactInputSingleParams memory params = ISwapRouter
+            .ExactInputSingleParams({
+                tokenIn: address(weth),
+                tokenOut: address(underlying),
+                fee: usdcWethPool.fee(),
+                recipient: address(this),
+                deadline: block.timestamp,
+                amountIn: _ethAmount,
+                amountOutMinimum: _usdcAmountOutMin,
+                sqrtPriceLimitX96: 0
+            });
+
+        weth.deposit{value: _ethAmount}();
+        weth.approve(address(swapRouter), _ethAmount);
+
+        return swapRouter.exactInputSingle(params);
+    }
+
+    function _swapUsdcForEth(
         uint256 _usdcAmount,
         uint256 _ethAmountOutMin
-    ) public onlyKeeper returns (uint256) {
+    ) internal returns (uint256) {
         if (_usdcAmount == 0) revert StrategyAmountZero();
 
-        uint256 usdcBalance = getUsdcBalance();
+        uint256 usdcBalance = _getUsdcBalance();
         if (usdcBalance == 0) revert StrategyNoUnderlying();
         if (_usdcAmount > usdcBalance) revert StrategyAmountTooHigh();
 
@@ -408,30 +422,4 @@ contract OpynCrabStrategy is BaseStrategy {
 
         return amountOut;
     }
-
-    function swapEthToUSDC(
-        uint256 _ethAmount,
-        uint256 _usdcAmountOutMin
-    ) public returns (uint256) {
-        if (_ethAmount == 0) return 0;
-
-        ISwapRouter.ExactInputSingleParams memory params = ISwapRouter
-            .ExactInputSingleParams({
-                tokenIn: address(weth),
-                tokenOut: address(underlying),
-                fee: usdcWethPool.fee(),
-                recipient: address(this),
-                deadline: block.timestamp,
-                amountIn: _ethAmount,
-                amountOutMinimum: _usdcAmountOutMin,
-                sqrtPriceLimitX96: 0
-            });
-
-        weth.deposit{value: _ethAmount}();
-        weth.approve(address(swapRouter), _ethAmount);
-
-        return swapRouter.exactInputSingle(params);
-    }
-
-    receive() external payable {}
 }
