@@ -340,13 +340,8 @@ contract OpynCrabStrategy is BaseStrategy {
         emit StrategyWithdrawn(_amount);
     }
 
-    function _withdrawFromCrab(uint256 _amount) internal returns (uint256) {
-        // withdraw remaining amount from the crab strategy
-        uint256 crabBalance = crabStrategyV2.balanceOf(address(this));
-        uint256 crabToWithdraw = (_amount * 1e18 * 1e12) / getCrabFairPrice(); // account for 12 decimals difference
-
-        // round down to avoid reverts
-        if (crabToWithdraw > crabBalance) crabToWithdraw = crabBalance;
+    function _withdrawFromCrab(uint256 _usdcAmount) internal returns (uint256) {
+        uint256 crabToWithdraw = _getCrabToWithdraw(_usdcAmount);
 
         uint256 squeethPriceInWeth = getTwapFromOracle(
             address(wethOSqthPool),
@@ -354,13 +349,13 @@ contract OpynCrabStrategy is BaseStrategy {
             weth
         );
 
-        uint256 debtCostInEth = (crabStrategyV2.getWsqueethFromCrabAmount(
-            crabToWithdraw
-        ) * squeethPriceInWeth) / 1e18;
+        uint256 squeethDebtCostInEth = (crabStrategyV2
+            .getWsqueethFromCrabAmount(crabToWithdraw) * squeethPriceInWeth) /
+            1e18;
 
         // max amount of eth to used to repay short squeeth position which has to be done to release collateral in the crab strategy.
         // this has to be grater than debt cost in eth to account for fees and slippage when swapping eth for squeeth
-        uint256 maxEthToPayDebt = debtCostInEth.pctOf(10100); // 1% more to cover pool fees & slippage
+        uint256 maxEthToPayDebt = squeethDebtCostInEth.pctOf(10100); // 1% more to cover pool fees & slippage
 
         crabStrategyV2.flashWithdraw(
             crabToWithdraw,
@@ -368,7 +363,27 @@ contract OpynCrabStrategy is BaseStrategy {
             wethOSqthPool.fee()
         );
 
-        return _swapEthForUSDC(_getEthBalance(), _amount.pctOf(9900));
+        return _swapEthForUSDC(_getEthBalance(), _usdcAmount.pctOf(9900));
+    }
+
+    function _getCrabToWithdraw(
+        uint256 _usdcAmount
+    ) internal returns (uint256) {
+        // account for 12 decimals difference between usdc and crab
+        uint256 crabNeeded = (_usdcAmount * 1e18 * 1e12) / getCrabFairPrice();
+        uint256 crabBalance = crabStrategyV2.balanceOf(address(this));
+
+        if (crabNeeded <= crabBalance) return crabNeeded;
+
+        uint256 crabQueued = crabNetting.crabBalance(address(this));
+        uint256 crabToDequeue = crabNeeded - crabBalance;
+
+        // round down to avoid reverts
+        if (crabToDequeue > crabQueued) crabToDequeue = crabQueued;
+
+        crabNetting.dequeueCrab(crabToDequeue, true);
+
+        return crabBalance + crabToDequeue;
     }
 
     function _swapEthForUSDC(
