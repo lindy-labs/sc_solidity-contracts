@@ -16,6 +16,8 @@ import {ICrabStrategyV2} from "../../interfaces/opyn/ICrabStrategyV2.sol";
 import {ICrabNetting} from "../../interfaces/opyn/ICrabNetting.sol";
 import {IWETH} from "../../interfaces/IWETH.sol";
 
+import "hardhat/console.sol";
+
 contract OpynCrabStrategy is BaseStrategy {
     using PercentMath for uint256;
     using ERC165Query for address;
@@ -31,7 +33,8 @@ contract OpynCrabStrategy is BaseStrategy {
     error StrategyAmountTooHigh();
     error StrategyCollateralCapReached();
 
-    uint32 public constant TWAP_PERIOD = 420 seconds; // TODO: make configurable
+    uint32 public constant TWAP_PERIOD = 50 seconds; // TODO: make configurable
+    // TODO add slippages
 
     IWETH public weth;
     IERC20 public oSqth;
@@ -342,20 +345,10 @@ contract OpynCrabStrategy is BaseStrategy {
 
     function _withdrawFromCrab(uint256 _usdcAmount) internal returns (uint256) {
         uint256 crabToWithdraw = _getCrabToWithdraw(_usdcAmount);
-
-        uint256 squeethPriceInWeth = getTwapFromOracle(
-            address(wethOSqthPool),
-            oSqth,
-            weth
+        uint256 squeethDebt = crabStrategyV2.getWsqueethFromCrabAmount(
+            crabToWithdraw
         );
-
-        uint256 squeethDebtCostInEth = (crabStrategyV2
-            .getWsqueethFromCrabAmount(crabToWithdraw) * squeethPriceInWeth) /
-            1e18;
-
-        // max amount of eth to used to repay short squeeth position which has to be done to release collateral in the crab strategy.
-        // this has to be grater than debt cost in eth to account for fees and slippage when swapping eth for squeeth
-        uint256 maxEthToPayDebt = squeethDebtCostInEth.pctOf(10100); // 1% more to cover pool fees & slippage
+        uint256 maxEthToPayDebt = _getMaxEthToPaySqueethDebt(squeethDebt);
 
         crabStrategyV2.flashWithdraw(
             crabToWithdraw,
@@ -363,7 +356,34 @@ contract OpynCrabStrategy is BaseStrategy {
             wethOSqthPool.fee()
         );
 
-        return _swapEthForUSDC(_getEthBalance(), _usdcAmount.pctOf(9900));
+        return _swapEthForUSDC(_getEthBalance(), _usdcAmount.pctOf(900));
+    }
+
+    function _getMaxEthToPaySqueethDebt(
+        uint256 _squeethDebt
+    ) internal view returns (uint256) {
+        uint256 squeethPriceInWeth = getTwapFromOracle(
+            address(wethOSqthPool),
+            oSqth,
+            weth
+        );
+
+        uint256 squeethDebtCostInEth = (_squeethDebt * squeethPriceInWeth) /
+            1e18;
+
+        // when paying off the squeeth debt, we need to account for the slipage
+        // exact amount of squeeth is taken from the pool in the flash swap and payed off with eth collateral taken out from the strategy
+        // since sqeeth is the output token, slippage affects the eth amount we put in
+        // squeeth_out = eth_in * (1 - slippage) / squeeth_price
+        // eth_in = squeeth_out * squeeth_price / (1 - slippage)
+        return (squeethDebtCostInEth * 10000) / (10000 - 300);
+    }
+
+    function _calculateUsdcMinAmountOut(
+        uint256 _amountIn,
+        uint32 _fee
+    ) internal returns (uint256) {
+        // return _amountIn.pctOf(10000 - _fee);
     }
 
     function _getCrabToWithdraw(

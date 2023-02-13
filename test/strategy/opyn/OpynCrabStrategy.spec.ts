@@ -588,10 +588,10 @@ describe('OpynCrabStrategy', () => {
       await strategy.connect(keeper).queueCrab(parseUnits('250'));
 
       expect(await underlying.balanceOf(strategy.address)).to.eq(
-        initialBalance.div(4),
+        parseUSDC('250'),
       );
       expect(await crabNetting.usdBalance(strategy.address)).to.eq(
-        initialBalance.div(4),
+        parseUSDC('250'),
       );
       expect(await crabStrategyV2.balanceOf(strategy.address)).to.eq(
         parseUnits('250'),
@@ -601,17 +601,17 @@ describe('OpynCrabStrategy', () => {
       );
       expect(await strategy.investedAssets()).to.eq(initialBalance);
 
-      // withdraw 3/4 of initial balance leving invested in crab 1/4 of initial balance
-      const amountToWithdraw = initialBalance.mul(3).div(4);
+      const amountToWithdraw = parseUSDC('800');
+      // should withdraw 250 from usdc balance, 250 from queued usdc, 250 from crab balance and 50 from queued crab
       const tx = await strategy
         .connect(manager)
         .withdrawToVault(amountToWithdraw);
 
       expect(await crabNetting.crabBalance(strategy.address)).to.eq(
-        parseUnits('250'),
+        parseUnits('200'),
       );
       expect(await underlying.balanceOf(vault.address)).to.eq(amountToWithdraw);
-      expect(await strategy.investedAssets()).to.eq(initialBalance.div(4));
+      expect(await strategy.investedAssets()).to.eq(parseUSDC('200'));
 
       expect(await underlying.balanceOf(strategy.address)).to.eq(0);
       expect(await crabNetting.usdBalance(strategy.address)).to.eq(0);
