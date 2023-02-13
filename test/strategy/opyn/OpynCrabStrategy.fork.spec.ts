@@ -3,16 +3,13 @@ import { BigNumber, utils } from 'ethers';
 import { ethers } from 'hardhat';
 import { expect } from 'chai';
 import { time } from '@openzeppelin/test-helpers';
-import { Pool } from '@uniswap/v3-sdk';
-import { Token, CurrencyAmount } from '@uniswap/sdk-core';
-import { abi as IUniswapV3PoolABI } from '@uniswap/v3-core/artifacts/contracts/interfaces/IUniswapV3Pool.sol/IUniswapV3Pool.json';
 
 import {
   ForkHelpers,
   generateNewAddress,
-  depositParams,
   parseUSDC,
-  claimParams,
+  getETHBalance,
+  moveForwardTwoWeeks,
 } from '../../shared';
 
 import {
@@ -24,6 +21,10 @@ import {
   ICrabStrategyV2__factory,
   ICrabNetting,
   ICrabNetting__factory,
+  IOracle,
+  IOracle__factory,
+  IUniswapV3Pool,
+  IUniswapV3Pool__factory,
 } from '../../../typechain';
 
 const { parseUnits } = ethers.utils;
@@ -38,10 +39,11 @@ describe('Opyn Crab Strategy (mainnet fork tests)', () => {
   let weth: ERC20;
   let osqth: ERC20;
   let strategy: OpynCrabStrategy;
-  let wethUsdcUniV3Pool: Pool;
-  let wethOsqthUniV3Pool: Pool;
+  let usdcWethPool: IUniswapV3Pool;
+  let wethOsqthPool: IUniswapV3Pool;
   let crabStrategyV2: ICrabStrategyV2;
   let crabNetting: ICrabNetting;
+  let oracle: IOracle;
 
   const TWO_WEEKS = time.duration.days(14).toNumber();
   const INVEST_PCT = 10000; // set 100% for test
@@ -55,13 +57,12 @@ describe('Opyn Crab Strategy (mainnet fork tests)', () => {
   const WETH = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
   const oSQTH = '0xf1B99e3E573A1a9C5E6B2Ce818b617F0E664E86B'; // squeeth
   const CRAB_STRATEGY_V2 = '0x3B960E47784150F5a63777201ee2B15253D713e8'; // Opyn CrabStrategyV2
-  const CRAB_HELPER = '0x2F55e27E669F070dEf7B5771dB72f6B31A6d4df8'; // Opyn CrabHelper
   const CRAB_NETTING = '0x6E536adDB53d1b47d357cdca83BCF460194A395F';
-  const OWNER_CRAB_NETTING = '0xAfE66363c27EedB597a140c28B70b32F113fd5a8';
+  const CRAB_NETTING_OWNER = '0xAfE66363c27EedB597a140c28B70b32F113fd5a8';
   const WETH_oSQTH_UNISWAP_POOL = '0x82c427AdFDf2d245Ec51D8046b41c4ee87F0d29C';
   const USDC_WETH_UNISWAP_POOL = '0x88e6A0c2dDD26FEEb64F039a2c41296FcB3f5640';
   const UNISWAP_SWAP_ROUTER = '0xE592427A0AEce92De3Edee1F18E0157C05861564';
-  const ORACLE = '0x65D66c76447ccB45dAf1e8044e918fA786A483A1';
+  const ORACLE = '0x65D66c76447ccB45dAf1e8044e918fA786A483A1'; // implemented by Opyn
 
   beforeEach(async () => {
     // await ForkHelpers.forkToMainnet(16094470);
@@ -75,6 +76,15 @@ describe('Opyn Crab Strategy (mainnet fork tests)', () => {
 
     crabStrategyV2 = ICrabStrategyV2__factory.connect(CRAB_STRATEGY_V2, admin);
     crabNetting = ICrabNetting__factory.connect(CRAB_NETTING, admin);
+    oracle = IOracle__factory.connect(ORACLE, admin);
+    usdcWethPool = IUniswapV3Pool__factory.connect(
+      USDC_WETH_UNISWAP_POOL,
+      admin,
+    );
+    wethOsqthPool = IUniswapV3Pool__factory.connect(
+      WETH_oSQTH_UNISWAP_POOL,
+      admin,
+    );
 
     const VaultFactory = await ethers.getContractFactory('Vault');
 
@@ -116,76 +126,176 @@ describe('Opyn Crab Strategy (mainnet fork tests)', () => {
     await strategy.connect(admin).grantRole(MANAGER_ROLE, admin.address);
   });
 
-  describe('#invest', () => {
-    it('#invest -> #investedAssets -> #withdrawToVault', async () => {
+  describe('#flashDeposit', () => {
+    it('deposits to crab', async () => {
       const depositAmount = parseUSDC('10000');
       const minEthAmount = '5999366505836873648';
-      const ethToBorrow = '6560000000000000000';
+      const ethToBorrow = '6568963540410773159'; // determined with error 1e12 // 68132737275
       await ForkHelpers.mintToken(usdc, strategy.address, depositAmount);
-
-      await strategy.invest();
-      await strategy.flashDeposit(depositAmount, minEthAmount, ethToBorrow);
-
-      const invested = await strategy.investedAssets();
-      expect(invested).to.gt(parseUSDC('9600')); // with fees & slippage taken from 10000
-
-      await strategy.withdrawToVault(depositAmount);
-
-      expect(await usdc.balanceOf(strategy.address)).to.gt(parseUSDC('9300')); // fees & slippage included
-    });
-
-    it.only('#invest -> #withdrawToVault for half amount deposited', async () => {
-      const depositAmount = parseUSDC('10000');
-      const minEthAmount = '5999366505836873648';
-      const ethToBorrow = '6568960000000000000'; // f(collateralization ratio & pool fees); atm collateralization ratio 190.44%
-      await ForkHelpers.mintToken(usdc, strategy.address, depositAmount);
-
-      await strategy.invest();
 
       await strategy.flashDeposit(depositAmount, minEthAmount, ethToBorrow);
 
-      const x = await crabStrategyV2.getVaultDetails();
-      console.log('x', x);
-
-      await strategy.withdrawToVault(depositAmount.div(2));
-
-      console.log(
-        'env investedAssets',
-        (await strategy.investedAssets()).toString(),
-      );
-      expect(await usdc.balanceOf(vault.address)).to.gt(
-        parseUSDC('4980'), // fees & slippage included
+      expect(await crabStrategyV2.balanceOf(strategy.address)).to.eq(
+        '7652474754549369768',
       );
     });
 
-    it.only('#invest thru netting contract', async () => {
+    it('swaps any eth leftovers after depositing to usdc', async () => {
+      const depositAmount = parseUSDC('10000');
+      const minEthAmount = '5999366505836873648';
+      const ethToBorrow = parseUnits('5');
+      await ForkHelpers.mintToken(usdc, strategy.address, depositAmount);
+
+      await strategy.flashDeposit(depositAmount, minEthAmount, ethToBorrow);
+
+      expect(await crabStrategyV2.balanceOf(strategy.address)).to.eq(
+        '6697180468067257165',
+      );
+      expect(await usdc.balanceOf(strategy.address)).to.eq('1249013409'); // ~1249 usdc
+      expect(await getETHBalance(strategy.address)).to.eq('0'); // strategy shold not hold any eth
+    });
+
+    it('reverts when eth min amount out is greater than eth received from usdc->eth swap', async () => {
+      const depositAmount = parseUSDC('10000');
+      const minEthAmount = parseUnits('6');
+      const ethToBorrow = '6568960000000000000';
+      await ForkHelpers.mintToken(usdc, strategy.address, depositAmount);
+
+      await expect(
+        strategy.flashDeposit(depositAmount, minEthAmount, ethToBorrow),
+      ).to.be.revertedWith('Too little received'); // too little eth received from usdc->eth swap
+    });
+
+    it('reverts when eth borrowed in flash swap cannot be payed off with minted squeeth', async () => {
+      const depositAmount = parseUSDC('10000');
+      const minEthAmount = '5999366505836873648';
+      const ethToBorrow = parseUnits('7');
+      await ForkHelpers.mintToken(usdc, strategy.address, depositAmount);
+
+      await expect(
+        strategy.flashDeposit(depositAmount, minEthAmount, ethToBorrow),
+      ).to.be.reverted;
+    });
+  });
+
+  describe('#queueUSDC', () => {
+    it('queues usdc on crab netting contract', async () => {
       const depositAmount = parseUSDC('10000');
       await ForkHelpers.mintToken(usdc, strategy.address, depositAmount);
 
       await strategy.queueUSDC(depositAmount);
 
-      const deposited = await crabNetting.usdBalance(strategy.address);
+      expect(await usdc.balanceOf(strategy.address)).to.eq('0');
+      expect(await crabNetting.usdBalance(strategy.address)).to.eq(
+        depositAmount,
+      );
+    });
 
-      console.log('deposited\t', deposited.toString());
+    it('receives crab for queued usdc after netting out is done', async () => {
+      const depositAmount = parseUSDC('10000');
+      await ForkHelpers.mintToken(usdc, strategy.address, depositAmount);
 
+      await strategy.queueUSDC(depositAmount);
+
+      await ForkHelpers.impersonate([CRAB_NETTING_OWNER]);
+      const crabNettingOwner = await ethers.getSigner(CRAB_NETTING_OWNER);
+      await ForkHelpers.setBalance(CRAB_NETTING_OWNER, parseUnits('1'));
+
+      const crabFairPriceInUsdc = (await strategy.getCrabFairPrice()).div(1e12);
       const depositsQueued = await crabNetting.depositsQueued();
-      const withdrawsQueued = await crabNetting.withdrawsQueued();
-
-      await ForkHelpers.impersonate([OWNER_CRAB_NETTING]);
-      const crabNettingOwner = await ethers.getSigner(OWNER_CRAB_NETTING);
-      await ForkHelpers.setBalance(OWNER_CRAB_NETTING, parseUnits('1'));
-
-      const fairPrice = await strategy.getCrabFairPrice();
 
       await crabNetting
         .connect(crabNettingOwner)
-        .netAtPrice(fairPrice.div(1e12), depositsQueued);
+        .netAtPrice(crabFairPriceInUsdc, depositsQueued);
+
+      expect(await crabNetting.usdBalance(strategy.address)).to.eq('0');
+      expect(await crabStrategyV2.balanceOf(strategy.address)).to.eq(
+        '7694911087899411814',
+      );
+      expect(await strategy.investedAssets()).to.eq('10000000006');
+    });
+  });
+
+  describe('#queueCrab', () => {
+    it('queues crab on crab netting contract', async () => {
+      const depositAmount = parseUSDC('10000');
+      const minEthAmount = '5999366505836873648';
+      const ethToBorrow = '6568960000000000000';
+      await ForkHelpers.mintToken(usdc, strategy.address, depositAmount);
+      await strategy.flashDeposit(depositAmount, minEthAmount, ethToBorrow);
 
       const crabBalance = await crabStrategyV2.balanceOf(strategy.address);
+      await strategy.queueCrab(crabBalance);
 
-      console.log('crabBalance\t', crabBalance.toString());
+      expect(await crabNetting.crabBalance(strategy.address)).to.eq(
+        crabBalance,
+      );
+      expect(await crabStrategyV2.balanceOf(strategy.address)).to.eq('0');
+    });
+  });
 
-      await strategy.investedAssets();
+  describe('#flashWithdraw', () => {
+    it('withdraws from crab strategy and swaps to usdc', async () => {
+      const depositAmount = parseUSDC('10000');
+      const minEthAmount = '5999366505836873648';
+      const ethToBorrow = '6568963540410773159'; // determined with error 1e12
+      await ForkHelpers.mintToken(usdc, strategy.address, depositAmount);
+      await strategy.flashDeposit(depositAmount, minEthAmount, ethToBorrow);
+
+      const crabBalance = await crabStrategyV2.balanceOf(strategy.address);
+      const crabToWithdraw = crabBalance.div(2);
+
+      expect(await strategy.investedAssets()).to.eq('9944851551');
+
+      await strategy.flashWithdraw(crabToWithdraw, parseUnits('7'), '0');
+
+      expect(await crabStrategyV2.balanceOf(strategy.address)).to.eq(
+        crabBalance.div(2),
+      );
+      expect(await usdc.balanceOf(strategy.address)).to.eq('4966332922');
+      expect(await strategy.investedAssets()).to.eq('9938758641'); // decreased by ~6 usdc because of fees & slippage
+      expect(await getETHBalance(strategy.address)).to.eq('0'); // strategy shold not hold any eth
+    });
+
+    it('reverts when max eth to pay debt is too low', async () => {
+      const depositAmount = parseUSDC('10000');
+      const minEthAmount = '5999366505836873648';
+      const ethToBorrow = '6568963540410773159'; // determined with error 1e12
+      await ForkHelpers.mintToken(usdc, strategy.address, depositAmount);
+      await strategy.flashDeposit(depositAmount, minEthAmount, ethToBorrow);
+
+      const crabBalance = await crabStrategyV2.balanceOf(strategy.address);
+      const squeethDebt = await crabStrategyV2.getWsqueethFromCrabAmount(
+        crabBalance,
+      );
+      const maxEthToPayDebt = await strategy.calcMaxEthToPaySqueethDebt(
+        squeethDebt,
+      );
+      const insufficentMaxEthToPayDebt = maxEthToPayDebt.sub(parseUnits('1'));
+
+      await expect(
+        strategy.flashWithdraw(crabBalance, insufficentMaxEthToPayDebt, '0'),
+      ).to.be.revertedWith('amount in greater than max');
+    });
+
+    it('reverts when usdc amount out min is too low', async () => {
+      const depositAmount = parseUSDC('10000');
+      const minEthAmount = '5999366505836873648';
+      const ethToBorrow = '6568963540410773159'; // determined with error 1e12
+      await ForkHelpers.mintToken(usdc, strategy.address, depositAmount);
+      await strategy.flashDeposit(depositAmount, minEthAmount, ethToBorrow);
+
+      const crabBalance = await crabStrategyV2.balanceOf(strategy.address);
+      const actualUsdcAmountOut = BigNumber.from('9924024435');
+      const insufficientUsdcAmountOutMin = actualUsdcAmountOut.sub('1');
+
+      await expect(
+        strategy.flashWithdraw(
+          crabBalance,
+          parseUnits('7'),
+          insufficientUsdcAmountOutMin,
+        ),
+      ).to.be.revertedWith('Too little received');
     });
   });
 });

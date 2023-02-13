@@ -107,7 +107,7 @@ contract OpynCrabStrategy is BaseStrategy {
     {
         return
             _getUsdcBalance() > 0 ||
-            crabStrategyV2.balanceOf(address(this)) > 0 ||
+            _getCrabBalance() > 0 ||
             crabNetting.usdBalance(address(this)) > 0 ||
             crabNetting.crabBalance(address(this)) > 0;
     }
@@ -121,7 +121,7 @@ contract OpynCrabStrategy is BaseStrategy {
         returns (uint256)
     {
         uint256 usdcBalance = _getUsdcBalance();
-        uint256 crabBalance = crabStrategyV2.balanceOf(address(this));
+        uint256 crabBalance = _getCrabBalance();
         uint256 usdcQueued = crabNetting.usdBalance(address(this));
         uint256 crabQueued = crabNetting.crabBalance(address(this));
 
@@ -217,17 +217,16 @@ contract OpynCrabStrategy is BaseStrategy {
 
         // note: it's ok to use 0 as min amount out because we are swapping leftovers
         _swapEthForUSDC(_getEthBalance(), 0);
-        // TODO: emit event
     }
 
     function flashWithdraw(
         uint256 _crabAmount,
         uint256 _maxEthToPayForDebt,
-        uint256 _usdcAmountOutMin
+        uint256 _usdcAmountOutMin // amount of usdc to receive from eth -> usdc swap
     ) external onlyKeeper {
         if (_crabAmount == 0) revert StrategyAmountZero();
 
-        uint256 crabBalance = crabStrategyV2.balanceOf(address(this));
+        uint256 crabBalance = _getCrabBalance();
         if (crabBalance == 0 || crabBalance < _crabAmount)
             revert StrategyNotEnoughShares();
 
@@ -264,7 +263,7 @@ contract OpynCrabStrategy is BaseStrategy {
     function queueCrab(uint256 _amount) external onlyKeeper {
         if (_amount == 0) revert StrategyAmountZero();
 
-        uint256 crabBalance = crabStrategyV2.balanceOf(address(this));
+        uint256 crabBalance = _getCrabBalance();
 
         if (_amount > crabBalance) revert StrategyAmountTooHigh();
 
@@ -307,6 +306,26 @@ contract OpynCrabStrategy is BaseStrategy {
         return crabFairPrice;
     }
 
+    function calcMaxEthToPaySqueethDebt(
+        uint256 _squeethDebt
+    ) public view returns (uint256) {
+        uint256 squeethPriceInWeth = getTwapFromOracle(
+            address(wethOSqthPool),
+            oSqth,
+            weth
+        );
+
+        uint256 squeethDebtCostInEth = (_squeethDebt * squeethPriceInWeth) /
+            1e18;
+
+        // when paying off the squeeth debt, we need to account for the slipage
+        // exact amount of squeeth is taken from the pool in the flash swap and payed off with eth collateral taken out from the strategy
+        // since sqeeth is the output token, slippage affects the eth amount we put in
+        // squeeth_out = eth_in * (1 - slippage) / squeeth_price
+        // eth_in = squeeth_out * squeeth_price / (1 - slippage)
+        return (squeethDebtCostInEth * 10000) / (10000 - 300);
+    }
+
     function getTwapFromOracle(
         address _pool,
         IERC20 _base,
@@ -334,6 +353,10 @@ contract OpynCrabStrategy is BaseStrategy {
         return underlying.balanceOf(address(this));
     }
 
+    function _getCrabBalance() internal view returns (uint256) {
+        return crabStrategyV2.balanceOf(address(this));
+    }
+
     function _getEthBalance() internal view returns (uint256) {
         return address(this).balance;
     }
@@ -348,7 +371,7 @@ contract OpynCrabStrategy is BaseStrategy {
         uint256 squeethDebt = crabStrategyV2.getWsqueethFromCrabAmount(
             crabToWithdraw
         );
-        uint256 maxEthToPayDebt = _getMaxEthToPaySqueethDebt(squeethDebt);
+        uint256 maxEthToPayDebt = calcMaxEthToPaySqueethDebt(squeethDebt);
 
         crabStrategyV2.flashWithdraw(
             crabToWithdraw,
@@ -357,26 +380,6 @@ contract OpynCrabStrategy is BaseStrategy {
         );
 
         return _swapEthForUSDC(_getEthBalance(), _usdcAmount.pctOf(900));
-    }
-
-    function _getMaxEthToPaySqueethDebt(
-        uint256 _squeethDebt
-    ) internal view returns (uint256) {
-        uint256 squeethPriceInWeth = getTwapFromOracle(
-            address(wethOSqthPool),
-            oSqth,
-            weth
-        );
-
-        uint256 squeethDebtCostInEth = (_squeethDebt * squeethPriceInWeth) /
-            1e18;
-
-        // when paying off the squeeth debt, we need to account for the slipage
-        // exact amount of squeeth is taken from the pool in the flash swap and payed off with eth collateral taken out from the strategy
-        // since sqeeth is the output token, slippage affects the eth amount we put in
-        // squeeth_out = eth_in * (1 - slippage) / squeeth_price
-        // eth_in = squeeth_out * squeeth_price / (1 - slippage)
-        return (squeethDebtCostInEth * 10000) / (10000 - 300);
     }
 
     function _calculateUsdcMinAmountOut(
@@ -391,7 +394,7 @@ contract OpynCrabStrategy is BaseStrategy {
     ) internal returns (uint256) {
         // account for 12 decimals difference between usdc and crab
         uint256 crabNeeded = (_usdcAmount * 1e18 * 1e12) / getCrabFairPrice();
-        uint256 crabBalance = crabStrategyV2.balanceOf(address(this));
+        uint256 crabBalance = _getCrabBalance();
 
         if (crabNeeded <= crabBalance) return crabNeeded;
 
