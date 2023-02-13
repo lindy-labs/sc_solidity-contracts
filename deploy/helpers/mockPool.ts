@@ -1,6 +1,8 @@
 import { BigNumber } from 'ethers';
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
 
+import verify from './verify';
+
 async function deployMockCurvePool(
   env: HardhatRuntimeEnvironment,
   name: string,
@@ -18,7 +20,16 @@ async function deployMockCurvePool(
     'decimals',
   );
 
-  if (await getOrNull(name)) return;
+  const isDeployed = await getOrNull(name)
+
+  if (isDeployed) {
+    await verify(env, {
+      address: isDeployed.address,
+      constructorArguments: [],
+    });
+
+    return;
+  }
 
   const deployment = await deploy(name, {
     contract: 'MockCurve',
@@ -26,11 +37,17 @@ async function deployMockCurvePool(
     args: [],
   });
 
-  if (process.env.NODE_ENV !== 'test')
+  if (process.env.NODE_ENV !== 'test') {
     await env.tenderly.persistArtifacts({
       name: 'MockCurve',
       address: deployment.address,
     });
+
+    await verify(env, {
+      address: deployment.address,
+      constructorArguments: [],
+    });
+  }
 
   await execute(name, { from: deployer }, 'addToken', 0, underlying.address);
 
