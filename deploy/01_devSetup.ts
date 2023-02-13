@@ -27,7 +27,15 @@ async function deployDevToken(
 
   const isDeployed = await getOrNull(name);
 
-  if (isDeployed) return;
+  if (isDeployed) {
+    await verify(env, {
+      address: isDeployed.address,
+      constructorArguments: [0],
+      contract: `contracts/mock/MockERC20.sol:${contract}`,
+    });
+
+    return;
+  }
 
   const deployment = await deploy(name, {
     contract,
