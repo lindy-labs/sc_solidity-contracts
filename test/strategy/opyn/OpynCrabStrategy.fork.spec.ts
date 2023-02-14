@@ -9,7 +9,6 @@ import {
   generateNewAddress,
   parseUSDC,
   getETHBalance,
-  moveForwardTwoWeeks,
 } from '../../shared';
 
 import {
@@ -210,7 +209,7 @@ describe('Opyn Crab Strategy (mainnet fork tests)', () => {
 
       expect(await crabNetting.usdBalance(strategy.address)).to.eq('0');
       expect(await crabStrategyV2.balanceOf(strategy.address)).to.eq(
-        '7694911087899411814',
+        '7696450146749831202',
       );
       expect(await strategy.investedAssets()).to.eq('10000000006');
     });
@@ -245,7 +244,7 @@ describe('Opyn Crab Strategy (mainnet fork tests)', () => {
       const crabBalance = await crabStrategyV2.balanceOf(strategy.address);
       const crabToWithdraw = crabBalance.div(2);
 
-      expect(await strategy.investedAssets()).to.eq('9944851551');
+      expect(await strategy.investedAssets()).to.eq('9942862879');
 
       await strategy.flashWithdraw(crabToWithdraw, parseUnits('7'), '0');
 
@@ -253,7 +252,7 @@ describe('Opyn Crab Strategy (mainnet fork tests)', () => {
         crabBalance.div(2),
       );
       expect(await usdc.balanceOf(strategy.address)).to.eq('4966332922');
-      expect(await strategy.investedAssets()).to.eq('9938758641'); // decreased by ~6 usdc because of fees & slippage
+      expect(await strategy.investedAssets()).to.eq('9937764305'); // decreased by ~6 usdc because of fees & slippage
       expect(await getETHBalance(strategy.address)).to.eq('0'); // strategy shold not hold any eth
     });
 
@@ -296,6 +295,95 @@ describe('Opyn Crab Strategy (mainnet fork tests)', () => {
           insufficientUsdcAmountOutMin,
         ),
       ).to.be.revertedWith('Too little received');
+    });
+  });
+
+  describe('#withdrawToVault', () => {
+    it('withdraws from crab strategy and, swaps to usdc and transfers to vault', async () => {
+      const depositAmount = parseUSDC('10000');
+      const minEthAmount = '5999366505836873648';
+      const ethToBorrow = '6568963540410773159'; // determined with error 1e12
+      await ForkHelpers.mintToken(usdc, strategy.address, depositAmount);
+      await strategy.flashDeposit(depositAmount, minEthAmount, ethToBorrow);
+
+      const invested = await strategy.investedAssets();
+
+      expect(invested).to.eq('9942862879');
+
+      await strategy.withdrawToVault(invested);
+
+      expect(await strategy.investedAssets()).to.eq('0');
+      // the end amount is reduced compared to deposit amount by:
+      // 1. 2 x 0.3% fee for using uinswap flash swap on wethOsqth pool (swapping weth <-> osqth)
+      // 2. 2 x 0.05% fee for using uinswap flash swap on usdcWeth pool (swapping eth <-> usdc)
+      // 3. however much is lost on slippage
+      expect(await usdc.balanceOf(vault.address)).to.eq('9924024435');
+    });
+
+    it('reverts if eth -> usdc swap suffers slippage higher than max', async () => {
+      const depositAmount = parseUSDC('10000');
+      const minEthAmount = '5999366505836873648';
+      const ethToBorrow = '6568963540410773159'; // determined with error 1e12
+      await ForkHelpers.mintToken(usdc, strategy.address, depositAmount);
+      await strategy.flashDeposit(depositAmount, minEthAmount, ethToBorrow);
+
+      const invested = await strategy.investedAssets();
+
+      await strategy.setEthToUsdcMaxSlippagePct('1'); // 0.01%
+
+      await expect(strategy.withdrawToVault(invested)).to.be.revertedWith(
+        'Too little received',
+      );
+    });
+
+    it('reverts if eth -> oSqth flash swap (exact output) suffers slippage higher than max', async () => {
+      const depositAmount = parseUSDC('10000');
+      const minEthAmount = '5999366505836873648';
+      const ethToBorrow = '6568963540410773159'; // determined with error 1e12
+      await ForkHelpers.mintToken(usdc, strategy.address, depositAmount);
+      await strategy.flashDeposit(depositAmount, minEthAmount, ethToBorrow);
+
+      const invested = await strategy.investedAssets();
+
+      await strategy.setEthToOsqthMaxSlippagePct('1'); // 0.01%
+
+      await expect(strategy.withdrawToVault(invested)).to.be.revertedWith(
+        'amount in greater than max',
+      );
+    });
+
+    it('works for withdraws ~100k usdc', async () => {
+      const depositAmount = parseUSDC('100000');
+      const minEthAmount = '59988086049148492552';
+      const ethToBorrow = '63546412104146705853'; // 747786152720 with 1e13 error
+      await ForkHelpers.mintToken(usdc, strategy.address, depositAmount);
+      await strategy.flashDeposit(depositAmount, minEthAmount, ethToBorrow);
+
+      const invested = await strategy.investedAssets();
+
+      expect(invested).to.eq('97728701676');
+
+      await strategy.withdrawToVault(invested);
+
+      expect(await strategy.investedAssets()).to.eq('10803829'); // ~10 usdc
+      expect(await usdc.balanceOf(vault.address)).to.eq('99245864341');
+    });
+
+    it('works for withdraws ~300k usdc', async () => {
+      const depositAmount = parseUSDC('300000');
+      const minEthAmount = '179927075895159562759';
+      const ethToBorrow = '178336621457426334860'; // determined with 1e13 error
+      await ForkHelpers.mintToken(usdc, strategy.address, depositAmount);
+      await strategy.flashDeposit(depositAmount, minEthAmount, ethToBorrow);
+
+      const invested = await strategy.investedAssets();
+
+      expect(invested).to.eq('283424031984'); // this difference is from using twaps
+
+      await strategy.withdrawToVault(invested);
+
+      expect(await strategy.investedAssets()).to.eq('93987497'); // ~93 usdc
+      expect(await usdc.balanceOf(vault.address)).to.eq('297770343008');
     });
   });
 });

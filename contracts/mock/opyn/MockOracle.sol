@@ -3,7 +3,7 @@ pragma solidity =0.8.10;
 
 import "./../MockExchange.sol";
 
-import {IOracle} from "../../interfaces/uniswap/IOracle.sol";
+import {IOracle} from "../../interfaces/opyn/IOracle.sol";
 
 contract MockOracle is IOracle, MockExchange {
     function getHistoricalTwap(

@@ -11,12 +11,10 @@ import {BaseStrategy} from "../BaseStrategy.sol";
 import {IVault} from "../../vault/IVault.sol";
 import {ERC165Query} from "../../lib/ERC165Query.sol";
 import {ICurveExchange} from "../../interfaces/curve/ICurveExchange.sol";
-import {IOracle} from "../../interfaces/uniswap/IOracle.sol";
+import {IOracle} from "../../interfaces/opyn/IOracle.sol";
 import {ICrabStrategyV2} from "../../interfaces/opyn/ICrabStrategyV2.sol";
 import {ICrabNetting} from "../../interfaces/opyn/ICrabNetting.sol";
 import {IWETH} from "../../interfaces/IWETH.sol";
-
-import "hardhat/console.sol";
 
 contract OpynCrabStrategy is BaseStrategy {
     using PercentMath for uint256;
@@ -32,9 +30,12 @@ contract OpynCrabStrategy is BaseStrategy {
     error StrategyWethOSqthPoolCannotBe0Address();
     error StrategyAmountTooHigh();
     error StrategyCollateralCapReached();
+    error StrategyInvalidTwapPeriod();
+    error StrategyInvalidSlippagePct();
 
-    uint32 public constant TWAP_PERIOD = 50 seconds; // TODO: make configurable
-    // TODO add slippages
+    uint32 public constant MAX_TWAP_PERIOD = 1 days;
+
+    uint32 public twapPeriod = 300 seconds;
 
     IWETH public weth;
     IERC20 public oSqth;
@@ -44,6 +45,9 @@ contract OpynCrabStrategy is BaseStrategy {
     IOracle public oracle;
     IUniswapV3Pool public usdcWethPool;
     IUniswapV3Pool public wethOSqthPool;
+
+    uint16 public ethToUsdcMaxSlippagePct = 50; // 0.5%
+    uint16 public ethToOsqthMaxSlippagePct = 100; // 1%
 
     constructor(
         address _vault,
@@ -77,6 +81,7 @@ contract OpynCrabStrategy is BaseStrategy {
             revert StrategyWethOSqthPoolCannotBe0Address();
 
         _grantRole(KEEPER_ROLE, _keeper);
+        _grantRole(SETTINGS_ROLE, _admin);
 
         weth = _weth;
         oSqth = _oSqth;
@@ -106,10 +111,10 @@ contract OpynCrabStrategy is BaseStrategy {
         returns (bool)
     {
         return
-            _getUsdcBalance() > 0 ||
-            _getCrabBalance() > 0 ||
-            crabNetting.usdBalance(address(this)) > 0 ||
-            crabNetting.crabBalance(address(this)) > 0;
+            _getUsdcBalance() != 0 ||
+            _getCrabBalance() != 0 ||
+            crabNetting.usdBalance(address(this)) != 0 ||
+            crabNetting.crabBalance(address(this)) != 0;
     }
 
     /// @inheritdoc IStrategy
@@ -151,19 +156,17 @@ contract OpynCrabStrategy is BaseStrategy {
         uint256 usdcBalance = _getUsdcBalance();
         uint256 amountRemaining = _amount;
 
-        if (usdcBalance > 0) {
-            if (_amount <= usdcBalance) {
-                // withdraw immediately from usdc balance
-                _transferUsdcToVault(_amount);
-                return _amount;
-            }
-
-            amountRemaining = _amount - usdcBalance;
+        // withdraw immediately from usdc balance
+        if (usdcBalance != 0 && _amount <= usdcBalance) {
+            _transferUsdcToVault(_amount);
+            return _amount;
         }
+
+        amountRemaining = _amount - usdcBalance;
 
         uint256 queuedDeposit = crabNetting.usdBalance(address(this));
 
-        if (queuedDeposit > 0) {
+        if (queuedDeposit != 0) {
             if (amountRemaining <= queuedDeposit) {
                 // withdraw immediately from queued deposit
                 crabNetting.withdrawUSDC(amountRemaining, true);
@@ -315,15 +318,13 @@ contract OpynCrabStrategy is BaseStrategy {
             weth
         );
 
-        uint256 squeethDebtCostInEth = (_squeethDebt * squeethPriceInWeth) /
-            1e18;
-
         // when paying off the squeeth debt, we need to account for the slipage
         // exact amount of squeeth is taken from the pool in the flash swap and payed off with eth collateral taken out from the strategy
         // since sqeeth is the output token, slippage affects the eth amount we put in
-        // squeeth_out = eth_in * (1 - slippage) / squeeth_price
-        // eth_in = squeeth_out * squeeth_price / (1 - slippage)
-        return (squeethDebtCostInEth * 10000) / (10000 - 300);
+        return
+            ((_squeethDebt * squeethPriceInWeth) / 1e18).pctOf(
+                10000 + ethToOsqthMaxSlippagePct
+            );
     }
 
     function getTwapFromOracle(
@@ -336,9 +337,34 @@ contract OpynCrabStrategy is BaseStrategy {
                 _pool,
                 address(_base),
                 address(_quote),
-                TWAP_PERIOD,
+                twapPeriod,
                 true // check period
             );
+    }
+
+    function setEthToUsdcMaxSlippagePct(
+        uint16 _maxSlippagePct
+    ) external onlySettings {
+        if (_maxSlippagePct > 10000 || _maxSlippagePct == 0)
+            revert StrategyInvalidSlippagePct();
+
+        ethToUsdcMaxSlippagePct = _maxSlippagePct;
+    }
+
+    function setEthToOsqthMaxSlippagePct(
+        uint16 _maxSlippagePct
+    ) external onlySettings {
+        if (_maxSlippagePct > 10000 || _maxSlippagePct == 0)
+            revert StrategyInvalidSlippagePct();
+
+        ethToOsqthMaxSlippagePct = _maxSlippagePct;
+    }
+
+    function setTwapPeriod(uint32 _period) external onlySettings {
+        if (_period == 0 || _period > MAX_TWAP_PERIOD)
+            revert StrategyInvalidTwapPeriod();
+
+        twapPeriod = _period;
     }
 
     receive() external payable {}
@@ -368,10 +394,9 @@ contract OpynCrabStrategy is BaseStrategy {
 
     function _withdrawFromCrab(uint256 _usdcAmount) internal returns (uint256) {
         uint256 crabToWithdraw = _getCrabToWithdraw(_usdcAmount);
-        uint256 squeethDebt = crabStrategyV2.getWsqueethFromCrabAmount(
-            crabToWithdraw
+        uint256 maxEthToPayDebt = calcMaxEthToPaySqueethDebt(
+            crabStrategyV2.getWsqueethFromCrabAmount(crabToWithdraw)
         );
-        uint256 maxEthToPayDebt = calcMaxEthToPaySqueethDebt(squeethDebt);
 
         crabStrategyV2.flashWithdraw(
             crabToWithdraw,
@@ -379,14 +404,26 @@ contract OpynCrabStrategy is BaseStrategy {
             wethOSqthPool.fee()
         );
 
-        return _swapEthForUSDC(_getEthBalance(), _usdcAmount.pctOf(900));
+        uint256 ethBalance = _getEthBalance();
+
+        return
+            _swapEthForUSDC(ethBalance, _calculateUsdcMinAmountOut(ethBalance));
     }
 
     function _calculateUsdcMinAmountOut(
-        uint256 _amountIn,
-        uint32 _fee
-    ) internal returns (uint256) {
-        // return _amountIn.pctOf(10000 - _fee);
+        uint256 _ethAmountIn
+    ) internal view returns (uint256) {
+        uint256 ethPriceInUsd = getTwapFromOracle(
+            address(usdcWethPool),
+            weth,
+            underlying
+        );
+
+        // account for 12 decimals difference between usdc and crab
+        return
+            ((_ethAmountIn * ethPriceInUsd) / 1e18 / 1e12).pctOf(
+                10000 - ethToUsdcMaxSlippagePct
+            );
     }
 
     function _getCrabToWithdraw(
@@ -440,6 +477,7 @@ contract OpynCrabStrategy is BaseStrategy {
         if (_usdcAmount == 0) revert StrategyAmountZero();
 
         uint256 usdcBalance = _getUsdcBalance();
+
         if (usdcBalance == 0) revert StrategyNoUnderlying();
         if (_usdcAmount > usdcBalance) revert StrategyAmountTooHigh();
 

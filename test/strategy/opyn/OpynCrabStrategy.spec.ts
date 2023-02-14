@@ -44,6 +44,7 @@ describe('OpynCrabStrategy', () => {
 
   const MANAGER_ROLE = utils.keccak256(utils.toUtf8Bytes('MANAGER_ROLE'));
   const KEEPER_ROLE = utils.keccak256(utils.toUtf8Bytes('KEEPER_ROLE'));
+  const SETTINGS_ROLE = utils.keccak256(utils.toUtf8Bytes('SETTINGS_ROLE'));
 
   beforeEach(async () => {
     [admin, keeper, manager] = await ethers.getSigners();
@@ -314,6 +315,10 @@ describe('OpynCrabStrategy', () => {
       expect(await strategy.oracle()).to.eq(oracle.address);
       expect(await strategy.usdcWethPool()).to.eq(usdcWethPool.address);
       expect(await strategy.wethOSqthPool()).to.eq(wethOsqthPool.address);
+      expect(await strategy.ethToUsdcMaxSlippagePct()).to.eq(50);
+      expect(await strategy.ethToOsqthMaxSlippagePct()).to.eq(100);
+
+      expect(await strategy.hasRole(SETTINGS_ROLE, admin.address)).to.be.true;
 
       expect(await strategy.hasRole(KEEPER_ROLE, keeper.address)).to.be.true;
     });
@@ -984,6 +989,85 @@ describe('OpynCrabStrategy', () => {
       expect(await crabStrategyV2.balanceOf(strategy.address)).to.eq(
         parseUnits('1'),
       );
+    });
+  });
+
+  describe('#setEthToUsdcMaxSlippagePct', () => {
+    it('reverts if the caller is not settings', async () => {
+      await expect(
+        strategy.connect(keeper).setEthToUsdcMaxSlippagePct(0),
+      ).to.be.revertedWith('StrategyCallerNotSettings');
+    });
+
+    it('reverts if the slippage is 0', async () => {
+      await expect(
+        strategy.connect(admin).setEthToUsdcMaxSlippagePct(0),
+      ).to.be.revertedWith('StrategyInvalidSlippagePct');
+    });
+
+    it('reverts if the slippage is greater than 100%', async () => {
+      await expect(
+        strategy.connect(admin).setEthToUsdcMaxSlippagePct('10001'),
+      ).to.be.revertedWith('StrategyInvalidSlippagePct');
+    });
+
+    it('sets the eth to usdc max slippage', async () => {
+      await strategy.connect(admin).setEthToUsdcMaxSlippagePct('100');
+
+      expect(await strategy.ethToUsdcMaxSlippagePct()).to.eq(100);
+    });
+  });
+
+  describe('#setEthToOsqthMaxSlippagePct', () => {
+    it('reverts if the caller is not settings', async () => {
+      await expect(
+        strategy.connect(keeper).setEthToOsqthMaxSlippagePct(0),
+      ).to.be.revertedWith('StrategyCallerNotSettings');
+    });
+
+    it('reverts if the slippage is 0', async () => {
+      await expect(
+        strategy.connect(admin).setEthToOsqthMaxSlippagePct(0),
+      ).to.be.revertedWith('StrategyInvalidSlippagePct');
+    });
+
+    it('reverts if the slippage is greater than 100%', async () => {
+      await expect(
+        strategy.connect(admin).setEthToOsqthMaxSlippagePct('10001'),
+      ).to.be.revertedWith('StrategyInvalidSlippagePct');
+    });
+
+    it('sets the eth to usdc max slippage', async () => {
+      await strategy.connect(admin).setEthToOsqthMaxSlippagePct('100');
+
+      expect(await strategy.ethToOsqthMaxSlippagePct()).to.eq(100);
+    });
+  });
+
+  describe('#setTwapPeriod', () => {
+    it('reverts if the caller is not settings', async () => {
+      await expect(
+        strategy.connect(keeper).setTwapPeriod(0),
+      ).to.be.revertedWith('StrategyCallerNotSettings');
+    });
+
+    it('reverts if the period is 0', async () => {
+      await expect(strategy.connect(admin).setTwapPeriod(0)).to.be.revertedWith(
+        'StrategyInvalidTwapPeriod',
+      );
+    });
+
+    it('reverts if the period is greater than max', async () => {
+      const twapMax = await strategy.MAX_TWAP_PERIOD();
+      await expect(
+        strategy.connect(admin).setTwapPeriod(twapMax + 1),
+      ).to.be.revertedWith('StrategyInvalidTwapPeriod');
+    });
+
+    it('sets the twap period', async () => {
+      await strategy.connect(admin).setTwapPeriod(100);
+
+      expect(await strategy.twapPeriod()).to.eq(100);
     });
   });
 });
