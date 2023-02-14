@@ -1,27 +1,27 @@
 {
   "vault": {
     "network": "goerli",
-    "startBlock": 8403000,
-    "address": "0x23EfFb8a052B8Ed7019A794170B5B0B5c7f9aa1D"
+    "startBlock": 8490988,
+    "address": "0x23B43fD86AC8E800d65B56eB78A52bF03E6F4790"
   },
   "strategy": {
     "network": "goerli",
-    "startBlock": 8403000,
-    "address": "0x25363cf32520BcdC6E68CD1aA26A7d458AAFBCBf"
+    "startBlock": 8490988,
+    "address": "0x642BD2949E8DFf4d1823578b12dd8d44726EF782"
   },
   "liquityTrove": {
     "network": "goerli",
-    "startBlock": 8403000,
-    "address": "0x95D5A4378b73Cd8be4215BA51f6fB30f0BBAb19d"
+    "startBlock": 8490988,
+    "address": "0x53e8de300A9bA2d62f2e3A6BACcD3074c28277C7"
   },
   "liquityPool": {
     "network": "goerli",
-    "startBlock": 8403000,
-    "address": "0x8981BFECe0b2bF08a7d03Fefc27eF61b851b228F"
+    "startBlock": 8490988,
+    "address": "0x3f89AC2196f84C0C9D72E23c6baCAE358Ea6C343"
   },
   "liquityPriceFeed": {
     "network": "goerli",
-    "startBlock": 8403000,
+    "startBlock": 8490988,
     "address": "0xa5D42FBF2Fc632C6201B94BA4fb7e92f09D2A8ce"
   }
 }
