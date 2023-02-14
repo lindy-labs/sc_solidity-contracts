@@ -14,7 +14,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     ).address,
   );
 
-  const vaultDeployment = await get('Vault_LUSD');
+  const vaultDeployment = await get('Yearn_LUSD_Vault');
   const vault = await ethers.getContractAt('Vault', vaultDeployment.address);
 
   const donationsDeployment = await get('Donations');
