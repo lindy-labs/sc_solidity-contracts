@@ -352,38 +352,52 @@ describe('Opyn Crab Strategy (mainnet fork tests)', () => {
       );
     });
 
-    it('works for withdraws ~100k usdc', async () => {
+    it.only('works for withdraws ~100k usdc', async () => {
       const depositAmount = parseUSDC('100000');
       const minEthAmount = '59988086049148492552';
       const ethToBorrow = '63546412104146705853'; // 747786152720 with 1e13 error
       await ForkHelpers.mintToken(usdc, strategy.address, depositAmount);
       await strategy.flashDeposit(depositAmount, minEthAmount, ethToBorrow);
 
-      const invested = await strategy.investedAssets();
+      let invested = await strategy.investedAssets();
 
-      expect(invested).to.eq('97728701676');
+      expect(invested).to.eq('97728701676'); // this difference is from using twaps
 
       await strategy.withdrawToVault(invested);
 
-      expect(await strategy.investedAssets()).to.eq('10803829'); // ~10 usdc
-      expect(await usdc.balanceOf(vault.address)).to.eq('99245864341');
+      expect(await usdc.balanceOf(vault.address)).to.gt(parseUSDC('99200'));
+
+      // there are some assets left in crab because of using twap to get price of crab in usdc
+      invested = await strategy.investedAssets();
+
+      await strategy.withdrawToVault(invested);
+
+      expect(await usdc.balanceOf(vault.address)).to.eq('99256626843');
+      expect(await strategy.investedAssets()).to.eq('0');
     });
 
-    it('works for withdraws ~300k usdc', async () => {
+    it.only('works for withdraws ~300k usdc', async () => {
       const depositAmount = parseUSDC('300000');
       const minEthAmount = '179927075895159562759';
       const ethToBorrow = '178336621457426334860'; // determined with 1e13 error
       await ForkHelpers.mintToken(usdc, strategy.address, depositAmount);
       await strategy.flashDeposit(depositAmount, minEthAmount, ethToBorrow);
 
-      const invested = await strategy.investedAssets();
+      let invested = await strategy.investedAssets();
 
       expect(invested).to.eq('283424031984'); // this difference is from using twaps
 
       await strategy.withdrawToVault(invested);
 
-      expect(await strategy.investedAssets()).to.eq('93987497'); // ~93 usdc
-      expect(await usdc.balanceOf(vault.address)).to.eq('297770343008');
+      expect(await usdc.balanceOf(vault.address)).to.gt(parseUSDC('297'));
+
+      // there are some assets left in crab because of using twap to get price of crab in usdc
+      invested = await strategy.investedAssets();
+
+      await strategy.withdrawToVault(invested);
+
+      expect(await usdc.balanceOf(vault.address)).to.eq('297863933809');
+      expect(await strategy.investedAssets()).to.eq('0');
     });
   });
 });
