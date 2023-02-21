@@ -2,9 +2,11 @@
 description: 'Blockchain: Ethereum'
 ---
 
-# Liquity
+# Amethyst
 
 ## Overview
+
+Amethyst uses Liquity Protocol to generate yield.
 
 Liquity is a credit protocol. Users deposit collateral and can open a credit line denominated in LUSD.
 
@@ -13,7 +15,7 @@ LUSD can be deposited to the Stability Pool to protect Liquity against insolvenc
 {% hint style="info" %}
 The Metavault **receives LQTY** [**at a predetermined emission schedule**](https://docs.liquity.org/faq/lqty-distribution-and-rewards#what-is-lqtys-distribution-schedule) and **earns additional dynamic returns on its stablecoin deposits by dollar-cost averaging into liquidated ETH** through Liquity Protocol's Stability Pool and swapping for the underlying. Liquidation profits are then reinvested into the strategy, compounding yield for depositors over time.
 
-Because of this, the short term APY estimate could be as low as 6% and as high as 1000%. It is completely unpredictable. As a result, for our frontend, we use a range using the 7d and the 365d average rolling APR.
+As a result, the short term APY estimate is completely unpredictable. As a result, for our frontend, we will use an arbitrary range featuring historical data from two separate epochs.
 {% endhint %}
 
 <figure><img src="../.gitbook/assets/image.png" alt=""><figcaption></figcaption></figure>
@@ -51,4 +53,4 @@ The backend checks for liquidations on the stability pool every 10 minutes, logg
 
 #### Heartbeat
 
-If it has been 4 weeks since the last claim, claim and liquidate for the sake of yield distribution to Sandclock users, as well as compounding.
+If it has been 4 weeks since the last claim, claim and liquidate for the sake of yield distribution to Sandclock users, as well as ensuring a monthly compounding frequency.

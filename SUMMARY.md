@@ -3,7 +3,7 @@
 * [Introduction](README.md)
   * [Glossary](master/glossary.md)
 * [Strategies](strategies/README.md)
-  * [Liquity](strategies/liquity.md)
+  * [Amethyst](strategies/liquity.md)
   * [Rysk](strategies/rysk.md)
   * [Opyn](strategies/opyn.md)
   * [Aura](strategies/aura.md)
