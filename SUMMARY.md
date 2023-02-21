@@ -2,6 +2,7 @@
 
 * [Introduction](README.md)
   * [Glossary](master/glossary.md)
+  * [Disclaimer](readme/disclaimer.md)
 * [Strategies](strategies/README.md)
   * [Amethyst](strategies/liquity.md)
   * [Rysk](strategies/rysk.md)
