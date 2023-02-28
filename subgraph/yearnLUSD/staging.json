@@ -1,12 +1,12 @@
 {
   "vault": {
     "network": "goerli",
-    "startBlock": 7548351,
-    "address": "0x0fc7c58e9e5458d194e3758b09131a9ba2261f87"
+    "startBlock": 8457340,
+    "address": "0xBfA0AEeE327ab3A6A8Afc9c5eCa87Cc0F09A9046"
   },
   "strategy": {
     "network": "goerli",
-    "startBlock": 7548351,
-    "address": "0x2ad2135dfa713f0066f154dca80c075517165138"
+    "startBlock": 8457340,
+    "address": "0x4559D7B1B34e442C77445813F180a6c77ff3087a"
   }
 }
