@@ -54,7 +54,7 @@ It was initially designed in order to incentivize giving, but it can fulfill oth
 
 22,000 were given to KuCoin for their marketing campaign
 
-23,673 have been used for grants
+177,819.05 have been used for grants to date
 
 ## Circulating
 
