@@ -46,7 +46,7 @@ const config: HardhatUserConfig = {
       live: false,
     },
     mainnet: {
-      url: process.env.ALCHEMY_GOERLI_RPC || 'missing-rpc-endpoint',
+      url: process.env.ALCHEMY_MAINNET_RPC || 'missing-rpc-endpoint',
       chainId: 1,
       accounts: {
         mnemonic: process.env.MAINNET_MNEMONIC || 'TODO',
