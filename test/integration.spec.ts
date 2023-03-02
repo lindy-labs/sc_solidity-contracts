@@ -55,7 +55,7 @@ describe('Integration', () => {
     [owner] = await ethers.getSigners();
 
     const lusdDeployment = await deployments.get('LUSD');
-    const lusdVaultDeployment = await deployments.get('Vault_LUSD');
+    const lusdVaultDeployment = await deployments.get('Yearn_LUSD_Vault');
 
     underlying = MockLUSD__factory.connect(lusdDeployment.address, owner);
     vault = Vault__factory.connect(lusdVaultDeployment.address, owner);

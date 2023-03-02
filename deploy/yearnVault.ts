@@ -1,15 +1,15 @@
-import type { HardhatRuntimeEnvironment } from 'hardhat/types';
-import type { DeployFunction } from 'hardhat-deploy/types';
-
+import { ethers } from 'hardhat';
 import { includes } from 'lodash';
 
-import { getCurrentNetworkConfig } from '../scripts/deployConfigs';
+import type { HardhatRuntimeEnvironment } from 'hardhat/types';
+
 import deployMockCurvePool from './helpers/mockPool';
+import { getCurrentNetworkConfig } from '../scripts/deployConfigs';
 import verify from './helpers/verify';
 
-const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
+const func = async function (env: HardhatRuntimeEnvironment) {
   const { deployer } = await env.getNamedAccounts();
-  const { deploy, get, getNetworkName } = env.deployments;
+  const { get, deploy, getNetworkName } = env.deployments;
 
   const lusd = await get('LUSD');
   const dai = await get('DAI');
@@ -32,6 +32,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
     multisig,
     deploymentAddress,
   } = await getCurrentNetworkConfig();
+
   const treasury = multisig;
   const owner = deploymentAddress;
 
@@ -60,7 +61,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
     0,
   ];
 
-  const vaultDeployment = await deploy('Vault_LUSD', {
+  const vault = await deploy('Yearn_LUSD_Vault', {
     contract: 'Vault',
     from: deployer,
     log: true,
@@ -69,24 +70,25 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
 
   if (getNetworkName() !== 'hardhat' && getNetworkName() !== 'docker') {
     await verify(env, {
-      address: vaultDeployment.address,
+      address: vault.address,
       constructorArguments: args,
     });
 
     await env.tenderly.persistArtifacts({
-      name: 'Vault_LUSD',
-      address: vaultDeployment.address,
+      name: 'Yearn_LUSD_Vault',
+      address: vault.address,
     });
   }
-};
+
+  return ethers.getContractAt('Vault', vault.address);
+}
+func.tags = ['yearn_lusd_vault', 'vault'];
+func.dependencies = ['dev'];
 
 func.skip = async (env: HardhatRuntimeEnvironment) =>
   !includes(
     ['goerli', 'docker', 'mainnet', 'hardhat'],
     env.deployments.getNetworkName(),
   );
-
-func.tags = ['vault', 'lusd'];
-func.dependencies = ['dev'];
 
 export default func;
