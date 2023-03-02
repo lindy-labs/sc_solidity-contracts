@@ -1,5 +1,6 @@
 import { BigNumber } from 'ethers';
 import { HardhatRuntimeEnvironment } from 'hardhat/types';
+import { includes } from 'lodash';
 
 import verify from './verify';
 
@@ -20,9 +21,12 @@ async function deployMockCurvePool(
     'decimals',
   );
 
-  const isDeployed = await getOrNull(name)
+  const isDeployed = await getOrNull(name);
 
-  if (isDeployed) {
+  if (
+    isDeployed &&
+    !includes(['hardhat', 'docker'], env.deployments.getNetworkName())
+  ) {
     await verify(env, {
       address: isDeployed.address,
       constructorArguments: [],
@@ -37,7 +41,10 @@ async function deployMockCurvePool(
     args: [],
   });
 
-  if (process.env.NODE_ENV !== 'test') {
+  if (
+    process.env.NODE_ENV !== 'test' &&
+    !includes(['hardhat', 'docker'], env.deployments.getNetworkName())
+  ) {
     await env.tenderly.persistArtifacts({
       name: 'MockCurve',
       address: deployment.address,
