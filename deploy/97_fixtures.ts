@@ -109,11 +109,11 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
     console.log('Alice claims');
     await vault.connect(alice).claimYield(alice.address);
 
+    console.log('Bob claims');
+    await vault.connect(bob).claimYield(treasury.address);
+
     console.log('The treasury claims');
     await vault.connect(treasury).claimYield(treasury.address);
-
-    console.log('Bob claims to treasury');
-    await vault.connect(bob).claimYield(treasury.address);
   }
 };
 
