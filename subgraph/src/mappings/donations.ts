@@ -1,12 +1,10 @@
 import { DonationMint } from '../types/schema';
-import {
-  DonationMinted,
-  DonationBurned,
-} from '../types/Donations/Donations';
+import { DonationMinted, DonationBurned } from '../types/Donations/Donations';
 
 export function handleDonationMinted(event: DonationMinted): void {
   const donationMint = new DonationMint(event.params.donationId);
 
+  donationMint.vault = event.address.toHexString();
   donationMint.burned = false;
   donationMint.nftId = event.params.id;
 
