@@ -81,7 +81,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
     });
 
     console.log(
-      'Bob deposits 1000 with 50% yield to Alice and 50% yield for donations',
+      'Bob deposits 1000 with 50% yield to Bob and 50% yield for donations',
     );
     await vault.connect(bob).deposit({
       amount: parseUnits('1000', 18),
@@ -113,6 +113,12 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
     await vault.connect(bob).claimYield(treasury.address);
 
     console.log('The treasury claims');
+    await vault.connect(treasury).claimYield(treasury.address);
+
+    console.log('2000 more yield is generated');
+    await underlying.mint(vault.address, parseUnits('2000', 18));
+
+    console.log('The treasury claims again');
     await vault.connect(treasury).claimYield(treasury.address);
   }
 };

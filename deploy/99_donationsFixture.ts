@@ -17,8 +17,6 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
   let batchNr = 0;
   for (const prefix of ['Liquity_Amethyst', 'Liquity_DCA']) {
-    console.log('prefix', prefix);
-
     const vaultDeployment = await get(`${prefix}_Vault`);
     const vault = await ethers.getContractAt('Vault', vaultDeployment.address);
 
@@ -37,11 +35,8 @@ const func = async function (env: HardhatRuntimeEnvironment) {
       treasury.address,
     );
 
-    console.log('yieldClaimedEvents', yieldClaimedEvents);
-
     let { transactionHash, args } = yieldClaimedEvents[0];
 
-    console.log('donation mint', transactionHash, args);
     await donations.mint(transactionHash, batchNr, [
       {
         destinationId: 9,
@@ -65,10 +60,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     await ethers.provider.send('evm_increaseTime', [1.6e7]);
     await ethers.provider.send('evm_mine', []);
 
-    console.log('donation burn');
     await donations.burn(batchNr * 2 + 1, `${transactionHash}-0-0`);
-
-    console.log('after burn');
 
     batchNr += 1;
   }
