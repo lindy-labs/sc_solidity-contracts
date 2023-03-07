@@ -3,6 +3,7 @@ import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 import { includes } from 'lodash';
 import { ethers } from 'hardhat';
 import { YieldClaimedEvent } from '@root/typechain/IVault';
+import { VAULT_PREFIXES } from './97_fixtures';
 
 const func = async function (env: HardhatRuntimeEnvironment) {
   const { get } = env.deployments;
@@ -16,7 +17,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   );
 
   let batchNr = 0;
-  for (const prefix of ['Liquity_Amethyst', 'Liquity_DCA']) {
+  for (const prefix of VAULT_PREFIXES) {
     const vaultDeployment = await get(`${prefix}_Vault`);
     const vault = await ethers.getContractAt('Vault', vaultDeployment.address);
 

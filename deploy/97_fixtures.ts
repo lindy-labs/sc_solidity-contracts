@@ -6,6 +6,8 @@ import { parseUnits } from '@ethersproject/units';
 import { ethers } from 'hardhat';
 import { BigNumber } from 'ethers';
 
+export const VAULT_PREFIXES = ['Liquity_Amethyst', 'Liquity_DCA'];
+
 const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   const { get } = env.deployments;
 
@@ -14,16 +16,11 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   console.table([alice, bob, treasury]);
 
   const lusd = await get('LUSD');
-  const vaults = {
-    yearn: await get('Yearn_LUSD_Vault'),
-    liquityAmethyst: await get('Liquity_Amethyst_Vault'),
-    liquityDCA: await get('Liquity_DCA_Vault'),
-  };
 
-  for (const vaultKey in vaults) {
+  for (const prefix of VAULT_PREFIXES) {
     const underlying = await ethers.getContractAt('MockERC20', lusd.address);
 
-    const vaultAddress = vaults[vaultKey].address;
+    const vaultAddress = (await get(`${prefix}_Vault`)).address;
     console.log('vaultAddress', vaultAddress);
     const vault = await ethers.getContractAt('Vault', vaultAddress);
 

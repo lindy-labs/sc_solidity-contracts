@@ -4,14 +4,13 @@ import { ethers } from 'hardhat';
 import { BigNumber } from 'ethers';
 import { includes } from 'lodash';
 import { parseEther, parseUnits } from 'ethers/lib/utils';
+import { VAULT_PREFIXES } from './97_fixtures';
 
 const func = async function (env: HardhatRuntimeEnvironment) {
   const [owner, _alice, _bob] = await ethers.getSigners();
   const { get } = env.deployments;
 
-  // Deploy and gather needed mock contracts
-
-  for (const prefix of ['Liquity_Amethyst', 'Liquity_DCA']) {
+  for (const prefix of VAULT_PREFIXES) {
     const liquityPriceFeedDeployment = await get(`${prefix}_Price_Feed`);
     const liquityPriceFeed = await ethers.getContractAt(
       'MockLiquityPriceFeed',
