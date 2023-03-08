@@ -27,7 +27,7 @@ async function deployDevToken(
 
   const isDeployed = await getOrNull(name);
 
-  if (isDeployed && !includes(['hardhat', 'docker'], getNetworkName())) {
+  if (isDeployed) {
     await verify(env, {
       address: isDeployed.address,
       constructorArguments: [0],
