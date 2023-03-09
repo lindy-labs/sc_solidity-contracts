@@ -48,7 +48,7 @@
   },
   "dependencies": {
     "@codechecks/client": "^0.1.12",
-    "@openzeppelin/contracts-upgradeable": "^4.8.1",
+    "@openzeppelin/contracts-upgradeable": "^4.8.2",
     "@openzeppelin/hardhat-upgrades": "^1.22.0",
     "@uniswap/v3-periphery": "^1.4.3",
     "axios": "^1.2.3"
