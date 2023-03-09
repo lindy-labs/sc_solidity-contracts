@@ -3,6 +3,7 @@ import type { DeployFunction } from 'hardhat-deploy/types';
 
 import verify from './helpers/verify';
 import { getCurrentNetworkConfig } from '../scripts/deployConfigs';
+import { includes } from 'lodash';
 
 const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   const { deployer } = await env.getNamedAccounts();
@@ -26,10 +27,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
       address: donationsDeployment.address,
     });
 
-  if (
-    env.network.config.chainId === 80001 ||
-    env.network.config.chainId === 137
-  ) {
+  if (includes(['polygon', 'mumbai'], env.deployments.getNetworkName())) {
     await verify(env, {
       address: donationsDeployment.address,
       constructorArguments: args,
@@ -38,10 +36,11 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
 };
 
 // deploy to polygon mainnet, polygon mumbai and local node only
-func.skip = async (hre) =>
-  hre.network.config.chainId != 137 &&
-  hre.network.config.chainId != 80001 &&
-  hre.network.config.chainId != 31337;
+func.skip = async (env: HardhatRuntimeEnvironment) =>
+  !includes(
+    ['mumbai', 'polygon', 'docker', 'hardhat'],
+    env.deployments.getNetworkName(),
+  );
 
 func.tags = ['donations'];
 

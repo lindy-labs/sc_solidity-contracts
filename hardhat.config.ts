@@ -63,7 +63,7 @@ const config: HardhatUserConfig = {
       gas: 2100000,
     },
     mumbai: {
-      url: process.env.MUMBAI_RPC || 'missing-rpc-endpoint',
+      url: process.env.ALCHEMY_MUMBAI_RPC || 'missing-rpc-endpoint',
       chainId: 80001,
       accounts: {
         mnemonic: process.env.TESTNET_MNEMONIC || 'TODO',

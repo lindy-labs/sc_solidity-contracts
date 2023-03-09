@@ -7,21 +7,21 @@
   "strategy": {
     "network": "mainnet",
     "startBlock": 0,
-    "address": "0x6C1119eF975960E6cFE61D0FDD29082CE38c355f"
+    "address": "0xa42972B2b53ca671205CA79642DDF6339e737A2a"
   },
   "liquityTrove": {
     "network": "mainnet",
     "startBlock": 0,
-    "address": "0x1C9B3a4a3356C2A715B1272c98e18a89bea8f1D2"
+    "address": "0xE2B51Fa9a6876e1952748780EBBF9B5b331fee1d"
   },
   "liquityPool": {
     "network": "mainnet",
     "startBlock": 0,
-    "address": "0x1B9c8F7aA447aa813E16573315aB95008e4AcA24"
+    "address": "0x6D3e2BA5f357702e25D030804EEfC49B7065a876"
   },
   "liquityPriceFeed": {
     "network": "mainnet",
     "startBlock": 0,
-    "address": "0x71432Bd61496F653F1564C3a260D6d89fe4aD92e"
+    "address": "0xB2AE11eEbBa6C9b770E6a1f9031EED3a2D60E1aC"
   }
 }

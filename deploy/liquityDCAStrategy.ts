@@ -107,7 +107,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   await transferOwnershipToMultisig(liquityStrategy);
 };
 
-func.tags = ['liquity_dca_strategy'];
+func.tags = ['strategy', 'jade', 'liquity_dca_strategy'];
 func.dependencies = ['liquity_dca_vault'];
 
 func.skip = async (env: HardhatRuntimeEnvironment) =>

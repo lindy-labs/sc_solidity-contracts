@@ -6,6 +6,8 @@ import { parseUnits } from '@ethersproject/units';
 import { ethers } from 'hardhat';
 import { BigNumber } from 'ethers';
 
+export const VAULT_PREFIXES = ['Liquity_Amethyst', 'Liquity_DCA'];
+
 const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   const { get } = env.deployments;
 
@@ -14,15 +16,11 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
   console.table([alice, bob, treasury]);
 
   const lusd = await get('LUSD');
-  const vaults = {
-    yearn: await get('Yearn_LUSD_Vault'),
-    liquity: await get('Liquity_Amethyst_Vault'),
-  };
 
-  for (const vaultKey in vaults) {
+  for (const prefix of VAULT_PREFIXES) {
     const underlying = await ethers.getContractAt('MockERC20', lusd.address);
 
-    const vaultAddress = vaults[vaultKey].address;
+    const vaultAddress = (await get(`${prefix}_Vault`)).address;
     console.log('vaultAddress', vaultAddress);
     const vault = await ethers.getContractAt('Vault', vaultAddress);
 
@@ -80,7 +78,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
     });
 
     console.log(
-      'Bob deposits 1000 with 50% yield to Alice and 50% yield for donations',
+      'Bob deposits 1000 with 50% yield to Bob and 50% yield for donations',
     );
     await vault.connect(bob).deposit({
       amount: parseUnits('1000', 18),
@@ -108,11 +106,17 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
     console.log('Alice claims');
     await vault.connect(alice).claimYield(alice.address);
 
+    console.log('Bob claims');
+    await vault.connect(bob).claimYield(treasury.address);
+
     console.log('The treasury claims');
     await vault.connect(treasury).claimYield(treasury.address);
 
-    console.log('Bob claims to treasury');
-    await vault.connect(bob).claimYield(treasury.address);
+    console.log('2000 more yield is generated');
+    await underlying.mint(vault.address, parseUnits('2000', 18));
+
+    console.log('The treasury claims again');
+    await vault.connect(treasury).claimYield(treasury.address);
   }
 };
 

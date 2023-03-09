@@ -1,7 +1,7 @@
 {
   "donations": {
-    "network": "mumbai",
-    "startBlock": 26556016,
-    "address": "TODO"
+    "network": "matic",
+    "startBlock": 32200749,
+    "address": "0x32Ba1eb1DC8066c09E6fCdFE6eB2e5d671589d1C"
   }
 }

@@ -4,109 +4,115 @@ import { ethers } from 'hardhat';
 import { BigNumber } from 'ethers';
 import { includes } from 'lodash';
 import { parseEther, parseUnits } from 'ethers/lib/utils';
+import { VAULT_PREFIXES } from './97_fixtures';
 
 const func = async function (env: HardhatRuntimeEnvironment) {
   const [owner, _alice, _bob] = await ethers.getSigners();
   const { get } = env.deployments;
 
-  // Deploy and gather needed mock contracts
+  for (const prefix of VAULT_PREFIXES) {
+    const liquityPriceFeedDeployment = await get(`${prefix}_Price_Feed`);
+    const liquityPriceFeed = await ethers.getContractAt(
+      'MockLiquityPriceFeed',
+      liquityPriceFeedDeployment.address,
+    );
 
-  const liquityPriceFeedDeployment = await get('Liquity_Amethyst_Price_Feed');
-  const liquityPriceFeed = await ethers.getContractAt(
-    'MockLiquityPriceFeed',
-    liquityPriceFeedDeployment.address,
-  );
+    await liquityPriceFeed.setPrice(parseUnits('1700', 18));
 
-  await liquityPriceFeed.setPrice(parseUnits('1700', 18));
+    const stabilityPoolDeployment = await get(`${prefix}_Stability_Pool`);
+    const stabilityPool = await ethers.getContractAt(
+      'MockStabilityPool',
+      stabilityPoolDeployment.address,
+    );
 
-  const stabilityPoolDeployment = await get('Liquity_Amethyst_Stability_Pool');
-  const stabilityPool = await ethers.getContractAt(
-    'MockStabilityPool',
-    stabilityPoolDeployment.address,
-  );
+    const troveManagerDeployment = await get(`${prefix}_Trove_Manager`);
+    const troveManager = await ethers.getContractAt(
+      'MockTroveManager',
+      troveManagerDeployment.address,
+    );
 
-  const troveManagerDeployment = await get('Liquity_Amethyst_Trove_Manager');
-  const troveManager = await ethers.getContractAt(
-    'MockTroveManager',
-    troveManagerDeployment.address,
-  );
+    const vaultDeployment = await get(`${prefix}_Vault`);
+    const vault = await ethers.getContractAt('Vault', vaultDeployment.address);
 
-  const vaultDeployment = await get('Liquity_Amethyst_Vault');
-  const vault = await ethers.getContractAt('Vault', vaultDeployment.address);
+    const liquityStrategy = await ethers.getContractAt(
+      'LiquityStrategy',
+      await vault.strategy(),
+    );
 
-  const liquityStrategy = await ethers.getContractAt(
-    'LiquityStrategy',
-    await vault.strategy(),
-  );
+    // Trigger events needed for backend development
 
-  // Trigger events needed for backend development
+    await vault.connect(owner).updateInvested();
 
-  await vault.connect(owner).updateInvested();
+    await troveManager.liquidation(
+      BigNumber.from('2000000000000000000000'),
+      BigNumber.from('1166776963361491786'),
+      BigNumber.from('5863200820912019'),
+      BigNumber.from('200000000000000000000'),
+    );
 
-  await troveManager.liquidation(
-    BigNumber.from('2000000000000000000000'),
-    BigNumber.from('1166776963361491786'),
-    BigNumber.from('5863200820912019'),
-    BigNumber.from('200000000000000000000'),
-  );
+    // Move time forward 12 days
+    await ethers.provider.send('evm_increaseTime', [1.037e6]);
+    // ideal way of advancing block but cannot be done because graph interprets
+    // the blocks as being uncled which prevents sync
+    // await ethers.provider.send("hardhat_mine", ["0x32"]);
+    await mineNBlocks(75);
 
-  // Move time forward 12 days
-  await ethers.provider.send('evm_increaseTime', [1.037e6]);
-  // ideal way of advancing block but cannot be done because graph interprets
-  // the blocks as being uncled which prevents sync
-  // await ethers.provider.send("hardhat_mine", ["0x32"]);
-  await mineNBlocks(75);
+    await liquityPriceFeed.setPrice(parseUnits('1750', 18));
 
-  await liquityPriceFeed.setPrice(parseUnits('1750', 18));
+    await owner.sendTransaction({
+      to: stabilityPool.address,
+      value: parseEther('0.1'),
+    });
 
-  await owner.sendTransaction({
-    to: stabilityPool.address,
-    value: parseEther('0.1'),
-  });
+    await troveManager.liquidation(
+      BigNumber.from('2000000000000000000000'),
+      BigNumber.from('1397404171184386761'),
+      BigNumber.from('7022131513489380'),
+      BigNumber.from('200000000000000000000'),
+    );
 
-  await troveManager.liquidation(
-    BigNumber.from('2000000000000000000000'),
-    BigNumber.from('1397404171184386761'),
-    BigNumber.from('7022131513489380'),
-    BigNumber.from('200000000000000000000'),
-  );
+    await liquityPriceFeed.setPrice(parseUnits('1800', 18));
 
-  await liquityPriceFeed.setPrice(parseUnits('1800', 18));
+    await liquityStrategy.harvest();
 
-  await liquityStrategy.harvest();
+    // Move time forward 12 days
+    await ethers.provider.send('evm_increaseTime', [1.037e6]);
+    await mineNBlocks(75);
 
-  // Move time forward 12 days
-  await ethers.provider.send('evm_increaseTime', [1.037e6]);
-  await mineNBlocks(75);
+    await troveManager.liquidation(
+      BigNumber.from('2000000000000000000000'),
+      BigNumber.from('1397404171184386761'),
+      BigNumber.from('7022131513489380'),
+      BigNumber.from('200000000000000000000'),
+    );
 
-  await troveManager.liquidation(
-    BigNumber.from('2000000000000000000000'),
-    BigNumber.from('1397404171184386761'),
-    BigNumber.from('7022131513489380'),
-    BigNumber.from('200000000000000000000'),
-  );
+    await owner.sendTransaction({
+      to: stabilityPool.address,
+      value: parseEther('0.8'),
+    });
 
-  await owner.sendTransaction({
-    to: stabilityPool.address,
-    value: parseEther('0.8'),
-  });
+    // Move time forward 12 days
+    await ethers.provider.send('evm_increaseTime', [1.037e6]);
+    await mineNBlocks(75);
 
-  // Move time forward 12 days
-  await ethers.provider.send('evm_increaseTime', [1.037e6]);
-  await mineNBlocks(75);
+    await liquityPriceFeed.setPrice(parseUnits('1500', 18));
 
-  await liquityPriceFeed.setPrice(parseUnits('1500', 18));
-
-  await troveManager.liquidation(
-    BigNumber.from('2000000000000000000000'),
-    BigNumber.from('1397404171184386761'),
-    BigNumber.from('7022131513489380'),
-    BigNumber.from('200000000000000000000'),
-  );
+    await troveManager.liquidation(
+      BigNumber.from('2000000000000000000000'),
+      BigNumber.from('1397404171184386761'),
+      BigNumber.from('7022131513489380'),
+      BigNumber.from('200000000000000000000'),
+    );
+  }
 };
 
 func.tags = ['liquity_fixture'];
-func.dependencies = ['dev', 'fixtures', 'liquity_amethyst_strategy'];
+func.dependencies = [
+  'dev',
+  'fixtures',
+  'liquity_amethyst_strategy',
+  'liquity_dca_strategy',
+];
 
 func.skip = async (env: HardhatRuntimeEnvironment) =>
   !includes(['docker', 'hardhat'], env.deployments.getNetworkName());

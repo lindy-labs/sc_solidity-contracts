@@ -72,10 +72,12 @@ export function handleYieldClaimed(event: YieldClaimed): void {
     foundation.save();
 
     // If the claim is to the treasury, create a Donation
+    // Ensure destination is not 0x
     if (
       vault.treasury !== null &&
       event.params.to.toString() == vault.treasury!.toString() &&
-      depositClaimedShares.gt(BigInt.fromI32(0))
+      depositClaimedShares.gt(BigInt.fromI32(0)) &&
+      deposit.data.toHexString() != '0x'
     ) {
       const id =
         event.transaction.hash.toHex() +
