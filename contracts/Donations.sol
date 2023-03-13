@@ -31,6 +31,12 @@ contract Donations is ERC721, AccessControl {
         uint256 amount;
     }
 
+    struct LocalMintVars {
+        uint64 expiry;
+        uint256 length;
+        uint256 metadataId;
+    }
+
     event DonationMinted(
         uint256 indexed id,
         uint128 indexed destinationId,
@@ -39,7 +45,8 @@ contract Donations is ERC721, AccessControl {
         uint256 expiry,
         uint256 amount,
         address owner,
-        string donationId
+        string donationId,
+        address vault
     );
 
     event DonationBurned(uint256 indexed id, string donationId);
@@ -128,36 +135,38 @@ contract Donations is ERC721, AccessControl {
             "Donations: already processed"
         );
 
-        uint64 expiry = _getBlockTimestamp() + ttl;
-        uint256 length = _params.length;
-        uint256 _metadataId = metadataId;
+        LocalMintVars memory localMintVars = LocalMintVars({
+            expiry: _getBlockTimestamp() + ttl,
+            length: _params.length,
+            metadataId: metadataId
+        });
+        
+        for (uint256 i = 0; i < localMintVars.length; ++i) {
+            ++localMintVars.metadataId;
 
-        for (uint256 i = 0; i < length; ++i) {
-            ++_metadataId;
-
-            metadata[_metadataId] = Metadata({
+            metadata[localMintVars.metadataId] = Metadata({
                 destinationId: _params[i].destinationId,
                 token: _params[i].token,
-                expiry: expiry,
+                expiry: localMintVars.expiry,
                 amount: _params[i].amount
             });
 
-            _mint(_params[i].owner, _metadataId);
+            _mint(_params[i].owner, localMintVars.metadataId);
 
             emit DonationMinted(
-                _metadataId,
+                localMintVars.metadataId,
                 _params[i].destinationId,
                 groupId,
                 _params[i].token,
-                expiry,
+                localMintVars.expiry,
                 _params[i].amount,
                 _params[i].owner,
                 _params[i].donationId,
-                _params[i].vault,
+                _params[i].vault
             );
         }
 
-        metadataId = _metadataId;
+        metadataId = localMintVars.metadataId;
 
         processedDonationsGroups[groupId] = true;
     }

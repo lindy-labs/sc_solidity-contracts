@@ -490,6 +490,7 @@ describe('Donations', () => {
           parseUnits('1'),
           owner.address,
           'some-donation-id',
+          constants.AddressZero,
         );
     });
 
