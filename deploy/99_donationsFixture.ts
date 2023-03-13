@@ -47,6 +47,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
         // donationId is is the id generated for the donation record by the
         // subgraph handler for YieldClaimed event
         donationId: `${transactionHash}-0-0`,
+        vault: vault.address,
       },
       {
         destinationId: 10,
@@ -54,6 +55,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
         token: LUSD.address,
         amount: args.amount,
         donationId: `${transactionHash}-0-1`,
+        vault: vault.address,
       },
     ]);
 
