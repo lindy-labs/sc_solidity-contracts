@@ -4,7 +4,7 @@ import { DonationMinted, DonationBurned } from '../types/Donations/Donations';
 export function handleDonationMinted(event: DonationMinted): void {
   const donationMint = new DonationMint(event.params.donationId);
 
-  donationMint.vault = event.address.toHexString();
+  donationMint.vault = event.params.vault.toHexString();
   donationMint.burned = false;
   donationMint.nftId = event.params.id;
 

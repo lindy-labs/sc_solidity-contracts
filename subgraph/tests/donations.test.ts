@@ -50,12 +50,16 @@ test('DonationMinted event creates DonationMint record', () => {
     newParamAddress('owner', '0x0000000000000000000000000000000000000000'),
   );
   donationEvent.parameters.push(newParamString('donationId', donationID));
+  donationEvent.parameters.push(
+    newParamAddress('vault', '0x0000000000000000000000000000000000000000'),
+  );
 
   handleDonationMinted(donationEvent);
 
   assert.fieldEquals('DonationMint', donationID, 'id', donationID);
   assert.fieldEquals('DonationMint', donationID, 'nftId', '0');
   assert.fieldEquals('DonationMint', donationID, 'burned', 'false');
+  assert.fieldEquals('DonationMint', donationID, 'vault', '0x0000000000000000000000000000000000000000');
 
   clearStore();
 });
