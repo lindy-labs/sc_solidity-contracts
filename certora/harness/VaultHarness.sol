@@ -155,7 +155,7 @@ contract VaultHarness is Vault {
         uint16[] calldata pcts,
         address[] calldata beneficiaries,
         bytes[] calldata datas,
-        uint256 slippage
+        uint256 amountOutMin
     ) internal returns (DepositParams memory) {
         require(pcts.length == beneficiaries.length && pcts.length == datas.length);
         ClaimParams[] memory claims;
@@ -172,20 +172,20 @@ contract VaultHarness is Vault {
             amount: amount,
             claims: claims,
             name: "test",
-            slippage: slippage
+            amountOutMin: amountOutMin
         });
     }
 
     function principalOf(uint256 depositId) external view returns (uint256) {
-        return claimer[deposits[depositId].claimerId].totalPrincipal;
+        return claimers[deposits[depositId].claimerId].totalPrincipal;
     }
 
-    function totalSharesOf(address[] calldata claimers) external view returns (uint256) {
+    function totalSharesOf(address[] calldata users) external view returns (uint256) {
         uint256 total = 0;
-        for(uint256 i = 0; i < claimers.length; i++) {
-            address claimerId = claimers[i];
+        for(uint256 i = 0; i < users.length; i++) {
+            address claimerId = users[i];
             if (claimerId != address(0x0)) {
-                total += claimer[claimerId].totalShares;
+                total += claimers[claimerId].totalShares;
             }
         }
         return total;
@@ -199,12 +199,12 @@ contract VaultHarness is Vault {
         return total;
     }
 
-    function totalPrincipalOf(address[] calldata claimers) external view returns (uint256) {
+    function totalPrincipalOf(address[] calldata users) external view returns (uint256) {
         uint256 total = 0;
-        for(uint256 i = 0; i < claimers.length; i++) {
-            address claimerId = claimers[i];
+        for(uint256 i = 0; i < users.length; i++) {
+            address claimerId = users[i];
             if (claimerId != address(0x0)) {
-                total += claimer[claimerId].totalPrincipal;
+                total += claimers[claimerId].totalPrincipal;
             }
         }
         return total;
@@ -215,7 +215,7 @@ contract VaultHarness is Vault {
         for(uint256 i = 0; i < depositIds.length; i++) {
             address claimerId = deposits[depositIds[i]].claimerId;
             if (claimerId != address(0x0)) {
-                total += claimer[claimerId].totalShares;
+                total += claimers[claimerId].totalShares;
             }
         }
         return total;
@@ -226,7 +226,7 @@ contract VaultHarness is Vault {
         for(uint256 i = 0; i < depositIds.length; i++) {
             address claimerId = deposits[depositIds[i]].claimerId;
             if (claimerId != address(0x0)) {
-                total += claimer[claimerId].totalPrincipal;
+                total += claimers[claimerId].totalPrincipal;
             }
         }
         return total;

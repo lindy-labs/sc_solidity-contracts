@@ -4,7 +4,7 @@ if [ "$#" -eq 0 ]
 then 
   certoraRun certora/harness/LiquityStrategyHarness.sol \
       contracts/Vault.sol \
-			certora/harness/MockLUSD.sol \
+			certora/mocks/MockLUSD.sol \
       contracts/mock/MockERC20.sol:MockLQTY \
 			contracts/mock/MockCurveExchange.sol \
       contracts/mock/liquity/MockStabilityPool.sol \
@@ -27,7 +27,7 @@ elif [ "$#" -eq 1 ]
 then
   certoraRun certora/harness/LiquityStrategyHarness.sol \
       contracts/Vault.sol \
-			certora/harness/MockLUSD.sol \
+			certora/mocks/MockLUSD.sol \
       contracts/mock/MockERC20.sol:MockLQTY \
 			contracts/mock/MockCurveExchange.sol \
       contracts/mock/liquity/MockStabilityPool.sol \

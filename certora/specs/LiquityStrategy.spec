@@ -10,7 +10,7 @@ methods {
     initialize(address, address, address, address, address, address, uint16, address)
 
     // admin/settings/keeper/manager functions
-    setMinPrincipalProtectionPct(uint16)
+    setMinProtectedAssetsPct(uint16)
     transferAdminRights(address)
     invest()
     withdrawToVault(uint256) returns (uint256)
@@ -35,7 +35,7 @@ methods {
     curveExchange() returns (address) envfree
     lqty() returns (address) envfree
     allowedSwapTargets(address) returns (bool) envfree
-    minPrincipalProtectionPct() returns (uint16) envfree
+    minProtectedAssetsPct() returns (uint16) envfree
     MANAGER_ROLE() returns (bytes32) envfree
     KEEPER_ROLE() returns (bytes32) envfree
     SETTINGS_ROLE() returns (bytes32) envfree
@@ -53,7 +53,7 @@ definition adminFunctions(method f) returns bool =
     f.selector == transferAdminRights(address).selector;
 
 definition settingsFunctions(method f) returns bool =
-    f.selector == setMinPrincipalProtectionPct(uint16).selector
+    f.selector == setMinProtectedAssetsPct(uint16).selector
     ||
     f.selector == allowSwapTarget(address).selector
     ||
@@ -310,15 +310,15 @@ rule integrity_of_denySwapTarget() {
     @Category: variable transition
 
     @Description:
-        setMinPrincipalProtectionPct should set minPrincipalProtectionPct
+        setMinProtectedAssetsPct should set minPrincipalProtectionPct
 */
-rule integrity_of_setMinPrincipalProtectionPct() {
+rule integrity_of_setMinProtectedAssetsPct() {
     env e;
     uint16 pct;
 
-    setMinPrincipalProtectionPct(e, pct);
+    setMinProtectedAssetsPct(e, pct);
 
-    assert minPrincipalProtectionPct() == pct;
+    assert minProtectedAssetsPct() == pct;
 }
 
 

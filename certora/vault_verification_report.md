@@ -10,7 +10,7 @@
 
 This document describes the specification and verification of Vault using the Certora Prover. 
 
-The scope of this verification is the [`Vault.sol`](https://github.com/lindy-labs/sc_solidity-contracts/blob/main/contracts/Vault.sol) contract. Its specification is available [here](specs/Vault.spec).
+The scope of this verification is the [`Vault.sol`](https://github.com/lindy-labs/sc_solidity-contracts/blob/8072f2a60a5a8fef0d106a4d1fdf09788ee522d5/contracts/Vault.sol) contract. Its specification is available [here](specs/Vault.spec).
 
 The Certora Prover proved the implementation of the Vault contract is correct with respect to formal specifications written by the security team of Lindy Labs.  The team also performed a manual audit of these contracts.
 
@@ -28,7 +28,7 @@ The Certora Prover proved the implementation of the Vault contract is correct wi
 
 ## Description of the Vault contract
 
-The Vault contract is the core of the SandClock system. It allows user to deposit funds to invest and withdraw funds to disinvest. It delegates investing activity to a contract that implements [`IStrategy`](https://github.com/lindy-labs/sc_solidity-contracts/blob/main/contracts/strategy/IStrategy.sol) interface. 
+The Vault contract is the core of the SandClock system. It allows user to deposit funds to invest and withdraw funds to disinvest. It delegates investing activity to a contract that implements [`IStrategy`](https://github.com/lindy-labs/sc_solidity-contracts/blob/8072f2a60a5a8fef0d106a4d1fdf09788ee522d5/contracts/strategy/IStrategy.sol) interface. 
 
 The main value added by Vault is allowing user to specify multiple beneficiaries in a very flexible way, which opens a lot of possibilities. It also allows sponsors to contribute yield to all the users while guaranteeing sponsors to be the last ones to bear investment loss.
 
@@ -49,7 +49,7 @@ We made the following assumptions during the verification process:
 
 In this document, verification conditions are either shown as logical formulas or Hoare triples of the form {p} C {q}. A verification condition given by a logical formula denotes an invariant that holds if every reachable state satisfies the condition.
 
-Hoare triples of the form {p} C {q} holds if any non-reverting execution of program C that starts in a state satsifying the precondition p ends in a state satisfying the postcondition q. The notation {p} C@withrevert {q} is similar but applies to both reverting and non-reverting executions. Preconditions and postconditions are similar to the Solidity require and statements.
+Hoare triples of the form {p} C {q} holds if any non-reverting execution of program C that starts in a state satisfying the precondition p ends in a state satisfying the post-condition q. The notation {p} C@withrevert {q} is similar but applies to both reverting and non-reverting executions. Preconditions and post-conditions are similar to the Solidity require and statements.
 
 Formulas relate the results of method calls. In most cases, these methods are getters defined in the contracts, but in some cases they are getters we have added to our harness or definitions provided in the rules file. Undefined variables in the formulas are treated as arbitrary: the rule is checked for every possible value of the variables.
 
@@ -59,51 +59,72 @@ Formulas relate the results of method calls. In most cases, these methods are ge
 #### 1. Integrity of totalShares calculation ✔️
     
 ```
-totalShares == sum(claimer[claimerId].totalShares)
+totalShares == sum(claimers[claimerId].totalShares)
 ```
 
 #### 2. Integrity of totalPrincipal calculation ✔️
     
 ```
-totalPrincipal == sum(claimer[claimerId].totalPrincipal)
+totalPrincipal == sum(claimers[claimerId].totalPrincipal)
 ```
 
 #### 3. Claimer shares change only if user deposit, withdraw or claim yield ✔️
     
 ```
 { s = sharesOf(claimerId) }
+
     f(e, args);
-{ sharesOf(claimerId) != s => f.selector == deposit || f.selector == depositForGroupId || f.selector == withdraw || f.selector == forceWithdraw || f.selector == partialWithdraw || f.selector == claimYield }
+
+{ 
+    sharesOf(claimerId) != s => 
+        f.selector == deposit 
+        || 
+        f.selector == depositForGroupId 
+        || 
+        f.selector == withdraw 
+        || 
+        f.selector == forceWithdraw 
+        || 
+        f.selector == partialWithdraw 
+        || 
+        f.selector == claimYield 
+    }
 ```
 
 #### 4. Claimer principal changes only if user deposit or withdraw ✔️
     
 ```
 { p = principalOf(claimerId) }
+
     f(e, args);
-{ principalOf(claimerId) != p => f.selector == deposit || f.selector == depositForGroupId || f.selector == withdraw || f.selector == forceWithdraw || f.selector == partialWithdraw }
+
+{ 
+    principalOf(claimerId) != p => 
+        f.selector == deposit 
+        || 
+        f.selector == depositForGroupId 
+        || 
+        f.selector == withdraw 
+        || 
+        f.selector == forceWithdraw 
+        || 
+        f.selector == partialWithdraw 
+    }
 ```
 
-#### 5. maxInvestableAmount should always be greater than or equal to the alreadyInvested if the strategy does nothing and user does not change investPct or withdraw ✔️
-    
-```
-maxInvestableAmount() >= alreadyInvested()
-    filtered{f -> excludeSetInvestPct(f) && excludeWithdrawals(f)}
-```
-
-#### 6. underlying and getUnderlying() should be the same value ✔️
+#### 5. underlying and getUnderlying() should be the same value ✔️
 
 ```
 underlying() == getUnderlying()
 ```
 
-#### 7. totalUnderlying() should equal the sum of the Vault and Strategy's balances ✔️
+#### 6. totalUnderlying() should equal the sum of the Vault and Strategy's balances ✔️
 
 ```
 totalUnderlying() == underlying.balanceOf(currentContract) + underlying.balanceOf(strategy)
 ```
 
-#### 8. Integrity of deposit function ✔️
+#### 7. Integrity of deposit function ✔️
 
 ```
 { 
@@ -114,7 +135,9 @@ totalUnderlying() == underlying.balanceOf(currentContract) + underlying.balanceO
     _totalSharesOfClaimers = totalSharesOf(claimers);
     _totalPrincipalOfClaimers = totalPrincipalOf(claimers);
 }
+    
     deposit(inputToken, lockDuration, amount, pcts, claimers, datas, slippage);
+
 { 
     _userBalance - underlying.balanceOf(e.msg.sender) == amount;
     underlying.balanceOf(currentContract) - _vaultBalance == amount;
@@ -125,9 +148,9 @@ totalUnderlying() == underlying.balanceOf(currentContract) + underlying.balanceO
 }
 ```
 
-#### 9. Equivalence of deposit function and depositForGroupId function in changing totalShares, totalPrincipal, claimer's shares and principal, and deposits ✔️
+#### 8. Equivalence of deposit function and depositForGroupId function in changing totalShares, totalPrincipal, claimer's shares and principal, and deposits ✔️
 
-#### 10. Integrity of withdraw function
+#### 9. Integrity of withdraw function
 
 ```
 { 
@@ -140,7 +163,9 @@ totalUnderlying() == underlying.balanceOf(currentContract) + underlying.balanceO
     _totalSharesOfClaimers = totalSharesOf(depositIds);
     totalPrincipalOf(depositIds) == _totalDeposits;
 }
+    
     withdraw(to, depositIds);
+
 { 
     underlying.balanceOf(to) - _userBalance == _totalDeposits;
     _totalUnderlying - totalUnderlying() == _totalDeposits;
@@ -153,7 +178,7 @@ totalUnderlying() == underlying.balanceOf(currentContract) + underlying.balanceO
 }
 ```
 
-#### 11. Integrity of partialWithdraw function
+#### 10. Integrity of partialWithdraw function
 
 ```
 { 
@@ -168,7 +193,9 @@ totalUnderlying() == underlying.balanceOf(currentContract) + underlying.balanceO
     totalAmount = totalAmount(amounts);
     totalPrincipalOf(depositIds) == _totalDeposits;
 }
+    
     partialWithdraw(to, depositIds, amounts);
+
 { 
     underlying.balanceOf(to) - _userBalance == totalAmount;
     _totalDeposits - totalDeposits(depositIds) == totalAmount;
@@ -181,7 +208,7 @@ totalUnderlying() == underlying.balanceOf(currentContract) + underlying.balanceO
 }
 ```
 
-#### 12. Integrity of forceWithdraw function ✔️
+#### 11. Integrity of forceWithdraw function ✔️
 
 ```
 { 
@@ -191,7 +218,9 @@ totalUnderlying() == underlying.balanceOf(currentContract) + underlying.balanceO
     _totalPrincipal = totalPrincipal();
     _totalDeposits = totalDeposits(depositIds);
 }
+    
     forceWithdraw(to, depositIds);
+
 { 
     underlying.balanceOf(to) >= _userBalance;
     _totalUnderlying >= totalUnderlying();
@@ -201,7 +230,7 @@ totalUnderlying() == underlying.balanceOf(currentContract) + underlying.balanceO
 }
 ```
 
-#### 13. Integrity of sponsor function ✔️
+#### 12. Integrity of sponsor function ✔️
 
 ```
 {
@@ -211,7 +240,9 @@ totalUnderlying() == underlying.balanceOf(currentContract) + underlying.balanceO
     _totalShares = totalShares();
     _totalPrincipal = totalPrincipal();
 }
+    
     sponsor(inputToken, amount, lockDuration, slippage);
+
 {
     _userBalance - underlying.balanceOf(e.msg.sender) == amount;
     underlying.balanceOf(currentContract) - _vaultBalance == amount;
@@ -231,7 +262,9 @@ totalUnderlying() == underlying.balanceOf(currentContract) + underlying.balanceO
     _totalShares = totalShares();
     _totalPrincipal = totalPrincipal();
 }
+    
     sponsor(inputToken, amount, lockDuration, slippage);
+
 {
     _userBalance - underlying.balanceOf(e.msg.sender) == amount;
     underlying.balanceOf(currentContract) - _vaultBalance == amount;
@@ -252,7 +285,9 @@ totalUnderlying() == underlying.balanceOf(currentContract) + underlying.balanceO
     _totalShares = totalShares();
     _totalPrincipal = totalPrincipal();
 }
+    
     unsponsor(to, depositIds);
+
 {
     underlying.balanceOf(to) - _userBalance == _totalDeposits;
     _totalUnderlying - totalUnderlying() == _totalDeposits;
@@ -274,7 +309,9 @@ totalUnderlying() == underlying.balanceOf(currentContract) + underlying.balanceO
     _totalShares = totalShares();
     _totalPrincipal = totalPrincipal();
 }
+    
     partialUnsponsor(to, depositIds, amounts);
+
 {
     underlying.balanceOf(to) - _userBalance == totalAmount(amounts);
     _totalUnderlying - totalUnderlying() == totalAmount(amounts);
@@ -289,6 +326,7 @@ totalUnderlying() == underlying.balanceOf(currentContract) + underlying.balanceO
 
 ```
 {}
+    
     transferAdminRights(e, newAdmin);
     addPool(token1, pool, tokenI, underlyingI);
     removePool(token2);
@@ -297,6 +335,7 @@ totalUnderlying() == underlying.balanceOf(currentContract) + underlying.balanceO
     setPerfFeePct(perfFeePct);
     setStrategy(s);
     setLossTolerancePct(lossTolerancePct);
+
 {
     !hasRole(DEFAULT_ADMIN_ROLE(), e.msg.sender);
     hasRole(DEFAULT_ADMIN_ROLE(), newAdmin);
@@ -318,7 +357,9 @@ totalUnderlying() == underlying.balanceOf(currentContract) + underlying.balanceO
     _totalUnderlying = totalUnderlying();
     _accumulatedPerformanceFee = accumulatedPerfFee();
 }
+    
     withdrawPerformanceFee();
+
 {  
     underlying.balanceOf(treasury()) - _balanceOfTreasury == _accumulatedPerformanceFee;
     _totalUnderlying - totalUnderlying() == _accumulatedPerformanceFee;
@@ -330,7 +371,9 @@ totalUnderlying() == underlying.balanceOf(currentContract) + underlying.balanceO
 
 ```
 {}
+    
     pause();
+
 { paused() }
 ```
 
@@ -338,7 +381,9 @@ totalUnderlying() == underlying.balanceOf(currentContract) + underlying.balanceO
 
 ```
 {}
+    
     unpause();
+
 { !paused() }
 ```
 
@@ -346,7 +391,9 @@ totalUnderlying() == underlying.balanceOf(currentContract) + underlying.balanceO
 
 ```
 {}
+    
     exitPause();
+
 { exitPaused() }
 ```
 
@@ -354,7 +401,9 @@ totalUnderlying() == underlying.balanceOf(currentContract) + underlying.balanceO
 
 ```
 {}
+    
     exitUnpause();
+
 { !exitPaused() }
 ```
 
@@ -362,10 +411,12 @@ totalUnderlying() == underlying.balanceOf(currentContract) + underlying.balanceO
 
 ```
 {}
+    
     claimableYield = yieldFor(user).yield;
     claimableShares = yieldFor(user).shares;
     perfFee = yieldFor(user).perfFee;
     yield = claimableYield + perfFee;
+
 {
     perfFee == pctOf(yield, perfFeePct());
     yield > 0 => claimableShares > 0;
@@ -383,15 +434,19 @@ totalUnderlying().pctOf(investPct) == investState().maxInvestableAmount
 
 ```
 { totalUnderlyingMinusSponsored() < totalPrincipal() }
+    
     withdraw@withrevert(to, ids);
+
 { lastReverted }
 ```
 
 #### 25. Integrity of updateInvested function ✔️
 
 ```
-{ maxInvestableAmount() - alreadyInvested() > rebalanceMinimum() ||  alreadyInvested() - maxInvestableAmount() > rebalanceMinimum() }
+{ }
+    
     updateInvested();
+
 { alreadyInvested() == maxInvestableAmount() }
 ```
 
@@ -399,7 +454,9 @@ totalUnderlying().pctOf(investPct) == investState().maxInvestableAmount
 
 ```
 { paused() }
+    
     deposit@withrevert() || depositForGroupId@withrevert() || sponsor@withrevert()
+
 { lastReverted }
 ```
 
@@ -421,7 +478,9 @@ totalUnderlying().pctOf(investPct) == investState().maxInvestableAmount
     || 
     !isTotal100Pct(pcts);
 }
+    
     deposit@withrevert(inputToken, lockDuration, amount, pcts, beneficiaries, datas, slippage);
+
 { lastReverted }
 ```
 
@@ -437,7 +496,9 @@ totalUnderlying().pctOf(investPct) == investState().maxInvestableAmount
     ||
     amount == 0;
 }
+    
     sponsor@withrevert(inputToken, amount, lockDuration, slippage);
+
 { lastReverted }
 ```
 
@@ -445,6 +506,7 @@ totalUnderlying().pctOf(investPct) == investState().maxInvestableAmount
 
 ```
 { exitPaused() }
+    
     withdraw@withrevert() 
     || 
     partialWithdraw@withrevert() 
@@ -456,6 +518,7 @@ totalUnderlying().pctOf(investPct) == investState().maxInvestableAmount
     unsponsor@withrevert()
     ||
     partialUnsponsor@withrevert()
+
 { lastReverted }
 ```
 
@@ -475,10 +538,10 @@ totalUnderlyingMinusSponsored() == totalUnderlying() - totalSponsored() - accumu
     || 
     depositLockedUntil(ids[2]) > e.block.timestamp
 }
+    
     withdraw@withrevert(e, to, ids)
-{ 
-    lastReverted 
-}
+
+{ lastReverted }
 ```
 
 #### 32. withdraw function reverts if the user didn't make the deposit ✔️
@@ -491,10 +554,10 @@ totalUnderlyingMinusSponsored() == totalUnderlying() - totalSponsored() - accumu
     || 
     depositOwner(ids[2]) != e.msg.sender
 }
+
     withdraw@withrevert(e, to, ids)
-{
-    lastReverted
-}
+
+{ lastReverted }
 ```
 
 #### 33. privileged functions should revert if the `msg.sender` does not have the privilege ✔️
@@ -509,16 +572,18 @@ totalUnderlyingMinusSponsored() == totalUnderlying() - totalSponsored() - accumu
     ||
     sponsorFunctions(f) && !hasRole(SPONSOR_ROLE(), e.msg.sender)
 }
+
     f@withrevert(e, args)
-{
-    lastReverted
-}
+
+{ lastReverted }
 ```
 
 #### 34. deposit function reverts if the vault is in a loss ✔️
 
 ```
 { totalUnderlyingMinusSponsored() < applyLossTolerance(totalPrincipal()) }
+
     deposit@withrevert(e, args)
+
 { lastReverted }
 ```

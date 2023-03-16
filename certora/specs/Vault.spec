@@ -87,24 +87,6 @@ methods {
     underlying.balanceOf(address) returns (uint256) envfree
 }
 
-definition excludeSetInvestPct(method f) returns bool =
-    f.selector != setInvestPct(uint16).selector;
-
-definition excludeWithdrawals(method f) returns bool =
-    f.selector != unsponsor(address, uint256[]).selector
-    &&
-    f.selector != partialUnsponsor(address, uint256[], uint256[]).selector
-    &&
-    f.selector != withdraw(address, uint256[]).selector
-    &&
-    f.selector != forceWithdraw(address, uint256[]).selector
-    &&    
-    f.selector != partialWithdraw(address, uint256[], uint256[]).selector
-    &&
-    f.selector != claimYield(address).selector
-    &&
-    f.selector != withdrawPerformanceFee().selector;
-
 definition rebalanceMinimum() returns uint256 = 10 * 10^18;    
 
 // PCT_DIVISOR constant in PercentMath lib
@@ -154,7 +136,7 @@ ghost sumOfClaimerShares() returns uint256   {
     init_state axiom sumOfClaimerShares() == 0;
 }
 
-hook Sstore claimer[KEY address k].(offset 32) uint256 amount (uint256 oldAmount) STORAGE {
+hook Sstore claimers[KEY address k].(offset 32) uint256 amount (uint256 oldAmount) STORAGE {
     havoc sumOfClaimerShares assuming sumOfClaimerShares@new() == sumOfClaimerShares@old() + (amount - oldAmount);
 }
 
@@ -173,7 +155,7 @@ ghost sumOfClaimerPrincipal() returns uint256  {
     init_state axiom sumOfClaimerPrincipal() == 0;
 }
 
-hook Sstore claimer[KEY address k].(offset 0) uint256 amount (uint256 oldAmount) STORAGE {
+hook Sstore claimers[KEY address k].(offset 0) uint256 amount (uint256 oldAmount) STORAGE {
     havoc sumOfClaimerPrincipal assuming sumOfClaimerPrincipal@new() == sumOfClaimerPrincipal@old() + (amount - oldAmount);
 }
 
@@ -255,19 +237,6 @@ rule only_deposits_withdraw_change_claimer_principal(address claimer, method f) 
         );
 }
 
-
-/*
-    @Invariant
-
-    @Description:
-        Without a strategy or a strategy not making money, 
-        investState().maxInvestableAmount >= investState().alreadyInvested
-*/
-invariant maxInvestableAmount_ge_alreadyInvested()
-    maxInvestableAmount() >= alreadyInvested()
-    filtered{f -> excludeSetInvestPct(f) && excludeWithdrawals(f)}
-
-
 /*
     @Invariant
 
@@ -313,7 +282,7 @@ rule integrity_of_deposit() {
     require claimers.length == 3;
     bytes[] datas;
     require datas.length == 3;
-    uint256 slippage;
+    uint256 amountOutMin;
     env e;
     require e.msg.sender != currentContract && e.msg.sender != strategy() && strategy() != currentContract;
     underlying.setFee(e, 0);
@@ -325,7 +294,7 @@ rule integrity_of_deposit() {
     uint256 _totalSharesOfClaimers = totalSharesOf(claimers);
     uint256 _totalPrincipalOfClaimers = totalPrincipalOf(claimers);
 
-    deposit(e, inputToken, lockDuration, amount, pcts, claimers, datas, slippage);
+    deposit(e, inputToken, lockDuration, amount, pcts, claimers, datas, amountOutMin);
 
     uint256 userBalance_ = underlying.balanceOf(e.msg.sender);
     uint256 vaultBalance_ = underlying.balanceOf(currentContract);
@@ -361,11 +330,11 @@ rule equivalence_of_deposit_and_depositForGroupId() {
     require claimers.length == 3;
     bytes[] datas;
     require datas.length == 3;
-    uint256 slippage;
+    uint256 amountOutMin;
     env e1;
 
     storage init = lastStorage;
-    deposit(e1, inputToken, lockDuration, amount, pcts, claimers, datas, slippage);
+    deposit(e1, inputToken, lockDuration, amount, pcts, claimers, datas, amountOutMin);
     uint256 userBalance_deposit = underlying.balanceOf(e1.msg.sender);
     uint256 vaultBalance_deposit = underlying.balanceOf(currentContract);
     uint256 totalShares_deposit = totalShares();
@@ -376,7 +345,7 @@ rule equivalence_of_deposit_and_depositForGroupId() {
     uint256 groupId;
     env e2;
     require e2.msg.sender == e1.msg.sender;
-    depositForGroupId(e2, groupId, inputToken, lockDuration, amount, pcts, claimers, datas, slippage) at init;
+    depositForGroupId(e2, groupId, inputToken, lockDuration, amount, pcts, claimers, datas, amountOutMin) at init;
     uint256 userBalance_depositForGroupId = underlying.balanceOf(e2.msg.sender);
     uint256 vaultBalance_depositForGroupId = underlying.balanceOf(currentContract);
     uint256 totalShares_depositForGroupId = totalShares();
@@ -597,7 +566,7 @@ rule integrity_of_sponsor() {
 
     uint256 amount;
     uint256 lockDuration;
-    uint256 slippage;
+    uint256 amountOutMin;
     
     env e;
     underlying.setFee(e, 0);
@@ -608,7 +577,7 @@ rule integrity_of_sponsor() {
     uint256 _totalShares = totalShares();
     uint256 _totalPrincipal = totalPrincipal();
 
-    sponsor(e, inputToken, amount, lockDuration, slippage);
+    sponsor(e, inputToken, amount, lockDuration, amountOutMin);
 
     uint256 userBalance_ = underlying.balanceOf(e.msg.sender);
     uint256 vaultBalance_ = underlying.balanceOf(currentContract);
@@ -896,18 +865,10 @@ rule interity_of_updateInvested() {
     require strategy() != currentContract;
 
     underlying.setFee(e, 0);
-    uint256 _maxInvestableAmount = maxInvestableAmount();
-    uint256 _alreadyInvested = alreadyInvested();
-    require 
-        _maxInvestableAmount - _alreadyInvested > rebalanceMinimum() 
-        || 
-        _alreadyInvested - _maxInvestableAmount > rebalanceMinimum();
 
     updateInvested(e);
 
-    uint256 maxInvestableAmount_ = maxInvestableAmount();
-    uint256 alreadyInvested_ = alreadyInvested();
-    assert maxInvestableAmount_ == alreadyInvested_;
+    assert maxInvestableAmount() == alreadyInvested();
 }
 
 
@@ -957,7 +918,7 @@ rule deposit_reverts_on_invalid_params() {
     uint16[] pcts;
     address[] beneficiaries;
     bytes[] datas;
-    uint256 slippage;
+    uint256 amountOutMin;
     
     require
         inputToken != getUnderlying() && getCurvePool(inputToken) == 0
@@ -974,7 +935,7 @@ rule deposit_reverts_on_invalid_params() {
         || 
         !isTotal100Pct(pcts);
 
-    deposit@withrevert(e, inputToken, lockDuration, amount, pcts, beneficiaries, datas, slippage);
+    deposit@withrevert(e, inputToken, lockDuration, amount, pcts, beneficiaries, datas, amountOutMin);
 
     assert lastReverted;
 }
@@ -993,7 +954,7 @@ rule sponsor_reverts_on_invalid_params() {
     address inputToken;
     uint256 amount;
     uint256 lockDuration;
-    uint256 slippage;
+    uint256 amountOutMin;
 
     require
         inputToken != getUnderlying() && getCurvePool(inputToken) == 0
@@ -1004,7 +965,7 @@ rule sponsor_reverts_on_invalid_params() {
         ||
         amount == 0;
     
-    sponsor@withrevert(e, inputToken, amount, lockDuration, slippage);
+    sponsor@withrevert(e, inputToken, amount, lockDuration, amountOutMin);
 
     assert lastReverted;
 }

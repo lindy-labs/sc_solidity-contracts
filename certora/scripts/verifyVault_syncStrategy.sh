@@ -3,7 +3,7 @@ cd ../..
 if [ "$#" -eq 0 ]
 then 
   certoraRun certora/harness/VaultHarness.sol \
-  	  contracts/mock/MockStrategySync.sol \
+  	  certora/mocks/MockStrategySync.sol \
 			contracts/mock/MockERC20.sol:MockLUSD \
 			contracts/mock/MockCurvePool.sol:MockCurve \
 	  --link VaultHarness:strategy=MockStrategySync \
@@ -18,7 +18,7 @@ then
 elif [ "$#" -eq 1 ]
 then
   certoraRun certora/harness/VaultHarness.sol \
-  	  contracts/mock/MockStrategySync.sol \
+  	  certora/mocks/MockStrategySync.sol \
 			contracts/mock/MockERC20.sol:MockLUSD \
 			contracts/mock/MockCurvePool.sol:MockCurve \
 	  --link VaultHarness:strategy=MockStrategySync \
