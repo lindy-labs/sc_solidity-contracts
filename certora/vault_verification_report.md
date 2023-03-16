@@ -16,7 +16,7 @@ The Certora Prover proved the implementation of the Vault contract is correct wi
 
 ## List of Issues Discovered
 
-**Severity: <span style="color:tan">Low  </span>**
+**Severity: Low**
 
 | Issue:            | Dust in the Vault | 
 | --------          | -------- |    
