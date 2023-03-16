@@ -1163,7 +1163,7 @@ contract Vault is
             _totalUnderlyingMinusSponsored
         );
 
-        emit DepositWithdrawn(_tokenId, sharesToBurn, amount, _to, isFull);
+        emit DepositWithdrawn(_tokenId, sharesToBurn, _amount, _to, isFull);
 
         return amount;
     }

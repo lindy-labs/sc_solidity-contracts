@@ -2519,6 +2519,47 @@ describe('Vault', () => {
           );
       });
 
+      it('emits the correct amount when the withdrawal amouns has to be rounded down', async () => {
+        const params = depositParams.build({
+          amount: parseUnits('100'),
+          inputToken: underlying.address,
+          claims: [
+            claimParams.percent(50).to(carol.address).build(),
+            claimParams.percent(50).to(bob.address).build(),
+          ],
+        });
+
+        await vault.connect(alice).deposit(params);
+
+        await moveForwardTwoWeeks();
+
+        // add yield to increase the price per share by 50%
+        await addYieldToVault('50');
+
+        const tx = await vault
+          .connect(alice)
+          [vaultAction](alice.address, [1, 2]);
+
+        await expect(tx)
+          .to.emit(vault, 'DepositWithdrawn')
+          .withArgs(
+            1,
+            parseUnits('100').mul(SHARES_MULTIPLIER).div(3),
+            parseUnits('50'),
+            alice.address,
+            true,
+          );
+        await expect(tx)
+          .to.emit(vault, 'DepositWithdrawn')
+          .withArgs(
+            2,
+            parseUnits('100').mul(SHARES_MULTIPLIER).div(3),
+            parseUnits('50'),
+            alice.address,
+            true,
+          );
+      });
+
       it('withdraws the principal of a deposit', async () => {
         const params = depositParams.build({
           amount: parseUnits('100'),
