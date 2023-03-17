@@ -11,6 +11,8 @@ The Certora Prover proved the implementation of the RyskStrategy contract is cor
 
 ## List of Issues Discovered
 
+None
+
 # Overview of the verification
 
 ## Description of the RyskStrategy contract
@@ -90,7 +92,9 @@ Formulas relate the results of method calls. In most cases, these methods are ge
 {
     require amount == 0;
 }
+    
     withdrawToVault@withrevert(e, amount);
+
 {
     lastReverted;
 }
@@ -106,6 +110,7 @@ Formulas relate the results of method calls. In most cases, these methods are ge
     _balanceOfVault = underlying.balanceOf(vault);
     _balanceOfStrategy = underlying.balanceOf(currentContract);
 }
+    
     withdrawToVault(e, amount);
 
 {
@@ -123,7 +128,9 @@ Formulas relate the results of method calls. In most cases, these methods are ge
     _balanceOfRyskLqPool = underlying.balanceOf(ryskLqPool);
     _balanceOfStrategy = underlying.balanceOf(currentContract);
 }
+    
     completeWithdrawal(e);
+
 {
     _balanceOfStrategy == underlying.balanceOf(currentContract);
     _balanceOfRyskLqPool >= underlying.balanceOf(ryskLqPool);
@@ -134,33 +141,25 @@ Formulas relate the results of method calls. In most cases, these methods are ge
 #### 7. isSync() should return false ✔️
 
 ```
-{
-}
-{
-    !isSync();
-}
+!isSync();
 ```
 
 #### 8. hasAssets return value should be consistent with investedAssets return value ✔️
-{
-}
 
-{
-    investedAssets() > 0 <=> hasAssets() && investedAssets() == 0 <=> !hasAssets();
-}
+```
+investedAssets() > 0 <=> hasAssets() && investedAssets() == 0 <=> !hasAssets();
+```
 
 #### 9. transferAdminRights should transfer admin roles from msg sender to the new admin ✔️
 
 ```
 {
 }
+
     transferAdminRights(e, newAdmin);
+
 {
     !hasRole(DEFAULT_ADMIN_ROLE(), e.msg.sender);
     hasRole(DEFAULT_ADMIN_ROLE(), newAdmin);
-    !hasRole(KEEPER_ROLE(), e.msg.sender);
-    hasRole(KEEPER_ROLE(), newAdmin);
-    !hasRole(SETTINGS_ROLE(), e.msg.sender);
-    hasRole(SETTINGS_ROLE(), newAdmin);
 }
 ```
