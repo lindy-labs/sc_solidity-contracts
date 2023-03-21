@@ -45,12 +45,10 @@ const func = async function (env: HardhatRuntimeEnvironment) {
       .connect(_owner)
       .mint(donations.address, parseUnits('5000', 18)); // fund
 
-    const yieldClaimedFilter = vault.filters.YieldClaimed(
-      null,
-      treasury.address,
-    );
     const yieldClaimedEvents = treasuryYieldClaimedEvents(
-      await vault.queryFilter(yieldClaimedFilter),
+      await vault.queryFilter(
+        vault.filters.YieldClaimed(null, treasury.address),
+      ),
       treasury.address,
     );
 
@@ -114,17 +112,14 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     }
   });
 
-  const donatePromises = [];
-  Promise.all(
-    donateParamsArray.map((donateParams) => {
-      donatePromises.push(
-        donations.donate(
-          donateParams.destinationId,
-          donateParams.token,
-          _alice.address,
-        ),
-      );
-    }),
+  await Promise.all(
+    donateParamsArray.map((donateParams) =>
+      donations.donate(
+        donateParams.destinationId,
+        donateParams.token,
+        _alice.address,
+      ),
+    ),
   );
 };
 
