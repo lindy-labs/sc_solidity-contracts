@@ -30,6 +30,8 @@ test('DonationsSent event creates DonationsSent record', () => {
 
   const donationsSentID = mockDonationsSent.transaction.hash.toHexString();
 
+  const mockToAddress = '0x0000000000000000000000000000000000000001';
+
   const donationsSentEvent = new DonationsSent(
     mockDonationsSent.address,
     mockDonationsSent.logIndex,
@@ -43,11 +45,16 @@ test('DonationsSent event creates DonationsSent record', () => {
   donationsSentEvent.parameters = new Array();
 
   donationsSentEvent.parameters.push(newParamI32('destinationId', 9));
+  donationsSentEvent.parameters.push(newParamString('token', '0x0000000000000000000000000000000000000000'));
+  donationsSentEvent.parameters.push(newParamAddress('to', mockToAddress));
+  donationsSentEvent.parameters.push(newParamI32('amount', 100));
 
   handleDonationsSent(donationsSentEvent);
 
   assert.fieldEquals('DonationsSent', donationsSentID, 'destination', '9');
   assert.fieldEquals('DonationsSent', donationsSentID, 'timestamp', mockDonationsSent.block.timestamp.toString());
+  assert.fieldEquals('DonationsSent', donationsSentID, 'address', mockToAddress);
+  assert.fieldEquals('DonationsSent', donationsSentID, 'amount', '100');
 
   clearStore();
 });

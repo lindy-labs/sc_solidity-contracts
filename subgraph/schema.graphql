@@ -71,6 +71,8 @@ type DonationsSent @entity {
   id: ID!
   destination: BigInt!
   timestamp: BigInt!
+  address: Bytes!
+  amount: BigInt!
 }
 
 type Sponsor @entity {

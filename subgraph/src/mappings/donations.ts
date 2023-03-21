@@ -24,6 +24,8 @@ export function handleDonationsSent(event: DonationsSentEvent): void {
 
   donationsSent.destination = event.params.destinationId;
   donationsSent.timestamp = event.block.timestamp;
+  donationsSent.address = event.params.to;
+  donationsSent.amount = event.params.amount;
 
   donationsSent.save();
 }
