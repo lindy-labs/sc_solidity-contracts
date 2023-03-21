@@ -136,4 +136,6 @@ dataSources:
           handler: handleDonationMinted
         - event: DonationBurned(indexed uint256,string)
           handler: handleDonationBurned
+        - event: DonationsSent(indexed uint128,indexed address,indexed address,uint256)
+          handler: handleDonationsSent
   {{/donations}}
