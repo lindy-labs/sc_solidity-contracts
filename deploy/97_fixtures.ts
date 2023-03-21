@@ -28,14 +28,19 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
     await vault.connect(owner).setTreasury(treasury.address);
     await vault.connect(owner).setInvestPct('8000');
 
-    await underlying.mint(alice.address, parseUnits('5000', 18));
-    await underlying.mint(bob.address, parseUnits('5000', 18));
-
     await Promise.all(
       [alice, bob, treasury].map((account) =>
-        underlying
+          underlying
           .connect(account)
-          .approve(vault.address, parseUnits('5000', 18)),
+          .mint(account.address, parseUnits('5000', 18)),  // fund
+      ),
+    );
+
+    await Promise.all(
+      [alice, bob, treasury].map((account) => 
+          underlying
+          .connect(account)
+          .approve(vault.address, parseUnits('5000', 18)),  // approve
       ),
     );
 

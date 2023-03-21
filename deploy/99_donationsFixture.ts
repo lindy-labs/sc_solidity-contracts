@@ -1,9 +1,14 @@
 import type { HardhatRuntimeEnvironment } from 'hardhat/types';
 
-import { includes } from 'lodash';
+import _ from 'lodash';
 import { ethers } from 'hardhat';
 import { YieldClaimedEvent } from '@root/typechain/IVault';
+import {
+  DonationMintedEvent,
+  DonationBurnedEvent,
+} from '@root/typechain/contracts/Donations';
 import { VAULT_PREFIXES } from './97_fixtures';
+import { parseUnits } from 'ethers/lib/utils';
 
 const func = async function (env: HardhatRuntimeEnvironment) {
   const { get } = env.deployments;
@@ -16,16 +21,29 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     ).address,
   );
 
+  const donations = await ethers.getContractAt(
+    'Donations',
+    (
+      await get('Donations')
+    ).address,
+  );
+
   let batchNr = 0;
   for (const prefix of VAULT_PREFIXES) {
-    const vaultDeployment = await get(`${prefix}_Vault`);
-    const vault = await ethers.getContractAt('Vault', vaultDeployment.address);
-
-    const donationsDeployment = await get('Donations');
-    const donations = await ethers.getContractAt(
-      'Donations',
-      donationsDeployment.address,
+    const vault = await ethers.getContractAt(
+      'Vault',
+      (
+        await get(`${prefix}_Vault`)
+      ).address,
     );
+
+    const underlying = await ethers.getContractAt(
+      'MockERC20',
+      await vault.underlying(),
+    );
+    await underlying
+      .connect(_owner)
+      .mint(donations.address, parseUnits('5000', 18)); // fund
 
     const yieldClaimedFilter = vault.filters.YieldClaimed(
       null,
@@ -36,6 +54,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
       treasury.address,
     );
 
+    // Mint donation NFTs
     let { transactionHash, args } = yieldClaimedEvents[0];
 
     await donations.mint(transactionHash, batchNr, [
@@ -67,6 +86,46 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
     batchNr += 1;
   }
+
+  // Prepare and execute donate transactions
+  const donationMintedEvents: DonationMintedEvent[] =
+    await donations.queryFilter(donations.filters.DonationMinted(null));
+  const donationBurnedEvents: DonationBurnedEvent[] =
+    await donations.queryFilter(donations.filters.DonationBurned(null));
+
+  const uniqueObjects = {};
+  const donateParamsArray = [];
+
+  donationMintedEvents.forEach((mintedEvent: DonationMintedEvent) => {
+    const donationId = mintedEvent.args.donationId;
+    const correspondingBurnedEvent = donationBurnedEvents.find(
+      (burnedEvent: DonationBurnedEvent) =>
+        burnedEvent.args.donationId === donationId,
+    );
+
+    if (correspondingBurnedEvent) {
+      const destinationId = mintedEvent.args.destinationId;
+      const token = mintedEvent.args.token;
+
+      if (!uniqueObjects[destinationId + token]) {
+        uniqueObjects[destinationId + token] = { destinationId, token };
+        donateParamsArray.push(uniqueObjects[destinationId + token]);
+      }
+    }
+  });
+
+  const donatePromises = [];
+  Promise.all(
+    donateParamsArray.map((donateParams) => {
+      donatePromises.push(
+        donations.donate(
+          donateParams.destinationId,
+          donateParams.token,
+          _alice.address,
+        ),
+      );
+    }),
+  );
 };
 
 function treasuryYieldClaimedEvents(
@@ -82,6 +141,6 @@ func.tags = ['donations_fixture'];
 func.dependencies = ['dev', 'fixtures', 'vault', 'donations'];
 
 func.skip = async (env: HardhatRuntimeEnvironment) =>
-  !includes(['docker', 'hardhat'], env.deployments.getNetworkName());
+  !_.includes(['docker', 'hardhat'], env.deployments.getNetworkName());
 
 export default func;
