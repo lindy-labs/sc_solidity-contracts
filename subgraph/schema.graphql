@@ -39,6 +39,12 @@ type Deposit @entity {
   burnedAt: BigInt!
 }
 
+type DonationSent @entity {
+  id: ID!
+  destination: Bytes!
+  timestamp: BigInt!
+}
+
 type Claimer @entity {
   id: ID!
   owner: Bytes!
@@ -57,6 +63,7 @@ type Donation @entity {
   amount: BigInt!
   owner: Bytes!
   destination: Bytes!
+  timestamp: BigInt!
 }
 
 type DonationMint @entity {
