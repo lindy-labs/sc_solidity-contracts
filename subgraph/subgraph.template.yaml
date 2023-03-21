@@ -128,6 +128,7 @@ dataSources:
       file: ./src/mappings/donations.ts
       entities:
         - DonationMint
+        - DonationsSent
       abis:
         - name: Donations
           file: ./abis/contracts/Donations.sol/Donations.json

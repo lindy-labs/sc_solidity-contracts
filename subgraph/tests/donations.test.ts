@@ -8,10 +8,12 @@ import {
 import {
   handleDonationMinted,
   handleDonationBurned,
+  handleDonationsSent,
 } from '../src/mappings/donations';
 import {
   DonationBurned,
   DonationMinted,
+  DonationsSent,
 } from '../src/types/Donations/Donations';
 import { DonationMint } from '../src/types/schema';
 import {
@@ -20,6 +22,35 @@ import {
   newParamI32,
   newParamString,
 } from '../tests/helpers';
+
+test('DonationsSent event creates DonationsSent record', () => {
+  clearStore();
+
+  let mockDonationsSent = newMockEvent();
+
+  const donationsSentID = mockDonationsSent.transaction.hash.toHexString();
+
+  const donationsSentEvent = new DonationsSent(
+    mockDonationsSent.address,
+    mockDonationsSent.logIndex,
+    mockDonationsSent.transactionLogIndex,
+    mockDonationsSent.logType,
+    mockDonationsSent.block,
+    mockDonationsSent.transaction,
+    mockDonationsSent.parameters,
+    null,
+  );
+  donationsSentEvent.parameters = new Array();
+
+  donationsSentEvent.parameters.push(newParamI32('destinationId', 9));
+
+  handleDonationsSent(donationsSentEvent);
+
+  assert.fieldEquals('DonationsSent', donationsSentID, 'destination', '9');
+  assert.fieldEquals('DonationsSent', donationsSentID, 'timestamp', mockDonationsSent.block.timestamp.toString());
+
+  clearStore();
+});
 
 test('DonationMinted event creates DonationMint record', () => {
   clearStore();

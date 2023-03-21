@@ -20,9 +20,10 @@ export function handleDonationBurned(event: DonationBurned): void {
 }
 
 export function handleDonationsSent(event: DonationsSentEvent): void {
-  const donationSent = new DonationsSent(event.transaction.hash.toHex());
-  donationSent.destination = event.params.destinationId;
-  donationSent.timestamp = event.block.timestamp;
+  const donationsSent = new DonationsSent(event.transaction.hash.toHexString());
 
-  donationSent.save();
+  donationsSent.destination = event.params.destinationId;
+  donationsSent.timestamp = event.block.timestamp;
+
+  donationsSent.save();
 }
