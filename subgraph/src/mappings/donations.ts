@@ -7,6 +7,7 @@ export function handleDonationMinted(event: DonationMinted): void {
   donationMint.vault = event.params.vault.toHexString();
   donationMint.burned = false;
   donationMint.nftId = event.params.id;
+  donationMint.destination = event.params.destinationId;
 
   donationMint.save();
 }

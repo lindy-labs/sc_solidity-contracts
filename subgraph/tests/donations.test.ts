@@ -98,6 +98,7 @@ test('DonationMinted event creates DonationMint record', () => {
   assert.fieldEquals('DonationMint', donationID, 'nftId', '0');
   assert.fieldEquals('DonationMint', donationID, 'burned', 'false');
   assert.fieldEquals('DonationMint', donationID, 'vault', '0x0000000000000000000000000000000000000000');
+  assert.fieldEquals('DonationMint', donationID, 'destination', '9');
 
   clearStore();
 });
