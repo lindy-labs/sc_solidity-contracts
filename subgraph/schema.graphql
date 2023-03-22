@@ -66,6 +66,7 @@ type DonationMint @entity {
   burned: Boolean!
   nftId: BigInt!
   destination: BigInt!
+  token: String!
 }
 
 type DonationsSent @entity {

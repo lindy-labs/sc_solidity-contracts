@@ -8,6 +8,7 @@ export function handleDonationMinted(event: DonationMinted): void {
   donationMint.burned = false;
   donationMint.nftId = event.params.id;
   donationMint.destination = event.params.destinationId;
+  donationMint.token = event.params.token.toHexString();
 
   donationMint.save();
 }
