@@ -5,7 +5,7 @@
 
 This document describes the specification and verification of LiquityStrategy using the Certora Prover. 
 
-The scope of this verification is the [`LiquityStrategy.sol`](https://github.com/lindy-labs/sc_solidity-contracts/blob/c49f0b922046a1622610b5be1b526954562528eb/contracts/strategy/liquity/LiquityStrategy.sol) contract. Its specification is available [here](specs/LiquityStrategy.spec).
+The scope of this verification is the [`LiquityStrategy.sol`](https://github.com/lindy-labs/sc_solidity-contracts/blob/8072f2a60a5a8fef0d106a4d1fdf09788ee522d5/contracts/strategy/liquity/LiquityStrategy.sol) contract. Its specification is available [here](specs/LiquityStrategy.spec).
 
 The Certora Prover proved the implementation of the LiquityStrategy contract is correct with respect to formal specifications written by the security team of Lindy Labs.  The team also performed a manual audit of these contracts.
 
@@ -37,7 +37,7 @@ Hoare triples of the form {p} C {q} holds if any non-reverting execution of prog
 
 Formulas relate the results of method calls. In most cases, these methods are getters defined in the contracts, but in some cases they are getters we have added to our harness or definitions provided in the rules file. Undefined variables in the formulas are treated as arbitrary: the rule is checked for every possible value of the variables.
 
-[*] Rule 4 does not pass the verification because the function has a call to external contract with arbitrary calldata, and Certora assumes that call can modify other contract's state. In this case it can modify the balances of the underlying ERC20 token. 
+[*] Rule 4 does not pass the verification because the function has a `call` function to external contract with arbitrary calldata, and Certora assumes that call can modify other contract's state. Certora cannot summerize the `call` function with HAVOC_ECF either. In this case it can modify the balances of the underlying ERC20 token.
 
 ## LiquityStrategy
 
@@ -55,7 +55,9 @@ Formulas relate the results of method calls. In most cases, these methods are ge
     ||
     managerFunctions(f) && !hasRole(MANAGER_ROLE(), e.msg.sender)
 }
+
     f@withrevert(e, args);
+
 { 
     lastReverted 
 }
@@ -65,11 +67,11 @@ Formulas relate the results of method calls. In most cases, these methods are ge
 
 ```
 {}
+    
     initialize(_vault, _admin, _stabilityPool, _lqty, _underlying, _keeper, _principalProtectionPct, _curveExchange);
     initialize@withrevert(_vault, _admin, _stabilityPool, _lqty, _underlying, _keeper, _principalProtectionPct, _curveExchange);
-{
-    lastReverted
-}
+
+{ lastReverted }
 ```
 
 #### 3. invest function moves all the LUSD balance from strategy to the stability pool ✔️
@@ -79,7 +81,9 @@ Formulas relate the results of method calls. In most cases, these methods are ge
     _balanceOfStrategy = underlying.balanceOf(currentContract);
     _balanceOfPool = underlying.balanceOf(stabilityPool);
 }
+    
     invest();
+
 {
     underlying.balanceOf(currentContract) == 0;
     underlying.balanceOf(stabilityPool) - _balanceOfPool == _balanceOfStrategy;
@@ -93,7 +97,9 @@ Formulas relate the results of method calls. In most cases, these methods are ge
     _balanceOfStrategy = underlying.balanceOf(currentContract);
     _balanceOfPool = underlying.balanceOf(stabilityPool);
 }
+    
     invest();
+
 {
     underlying.balanceOf(currentContract) == 0;
     underlying.balanceOf(stabilityPool) - _balanceOfPool >= _balanceOfStrategy;
@@ -110,7 +116,9 @@ Formulas relate the results of method calls. In most cases, these methods are ge
     _balanceOfVault = underlying.balanceOf(vault);
     stabilityPool.getCompoundedLUSDDeposit(currentContract) == _balanceOfPool;
 }
+
     amountWithdrawn = withdrawToVault(amount)
+
 { 
     underlying.balanceOf(currentContract) == 0;
     _balanceOfPool - amountWithdrawn == underlying.balanceOf(stabilityPool);
@@ -129,7 +137,9 @@ Formulas relate the results of method calls. In most cases, these methods are ge
     _lqtyBalance = lqty.balanceOf(currentContract);
     _ethBalance = getEthBalance();
 }
+    
     harvest();
+
 {
     _balanceOfPool == underlying.balanceOf(stabilityPool);
     _balanceOfStrategy == underlying.balanceOf(currentContract);
@@ -161,7 +171,9 @@ isSync()
 
 ```
 {}
+    
     allowSwapTarget(_swapTarget)
+
 { allowedSwapTargets(_swapTarget) == true }
 ```
 
@@ -169,23 +181,29 @@ isSync()
 
 ```
 {}
+    
     denySwapTarget(_swapTarget)
+
 { allowedSwapTargets(_swapTarget) == false }
 ```
 
-#### 12. setMinPrincipalProtectionPct should set minPrincipalProtectionPct ✔️
+#### 12. setMinProtectedAssetsPct should set minProtectedAssetsPct ✔️
 
 ```
 {}
-    setMinPrincipalProtectionPct(pct)
-{ minPrincipalProtectionPct() == pct }
+    
+    setMinProtectedAssetsPct(pct)
+
+{ minProtectedAssetsPct() == pct }
 ```
 
 #### 13. transferAdminRights should transfer admin roles from msg sender to the new admin ✔️
 
 ```
 {}
+    
     transferAdminRights(newAdmin)
+
 {
     !hasRole(DEFAULT_ADMIN_ROLE(), e.msg.sender);
     !hasRole(KEEPER_ROLE(), e.msg.sender);
@@ -200,7 +218,9 @@ isSync()
 
 ```
 { underlying.balanceOf(currentContract) == 0 }
+    
     invest()
+
 { lastReverted }    
 ```
 
@@ -208,6 +228,8 @@ isSync()
 
 ```
 { amount == 0 || amount > investedAssets() }
+    
     withdrawToVault(amount)
+
 { lastReverted }    
 ```
