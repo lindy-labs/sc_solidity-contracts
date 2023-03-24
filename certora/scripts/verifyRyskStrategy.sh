@@ -4,7 +4,7 @@ if [ "$#" -eq 0 ]
 then 
   certoraRun contracts/strategy/rysk/RyskStrategy.sol \
       contracts/Vault.sol \
-			certora/harness/MockLUSD.sol \
+			certora/mocks/MockLUSD.sol \
       contracts/mock/rysk/MockRyskLiquidityPool.sol \
 	  --link RyskStrategy:vault=Vault \
       RyskStrategy:underlying=MockLUSD \
@@ -21,7 +21,7 @@ elif [ "$#" -eq 1 ]
 then
   certoraRun contracts/strategy/rysk/RyskStrategy.sol \
       contracts/Vault.sol \
-			certora/harness/MockLUSD.sol \
+			certora/mocks/MockLUSD.sol \
       contracts/mock/rysk/MockRyskLiquidityPool.sol \
 	  --link RyskStrategy:vault=Vault \
       RyskStrategy:underlying=MockLUSD \

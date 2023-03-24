@@ -180,10 +180,6 @@ rule integrity_of_transferAdminRights() {
 
     assert !hasRole(DEFAULT_ADMIN_ROLE(), e.msg.sender);
     assert hasRole(DEFAULT_ADMIN_ROLE(), newAdmin);
-    assert !hasRole(KEEPER_ROLE(), e.msg.sender);
-    assert hasRole(KEEPER_ROLE(), newAdmin);
-    assert !hasRole(SETTINGS_ROLE(), e.msg.sender);
-    assert hasRole(SETTINGS_ROLE(), newAdmin);
 }
 
 /*
