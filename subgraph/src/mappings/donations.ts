@@ -1,5 +1,9 @@
 import { DonationMint, DonationsSent } from '../types/schema';
-import { DonationMinted, DonationBurned, DonationsSent as DonationsSentEvent} from '../types/Donations/Donations';
+import {
+  DonationMinted,
+  DonationBurned,
+  DonationsSent as DonationsSentEvent,
+} from '../types/Donations/Donations';
 
 export function handleDonationMinted(event: DonationMinted): void {
   const donationMint = new DonationMint(event.params.donationId);
@@ -9,6 +13,7 @@ export function handleDonationMinted(event: DonationMinted): void {
   donationMint.nftId = event.params.id;
   donationMint.destination = event.params.destinationId;
   donationMint.token = event.params.token.toHexString();
+  donationMint.timestamp = event.block.timestamp;
 
   donationMint.save();
 }

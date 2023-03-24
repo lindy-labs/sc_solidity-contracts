@@ -45,15 +45,27 @@ test('DonationsSent event creates DonationsSent record', () => {
   donationsSentEvent.parameters = new Array();
 
   donationsSentEvent.parameters.push(newParamI32('destinationId', 9));
-  donationsSentEvent.parameters.push(newParamString('token', '0x0000000000000000000000000000000000000000'));
+  donationsSentEvent.parameters.push(
+    newParamString('token', '0x0000000000000000000000000000000000000000'),
+  );
   donationsSentEvent.parameters.push(newParamAddress('to', mockToAddress));
   donationsSentEvent.parameters.push(newParamI32('amount', 100));
 
   handleDonationsSent(donationsSentEvent);
 
   assert.fieldEquals('DonationsSent', donationsSentID, 'destination', '9');
-  assert.fieldEquals('DonationsSent', donationsSentID, 'timestamp', mockDonationsSent.block.timestamp.toString());
-  assert.fieldEquals('DonationsSent', donationsSentID, 'address', mockToAddress);
+  assert.fieldEquals(
+    'DonationsSent',
+    donationsSentID,
+    'timestamp',
+    mockDonationsSent.block.timestamp.toString(),
+  );
+  assert.fieldEquals(
+    'DonationsSent',
+    donationsSentID,
+    'address',
+    mockToAddress,
+  );
   assert.fieldEquals('DonationsSent', donationsSentID, 'amount', '100');
 
   clearStore();
@@ -81,7 +93,9 @@ test('DonationMinted event creates DonationMint record', () => {
   donationEvent.parameters.push(newParamI32('id', 0));
   donationEvent.parameters.push(newParamI32('destinationId', 9));
   donationEvent.parameters.push(newParamString('groupId', 'some-group-id'));
-  donationEvent.parameters.push(newParamString('token', 'some-token-address'));
+  donationEvent.parameters.push(
+    newParamAddress('token', '0x0000000000000000000000000000000000000000'),
+  );
   donationEvent.parameters.push(newParamI32('expiry', 16000000));
   donationEvent.parameters.push(newParamI32('amount', 150));
   donationEvent.parameters.push(
@@ -97,9 +111,25 @@ test('DonationMinted event creates DonationMint record', () => {
   assert.fieldEquals('DonationMint', donationID, 'id', donationID);
   assert.fieldEquals('DonationMint', donationID, 'nftId', '0');
   assert.fieldEquals('DonationMint', donationID, 'burned', 'false');
-  assert.fieldEquals('DonationMint', donationID, 'vault', '0x0000000000000000000000000000000000000000');
+  assert.fieldEquals(
+    'DonationMint',
+    donationID,
+    'vault',
+    '0x0000000000000000000000000000000000000000',
+  );
   assert.fieldEquals('DonationMint', donationID, 'destination', '9');
-  assert.fieldEquals('DonationMint', donationID, 'token', 'some-token-address');
+  assert.fieldEquals(
+    'DonationMint',
+    donationID,
+    'token',
+    '0x0000000000000000000000000000000000000000',
+  );
+  assert.fieldEquals(
+    'DonationMint',
+    donationID,
+    'timestamp',
+    mockDonation.block.timestamp.toString(),
+  );
 
   clearStore();
 });
