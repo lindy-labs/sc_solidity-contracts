@@ -4,6 +4,7 @@ import _ from 'lodash';
 import { ethers } from 'hardhat';
 import { YieldClaimedEvent } from '@root/typechain/IVault';
 import {
+  Donations,
   DonationMintedEvent,
   DonationBurnedEvent,
 } from '@root/typechain/contracts/Donations';
@@ -86,13 +87,27 @@ const func = async function (env: HardhatRuntimeEnvironment) {
   }
 
   // Prepare and execute donate transactions
+  const donateParamsArray = await generateDonateParams(donations);
+
+  await Promise.all(
+    donateParamsArray.map((donateParams) =>
+      donations.donate(
+        donateParams.destinationId,
+        donateParams.token,
+        _alice.address,
+      ),
+    ),
+  );
+};
+
+async function generateDonateParams(donations: Donations) {
   const donationMintedEvents: DonationMintedEvent[] =
     await donations.queryFilter(donations.filters.DonationMinted(null));
   const donationBurnedEvents: DonationBurnedEvent[] =
     await donations.queryFilter(donations.filters.DonationBurned(null));
 
   const uniqueObjects = {};
-  const donateParamsArray = [];
+  const donateParamsArray: [{ [key: string]: string }?] = [];
 
   donationMintedEvents.forEach((mintedEvent: DonationMintedEvent) => {
     const donationId = mintedEvent.args.donationId;
@@ -112,16 +127,8 @@ const func = async function (env: HardhatRuntimeEnvironment) {
     }
   });
 
-  await Promise.all(
-    donateParamsArray.map((donateParams) =>
-      donations.donate(
-        donateParams.destinationId,
-        donateParams.token,
-        _alice.address,
-      ),
-    ),
-  );
-};
+  return donateParamsArray;
+}
 
 function treasuryYieldClaimedEvents(
   yieldClaimedEvents: YieldClaimedEvent[],
