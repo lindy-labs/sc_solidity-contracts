@@ -8,11 +8,11 @@ import {
 export function handleDonationMinted(event: DonationMinted): void {
   const donationMint = new DonationMint(event.params.donationId);
 
-  donationMint.vault = event.params.vault.toHexString();
+  donationMint.vault = event.params.vault;
   donationMint.burned = false;
   donationMint.nftId = event.params.id;
   donationMint.destination = event.params.destinationId;
-  donationMint.token = event.params.token.toHexString();
+  donationMint.token = event.params.token;
   donationMint.timestamp = event.block.timestamp;
 
   donationMint.save();

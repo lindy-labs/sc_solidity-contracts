@@ -62,7 +62,7 @@ type Donation @entity {
 
 type DonationMint @entity {
   id: ID!
-  vault: String!
+  vault: Bytes!
   burned: Boolean!
   nftId: BigInt!
   destination: BigInt!
