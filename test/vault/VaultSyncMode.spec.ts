@@ -245,7 +245,7 @@ describe('Vault in sync mode', () => {
       await vault.connect(alice).withdraw(alice.address, [1]);
 
       expect(await underlying.balanceOf(alice.address)).to.eq(
-        '999999999999999999999',
+        parseUnits('1000'),
       );
     });
 
@@ -265,7 +265,7 @@ describe('Vault in sync mode', () => {
       await vault.connect(alice).withdraw(alice.address, [1]);
 
       expect(await underlying.balanceOf(alice.address)).to.eq(
-        '999999999999999999999',
+        parseUnits('1000'),
       );
     });
 
@@ -285,7 +285,7 @@ describe('Vault in sync mode', () => {
 
       expect(await underlying.balanceOf(vault.address)).to.eq(parseUnits('5'));
       expect(await underlying.balanceOf(strategy.address)).to.eq(
-        '45000000000000000001',
+        parseUnits('45'),
       );
     });
 
@@ -332,7 +332,8 @@ describe('Vault in sync mode', () => {
       await moveForwardTwoWeeks();
       const tx = await vault.connect(alice).withdraw(alice.address, [1]);
 
-      expect(await underlying.balanceOf(vault.address)).to.eq('1');
+      // this should be zero and not one (to account dust) as per the above comment on line 324
+      expect(await underlying.balanceOf(vault.address)).to.eq('0');
       expect(await underlying.balanceOf(strategy.address)).to.eq(
         parseUnits('135'),
       );
@@ -363,7 +364,7 @@ describe('Vault in sync mode', () => {
 
       // vault had 115 before the withdrawal, and 100 was withdrawn, so it should have 115 - 100 = 15
       expect(await underlying.balanceOf(vault.address)).to.eq(
-        '15000000000000000001'.toString(),
+        parseUnits('15').toString(),
       );
       expect(await underlying.balanceOf(strategy.address)).to.eq(
         parseUnits('135'),
@@ -389,7 +390,7 @@ describe('Vault in sync mode', () => {
         .partialWithdraw(alice.address, [1], [parseUnits('50')]);
 
       expect(await underlying.balanceOf(alice.address)).to.eq(
-        '949999999999999999999',
+        parseUnits('950'),
       );
     });
 
@@ -411,7 +412,7 @@ describe('Vault in sync mode', () => {
         .partialWithdraw(alice.address, [1], [parseUnits('50')]);
 
       expect(await underlying.balanceOf(alice.address)).to.eq(
-        '949999999999999999999',
+        parseUnits('950'),
       );
     });
 
@@ -433,7 +434,7 @@ describe('Vault in sync mode', () => {
 
       expect(await underlying.balanceOf(vault.address)).to.eq(parseUnits('10'));
       expect(await underlying.balanceOf(strategy.address)).to.eq(
-        '90000000000000000001',
+        parseUnits('90'),
       );
     });
 
@@ -484,7 +485,7 @@ describe('Vault in sync mode', () => {
         .connect(alice)
         .partialWithdraw(alice.address, [1], [parseUnits('50')]);
 
-      expect(await underlying.balanceOf(vault.address)).to.eq('1');
+      expect(await underlying.balanceOf(vault.address)).to.eq('0');
       expect(await underlying.balanceOf(strategy.address)).to.eq(
         parseUnits('135'),
       );
@@ -516,9 +517,7 @@ describe('Vault in sync mode', () => {
         .partialWithdraw(alice.address, [1], [parseUnits('50')]);
 
       // vault had 115 before the withdrawal, and 50 was withdrawn, so it should have 115 - 50 = 65
-      expect(await underlying.balanceOf(vault.address)).to.eq(
-        '65000000000000000001'.toString(),
-      );
+      expect(await underlying.balanceOf(vault.address)).to.eq(parseUnits('65'));
       expect(await underlying.balanceOf(strategy.address)).to.eq(
         parseUnits('135'),
       );

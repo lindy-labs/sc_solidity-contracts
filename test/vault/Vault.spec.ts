@@ -3021,6 +3021,33 @@ describe('Vault', () => {
 
       await vault.connect(admin).exitUnpause();
     });
+
+    it('leaves no dust on withdraw when force is false', async () => {
+      const toDeposit = parseUnits('100');
+      const prevBal = await underlying.balanceOf(alice.address);
+
+      const params = depositParams.build({
+        amount: toDeposit,
+        inputToken: underlying.address,
+        claims: [
+          claimParams.percent(50).to(alice.address).build(),
+          claimParams.percent(50).to(bob.address).build(),
+        ],
+      });
+
+      await vault.connect(alice).deposit(params);
+
+      await moveForwardTwoWeeks();
+      await addYieldToVault('100');
+
+      await vault
+        .connect(alice)
+        .partialWithdraw(alice.address, [2], [parseUnits('1')]);
+
+      const newBal = await underlying.balanceOf(alice.address);
+
+      expect(prevBal.sub(newBal)).to.eq(toDeposit.sub(parseUnits('1')));
+    });
   });
 
   describe('claimYield', () => {

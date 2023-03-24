@@ -125,9 +125,11 @@ describe('Yearn Strategy (mainnet fork tests)', () => {
       parseUnits('1000', await lusd.decimals()),
     );
 
+    const depositAmt = parseUnits('1000');
+
     await vault.connect(alice).deposit(
       depositParams.build({
-        amount: parseUnits('1000'),
+        amount: depositAmt,
         inputToken: lusd.address,
         claims: [claimParams.percent(100).to(alice.address).build()],
       }),
@@ -150,7 +152,7 @@ describe('Yearn Strategy (mainnet fork tests)', () => {
     await vault.connect(alice).withdraw(alice.address, [1]);
 
     const aliceBalance = await lusd.balanceOf(alice.address);
-    expect(aliceBalance).to.eq('999999999999999999999');
+    expect(aliceBalance).to.eq(depositAmt);
   });
 
   it('allows user to claim yield when Yearn Vault performs', async () => {
@@ -184,7 +186,7 @@ describe('Yearn Strategy (mainnet fork tests)', () => {
     await vault.connect(alice).withdraw(alice.address, [1]);
 
     const aliceBalance = await lusd.balanceOf(alice.address);
-    expect(aliceBalance).to.eq('1089999999999999999174');
+    expect(aliceBalance).to.eq('1089999999999999999175');
   });
 
   it('allows user to only do force withdrawal when Yearn Vault underperforms', async () => {
