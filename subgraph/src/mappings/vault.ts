@@ -94,6 +94,7 @@ export function handleYieldClaimed(event: YieldClaimed): void {
       donation.owner = deposit.depositor;
       donation.destination = deposit.data;
       donation.vault = claimer.vault;
+      donation.timestamp = event.block.timestamp;
 
       donation.save();
     }

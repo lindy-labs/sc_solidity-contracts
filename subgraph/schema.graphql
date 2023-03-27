@@ -57,13 +57,25 @@ type Donation @entity {
   amount: BigInt!
   owner: Bytes!
   destination: Bytes!
+  timestamp: BigInt!
 }
 
 type DonationMint @entity {
   id: ID!
-  vault: String!
+  vault: Bytes!
   burned: Boolean!
   nftId: BigInt!
+  destination: BigInt!
+  token: Bytes!
+  timestamp: BigInt!
+}
+
+type DonationsSent @entity {
+  id: ID!
+  destination: BigInt!
+  timestamp: BigInt!
+  address: Bytes!
+  amount: BigInt!
 }
 
 type Sponsor @entity {
