@@ -21,6 +21,7 @@ module.exports = {
   solidity: '0.8.10',
   networks: {
     hardhat: {
+      loggingEnabled: true,
       accounts: {
         mnemonic: process.env.TESTNET_MNEMONIC,
         accountsBalance: '100000000000000000000000000',
