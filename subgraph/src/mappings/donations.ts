@@ -14,6 +14,7 @@ export function handleDonationMinted(event: DonationMinted): void {
   donationMint.destination = event.params.destinationId;
   donationMint.token = event.params.token;
   donationMint.timestamp = event.block.timestamp;
+  donationMint.amount = event.params.amount;
 
   donationMint.save();
 }

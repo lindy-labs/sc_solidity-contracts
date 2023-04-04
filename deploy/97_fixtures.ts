@@ -88,7 +88,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
       'Bob deposits 1000 with 50% yield to Bob and 50% yield for donations',
     );
     await vault.connect(bob).deposit({
-      amount: parseUnits('1000', 18),
+      amount: parseUnits('2000', 18),
       inputToken: lusd.address,
       lockDuration: 1,
       claims: [

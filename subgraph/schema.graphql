@@ -68,6 +68,7 @@ type DonationMint @entity {
   destination: BigInt!
   token: Bytes!
   timestamp: BigInt!
+  amount: BigInt!
 }
 
 type DonationsSent @entity {
