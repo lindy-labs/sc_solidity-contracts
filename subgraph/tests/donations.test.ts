@@ -130,6 +130,7 @@ test('DonationMinted event creates DonationMint record', () => {
     'timestamp',
     mockDonation.block.timestamp.toString(),
   );
+  assert.fieldEquals('DonationMint', donationID, 'amount', '150');
 
   clearStore();
 });
