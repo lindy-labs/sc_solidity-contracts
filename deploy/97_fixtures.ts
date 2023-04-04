@@ -29,18 +29,20 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
     await vault.connect(owner).setInvestPct('8000');
 
     await Promise.all(
-      [alice, bob, treasury].map((account) =>
+      [alice, bob, treasury].map(
+        (account) =>
           underlying
-          .connect(account)
-          .mint(account.address, parseUnits('5000', 18)),  // fund
+            .connect(account)
+            .mint(account.address, parseUnits('5000', 18)), // fund
       ),
     );
 
     await Promise.all(
-      [alice, bob, treasury].map((account) => 
+      [alice, bob, treasury].map(
+        (account) =>
           underlying
-          .connect(account)
-          .approve(vault.address, parseUnits('5000', 18)),  // approve
+            .connect(account)
+            .approve(vault.address, parseUnits('5000', 18)), // approve
       ),
     );
 
@@ -75,7 +77,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
         {
           beneficiary: treasury.address,
           pct: 1000,
-          data: ethers.utils.hexlify(123124),
+          data: ethers.utils.hexlify(1),
         },
       ],
       name: "Alice's Foundation 1",
@@ -98,7 +100,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
         {
           beneficiary: treasury.address,
           pct: 5000,
-          data: ethers.utils.hexlify(123123),
+          data: ethers.utils.hexlify(2),
         },
       ],
       name: "Bob's Foundation 1",
