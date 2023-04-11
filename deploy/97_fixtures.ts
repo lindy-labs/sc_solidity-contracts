@@ -77,7 +77,7 @@ const func: DeployFunction = async function (env: HardhatRuntimeEnvironment) {
         {
           beneficiary: treasury.address,
           pct: 1000,
-          data: ethers.utils.hexlify(1),
+          data: ethers.utils.hexlify(1189132202),
         },
       ],
       name: "Alice's Foundation 1",

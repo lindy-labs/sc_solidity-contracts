@@ -58,7 +58,7 @@ const func = async function (env: HardhatRuntimeEnvironment) {
 
     await donations.mint(transactionHash, batchNr, [
       {
-        destinationId: ethers.utils.hexlify(1),
+        destinationId: ethers.utils.hexlify(1189132202),
         owner: args.claimerId,
         token: LUSD.address,
         amount: args.amount,
