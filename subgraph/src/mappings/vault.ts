@@ -191,7 +191,7 @@ export function handleDepositWithdrawn(event: DepositWithdrawn): void {
 
   const vault = createVault();
 
-  claimer.principal = claimer.principal.minus(deposit.amount);
+  claimer.principal = claimer.principal.minus(event.params.amount);
   claimer.shares = claimer.shares.minus(event.params.shares);
 
   if (event.params.burned) {

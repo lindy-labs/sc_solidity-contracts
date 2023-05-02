@@ -324,6 +324,7 @@ test("handleDepositWithdrawn doesn't remove a Deposit for partial withdraws", ()
   let mockEvent = newMockEvent();
 
   const claimer = new Claimer('1');
+  claimer.principal = BigInt.fromI32(10);
   claimer.save();
 
   const deposit = new Deposit('1');
@@ -373,6 +374,7 @@ test("handleDepositWithdrawn doesn't remove a Deposit for partial withdraws", ()
   assert.fieldEquals('Foundation', '1', 'amountDeposited', '5');
   assert.fieldEquals('Foundation', '1', 'initialAmountDeposited', '10');
   assert.fieldEquals('Foundation', '1', 'shares', '5');
+  assert.fieldEquals('Claimer', '1', 'principal', '5');
 });
 
 test('handleDepositWithdrawn removes a Deposit by marking as burned', () => {
