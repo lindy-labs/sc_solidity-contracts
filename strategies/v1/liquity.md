@@ -18,7 +18,7 @@ The Metavault **receives LQTY** [**at a predetermined emission schedule**](https
 As a result, the short term APY estimate is completely unpredictable. As a result, for our frontend, we will use an arbitrary range featuring historical data from two separate epochs.
 {% endhint %}
 
-<figure><img src="../.gitbook/assets/image.png" alt=""><figcaption></figcaption></figure>
+<figure><img src="../../.gitbook/assets/image.png" alt=""><figcaption></figcaption></figure>
 
 During bear markets and bull/crab market high volatility periods, the frequency of liquidations increases, and so does the Stability Pool's revenue. Because of this **we recommend a minimum deposit duration of 1 month.**
 

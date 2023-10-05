@@ -4,6 +4,12 @@ description: Smart Contract Audits
 
 # External
 
+### ERC4626 Vault
+
+[2023-07, by Trail Of Bits](https://github.com/trailofbits/publications/blob/master/reviews/2023-07-sandclock-securityreview.pdf)
+
+[2023-04, by WatchPug](https://github.com/lindy-labs/sandclock-contracts/blob/main/audits/2023\_April\_27\_WatchPug\_Audit\_Report.pdf)
+
 ### Token
 
 [2021-06, by Christoph Michel](https://drive.google.com/file/d/1mOHOeD5bSyQBkValNKnLKqssMFiuGOGv/view?usp=sharing)
@@ -17,8 +23,6 @@ description: Smart Contract Audits
 [2021-06, by Christoph Michel](https://drive.google.com/file/d/1MmqbBU1DWjI40qXZQ52o1V4TUwuqNgNG/view?usp=sharing)
 
 [2021-09, by Solidified](https://drive.google.com/file/d/1D-uAeQtWU09G1psZQ6WKTsvGPtx5AtsX/view?usp=sharing)
-
-#### Current Architecture
 
 {% hint style="info" %}
 * Some of the audits below are in .mht format
