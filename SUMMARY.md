@@ -7,6 +7,7 @@
   * [v1](strategies/v1/README.md)
     * [Amethyst](strategies/v1/liquity.md)
   * [v2](strategies/v2/README.md)
+    * [scUSDC](strategies/v2/scusdc.md)
     * [scETH](strategies/v2/sceth.md)
 * [QUARTZ & The DAO](quartz-and-the-dao/README.md)
   * [Utility](quartz-and-the-dao/utility.md)
