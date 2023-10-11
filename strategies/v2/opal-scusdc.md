@@ -9,7 +9,7 @@ _Welcome to **Sandclock Yield USDC (scUSDC)**, a cutting-edge financial strategy
 
 ## **Overview**
 
-**scUSDC** is a sophisticated yield-generating strategy that is following the ERC4626 standard. Leveraging the power of Ethereum staking, this strategy aims to deliver consistent yield in USDC. To achieve this, scUSDC collaborates with another Sandclock strategy, scETH, while also utilizing a diverse range of lending markets such as AaveV3/V2 and Morpho, among potential future additions.
+**scUSDC** is a sophisticated yield-generating strategy that is following the ERC4626 standard. Leveraging the power of Ethereum staking, this strategy aims to deliver consistent yield in USDC. To achieve this, scUSDC collaborates with another Sandclock strategy, [scETH](https://docs.sandclock.org/current/strategies/v2/emerald-sceth), while also utilizing a diverse range of lending markets such as AaveV3/V2 and Morpho, among potential future additions.
 
 ### **Mechanism**
 
