@@ -3,13 +3,13 @@ cover: ../../.gitbook/assets/strat.jpg
 coverY: 0
 ---
 
-# scUSDC
+# Opal (scUSDC)
 
 _Welcome to **Sandclock Yield USDC (scUSDC)**, a cutting-edge financial strategy designed to generate consistent and compounded returns in USDC leveraging Ethereum staking._
 
 ## **Overview**
 
-**scUSDC is** a sophisticated yield-generating strategy that is following the ERC4626 standard. Leveraging the power of Ethereum staking, this strategy aims to deliver consistent yield in USDC. To achieve this, scUSDC collaborates with another Sandclock strategy, scETH, while also utilizing a diverse range of lending markets such as AaveV3/V2 and Morpho, among potential future additions.
+**scUSDC** is a sophisticated yield-generating strategy that is following the ERC4626 standard. Leveraging the power of Ethereum staking, this strategy aims to deliver consistent yield in USDC. To achieve this, scUSDC collaborates with another Sandclock strategy, scETH, while also utilizing a diverse range of lending markets such as AaveV3/V2 and Morpho, among potential future additions.
 
 ### **Mechanism**
 

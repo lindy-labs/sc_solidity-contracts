@@ -17,7 +17,7 @@ layout:
     visible: true
 ---
 
-# scETH
+# Emerald (scETH)
 
 **Deposit Token : **_**WETH or ETH**_
 
@@ -27,7 +27,7 @@ _Welcome to scETH's strategy guide! We've designed a smart way to help you get m
 
 This strategy is designed to maximize returns on ETH deposits by leveraging staking and lending mechanisms.
 
-It leverages the supplied WETH using flashloans, stakes the leveraged eth, supplies the wstETH as collateral and subsequently borrows weth on that collateral to payback the flashloan. The bulk of the interest is earned from staking the leveraged ETH and rest from supplying wstETH collateral. Instead of being limited to just one pre coded lending market, this strategy can use mulitple lending markets thus introducing greater flexibility, better APYs and lower risk for the investments.
+It leverages the supplied WETH using flashloans, stakes the leveraged ETH, supplies the wstETH as collateral and subsequently borrows WETH on that collateral to payback the flashloan. The bulk of the interest is earned from staking the leveraged ETH and rest from supplying wstETH collateral. Instead of being limited to just one pre coded lending market, this strategy can use mulitple lending markets thus introducing greater flexibility, better APYs and lower risk for the investments.
 
 <figure><img src="../../.gitbook/assets/IMG (1).jpg" alt=""><figcaption></figcaption></figure>
 
@@ -67,7 +67,7 @@ The best time to use this strategy is if you are HODLING ETH. If you are plannin
 
 _Smart Contract Risk_ : Despite extensive testing and audits by Trail of Bits, there's always a residual risk of a smart contract breach.
 
-_Admin getting compromised_ : Our admin operates behind a 3 of 5 signatures multisig, minimizing the risk. However, any compromise could be detrimental.. (There is a keeper address which runs the backend scripts, but the keeper has no special access to affect the funds in any way other than just to invest or disinvest funds, so the keeper being compromised poses no risk to the funds in the Vault).
+_Admin getting compromised_ : Our admin operates behind a 3 of 5 signatures multisig, minimizing the risk. However, any compromise could be detrimental. (There is a keeper address which runs the backend scripts, but the keeper has no special access to affect the funds in any way other than just to invest or disinvest funds, so the keeper being compromised poses no risk to the funds in the Vault).
 
 _Liquidation Risk_ : Borrowing WETH against wstETH poses a liquidation risk if there's a significant price deviation between them. However, WETH and wstETH are correlated assets, minimizing this risk. We also have 24/7 monitoring for price deviations exceeding 1-3%, with measures in place to prevent liquidation.
 
