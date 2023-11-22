@@ -3,6 +3,8 @@ pragma solidity =0.8.10;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
+import {IWETH} from "../interfaces/IWETH.sol";
+
 contract MockERC20 is ERC20 {
     uint8 private decimals_;
 
@@ -61,19 +63,46 @@ contract MockUST is MockERC20 {
 }
 
 contract MockAUST is MockERC20 {
-    constructor(uint256 supply)
-        MockERC20("Mock aUST", "mockaUST", 18, supply)
-    {}
+    constructor(
+        uint256 supply
+    ) MockERC20("Mock aUST", "mockaUST", 18, supply) {}
 }
 
 contract MockLUSD is MockERC20 {
-    constructor(uint256 supply)
-        MockERC20("Mock LUSD", "mockLUSD", 18, supply)
-    {}
+    constructor(
+        uint256 supply
+    ) MockERC20("Mock LUSD", "mockLUSD", 18, supply) {}
 }
 
 contract MockLQTY is MockERC20 {
-    constructor(uint256 supply)
-        MockERC20("Mock LQTY", "mockLQTY", 18, supply)
-    {}
+    constructor(
+        uint256 supply
+    ) MockERC20("Mock LQTY", "mockLQTY", 18, supply) {}
+}
+
+contract MockOSQTH is MockERC20 {
+    constructor(
+        uint256 supply
+    ) MockERC20("Mock oSQTH", "mockOSQTH", 18, supply) {}
+}
+
+contract MockWETH is MockERC20, IWETH {
+    constructor(
+        uint256 supply
+    ) MockERC20("Mock WETH", "mockWETH", 18, supply) {}
+
+    function deposit() external payable override {
+        _mint(msg.sender, msg.value);
+    }
+
+    function withdraw(uint256 _amount) external override {
+        _burn(msg.sender, _amount);
+
+        require(
+            address(this).balance >= _amount,
+            "MockWETH: insufficient balance"
+        );
+
+        payable(msg.sender).transfer(_amount);
+    }
 }

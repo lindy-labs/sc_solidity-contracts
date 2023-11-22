@@ -14,11 +14,10 @@ abstract contract MockExchange {
         exchageRates[_getExchangeRateKey(_from, _to)] = _rate;
     }
 
-    function getExchangeRate(address _from, address _to)
-        public
-        view
-        returns (uint256)
-    {
+    function getExchangeRate(
+        address _from,
+        address _to
+    ) public view returns (uint256) {
         uint256 exchageRate = exchageRates[_getExchangeRateKey(_from, _to)];
         return exchageRate > 0 ? exchageRate : 1e18;
     }
@@ -44,11 +43,10 @@ abstract contract MockExchange {
         }
     }
 
-    function _getExchangeRateKey(address _from, address _to)
-        internal
-        pure
-        returns (uint160)
-    {
+    function _getExchangeRateKey(
+        address _from,
+        address _to
+    ) internal pure returns (uint160) {
         return (uint160(_from) << 1) ^ uint160(_to);
     }
 }
