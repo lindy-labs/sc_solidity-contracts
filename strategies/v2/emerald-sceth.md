@@ -41,6 +41,8 @@ It leverages the supplied WETH using flashloans, stakes the leveraged ETH, suppl
 6. Borrow ETH from the lending protocol to payback the flashloan.
 7. Pay back the flashloan and end the transaction.
 
+> For instant withdrawals: stETH/ETH Chainlink oracle sets the redemption price. Redeem at the high point for optimal returns, considering daily variations and possible 24-hour lag.
+
 ### **Dynamic Asset Allocation**
 
 As you can see from the above steps, the lending protocol where we supply the collateral and borrow is of immense importance. Since, we would have to pay the borrow interest it is very important to only borrow from lending protocols with the least borrow interest and highest supply interest. So, we made our strategies as flexible as possible for this.
@@ -62,6 +64,21 @@ And for withdrawals, the user will only need to spend 0.00053 ETH in gas if the 
 ### **Best Time to use strategy ?**
 
 The best time to use this strategy is if you are HODLING ETH. If you are planning to HODL ETH into the bull market, then deposit your ETH in this vault and earn juicy enhanced yields on your ETH.
+
+### APY Calculation
+
+The formula used for the APY calculation is
+
+> pps : Price Per Share
+
+```
+pps.today = totalAssets.today/totalSupply.today
+pps.1monthAgo = totalAssets.1monthAgo/totalSupply.1monthAgo
+
+30-day MA APY = (pps.today - pps.1monthAgo) * 365 / 30 / pps.1monthAgo
+```
+
+_Note: The totalAssets is basically the difference between the total Collateral that the strategy holds minus the total Debt. Now the collateral is in wstEth and debt is in weth so we use a chainlink oracle to convert wstEth to weth. Since our positions are leveraged, the varying exchange rates of stEth:Eth can change the pps by a lot thus showing varying APYs. For example, if the stEth:Eth rate goes down the above calculation sees it as a loss and show a negative apy whereas if the stEth:Eth rate goes up the above calculation sees it as an extra profit and shows a very high apy. To overcome this, during our apy calculation we assume a 1:1 rate between stEth:Eth. This assures our apy is not affected by the varying stEth:Eth rates and it only shows the growth in your deposited assets._&#x20;
 
 ### **Risks**
 
