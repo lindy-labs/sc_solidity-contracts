@@ -10,10 +10,3 @@ To this end, each Metavault supports a single highly curated strategy, selected 
 
 <figure><img src="../.gitbook/assets/Frame 10124885 (1).jpg" alt=""><figcaption></figcaption></figure>
 
-We have 2 sets of strategies: v1 and v2.
-
-v1 are our old strategies following our metavault structure. These strategies are deprecated and you shouldn't deposit on them anymore.
-
-v2 are our new strategies which follow the ERC4626 Vault standard.
-
-You can find details on each of these in the next pages.
