@@ -7,7 +7,6 @@
   * [v2](strategies/v2/README.md)
     * [scETH](strategies/v2/emerald-sceth.md)
     * [scUSDC](strategies/v2/opal-scusdc.md)
-    * [scLUSD](strategies/v2/amber-sclusd.md)
 * [QUARTZ & The DAO](quartz-and-the-dao/README.md)
   * [QUARTZ](quartz-and-the-dao/quartz.md)
   * [Staking](quartz-and-the-dao/staking.md)
