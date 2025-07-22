@@ -14,22 +14,22 @@ description: v2 strategies use ERC4626 Vaults
 [opal-scusdc.md](opal-scusdc.md)
 {% endcontent-ref %}
 
-{% content-ref url="amber-sclusd.md" %}
-[amber-sclusd.md](amber-sclusd.md)
+{% content-ref url="broken-reference" %}
+[Broken link](broken-reference)
 {% endcontent-ref %}
 
-{% content-ref url="opal-scusdc-1.md" %}
-[opal-scusdc-1.md](opal-scusdc-1.md)
+{% content-ref url="broken-reference" %}
+[Broken link](broken-reference)
 {% endcontent-ref %}
 
-{% content-ref url="opal-scusdc-2.md" %}
-[opal-scusdc-2.md](opal-scusdc-2.md)
+{% content-ref url="broken-reference" %}
+[Broken link](broken-reference)
 {% endcontent-ref %}
 
-{% content-ref url="scusds.md" %}
-[scusds.md](scusds.md)
+{% content-ref url="broken-reference" %}
+[Broken link](broken-reference)
 {% endcontent-ref %}
 
-{% content-ref url="scusdt.md" %}
-[scusdt.md](scusdt.md)
+{% content-ref url="broken-reference" %}
+[Broken link](broken-reference)
 {% endcontent-ref %}

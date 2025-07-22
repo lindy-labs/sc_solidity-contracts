@@ -6,7 +6,9 @@ description: SOC 2 Compliance and Smart Contract Audits
 
 ## SOC 2 Report
 
-Sandclock is compliant with SOC 2 standards. View the auditor attestation report here:
+Sandclock is compliant with SOC 2 standards. View the auditor attestation reports here:
+
+{% file src="../.gitbook/assets/033125 Lindy Labs SOC 2 Type 1 Report.pdf" %}
 
 {% file src="../.gitbook/assets/033124 Lindy Labs SOC 2 Type 1 Report.pdf" %}
 
