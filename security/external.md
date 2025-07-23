@@ -4,6 +4,10 @@ description: SOC 2 Compliance and Smart Contract Audits
 
 # External
 
+## Third-party Audits
+
+* [Aave](https://aave.com/security)
+
 ## SOC 2 Report
 
 Sandclock is compliant with SOC 2 standards. View the auditor attestation reports here:
