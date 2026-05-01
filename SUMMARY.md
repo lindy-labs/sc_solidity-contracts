@@ -12,4 +12,3 @@
 ## Technical Documentation
 
 * [Security](security.md)
-  * [External](security/external.md)
